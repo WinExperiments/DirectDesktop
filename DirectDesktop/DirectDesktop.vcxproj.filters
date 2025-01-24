@@ -351,6 +351,12 @@
     <ClInclude Include="AccentColorHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BlurCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -370,7 +376,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="DUIAppTemplate.rc">
+    <ResourceCompile Include="DirectDesktop.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
@@ -378,13 +384,7 @@
     <Image Include="small.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="DUIAppTemplate.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Desktop\Untitled_cleanup.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\..\..\..\Desktop\Untitled2.bmp">
+    <Image Include="DirectDesktop.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

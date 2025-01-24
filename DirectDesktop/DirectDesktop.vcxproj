@@ -143,6 +143,8 @@
   <ItemGroup>
     <ClInclude Include="AccentColorHelper.h" />
     <ClInclude Include="BitmapHelper.h" />
+    <ClInclude Include="BlurCore.cpp" />
+    <ClInclude Include="BlurCore.h" />
     <ClInclude Include="ColorHelper.h" />
     <ClInclude Include="DirectUI\accessibility.h" />
     <ClInclude Include="DirectUI\AccessibleButton.h" />
@@ -261,12 +263,10 @@
     <ClCompile Include="StyleModifier.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="DUIAppTemplate.rc" />
+    <ResourceCompile Include="DirectDesktop.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Desktop\Untitled2.bmp" />
-    <Image Include="..\..\..\..\Desktop\Untitled_cleanup.bmp" />
-    <Image Include="DUIAppTemplate.ico" />
+    <Image Include="DirectDesktop.ico" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

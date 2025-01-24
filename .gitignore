@@ -363,5 +363,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-DUIAppTemplate/x64/
+DirectDesktop/x64/
 x64/Debug

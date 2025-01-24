@@ -65,7 +65,7 @@ rgb_t ImmersiveToRGB(COLORREF immersivecolor) {
 void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
 {
     UpdateAccentColor();
-    rgb_t rgbVal = {r, g, b};
+    rgb_t rgbVal = { r, g, b };
     rgbVal.r = rgbVal.r / (a / 255.0);
     rgbVal.g = rgbVal.g / (a / 255.0);
     rgbVal.b = rgbVal.b / (a / 255.0);
@@ -74,7 +74,7 @@ void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
 
     double g_hslEnhancedAccentHL = 107 - g_hslAccent.l;
 
-    hslVal.l +=  (g_hslAccent.l * hslVal.s);
+    hslVal.l += (g_hslAccent.l * hslVal.s);
 
     if (hslVal.l > g_hslEnhancedAccentHL) {
         hslVal.h = g_hslAccent.h + 0.5 * ((g_hslLightAccentH - g_hslAccent.h) * ((hslVal.l - g_hslEnhancedAccentHL) / (255.0 - g_hslEnhancedAccentHL)));
@@ -84,14 +84,17 @@ void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
     }
 
     hslVal.s = (double)hslVal.s * (double)g_hslAccent.s;
-
+    
     rgbVal = hsl2rgb(hslVal);
-
-    rgbVal.r = rgbVal.r * (a / 255.0);
-    rgbVal.g = rgbVal.g * (a / 255.0);
-    rgbVal.b = rgbVal.b * (a / 255.0);
-
+    
     r = rgbVal.r;
     g = rgbVal.g;
     b = rgbVal.b;
+}
+
+void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a)
+{
+    r = 0;
+    g = 0;
+    b = 0;
 }

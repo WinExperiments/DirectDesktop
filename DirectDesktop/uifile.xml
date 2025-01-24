@@ -1,0 +1,25 @@
+<duixml>
+	<HWNDElement resid="main" layoutpos="client" layout="verticalflowlayout(0,0,0,0)">
+		<Element id="atom(sampleText)" content="" layoutpos="top"/>
+		<Element layout="flowlayout()" layoutpos="top">
+			<CCPushButton id="atom(testButton5)" height="30rp" width="120rp" content="Initialize layout"/>
+			<CCPushButton id="atom(testButton)" height="30rp" width="120rp" content="Simulate launch" Enabled="false"/>
+			<CCPushButton id="atom(testButton2)" height="30rp" width="120rp" content="Simulate dragdrop" Enabled="false"/>
+			<CCPushButton id="atom(testButton3)" height="30rp" width="120rp" content="Simulate popup"/>
+			<CCPushButton id="atom(testButton4)" height="30rp" width="120rp" content="COLORS" Enabled="false"/>
+			<Element id="atom(itemcountstatus)" animation="alpha|s|slow|delaylong" foreground="gtc(ControlPanel,7,1,3803)" font="messagefont;115%"/>
+		</Element>
+		<Element layout="borderlayout()" layoutpos="client" padding="rect(16rp,16rp,0,0)">
+			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client" borderthickness="rect(1,1,1,1)" bordercolor="white" width="1152rp" height="648rp" background="silver">
+				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="absolute" background="argb(128,16,16,16)" width="1150rp" height="646rp" x="1" y="1" alpha ="0" animation="alpha|linear|veryfast">
+					<Element id="atom(fullscreeninner)" layout="filllayout()" layoutpos="absolute" background="20575" content="test" font="iconfont;400%" width="1150rp" height="646rp" contentalign="middlecenter" visible="false"/>
+				</Element>
+			</Element>
+		</Element>
+	</HWNDElement>
+	<Element resid="outerElem" layout="filllayout()" layoutpos="absolute" width="76rp" height="96rp" background="argb(0,255,0,0)" alpha="0" animation="alpha|s|fast">
+		<Element id="atom(iconElemShadow)" background="20575" layoutpos="absolute" width="56rp" height="56rp" animation="alpha|s|fast"/>
+		<Element id="atom(iconElem)" background="20575" layoutpos="absolute" width="48rp" height="48rp" content="icon(4,48rp,48rp,1,1,library(imageres.dll))"/>
+		<RichText id="atom(textElem)" background="20575" layoutpos="bottom" content=" " contentalign="topcenter" font="iconfont;100%"/>
+	</Element>
+</duixml>
