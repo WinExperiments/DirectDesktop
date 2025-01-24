@@ -38,7 +38,7 @@ Element* fullscreenpopup, *fullscreeninner;
 Element* itemcountstatus;
 HRESULT err;
 
-int* frame, j, k, l, n;
+int* frame, popupframe;// j, k, l;
 
 struct EventListener : public IElementListener {
 
@@ -117,8 +117,6 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 
 WNDPROC WndProc; // Window procedure data type (from Windows API)
 
-HANDLE animThreadHandle;
-
 vector<wstring> list_directory() {
     static int isFileHiddenEnabled;
     static int isFileSuperHiddenEnabled;
@@ -172,12 +170,12 @@ vector<wstring> list_directory() {
             dir_list.push_back(wstring(findData.cFileName));
         }
         runs++;
-        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes == 2) {
+        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             dir_list.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
-            if (findData.dwFileAttributes == 4) {
+            if (findData.dwFileAttributes & 4) {
                 dir_list.pop_back();
                 continue;
             }
@@ -188,12 +186,12 @@ vector<wstring> list_directory() {
     while (FindNextFileW(hFind, &findData) != 0)
     {
         dir_list.push_back(wstring(findData.cFileName));
-        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes == 2) {
+        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             dir_list.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
-            if (findData.dwFileAttributes == 4) {
+            if (findData.dwFileAttributes & 4) {
                 dir_list.pop_back();
                 continue;
             }
@@ -204,12 +202,12 @@ vector<wstring> list_directory() {
     while (FindNextFileW(hFind, &findData) != 0)
     {
         dir_list.push_back(wstring(findData.cFileName));
-        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes == 2) {
+        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             dir_list.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
-            if (findData.dwFileAttributes == 4) {
+            if (findData.dwFileAttributes & 4) {
                 dir_list.pop_back();
                 continue;
             }
@@ -361,7 +359,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 7: {
-        fullscreeninner->SetY(100 * (1 - py[n - 1]) + 1);
+        fullscreeninner->SetY(100 * (1 - py[popupframe - 1]) + 1);
         break;
     }
     case WM_USER + 8: {
@@ -404,44 +402,44 @@ unsigned long rem(LPVOID lpParam) {
     return 0;
 }
 
-unsigned long animate2(LPVOID lpParam) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(75));
-    SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
-    for (int m = 1; m <= 40; m++) {
-        j = m;
-        SendMessage(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[j] - px[j - 1]) * 800)));
-    }
-    return 0;
-}
+//unsigned long animate2(LPVOID lpParam) {
+//    std::this_thread::sleep_for(std::chrono::milliseconds(75));
+//    SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
+//    for (int m = 1; m <= 40; m++) {
+//        j = m;
+//        SendMessage(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
+//        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[j] - px[j - 1]) * 800)));
+//    }
+//    return 0;
+//}
 
-unsigned long animate3(LPVOID lpParam) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
-    SendMessage(wnd->GetHWND(), WM_USER + 5, NULL, NULL);
-    for (int m = 1; m <= 40; m++) {
-        k = m;
-        SendMessage(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[k] - px[k - 1]) * 800)));
-    }
-    return 0;
-}
+//unsigned long animate3(LPVOID lpParam) {
+//    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+//    SendMessage(wnd->GetHWND(), WM_USER + 5, NULL, NULL);
+//    for (int m = 1; m <= 40; m++) {
+//        k = m;
+//        SendMessage(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
+//        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[k] - px[k - 1]) * 800)));
+//    }
+//    return 0;
+//}
 
-unsigned long animate4(LPVOID lpParam) {
-    CubicBezier(60, px, py, 0.75, 0.45, 0.0, 1.0);
-    for (int m = 1; m <= 60; m++) {
-        l = m;
-        SendMessage(wnd->GetHWND(), WM_USER + 6, NULL, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[l] - px[l - 1]) * 50)));
-    }
-    return 0;
-}
+//unsigned long animate4(LPVOID lpParam) {
+//    CubicBezier(60, px, py, 0.75, 0.45, 0.0, 1.0);
+//    for (int m = 1; m <= 60; m++) {
+//        l = m;
+//        SendMessage(wnd->GetHWND(), WM_USER + 6, NULL, NULL);
+//        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[l] - px[l - 1]) * 50)));
+//    }
+//    return 0;
+//}
 
 unsigned long animate5(LPVOID lpParam) {
     CubicBezier(20, px, py, 0.05, 0.9, 0.3, 1.0);
     for (int m = 1; m <= 20; m++) {
-        n = m;
+        popupframe = m;
         SendMessage(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[n] - px[n - 1]) * 300)));
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[m] - px[m - 1]) * 300)));
     }
     return 0;
 }
@@ -450,54 +448,54 @@ void remove(Element* elem) {
     DWORD animThread;
     pm[index].elem = elem;
     index++;
-    animThreadHandle = CreateThread(0, 0, rem, NULL, 0, &animThread);
+    HANDLE animThreadHandle = CreateThread(0, 0, rem, NULL, 0, &animThread);
 }
 
-void dragdropAnimation() {
-    DWORD animThread;
-    animThreadHandle = CreateThread(0, 0, animate4, NULL, 0, &animThread);
-}
+//void dragdropAnimation() {
+//    DWORD animThread;
+//    animThreadHandle = CreateThread(0, 0, animate4, NULL, 0, &animThread);
+//}
 
 void fullscreenAnimation() {
     DWORD animThread;
-    animThreadHandle = CreateThread(0, 0, animate5, NULL, 0, &animThread);
+    HANDLE animThreadHandle = CreateThread(0, 0, animate5, NULL, 0, &animThread);
 }
 
 void ModifyStyle(Element* elem, Event* iev)
 {
-    HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
+    //HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     if (iev->type == Button::Click) {
-        testButton4->SetForegroundColor(ImmersiveColor);
+        //testButton4->SetForegroundColor(ImmersiveColor);
         //UpdateCache *h{}, *h2{};
         //Value* test = iconElem->GetValue(Element::ContentProp, 1, h);
         //Value* test2 = iconElem2->GetValue(Element::ContentProp, 1, h2);
-        HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
+        //HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
         //HICON ico2 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(18), IMAGE_ICON, 48, 48, LR_SHARED);
         //HICON ico3 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(148), IMAGE_ICON, 48, 48, LR_SHARED);
         //HICON ico4 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(1306), IMAGE_ICON, 48, 48, LR_SHARED);
         //HICON ico5 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(101), IMAGE_ICON, 48, 48, LR_SHARED);
         //HICON ico6 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(82), IMAGE_ICON, 48, 48, LR_SHARED);
-        HBITMAP bmp = IconToBitmap(ico);
+        //HBITMAP bmp = IconToBitmap(ico);
         //HBITMAP bmp2 = IconToBitmap(ico2);
         //HBITMAP bmp3 = IconToBitmap(ico3);
         //HBITMAP bmp4 = IconToBitmap(ico4);
         //HBITMAP bmp5 = IconToBitmap(ico5);
         //HBITMAP bmp6 = IconToBitmap(ico6);
-        HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 4);
-        IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
+        //HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 4);
+        //IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
         //IterateBitmap(bmp2, StandardBitmapPixelHandler, 1);
         //IterateBitmap(bmp3, StandardBitmapPixelHandler, 1);
         //IterateBitmap(bmp4, StandardBitmapPixelHandler, 1);
         //IterateBitmap(bmp5, StandardBitmapPixelHandler, 1);
         //IterateBitmap(bmp6, StandardBitmapPixelHandler, 1);
-        IterateBitmap(bmpShadow, StandardBitmapPixelHandler, 0);
-        Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
+        //IterateBitmap(bmpShadow, StandardBitmapPixelHandler, 0);
+        //Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
         //Value* bitmap2 = DirectUI::Value::CreateGraphic(bmp2, 2, 0xffffffff, false, false, false);
         //Value* bitmap3 = DirectUI::Value::CreateGraphic(bmp3, 2, 0xffffffff, false, false, false);
         //Value* bitmap4 = DirectUI::Value::CreateGraphic(bmp4, 2, 0xffffffff, false, false, false);
         //Value* bitmap5 = DirectUI::Value::CreateGraphic(bmp5, 2, 0xffffffff, false, false, false);
         //Value* bitmap6 = DirectUI::Value::CreateGraphic(bmp6, 2, 0xffffffff, false, false, false);
-        Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+        //Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
         //iconElem->SetValue(Element::ContentProp, 1, bitmap);
         //iconElem2->SetValue(Element::ContentProp, 1, bitmap2);
         //iconElem3->SetValue(Element::ContentProp, 1, bitmap3);
@@ -516,13 +514,13 @@ void ModifyStyle(Element* elem, Event* iev)
         //}
         //test->Release();
         //test2->Release();
-        bitmap->Release();
+        //bitmap->Release();
         //bitmap2->Release();
         //bitmap3->Release();
         //bitmap4->Release();
         //bitmap5->Release();
         //bitmap6->Release();
-        bitmapShadow->Release();
+        //bitmapShadow->Release();
     }
 }
 
@@ -587,11 +585,11 @@ void testEventListener(Element* elem, Event* iev) {
 
 bool dragdrop = 0;
 
-void testEventListener2(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
-        dragdropAnimation();
-    }
-}
+//void testEventListener2(Element* elem, Event* iev) {
+//    if (iev->type == Button::Click) {
+//        dragdropAnimation();
+//    }
+//}
 
 void testEventListener3(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
@@ -701,7 +699,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     itemcountstatus = regElem(L"itemcountstatus");
 
     assignFn(testButton, testEventListener);
-    assignFn(testButton2, testEventListener2);
+    //assignFn(testButton2, testEventListener2);
     assignFn(testButton3, testEventListener3);
     assignFn(testButton4, ModifyStyle);
     assignFn(testButton5, InitLayout);
