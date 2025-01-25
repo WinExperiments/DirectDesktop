@@ -30,12 +30,13 @@ Button* testButton4;
 Button* testButton5;
 Element* sampleText;
 Element* mainContainer;
-Element* outerElem;// *outerElem2, * outerElem3, * outerElem4, * outerElem5, * outerElem6;
-Element* iconElem;// , *iconElem2, *iconElem3, *iconElem4, *iconElem5, *iconElem6;
+Element* UIContainer;
+Element* iconElem;
 Element* iconElemShadow;
-RichText* textElem;// , * textElem2, * textElem3, * textElem4, * textElem5, * textElem6;
-Element* fullscreenpopup, *fullscreeninner;
+RichText* textElem;
+Element* fullscreenpopup, *fullscreenpopupbase, *fullscreeninner;
 Element* itemcountstatus;
+Button* emptyspace;
 HRESULT err;
 
 int* frame, popupframe;// j, k, l;
@@ -237,6 +238,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 1: {
         pm[index].elem->SetAlpha(255);
+        pm[index].elem->SetVisible(true);
         index++;
         break;
     }
@@ -270,14 +272,16 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 4: {
         for (int fIndex = 0; fIndex < smIndex; fIndex++) {
             shadowpm[fIndex].elem->SetAlpha(255);
-            shadowpm[fIndex].elem->SetWidth(56); // * (0.7 + 0.3 * bezierProgress));
-            shadowpm[fIndex].elem->SetHeight(56); // * (0.7 + 0.3 * bezierProgress));
-            shadowpm[fIndex].elem->SetX(10); // * (0.7 + 0.3 * bezierProgress));
-            shadowpm[fIndex].elem->SetY(8); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetWidth(64); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetHeight(64); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetX(6); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetY(4); // * (0.7 + 0.3 * bezierProgress));
         }
         break;
     }
     case WM_USER + 7: {
+        fullscreenpopupbase->SetVisible(true);
+        fullscreeninner->SetVisible(true);
         fullscreeninner->SetY(100 * (1 - py[popupframe - 1]) + 1);
         break;
     }
@@ -297,10 +301,10 @@ unsigned long fastin(LPVOID lpParam) {
     yValue* yV2 = (yValue*)lpParam;
     yValue* yV = (yValue*)lpParam;
     this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV2->y].y * 0.5)));
+    SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
     for (int m = 1; m <= 24; m++) {
         frame[yV->y] = m;
         SendMessageW(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
-        if (m == 8) SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
         this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 500)));
     }
     return 0;
@@ -338,6 +342,17 @@ void remove(Element* elem) {
     HANDLE animThreadHandle = CreateThread(0, 0, rem, NULL, 0, &animThread);
 }
 
+void SelectItem(Element* elem, Event* iev) {
+    if (iev->type == Button::Click) {
+        if (GetAsyncKeyState(VK_CONTROL) == 0) {
+            for (int items = 0; items < pm.size(); items++) {
+                pm[items].elem->SetSelected(false);
+            }
+        }
+        if (elem != emptyspace) elem->SetSelected(true);
+    }
+}
+
 //void dragdropAnimation() {
 //    DWORD animThread;
 //    animThreadHandle = CreateThread(0, 0, animate4, NULL, 0, &animThread);
@@ -348,16 +363,21 @@ void fullscreenAnimation() {
     HANDLE animThreadHandle = CreateThread(0, 0, animate5, NULL, 0, &animThread);
 }
 
-void ModifyStyle(Element* elem, Event* iev)
+void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
 {
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
+    static bool isColorized = 0;
     if (iev->type == Button::Click) {
+        if (elem == testButton4) {
+            isColorized = !isColorized;
+        }
+        BitmapPixelHandler type = isColorized ? StandardBitmapPixelHandler : AlphaBitmapPixelHandler;
         for (int icon = 0; icon < iconpm.size(); icon++) {
             HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
             HBITMAP bmp = IconToBitmap(ico);
-            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 4);
-            IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
-            IterateBitmap(bmpShadow, StandardBitmapPixelHandler, 0);
+            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
+            IterateBitmap(bmp, type, 1);
+            IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
             Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
             Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
             iconpm[icon].elem->SetValue(Element::ContentProp, 1, bitmap);
@@ -369,7 +389,7 @@ void ModifyStyle(Element* elem, Event* iev)
 }
 
 void testEventListener(Element* elem, Event* iev) {
-    static bool openclose = 1;
+    static bool openclose = 0;
     if (iev->type == Button::Click) {
         unsigned int count = list_directory().size();
         switch (openclose) {
@@ -454,15 +474,11 @@ void InitLayout(Element* elem, Event* iev) {
         iconpm.resize(count);
         shadowpm.resize(count);
         filepm.resize(count);
-        DWORD* animThread = new DWORD[count];
-        DWORD* animThread2 = new DWORD[count];
-        HANDLE* animThreadHandle = new HANDLE[count];
-        HANDLE* animThreadHandle2 = new HANDLE[count];
         frame = new int[count]{};
         for (int i = 0; i < count; i++) {
-            Element* outerElem;
+            Button* outerElem;
             parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
-            mainContainer->Add((Element**)&outerElem, 1);
+            UIContainer->Add((Element**)&outerElem, 1);
             iconElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElem"));
             iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
             textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
@@ -471,6 +487,7 @@ void InitLayout(Element* elem, Event* iev) {
             iconpm[index].elem = iconElem;
             shadowpm[index].elem = iconElemShadow;
             filepm[index].elem = textElem;
+            assignFn(outerElem, SelectItem);
             yValue* yV = new yValue{ i };
             index++;
             smIndex++;
@@ -479,15 +496,9 @@ void InitLayout(Element* elem, Event* iev) {
                 x = 0;
                 y += 100;
             }
-            animThreadHandle[i] = CreateThread(0, 0, animate, NULL, 0, &(animThread[i]));
-            animThreadHandle2[i] = CreateThread(0, 0, fastin, (LPVOID)yV, 0, &(animThread2[i]));
         }
         index = 0;
         files.clear();
-        delete[] animThread;
-        delete[] animThread2;
-        delete[] animThreadHandle;
-        delete[] animThreadHandle2;
         testButton->SetEnabled(true);
         testButton5->SetEnabled(false);
     }
@@ -520,15 +531,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     testButton4 = regBtn(L"testButton4");
     testButton5 = regBtn(L"testButton5");
     mainContainer = regElem(L"mainContainer");
+    UIContainer = regElem(L"UIContainer");
     fullscreenpopup = regElem(L"fullscreenpopup");
+    fullscreenpopupbase = regElem(L"fullscreenpopupbase");
     fullscreeninner = regElem(L"fullscreeninner");
     itemcountstatus = regElem(L"itemcountstatus");
+    emptyspace = regBtn(L"emptyspace");
 
     assignFn(testButton, testEventListener);
     //assignFn(testButton2, testEventListener2);
     assignFn(testButton3, testEventListener3);
-    assignFn(testButton4, ModifyStyle);
+    assignFn(testButton4, ApplyIcons);
     assignFn(testButton5, InitLayout);
+    assignFn(testButton5, testEventListener);
+    assignFn(testButton5, ApplyIcons);
+    assignFn(emptyspace, SelectItem);
 
     wnd->Host(pMain);
 

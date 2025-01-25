@@ -98,3 +98,11 @@ void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a)
     g = 0;
     b = 0;
 }
+
+void AlphaBitmapPixelHandler(int& r, int& g, int& b, int& a)
+{
+    rgb_t rgbVal = { r, g, b };
+    r = rgbVal.r / (a / 255.0);
+    g = rgbVal.g / (a / 255.0);
+    b = rgbVal.b / (a / 255.0);
+}

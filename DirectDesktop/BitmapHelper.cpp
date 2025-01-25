@@ -42,7 +42,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     return hNewBitmap;
 }
 
-bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, bool type) // type: true = color, false = blur
+bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0 = original, 1 = color, 2 = blur
 {
     BITMAP bm;
     GetObject(hbm, sizeof(bm), &bm);
