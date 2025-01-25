@@ -162,13 +162,11 @@ vector<wstring> list_directory() {
     StringCchPrintfW(full_path3, 260, L"%s\\OneDrive\\Desktop\\*", envName.data());
     vector<wstring> dir_list;
 
-    hFind = FindFirstFileW(full_path, &findData);
     int runs = 0;
+    hFind = FindFirstFileW(full_path, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
-        if (runs > 0) {
-            dir_list.push_back(wstring(findData.cFileName));
-        }
+        if (runs > 0) dir_list.push_back(wstring(findData.cFileName));
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             dir_list.pop_back();
@@ -182,10 +180,12 @@ vector<wstring> list_directory() {
         }
     }
 
+    runs = 0;
     hFind = FindFirstFileW(full_path2, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
-        dir_list.push_back(wstring(findData.cFileName));
+        if (runs > 0) dir_list.push_back(wstring(findData.cFileName));
+        runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             dir_list.pop_back();
             continue;
@@ -198,10 +198,12 @@ vector<wstring> list_directory() {
         }
     }
 
+    runs = 0;
     hFind = FindFirstFileW(full_path3, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
-        dir_list.push_back(wstring(findData.cFileName));
+        if (runs > 0) dir_list.push_back(wstring(findData.cFileName));
+        runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             dir_list.pop_back();
             continue;
@@ -215,11 +217,13 @@ vector<wstring> list_directory() {
     }
 
     FindClose(hFind);
-
     return dir_list;
 }
 
 vector<parameters> pm;
+vector<parameters> iconpm;
+vector<parameters> shadowpm;
+vector<parameters> filepm;
 int index = 0, smIndex = 0, smIndex2 = 0;
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -234,52 +238,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 1: {
         pm[index].elem->SetAlpha(255);
         index++;
-        //outerElem->SetX(mainContainer->GetWidth() * 0.15 * (1 - py[i - 1]));
-        //outerElem->SetY(mainContainer->GetHeight() * 0.15 * (1 - py[i - 1]));
-        //outerElem2->SetWidth(76 * (0.7 + 0.3 * py[i - 1]));
-        //outerElem2->SetHeight(96 * (0.7 + 0.3 * py[i - 1]));
-        //outerElem2->SetX((mainContainer->GetWidth() - 152) * 0.15 * (1 - py[i - 1]) + 76);
-        //outerElem2->SetY(mainContainer->GetHeight() * 0.15 * (1 - py[i - 1]));
-        //outerElem5->SetWidth(76 * (0.7 + 0.3 * py[i - 1]));
-        //outerElem5->SetHeight(96 * (0.7 + 0.3 * py[i - 1]));
-        //outerElem5->SetX((mainContainer->GetWidth() - 1520) * 0.15 * (1 - py[i - 1]) + 760);
-        //outerElem5->SetY((mainContainer->GetHeight()) * 0.15 * (1 - py[i - 1]));
-        //iconElem->SetWidth(48 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem->SetHeight(48 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem->SetX(14 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem->SetY(14 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem2->SetWidth(48 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem2->SetHeight(48 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem2->SetX(14 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem2->SetY(14 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem5->SetWidth(48 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem5->SetHeight(48 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem5->SetX(14 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //iconElem5->SetY(14 * (0.7 + 0.3 * py[i - 2]) + 1);
-        //float f = ((textElem->GetWidth() / 76.0) * 100);
-        //char buffer[32];
-        //sprintf_s(buffer, "iconfont;%d", (int)f);
-        //strcat_s(buffer, "%");
-        //textElem->SetContentString((UCString)list_directory()[10].c_str());
-        //textElem->SetFont((UCString)CharToWChar(buffer));
-        //textElem->SetWidth(outerElem->GetWidth());
-        //textElem->SetHeight(outerElem->GetHeight() * 0.35);
-        //textElem2->SetFont((UCString)CharToWChar(buffer));
-        //textElem2->SetWidth(outerElem2->GetWidth());
-        //textElem2->SetHeight(outerElem2->GetHeight() * 0.35);
-        //textElem4->SetFont((UCString)CharToWChar(buffer));
-        //textElem4->SetWidth(outerElem4->GetWidth());
-        //textElem4->SetHeight(outerElem4->GetHeight() * 0.35);
-        //textElem5->SetFont((UCString)CharToWChar(buffer));
-        //textElem5->SetWidth(outerElem5->GetWidth());
-        //textElem5->SetHeight(outerElem5->GetHeight() * 0.35);
-        //textElem6->SetFont((UCString)CharToWChar(buffer));
-        //textElem6->SetWidth(outerElem6->GetWidth());
-        //textElem6->SetHeight(outerElem6->GetHeight() * 0.35);
         break;
     }
     case WM_USER + 2: {
         pm[index].elem->SetAlpha(0);
+        shadowpm[index].elem->SetAlpha(0);
         index++;
         break;
     }
@@ -288,88 +251,34 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             double bezierProgress = py[frame[fIndex] - 1];
             pm[fIndex].elem->SetWidth(76 * (0.7 + 0.3 * bezierProgress));
             pm[fIndex].elem->SetHeight(96 * (0.7 + 0.3 * bezierProgress));
-            pm[fIndex].elem->SetX((mainContainer->GetWidth() - 2 * pm[fIndex].x) * 0.15 * (1 - bezierProgress) + pm[fIndex].x);
-            pm[fIndex].elem->SetY((mainContainer->GetHeight() - 2 * pm[fIndex].y) * 0.15 * (1 - bezierProgress) + pm[fIndex].y);
+            pm[fIndex].elem->SetX(round((mainContainer->GetWidth() - 2 * pm[fIndex].x) * 0.15 * (1 - bezierProgress) + pm[fIndex].x));
+            pm[fIndex].elem->SetY(round((mainContainer->GetHeight() - 2 * pm[fIndex].y) * 0.15 * (1 - bezierProgress) + pm[fIndex].y));
+            //float f = ((pm[fIndex].elem->GetWidth() / 76.0) * 100);
+            //wchar_t buffer[32];
+            //swprintf_s(buffer, L"iconfont;%d", (int)f);
+            //wcscat_s(buffer, L"%");
+            //filepm[fIndex].elem->SetWidth(pm[fIndex].elem->GetWidth());
+            filepm[fIndex].elem->SetHeight(pm[fIndex].elem->GetHeight() * 0.35);
+            iconpm[fIndex].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
+            iconpm[fIndex].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+            iconpm[fIndex].elem->SetX(round(14 * (0.7 + 0.3 * bezierProgress)));
+            iconpm[fIndex].elem->SetY(round(10 * (0.7 + 0.3 * bezierProgress)));
+            //filepm[fIndex].elem->SetFont((UCString)buffer);
         }
         break;
     }
-    case WM_USER + 22: { // used to be 2
-        //outerElem3->SetWidth(76 * (0.7 + 0.3 * py[j - 1]));
-        //outerElem3->SetHeight(96 * (0.7 + 0.3 * py[j - 1]));
-        //outerElem3->SetX((mainContainer->GetWidth() - 152) * 0.15 * (1 - py[j - 1]) + 76);
-        //outerElem3->SetY((mainContainer->GetHeight() - 192) * 0.15 * (1 - py[j - 1]) + 96);
-        //iconElem3->SetWidth(48 * (0.7 + 0.3 * py[j - 2]) + 1);
-        //iconElem3->SetHeight(48 * (0.7 + 0.3 * py[j - 2]) + 1);
-        //iconElem3->SetX(14 * (0.7 + 0.3 * py[j - 2]) + 1);
-        //iconElem3->SetY(14 * (0.7 + 0.3 * py[j - 2]) + 1);
-        //float f = ((textElem->GetWidth() / 76.0) * 100);
-        //char buffer[32];
-        //sprintf_s(buffer, "iconfont;%d", (int)f);
-        //strcat_s(buffer, "%");
-        //textElem3->SetFont((UCString)CharToWChar(buffer));
-        //textElem3->SetWidth(outerElem3->GetWidth());
-        //textElem3->SetHeight(outerElem3->GetHeight() * 0.35);
-        break;
-    }
-    case WM_USER + 333: { //used to be 3
-        //outerElem4->SetWidth(76 * (0.7 + 0.3 * py[k - 1]));
-        //outerElem4->SetHeight(96 * (0.7 + 0.3 * py[k - 1]));
-        //outerElem4->SetX((mainContainer->GetWidth() - 304) * 0.15 * (1 - py[k - 1]) + 152);
-        //outerElem4->SetY((mainContainer->GetHeight() - 384) * 0.15 * (1 - py[k - 1]) + 192);
-        //outerElem6->SetWidth(76 * (0.7 + 0.3 * py[k - 1]));
-        //outerElem6->SetHeight(96 * (0.7 + 0.3 * py[k - 1]));
-        //outerElem6->SetX((mainContainer->GetWidth() - 1368) * 0.15 * (1 - py[k - 1]) + 684);
-        //outerElem6->SetY((mainContainer->GetHeight() - 384) * 0.15 * (1 - py[k - 1]) + 192);
-        //iconElem4->SetWidth(48 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem4->SetHeight(48 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem4->SetX(14 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem4->SetY(14 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem6->SetWidth(48 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem6->SetHeight(48 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem6->SetX(14 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //iconElem6->SetY(14 * (0.7 + 0.3 * py[k - 2]) + 1);
-        //float f = ((textElem->GetWidth() / 76.0) * 100);
-        //char buffer[32];
-        //sprintf_s(buffer, "iconfont;%d", (int)f);
-        //strcat_s(buffer, "%");
-        break;
-    }
-    case WM_USER + 4444: {
-        //outerElem3->SetAlpha(255);
-        break;
-    }
-    case WM_USER + 55555: {
-        //outerElem4->SetAlpha(255);
-        //outerElem6->SetAlpha(255);
-        break;
-    }
-    case WM_USER + 666666: {
-        //outerElem->SetX(800 * py[l - 1]);
-        //outerElem->SetY(500 * py[l - 1]);
-        //outerElem2->SetX(76 + 724 * py[l - 1]);
-        //outerElem2->SetY(500 * py[l - 1]);
-        //outerElem3->SetX(76 + 724 * py[l - 1]);
-        //outerElem3->SetY(96 + 404 * py[l - 1]);
-        //outerElem4->SetX(152 + 648 * py[l - 1]);
-        //outerElem4->SetY(192 + 308 * py[l - 1]);
-        //outerElem5->SetX(760 + 40 * py[l - 1]);
-        //outerElem5->SetY(500 * py[l - 1]);
-        //outerElem6->SetX(684 + 116 * py[l - 1]);
-        //outerElem6->SetY(192 + 304 * py[l - 1]);
+    case WM_USER + 4: {
+        for (int fIndex = 0; fIndex < smIndex; fIndex++) {
+            shadowpm[fIndex].elem->SetAlpha(255);
+            shadowpm[fIndex].elem->SetWidth(56); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetHeight(56); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetX(10); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetY(8); // * (0.7 + 0.3 * bezierProgress));
+        }
         break;
     }
     case WM_USER + 7: {
         fullscreeninner->SetY(100 * (1 - py[popupframe - 1]) + 1);
-        break;
-    }
-    case WM_USER + 8: {
-        //iconElemShadow->SetAlpha(0);
-        break;
-    }
-    case WM_USER + 9: {
-        //iconElemShadow->SetX(iconElem->GetX() - 4);
-        //iconElemShadow->SetY(iconElem->GetY() - 2);
-        //iconElemShadow->SetAlpha(255);
         break;
     }
     }
@@ -391,7 +300,7 @@ unsigned long fastin(LPVOID lpParam) {
     for (int m = 1; m <= 24; m++) {
         frame[yV->y] = m;
         SendMessageW(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
-        //if (m == 18) SendMessage(wnd->GetHWND(), WM_USER + 9, (WPARAM)lpParam, NULL);
+        if (m == 8) SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
         this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 500)));
     }
     return 0;
@@ -401,28 +310,6 @@ unsigned long rem(LPVOID lpParam) {
     SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
     return 0;
 }
-
-//unsigned long animate2(LPVOID lpParam) {
-//    std::this_thread::sleep_for(std::chrono::milliseconds(75));
-//    SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
-//    for (int m = 1; m <= 40; m++) {
-//        j = m;
-//        SendMessage(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
-//        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[j] - px[j - 1]) * 800)));
-//    }
-//    return 0;
-//}
-
-//unsigned long animate3(LPVOID lpParam) {
-//    std::this_thread::sleep_for(std::chrono::milliseconds(150));
-//    SendMessage(wnd->GetHWND(), WM_USER + 5, NULL, NULL);
-//    for (int m = 1; m <= 40; m++) {
-//        k = m;
-//        SendMessage(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
-//        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[k] - px[k - 1]) * 800)));
-//    }
-//    return 0;
-//}
 
 //unsigned long animate4(LPVOID lpParam) {
 //    CubicBezier(60, px, py, 0.75, 0.45, 0.0, 1.0);
@@ -463,64 +350,21 @@ void fullscreenAnimation() {
 
 void ModifyStyle(Element* elem, Event* iev)
 {
-    //HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
+    HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     if (iev->type == Button::Click) {
-        //testButton4->SetForegroundColor(ImmersiveColor);
-        //UpdateCache *h{}, *h2{};
-        //Value* test = iconElem->GetValue(Element::ContentProp, 1, h);
-        //Value* test2 = iconElem2->GetValue(Element::ContentProp, 1, h2);
-        //HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
-        //HICON ico2 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(18), IMAGE_ICON, 48, 48, LR_SHARED);
-        //HICON ico3 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(148), IMAGE_ICON, 48, 48, LR_SHARED);
-        //HICON ico4 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(1306), IMAGE_ICON, 48, 48, LR_SHARED);
-        //HICON ico5 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(101), IMAGE_ICON, 48, 48, LR_SHARED);
-        //HICON ico6 = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(82), IMAGE_ICON, 48, 48, LR_SHARED);
-        //HBITMAP bmp = IconToBitmap(ico);
-        //HBITMAP bmp2 = IconToBitmap(ico2);
-        //HBITMAP bmp3 = IconToBitmap(ico3);
-        //HBITMAP bmp4 = IconToBitmap(ico4);
-        //HBITMAP bmp5 = IconToBitmap(ico5);
-        //HBITMAP bmp6 = IconToBitmap(ico6);
-        //HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 4);
-        //IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
-        //IterateBitmap(bmp2, StandardBitmapPixelHandler, 1);
-        //IterateBitmap(bmp3, StandardBitmapPixelHandler, 1);
-        //IterateBitmap(bmp4, StandardBitmapPixelHandler, 1);
-        //IterateBitmap(bmp5, StandardBitmapPixelHandler, 1);
-        //IterateBitmap(bmp6, StandardBitmapPixelHandler, 1);
-        //IterateBitmap(bmpShadow, StandardBitmapPixelHandler, 0);
-        //Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
-        //Value* bitmap2 = DirectUI::Value::CreateGraphic(bmp2, 2, 0xffffffff, false, false, false);
-        //Value* bitmap3 = DirectUI::Value::CreateGraphic(bmp3, 2, 0xffffffff, false, false, false);
-        //Value* bitmap4 = DirectUI::Value::CreateGraphic(bmp4, 2, 0xffffffff, false, false, false);
-        //Value* bitmap5 = DirectUI::Value::CreateGraphic(bmp5, 2, 0xffffffff, false, false, false);
-        //Value* bitmap6 = DirectUI::Value::CreateGraphic(bmp6, 2, 0xffffffff, false, false, false);
-        //Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
-        //iconElem->SetValue(Element::ContentProp, 1, bitmap);
-        //iconElem2->SetValue(Element::ContentProp, 1, bitmap2);
-        //iconElem3->SetValue(Element::ContentProp, 1, bitmap3);
-        //iconElem4->SetValue(Element::ContentProp, 1, bitmap4);
-        //iconElem5->SetValue(Element::ContentProp, 1, bitmap5);
-        //iconElem6->SetValue(Element::ContentProp, 1, bitmap6);
-        //iconElemShadow->SetValue(Element::ContentProp, 1, bitmapShadow);
-        // 
-        //if (samplecolor != NULL) {
-
-        //    samplecolor->SetValue(Element::BackgroundProp, 1, bitmap);
-        //    samplecolor->SetForegroundColor(btnforeground);
-        //}
-        //if (tabPill != NULL) {
-        //    tabPill->SetValue(Element::ContentProp, 1, bitmap2);
-        //}
-        //test->Release();
-        //test2->Release();
-        //bitmap->Release();
-        //bitmap2->Release();
-        //bitmap3->Release();
-        //bitmap4->Release();
-        //bitmap5->Release();
-        //bitmap6->Release();
-        //bitmapShadow->Release();
+        for (int icon = 0; icon < iconpm.size(); icon++) {
+            HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
+            HBITMAP bmp = IconToBitmap(ico);
+            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 4);
+            IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
+            IterateBitmap(bmpShadow, StandardBitmapPixelHandler, 0);
+            Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
+            Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+            iconpm[icon].elem->SetValue(Element::ContentProp, 1, bitmap);
+            shadowpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShadow);
+            bitmap->Release();
+            bitmapShadow->Release();
+        }
     }
 }
 
@@ -569,17 +413,6 @@ void testEventListener(Element* elem, Event* iev) {
             break;
         }
         }
-        //switch (outerElem->GetAlpha()) {
-        //case 0:
-        //    outerElem->SetAlpha(255);
-
-        //    startAnimation();
-        //    break;
-        //case 255:
-        //    outerElem->SetAlpha(0);
-
-        //    break;
-        //}
     }
 }
 
@@ -607,7 +440,8 @@ void testEventListener3(Element* elem, Event* iev) {
 
 void InitLayout(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
-        unsigned int count = list_directory().size();
+        vector<wstring> files = list_directory();
+        unsigned int count = files.size();
         wchar_t icount[32];
         swprintf_s(icount, L"        Found %d items!", count);
         itemcountstatus->SetContentString((UCString)icount);
@@ -617,16 +451,26 @@ void InitLayout(Element* elem, Event* iev) {
         smIndex = 0;
         CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
         pm.resize(count);
+        iconpm.resize(count);
+        shadowpm.resize(count);
+        filepm.resize(count);
         DWORD* animThread = new DWORD[count];
         DWORD* animThread2 = new DWORD[count];
         HANDLE* animThreadHandle = new HANDLE[count];
         HANDLE* animThreadHandle2 = new HANDLE[count];
         frame = new int[count]{};
         for (int i = 0; i < count; i++) {
-            Element* elBuffer;
-            parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&elBuffer);
-            mainContainer->Add((Element**)&elBuffer, 1);
-            pm[index].elem = elBuffer, pm[index].x = x, pm[index].y = y;
+            Element* outerElem;
+            parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
+            mainContainer->Add((Element**)&outerElem, 1);
+            iconElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElem"));
+            iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
+            textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
+            textElem->SetContentString((UCString)files[i].c_str());
+            pm[index].elem = outerElem, pm[index].x = x, pm[index].y = y;
+            iconpm[index].elem = iconElem;
+            shadowpm[index].elem = iconElemShadow;
+            filepm[index].elem = textElem;
             yValue* yV = new yValue{ i };
             index++;
             smIndex++;
@@ -639,6 +483,7 @@ void InitLayout(Element* elem, Event* iev) {
             animThreadHandle2[i] = CreateThread(0, 0, fastin, (LPVOID)yV, 0, &(animThread2[i]));
         }
         index = 0;
+        files.clear();
         delete[] animThread;
         delete[] animThread2;
         delete[] animThreadHandle;
@@ -675,25 +520,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     testButton4 = regBtn(L"testButton4");
     testButton5 = regBtn(L"testButton5");
     mainContainer = regElem(L"mainContainer");
-    //outerElem = regElem(L"outerElem");
-    //iconElem = (Element*)
-    iconElemShadow = regElem(L"iconElemShadow");
-    textElem = regRichText(L"textElem");
-    //outerElem2 = regElem(L"outerElem2");
-    //iconElem2 = regElem(L"iconElem2");
-    //textElem2 = regRichText(L"textElem2");
-    //outerElem3 = regElem(L"outerElem3");
-    //iconElem3 = regElem(L"iconElem3");
-    //textElem3 = regRichText(L"textElem3");
-    //outerElem4 = regElem(L"outerElem4");
-    //iconElem4 = regElem(L"iconElem4");
-    //textElem4 = regRichText(L"textElem4");
-    //outerElem5 = regElem(L"outerElem5");
-    //iconElem5 = regElem(L"iconElem5");
-    //textElem5 = regRichText(L"textElem5");
-    //outerElem6 = regElem(L"outerElem6");
-    //iconElem6 = regElem(L"iconElem6");
-    //textElem6 = regRichText(L"textElem6");
     fullscreenpopup = regElem(L"fullscreenpopup");
     fullscreeninner = regElem(L"fullscreeninner");
     itemcountstatus = regElem(L"itemcountstatus");
