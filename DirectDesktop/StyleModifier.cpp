@@ -66,9 +66,6 @@ void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
 {
     UpdateAccentColor();
     rgb_t rgbVal = { r, g, b };
-    rgbVal.r = rgbVal.r / (a / 255.0);
-    rgbVal.g = rgbVal.g / (a / 255.0);
-    rgbVal.b = rgbVal.b / (a / 255.0);
 
     hsl_t hslVal = rgb2hsl(rgbVal);
 
@@ -102,7 +99,7 @@ void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a)
 void AlphaBitmapPixelHandler(int& r, int& g, int& b, int& a)
 {
     rgb_t rgbVal = { r, g, b };
-    r = rgbVal.r / (a / 255.0);
-    g = rgbVal.g / (a / 255.0);
-    b = rgbVal.b / (a / 255.0);
+    r = rgbVal.r;
+    g = rgbVal.g;
+    b = rgbVal.b;
 }

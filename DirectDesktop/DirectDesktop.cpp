@@ -10,6 +10,7 @@
 #include <cmath>
 #include <vector>
 #include <WinUser.h>
+#include <ShObjIdl.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 
@@ -161,6 +162,7 @@ wstring hideExt(const wstring& filename, bool isEnabled) {
     }
 }
 
+vector<wstring> listDirBuffer;
 vector<wstring> list_directory() {
     static int isFileHiddenEnabled;
     static int isFileSuperHiddenEnabled;
@@ -203,9 +205,9 @@ vector<wstring> list_directory() {
     }
     WIN32_FIND_DATAW findData;
     HANDLE hFind = INVALID_HANDLE_VALUE;
-    wchar_t full_path[260];
-    wchar_t full_path2[260];
-    wchar_t full_path3[260];
+    wchar_t* full_path = new wchar_t[260];
+    wchar_t* full_path2 = new wchar_t[260];
+    wchar_t* full_path3 = new wchar_t[260];
     DWORD d = GetEnvironmentVariableW(L"userprofile", 0, 0);
     DWORD d2 = GetEnvironmentVariableW(L"PUBLIC", 0, 0);
     vector<wchar_t> envName(d);
@@ -218,18 +220,27 @@ vector<wstring> list_directory() {
     vector<wstring> dir_list;
 
     int runs = 0;
+    wchar_t buffer[260];
+    size_t asterisk = ((wstring)full_path).find(L"*");
+    size_t asterisk2 = ((wstring)full_path2).find(L"*");
+    size_t asterisk3 = ((wstring)full_path3).find(L"*");
+    wstring full_path_truncated = ((wstring)full_path).substr(0, asterisk);
+    wstring full_path2_truncated = ((wstring)full_path2).substr(0, asterisk2);
+    wstring full_path3_truncated = ((wstring)full_path3).substr(0, asterisk3);
     hFind = FindFirstFileW(full_path, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
         if (runs > 0) {
             shortpm.push_back({NULL, NULL, NULL});
             dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
+            listDirBuffer.push_back(full_path_truncated + wstring(findData.cFileName));
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             shortIndex--;
             shortpm.pop_back();
             dir_list.pop_back();
+            listDirBuffer.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
@@ -237,6 +248,7 @@ vector<wstring> list_directory() {
                 shortIndex--;
                 shortpm.pop_back();
                 dir_list.pop_back();
+                listDirBuffer.pop_back();
                 continue;
             }
         }
@@ -249,12 +261,14 @@ vector<wstring> list_directory() {
         if (runs > 0) {
             shortpm.push_back({ NULL, NULL, NULL });
             dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
+            listDirBuffer.push_back(full_path2_truncated + wstring(findData.cFileName));
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             shortIndex--;
             shortpm.pop_back();
             dir_list.pop_back();
+            listDirBuffer.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
@@ -262,6 +276,7 @@ vector<wstring> list_directory() {
                 shortIndex--;
                 shortpm.pop_back();
                 dir_list.pop_back();
+                listDirBuffer.pop_back();
                 continue;
             }
         }
@@ -274,12 +289,14 @@ vector<wstring> list_directory() {
         if (runs > 0) {
             shortpm.push_back({ NULL, NULL, NULL });
             dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
+            listDirBuffer.push_back(full_path3_truncated + wstring(findData.cFileName));
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             shortIndex--;
             shortpm.pop_back();
             dir_list.pop_back();
+            listDirBuffer.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
@@ -287,13 +304,43 @@ vector<wstring> list_directory() {
                 shortIndex--;
                 shortpm.pop_back();
                 dir_list.pop_back();
+                listDirBuffer.pop_back();
                 continue;
             }
         }
     }
 
+    delete[] full_path;
+    delete[] full_path2;
+    delete[] full_path3;
+    envName.clear();
+    envName2.clear();
+
     FindClose(hFind);
     return dir_list;
+}
+
+HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
+    HRESULT hr = CoInitialize(NULL);
+
+    IShellItem* pShellItem{};
+    hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
+
+    IShellItemImageFactory* pImageFactory{};
+    hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
+    pShellItem->Release();
+
+    SIZE size = { width, height };
+    HBITMAP hBitmap{};
+    hr = pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap);
+    pImageFactory->Release();
+
+    if (SUCCEEDED(hr)) {
+        CoUninitialize();
+        return hBitmap;
+    }
+
+    CoUninitialize();
 }
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -313,39 +360,39 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 1: {
-            pm[wParam].elem->SetAlpha(255);
-            pm[wParam].elem->SetVisible(true);
+        //pm[wParam].elem->SetAlpha(255);
+        pm[wParam].elem->SetVisible(true);
         break;
     }
     case WM_USER + 3: {
-            double bezierProgress = py[frame[wParam] - 1];
-            pm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-            pm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
-            pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
-            pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
-            float f = ((pm[wParam].elem->GetWidth() / 76.0) * 100);
-            wchar_t buffer[32];
-            swprintf_s(buffer, L"iconfont;%d", (int)f);
-            wcscat_s(buffer, L"%");
-            filepm[wParam].elem->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
-            iconpm[wParam].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
-            iconpm[wParam].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
-            iconpm[wParam].elem->SetX(round(iconPadding * (0.7 + 0.3 * bezierProgress)));
-            iconpm[wParam].elem->SetY(round((iconPadding * 0.72) * (0.7 + 0.3 * bezierProgress)));
-            filepm[wParam].elem->SetFont((UCString)buffer);
+        double bezierProgress = py[frame[wParam] - 1];
+        pm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
+        pm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
+        pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
+        pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
+        float f = ((pm[wParam].elem->GetWidth() / 76.0) * 100);
+        wchar_t buffer[32];
+        swprintf_s(buffer, L"iconfont;%d", (int)f);
+        wcscat_s(buffer, L"%");
+        filepm[wParam].elem->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
+        iconpm[wParam].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam].elem->SetX(round(iconPadding * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam].elem->SetY(round((iconPadding * 0.72) * (0.7 + 0.3 * bezierProgress)));
+        filepm[wParam].elem->SetFont((UCString)buffer);
         break;
     }
     case WM_USER + 4: {
-            shadowpm[wParam].elem->SetAlpha(255);
-            shadowpm[wParam].elem->SetWidth(64);
-            shadowpm[wParam].elem->SetHeight(64);
-            shadowpm[wParam].elem->SetX(iconPadding - 8);
-            shadowpm[wParam].elem->SetY((iconPadding * 0.72) - 6);
-            shortpm[wParam].elem->SetAlpha(255);
-            shortpm[wParam].elem->SetWidth(32);
-            shortpm[wParam].elem->SetHeight(32);
-            shortpm[wParam].elem->SetX(iconPadding);
-            shortpm[wParam].elem->SetY((iconPadding * 0.72) + 16);
+        shadowpm[wParam].elem->SetAlpha(255);
+        shadowpm[wParam].elem->SetWidth(64);
+        shadowpm[wParam].elem->SetHeight(64);
+        shadowpm[wParam].elem->SetX(iconPadding - 8);
+        shadowpm[wParam].elem->SetY((iconPadding * 0.72) - 6);
+        shortpm[wParam].elem->SetAlpha(255);
+        shortpm[wParam].elem->SetWidth(32);
+        shortpm[wParam].elem->SetHeight(32);
+        shortpm[wParam].elem->SetX(iconPadding);
+        shortpm[wParam].elem->SetY((iconPadding * 0.72) + 16);
         break;
     }
     case WM_USER + 7: {
@@ -360,14 +407,14 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 unsigned long animate(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
-    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
+    //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 1, yV->y, NULL);
     return 0;
 }
 
 unsigned long fastin(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
-    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
+    //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 4, yV->y, NULL);
     //for (int m = 1; m <= 24; m++) {
         frame[yV->y] = 24;
@@ -428,9 +475,10 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
         }
         BitmapPixelHandler type = isColorized ? StandardBitmapPixelHandler : AlphaBitmapPixelHandler;
         for (int icon = 0; icon < iconpm.size(); icon++) {
-            HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
+            HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(2), IMAGE_ICON, 48, 48, LR_SHARED);
             HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
             HBITMAP bmp = IconToBitmap(ico);
+            bmp = GetShellItemImage(listDirBuffer[icon].c_str(), 48, 48);
             HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
             HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
             IterateBitmap(bmp, type, 1);
@@ -442,6 +490,11 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
             iconpm[icon].elem->SetValue(Element::ContentProp, 1, bitmap);
             shadowpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShadow);
             if (shortpm[icon].x == 1) shortpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
+            DeleteObject(ico);
+            DeleteObject(icoShortcut);
+            DeleteObject(bmp);
+            DeleteObject(bmpShadow);
+            DeleteObject(bmpShortcut);
             bitmap->Release();
             bitmapShadow->Release();
             bitmapShortcut->Release();
@@ -473,15 +526,18 @@ void testEventListener3(Element* elem, Event* iev) {
 
 void InitLayout(Element* elem, Event* iev) {
     static bool openclose = 0;
-    Event* testEvent = iev;
+    wchar_t icount[32];
     if (iev->type == Button::Click) {
         vector<wstring> files = list_directory();
         unsigned int count = files.size();
-        wchar_t icount[32];
         testButton->SetEnabled(true);
         testButton5->SetEnabled(false);
         switch (openclose) {
         case 0: {
+            Button* emptyspace;
+            parser->CreateElement((UCString)L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
+            UIContainer->Add((Element**)&emptyspace, 1);
+            assignFn(emptyspace, SelectItem);
             swprintf_s(icount, L"        Found %d items!", count);
             itemcountstatus->SetContentString((UCString)icount);
             itemcountstatus->SetVisible(true); itemcountstatus->SetAlpha(0);
@@ -538,6 +594,7 @@ void InitLayout(Element* elem, Event* iev) {
         }
         case 1: {
             UIContainer->DestroyAll(true);
+            listDirBuffer.clear();
             frame.clear();
             pm.clear();
             iconpm.clear();
@@ -592,7 +649,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     fullscreenpopupbase = regElem(L"fullscreenpopupbase");
     fullscreeninner = regElem(L"fullscreeninner");
     itemcountstatus = regElem(L"itemcountstatus");
-    emptyspace = regBtn(L"emptyspace");
 
     assignFn(testButton, testEventListener);
     assignFn(testButton, ApplyIcons);
@@ -601,7 +657,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     assignFn(testButton4, ApplyIcons);
     assignFn(testButton5, InitLayout);
     assignFn(testButton5, ApplyIcons);
-    assignFn(emptyspace, SelectItem);
 
     wnd->Host(pMain);
 
