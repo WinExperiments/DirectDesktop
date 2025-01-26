@@ -1,22 +1,22 @@
 <duixml>
-	<HWNDElement resid="main" layoutpos="client" layout="verticalflowlayout(0,0,0,0)" sheet="default">
+	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="flowlayout()" layoutpos="top">
-			<CCPushButton id="atom(testButton5)" height="30rp" width="120rp" content="Initialize layout"/>
-			<CCPushButton id="atom(testButton)" height="30rp" width="120rp" content="Simulate launch" Enabled="false"/>
-			<CCPushButton id="atom(testButton2)" height="30rp" width="120rp" content="Simulate dragdrop" Enabled="false"/>
-			<CCPushButton id="atom(testButton3)" height="30rp" width="120rp" content="Simulate popup"/>
-			<CCPushButton id="atom(testButton4)" height="30rp" width="120rp" content="COLORS"/>
+			<CCPushButton id="atom(testButton5)" height="32rp" width="120rp" content="Initialize layout" tooltip="true" accdesc="Do not press too quickly!"/>
+			<CCPushButton id="atom(testButton)" height="32rp" width="120rp" content="Refresh"/>
+			<CCPushButton id="atom(testButton2)" height="32rp" width="120rp" content="Simulate dragdrop" Enabled="false"/>
+			<CCPushButton id="atom(testButton3)" height="32rp" width="120rp" content="Simulate popup"/>
+			<CCPushButton id="atom(testButton4)" height="32rp" width="120rp" content="COLORS"/>
 			<Element id="atom(itemcountstatus)" animation="alpha|s|slow|delaylong" foreground="themeable(gtc(ControlPanel,7,1,3803), hotlight)" font="messagefont;115%"/>
 		</Element>
-		<Element layout="borderlayout()" layoutpos="client" padding="rect(16rp,16rp,0,0)">
-			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client" borderthickness="rect(1,1,1,1)" bordercolor="white" width="1152rp" height="648rp" background="gradient(paleturquoise, lightblue, 1)">
+		<Element layout="borderlayout()" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)">
+			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client" borderthickness="rect(1,1,1,1)" bordercolor="white" background="gradient(paleturquoise, lightblue, 1)">
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" margin="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)">
 					<Button id="atom(emptyspace)" layoutpos="client"/>
 				</Element>
 				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" padding="rect(-4rp,-4rp,-4rp,-4rp)" alpha="0" animation="alpha|linear|veryfast">
 					<Element id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client"  background="argb(128,16,16,16)" visible="false">
-						<Element id="atom(fullscreeninner)" layout="filllayout()" layoutpos="absolute" background="20575" content="Test" font="iconfont;400%" width="1150rp" height="646rp" contentalign="middlecenter" visible="false"/>
+						<Element id="atom(fullscreeninner)" layout="filllayout()" layoutpos="absolute" width="300rp" height="100rp" background="20575" content="Test" font="iconfont;400%" contentalign="topleft" visible="false"/>
 					</Element>
 				</Element>
 			</Element>

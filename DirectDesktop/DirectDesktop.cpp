@@ -39,7 +39,8 @@ Element* itemcountstatus;
 Button* emptyspace;
 HRESULT err;
 
-int* frame, popupframe;// j, k, l;
+int popupframe;
+vector<int> frame;
 
 struct EventListener : public IElementListener {
 
@@ -116,7 +117,7 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
     py[frames - 1] = 1;
 }
 
-WNDPROC WndProc; // Window procedure data type (from Windows API)
+WNDPROC WndProc;
 
 vector<wstring> list_directory() {
     static int isFileHiddenEnabled;
@@ -225,11 +226,18 @@ vector<parameters> pm;
 vector<parameters> iconpm;
 vector<parameters> shadowpm;
 vector<parameters> filepm;
-int index = 0, smIndex = 0, smIndex2 = 0;
+int smIndex = 0;
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
+    int innerSizeX = GetSystemMetrics(SM_CXICONSPACING);
+    int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 20;
+    int iconPadding = (innerSizeX - 48) / 2;
+    Event evt;
+    evt.type == Button::Click;
     switch (uMsg) {
-    case 0x001A: {
+    case WM_SETTINGCHANGE: {
         UpdateModeInfo();
         break;
     }
@@ -237,24 +245,17 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 1: {
-        pm[index].elem->SetAlpha(255);
-        pm[index].elem->SetVisible(true);
-        index++;
-        break;
-    }
-    case WM_USER + 2: {
-        pm[index].elem->SetAlpha(0);
-        shadowpm[index].elem->SetAlpha(0);
-        index++;
+            pm[wParam].elem->SetAlpha(255);
+            pm[wParam].elem->SetVisible(true);
         break;
     }
     case WM_USER + 3: {
         for (int fIndex = 0; fIndex < smIndex; fIndex++) {
             double bezierProgress = py[frame[fIndex] - 1];
-            pm[fIndex].elem->SetWidth(76 * (0.7 + 0.3 * bezierProgress));
-            pm[fIndex].elem->SetHeight(96 * (0.7 + 0.3 * bezierProgress));
-            pm[fIndex].elem->SetX(round((mainContainer->GetWidth() - 2 * pm[fIndex].x) * 0.15 * (1 - bezierProgress) + pm[fIndex].x));
-            pm[fIndex].elem->SetY(round((mainContainer->GetHeight() - 2 * pm[fIndex].y) * 0.15 * (1 - bezierProgress) + pm[fIndex].y));
+            pm[fIndex].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
+            pm[fIndex].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
+            pm[fIndex].elem->SetX(round((dimensions.right - 2 * pm[fIndex].x) * 0.15 * (1 - bezierProgress) + pm[fIndex].x));
+            pm[fIndex].elem->SetY(round((dimensions.bottom - 2 * pm[fIndex].y) * 0.15 * (1 - bezierProgress) + pm[fIndex].y));
             //float f = ((pm[fIndex].elem->GetWidth() / 76.0) * 100);
             //wchar_t buffer[32];
             //swprintf_s(buffer, L"iconfont;%d", (int)f);
@@ -263,8 +264,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             filepm[fIndex].elem->SetHeight(pm[fIndex].elem->GetHeight() * 0.35);
             iconpm[fIndex].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
             iconpm[fIndex].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
-            iconpm[fIndex].elem->SetX(round(14 * (0.7 + 0.3 * bezierProgress)));
-            iconpm[fIndex].elem->SetY(round(10 * (0.7 + 0.3 * bezierProgress)));
+            iconpm[fIndex].elem->SetX(round(iconPadding * (0.7 + 0.3 * bezierProgress)));
+            iconpm[fIndex].elem->SetY(round((iconPadding * 0.72) * (0.7 + 0.3 * bezierProgress)));
             //filepm[fIndex].elem->SetFont((UCString)buffer);
         }
         break;
@@ -272,10 +273,10 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 4: {
         for (int fIndex = 0; fIndex < smIndex; fIndex++) {
             shadowpm[fIndex].elem->SetAlpha(255);
-            shadowpm[fIndex].elem->SetWidth(64); // * (0.7 + 0.3 * bezierProgress));
-            shadowpm[fIndex].elem->SetHeight(64); // * (0.7 + 0.3 * bezierProgress));
-            shadowpm[fIndex].elem->SetX(6); // * (0.7 + 0.3 * bezierProgress));
-            shadowpm[fIndex].elem->SetY(4); // * (0.7 + 0.3 * bezierProgress));
+            shadowpm[fIndex].elem->SetWidth(64);
+            shadowpm[fIndex].elem->SetHeight(64);
+            shadowpm[fIndex].elem->SetX(iconPadding - 8);
+            shadowpm[fIndex].elem->SetY((iconPadding * 0.72) - 6);
         }
         break;
     }
@@ -290,10 +291,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 }
 
 unsigned long animate(LPVOID lpParam) {
-    static int test;
-    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[test++].y * 0.5)));
-    SendMessageW(wnd->GetHWND(), WM_USER + 1, NULL, NULL);
-    if (test == pm.size()) test = 0;
+    yValue* yV3 = (yValue*)lpParam;
+    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV3->y].y * 0.5)));
+    SendMessageW(wnd->GetHWND(), WM_USER + 1, yV3->y, NULL);
     return 0;
 }
 
@@ -301,17 +301,12 @@ unsigned long fastin(LPVOID lpParam) {
     yValue* yV2 = (yValue*)lpParam;
     yValue* yV = (yValue*)lpParam;
     this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV2->y].y * 0.5)));
-    SendMessage(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
+    SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
     for (int m = 1; m <= 24; m++) {
         frame[yV->y] = m;
         SendMessageW(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
         this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 500)));
     }
-    return 0;
-}
-
-unsigned long rem(LPVOID lpParam) {
-    SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
     return 0;
 }
 
@@ -330,16 +325,9 @@ unsigned long animate5(LPVOID lpParam) {
     for (int m = 1; m <= 20; m++) {
         popupframe = m;
         SendMessage(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[m] - px[m - 1]) * 300)));
+        this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 300)));
     }
     return 0;
-}
-
-void remove(Element* elem) {
-    DWORD animThread;
-    pm[index].elem = elem;
-    index++;
-    HANDLE animThreadHandle = CreateThread(0, 0, rem, NULL, 0, &animThread);
 }
 
 void SelectItem(Element* elem, Event* iev) {
@@ -388,54 +376,6 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
     }
 }
 
-void testEventListener(Element* elem, Event* iev) {
-    static bool openclose = 0;
-    if (iev->type == Button::Click) {
-        unsigned int count = list_directory().size();
-        switch (openclose) {
-        case 0: {
-            int x = 0, y = 0;
-            index = 0;
-            smIndex = 0;
-            CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
-            DWORD* animThread = new DWORD[count];
-            DWORD* animThread2 = new DWORD[count];
-            HANDLE* animThreadHandle = new HANDLE[count];
-            HANDLE* animThreadHandle2 = new HANDLE[count];
-            for (int i = 0; i < count; i++) {
-                pm[index].x = x, pm[index].y = y;
-                yValue* yV = new yValue{ i };
-                index++;
-                smIndex++;
-                x += 80;
-                if (x >= mainContainer->GetWidth() - 80) {
-                    x = 0;
-                    y += 100;
-                }
-                animThreadHandle[i] = CreateThread(0, 0, animate, NULL, 0, &(animThread[i]));
-                animThreadHandle2[i] = CreateThread(0, 0, fastin, (LPVOID)yV, 0, &(animThread2[i]));
-            }
-            index = 0;
-            openclose = 1;
-            delete[] animThread;
-            delete[] animThread2;
-            delete[] animThreadHandle;
-            delete[] animThreadHandle2;
-            break;
-        }
-        case 1: {
-            index = 0;
-            for (int i = 0; i < count; i++) {
-                remove(pm[index].elem);
-            }
-            index = 0;
-            openclose = 0;
-            break;
-        }
-        }
-    }
-}
-
 bool dragdrop = 0;
 
 //void testEventListener2(Element* elem, Event* iev) {
@@ -459,48 +399,86 @@ void testEventListener3(Element* elem, Event* iev) {
 }
 
 void InitLayout(Element* elem, Event* iev) {
+    static bool openclose = 0;
+    Event* testEvent = iev;
     if (iev->type == Button::Click) {
         vector<wstring> files = list_directory();
         unsigned int count = files.size();
         wchar_t icount[32];
-        swprintf_s(icount, L"        Found %d items!", count);
-        itemcountstatus->SetContentString((UCString)icount);
-        itemcountstatus->SetVisible(true); itemcountstatus->SetAlpha(0);
-        int x = 0, y = 0;
-        index = 0;
-        smIndex = 0;
-        CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
-        pm.resize(count);
-        iconpm.resize(count);
-        shadowpm.resize(count);
-        filepm.resize(count);
-        frame = new int[count]{};
-        for (int i = 0; i < count; i++) {
-            Button* outerElem;
-            parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
-            UIContainer->Add((Element**)&outerElem, 1);
-            iconElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElem"));
-            iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
-            textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
-            textElem->SetContentString((UCString)files[i].c_str());
-            pm[index].elem = outerElem, pm[index].x = x, pm[index].y = y;
-            iconpm[index].elem = iconElem;
-            shadowpm[index].elem = iconElemShadow;
-            filepm[index].elem = textElem;
-            assignFn(outerElem, SelectItem);
-            yValue* yV = new yValue{ i };
-            index++;
-            smIndex++;
-            x += 80;
-            if (x >= mainContainer->GetWidth() - 80) {
-                x = 0;
-                y += 100;
-            }
-        }
-        index = 0;
-        files.clear();
         testButton->SetEnabled(true);
         testButton5->SetEnabled(false);
+        switch (openclose) {
+        case 0: {
+            swprintf_s(icount, L"        Found %d items!", count);
+            itemcountstatus->SetContentString((UCString)icount);
+            itemcountstatus->SetVisible(true); itemcountstatus->SetAlpha(0);
+            int x = 0, y = 0;
+            smIndex = 0;
+            CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
+            frame.resize(count);
+            pm.resize(count);
+            iconpm.resize(count);
+            shadowpm.resize(count);
+            filepm.resize(count);
+            RECT dimensions;
+            GetClientRect(wnd->GetHWND(), &dimensions);
+            DWORD* animThread = new DWORD[count];
+            DWORD* animThread2 = new DWORD[count];
+            HANDLE* animThreadHandle = new HANDLE[count];
+            HANDLE* animThreadHandle2 = new HANDLE[count];
+            int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
+            int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 24;
+            for (int i = 0; i < count; i++) {
+                Button* outerElem;
+                parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
+                UIContainer->Add((Element**)&outerElem, 1);
+                iconElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElem"));
+                iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
+                textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
+                textElem->SetContentString((UCString)files[i].c_str());
+                pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y;
+                iconpm[i].elem = iconElem;
+                shadowpm[i].elem = iconElemShadow;
+                filepm[i].elem = textElem;
+                assignFn(outerElem, SelectItem);
+                yValue* yV = new yValue{ i };
+                yValue* yV2 = new yValue{ i };
+                smIndex++;
+                y += outerSizeY;
+                if (y > dimensions.bottom - (outerSizeY + 74)) { // 74 is 64px of non-desktop area + 8px padding + 2px borders. 
+                    y = 0;
+                    x += outerSizeX;
+                }
+                animThreadHandle[i] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[i]));
+                animThreadHandle2[i] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[i]));
+            }
+            files.clear();
+            openclose = 1;
+            delete[] animThread;
+            delete[] animThread2;
+            delete[] animThreadHandle;
+            delete[] animThreadHandle2;
+            break;
+        }
+        case 1: {
+            UIContainer->DestroyAll(true);
+            frame.clear();
+            pm.clear();
+            iconpm.clear();
+            shadowpm.clear();
+            filepm.clear();
+            openclose = 0;
+            itemcountstatus->SetVisible(false); itemcountstatus->SetAlpha(255);
+            break;
+        }
+        }
+    }
+}
+
+void testEventListener(Element* elem, Event* iev) {
+    if (iev->type == Button::Click) {
+        InitLayout(testButton5, iev);
+        InitLayout(testButton5, iev);
     }
 }
 
@@ -539,11 +517,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     emptyspace = regBtn(L"emptyspace");
 
     assignFn(testButton, testEventListener);
+    assignFn(testButton, ApplyIcons);
     //assignFn(testButton2, testEventListener2);
     assignFn(testButton3, testEventListener3);
     assignFn(testButton4, ApplyIcons);
     assignFn(testButton5, InitLayout);
-    assignFn(testButton5, testEventListener);
     assignFn(testButton5, ApplyIcons);
     assignFn(emptyspace, SelectItem);
 
