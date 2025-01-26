@@ -3,7 +3,7 @@
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="flowlayout()" layoutpos="top">
 			<CCPushButton id="atom(testButton5)" height="32rp" width="120rp" content="Initialize layout" tooltip="true" accdesc="Do not press too quickly!"/>
-			<CCPushButton id="atom(testButton)" height="32rp" width="120rp" content="Refresh"/>
+			<CCPushButton id="atom(testButton)" height="32rp" width="120rp" content="Refresh" Enabled="false"/>
 			<CCPushButton id="atom(testButton2)" height="32rp" width="120rp" content="Simulate dragdrop" Enabled="false"/>
 			<CCPushButton id="atom(testButton3)" height="32rp" width="120rp" content="Simulate popup"/>
 			<CCPushButton id="atom(testButton4)" height="32rp" width="120rp" content="COLORS"/>
@@ -24,7 +24,8 @@
 	</HWNDElement>
 	<Button resid="outerElem" layout="filllayout()" sheet="default" class="item" visible="false" layoutpos="absolute" width="76rp" height="96rp" alpha="0" animation="alpha|s|fast">
 		<Element id="atom(iconElemShadow)" background="20575" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
-		<Element id="atom(iconElem)" background="20575" layoutpos="absolute" width="48rp" height="48rp" content="icon(4,48rp,48rp,1,1,library(imageres.dll))"/>
+		<Element id="atom(iconElem)" background="20575" layoutpos="absolute" width="48rp" height="48rp"/>
+		<Element id="atom(shortcutElem)" background="20575" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<RichText id="atom(textElem)" background="20575" foreground="black" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
 	</Button>
 	<stylesheets>

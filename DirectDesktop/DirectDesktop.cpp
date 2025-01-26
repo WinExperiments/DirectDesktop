@@ -32,6 +32,7 @@ Element* sampleText;
 Element* mainContainer;
 Element* UIContainer;
 Element* iconElem;
+Element* shortcutElem;
 Element* iconElemShadow;
 RichText* textElem;
 Element* fullscreenpopup, *fullscreenpopupbase, *fullscreeninner;
@@ -118,20 +119,65 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 }
 
 WNDPROC WndProc;
+vector<parameters> pm;
+vector<parameters> iconpm;
+vector<parameters> shortpm;
+vector<parameters> shadowpm;
+vector<parameters> filepm;
+int smIndex = 0, shortIndex = 0;
+
+wstring hideExt(const wstring& filename, bool isEnabled) {
+    if (isEnabled) {
+        size_t lastdot = filename.find(L".lnk");
+        if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
+        else {
+            shortpm[shortIndex++].x = 1;
+            return filename.substr(0, lastdot);
+        }
+        if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
+        else {
+            shortpm[shortIndex++].x = 1;
+            return filename.substr(0, lastdot);
+        }
+        shortIndex++;
+        if (lastdot == wstring::npos) return filename;
+        return filename.substr(0, lastdot);
+    }
+    if (!isEnabled) {
+        size_t lastdot = filename.find(L".lnk");
+        if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
+        else {
+            shortpm[shortIndex++].x = 1;
+            return filename.substr(0, lastdot);
+        }
+        if (lastdot == wstring::npos) {
+            shortIndex++;
+            return filename;
+        }
+        else {
+            shortpm[shortIndex++].x = 1;
+            return filename.substr(0, lastdot);
+        }
+    }
+}
 
 vector<wstring> list_directory() {
     static int isFileHiddenEnabled;
     static int isFileSuperHiddenEnabled;
+    static int isFileExtHidden;
     LPCWSTR path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
     HKEY hKey;
     DWORD lResult = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
     DWORD lResult2 = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
+    DWORD lResult3 = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
     if (lResult == ERROR_SUCCESS)
     {
         DWORD dwSize = NULL;
         DWORD dwSize2 = NULL;
+        DWORD dwSize3 = NULL;
         lResult = RegGetValue(hKey, NULL, L"Hidden", RRF_RT_DWORD, NULL, NULL, &dwSize);
         lResult2 = RegGetValue(hKey, NULL, L"ShowSuperHidden", RRF_RT_DWORD, NULL, NULL, &dwSize2);
+        lResult3 = RegGetValue(hKey, NULL, L"HideFileExt", RRF_RT_DWORD, NULL, NULL, &dwSize3);
         if (lResult == ERROR_SUCCESS && dwSize != NULL)
         {
             DWORD* dwValue = (DWORD*)malloc(dwSize);
@@ -144,6 +190,13 @@ vector<wstring> list_directory() {
             DWORD* dwValue = (DWORD*)malloc(dwSize);
             lResult = RegGetValue(hKey, NULL, L"ShowSuperHidden", RRF_RT_DWORD, NULL, dwValue, &dwSize);
             isFileSuperHiddenEnabled = *dwValue;
+            free(dwValue);
+        }
+        if (lResult == ERROR_SUCCESS && dwSize != NULL)
+        {
+            DWORD* dwValue = (DWORD*)malloc(dwSize);
+            lResult = RegGetValue(hKey, NULL, L"HideFileExt", RRF_RT_DWORD, NULL, dwValue, &dwSize);
+            isFileExtHidden = *dwValue;
             free(dwValue);
         }
         RegCloseKey(hKey);
@@ -168,14 +221,21 @@ vector<wstring> list_directory() {
     hFind = FindFirstFileW(full_path, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
-        if (runs > 0) dir_list.push_back(wstring(findData.cFileName));
+        if (runs > 0) {
+            shortpm.push_back({NULL, NULL, NULL});
+            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
+        }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
+            shortIndex--;
+            shortpm.pop_back();
             dir_list.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
+                shortIndex--;
+                shortpm.pop_back();
                 dir_list.pop_back();
                 continue;
             }
@@ -186,14 +246,21 @@ vector<wstring> list_directory() {
     hFind = FindFirstFileW(full_path2, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
-        if (runs > 0) dir_list.push_back(wstring(findData.cFileName));
+        if (runs > 0) {
+            shortpm.push_back({ NULL, NULL, NULL });
+            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
+        }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
+            shortIndex--;
+            shortpm.pop_back();
             dir_list.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
+                shortIndex--;
+                shortpm.pop_back();
                 dir_list.pop_back();
                 continue;
             }
@@ -204,14 +271,21 @@ vector<wstring> list_directory() {
     hFind = FindFirstFileW(full_path3, &findData);
     while (FindNextFileW(hFind, &findData) != 0)
     {
-        if (runs > 0) dir_list.push_back(wstring(findData.cFileName));
+        if (runs > 0) {
+            shortpm.push_back({ NULL, NULL, NULL });
+            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
+        }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
+            shortIndex--;
+            shortpm.pop_back();
             dir_list.pop_back();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
+                shortIndex--;
+                shortpm.pop_back();
                 dir_list.pop_back();
                 continue;
             }
@@ -222,12 +296,6 @@ vector<wstring> list_directory() {
     return dir_list;
 }
 
-vector<parameters> pm;
-vector<parameters> iconpm;
-vector<parameters> shadowpm;
-vector<parameters> filepm;
-int smIndex = 0;
-
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
@@ -237,7 +305,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     Event evt;
     evt.type == Button::Click;
     switch (uMsg) {
-    case WM_SETTINGCHANGE: {
+    case WM_DWMCOLORIZATIONCOLORCHANGED: {
         UpdateModeInfo();
         break;
     }
@@ -250,34 +318,34 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 3: {
-        for (int fIndex = 0; fIndex < smIndex; fIndex++) {
-            double bezierProgress = py[frame[fIndex] - 1];
-            pm[fIndex].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-            pm[fIndex].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
-            pm[fIndex].elem->SetX(round((dimensions.right - 2 * pm[fIndex].x) * 0.15 * (1 - bezierProgress) + pm[fIndex].x));
-            pm[fIndex].elem->SetY(round((dimensions.bottom - 2 * pm[fIndex].y) * 0.15 * (1 - bezierProgress) + pm[fIndex].y));
-            //float f = ((pm[fIndex].elem->GetWidth() / 76.0) * 100);
-            //wchar_t buffer[32];
-            //swprintf_s(buffer, L"iconfont;%d", (int)f);
-            //wcscat_s(buffer, L"%");
-            //filepm[fIndex].elem->SetWidth(pm[fIndex].elem->GetWidth());
-            filepm[fIndex].elem->SetHeight(pm[fIndex].elem->GetHeight() * 0.35);
-            iconpm[fIndex].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
-            iconpm[fIndex].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
-            iconpm[fIndex].elem->SetX(round(iconPadding * (0.7 + 0.3 * bezierProgress)));
-            iconpm[fIndex].elem->SetY(round((iconPadding * 0.72) * (0.7 + 0.3 * bezierProgress)));
-            //filepm[fIndex].elem->SetFont((UCString)buffer);
-        }
+            double bezierProgress = py[frame[wParam] - 1];
+            pm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
+            pm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
+            pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
+            pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
+            float f = ((pm[wParam].elem->GetWidth() / 76.0) * 100);
+            wchar_t buffer[32];
+            swprintf_s(buffer, L"iconfont;%d", (int)f);
+            wcscat_s(buffer, L"%");
+            filepm[wParam].elem->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
+            iconpm[wParam].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
+            iconpm[wParam].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+            iconpm[wParam].elem->SetX(round(iconPadding * (0.7 + 0.3 * bezierProgress)));
+            iconpm[wParam].elem->SetY(round((iconPadding * 0.72) * (0.7 + 0.3 * bezierProgress)));
+            filepm[wParam].elem->SetFont((UCString)buffer);
         break;
     }
     case WM_USER + 4: {
-        for (int fIndex = 0; fIndex < smIndex; fIndex++) {
-            shadowpm[fIndex].elem->SetAlpha(255);
-            shadowpm[fIndex].elem->SetWidth(64);
-            shadowpm[fIndex].elem->SetHeight(64);
-            shadowpm[fIndex].elem->SetX(iconPadding - 8);
-            shadowpm[fIndex].elem->SetY((iconPadding * 0.72) - 6);
-        }
+            shadowpm[wParam].elem->SetAlpha(255);
+            shadowpm[wParam].elem->SetWidth(64);
+            shadowpm[wParam].elem->SetHeight(64);
+            shadowpm[wParam].elem->SetX(iconPadding - 8);
+            shadowpm[wParam].elem->SetY((iconPadding * 0.72) - 6);
+            shortpm[wParam].elem->SetAlpha(255);
+            shortpm[wParam].elem->SetWidth(32);
+            shortpm[wParam].elem->SetHeight(32);
+            shortpm[wParam].elem->SetX(iconPadding);
+            shortpm[wParam].elem->SetY((iconPadding * 0.72) + 16);
         break;
     }
     case WM_USER + 7: {
@@ -291,22 +359,21 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 }
 
 unsigned long animate(LPVOID lpParam) {
-    yValue* yV3 = (yValue*)lpParam;
-    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV3->y].y * 0.5)));
-    SendMessageW(wnd->GetHWND(), WM_USER + 1, yV3->y, NULL);
+    yValue* yV = (yValue*)lpParam;
+    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
+    SendMessageW(wnd->GetHWND(), WM_USER + 1, yV->y, NULL);
     return 0;
 }
 
 unsigned long fastin(LPVOID lpParam) {
-    yValue* yV2 = (yValue*)lpParam;
     yValue* yV = (yValue*)lpParam;
-    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV2->y].y * 0.5)));
-    SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, NULL);
-    for (int m = 1; m <= 24; m++) {
-        frame[yV->y] = m;
-        SendMessageW(wnd->GetHWND(), WM_USER + 3, NULL, NULL);
-        this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 500)));
-    }
+    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
+    SendMessageW(wnd->GetHWND(), WM_USER + 4, yV->y, NULL);
+    //for (int m = 1; m <= 24; m++) {
+        frame[yV->y] = 24;
+        SendMessageW(wnd->GetHWND(), WM_USER + 3, yV->y, NULL);
+        //this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 400)));
+    //}
     return 0;
 }
 
@@ -362,16 +429,22 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
         BitmapPixelHandler type = isColorized ? StandardBitmapPixelHandler : AlphaBitmapPixelHandler;
         for (int icon = 0; icon < iconpm.size(); icon++) {
             HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(4), IMAGE_ICON, 48, 48, LR_SHARED);
+            HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
             HBITMAP bmp = IconToBitmap(ico);
             HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
+            HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
             IterateBitmap(bmp, type, 1);
             IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
+            IterateBitmap(bmpShortcut, type, 1);
             Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
             Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+            Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
             iconpm[icon].elem->SetValue(Element::ContentProp, 1, bitmap);
             shadowpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShadow);
+            if (shortpm[icon].x == 1) shortpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
             bitmap->Release();
             bitmapShadow->Release();
+            bitmapShortcut->Release();
         }
     }
 }
@@ -418,6 +491,7 @@ void InitLayout(Element* elem, Event* iev) {
             frame.resize(count);
             pm.resize(count);
             iconpm.resize(count);
+            shortpm.resize(count);
             shadowpm.resize(count);
             filepm.resize(count);
             RECT dimensions;
@@ -433,11 +507,13 @@ void InitLayout(Element* elem, Event* iev) {
                 parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
                 UIContainer->Add((Element**)&outerElem, 1);
                 iconElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElem"));
+                shortcutElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"shortcutElem"));
                 iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
                 textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
                 textElem->SetContentString((UCString)files[i].c_str());
                 pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y;
                 iconpm[i].elem = iconElem;
+                shortpm[i].elem = shortcutElem;
                 shadowpm[i].elem = iconElemShadow;
                 filepm[i].elem = textElem;
                 assignFn(outerElem, SelectItem);
@@ -465,8 +541,10 @@ void InitLayout(Element* elem, Event* iev) {
             frame.clear();
             pm.clear();
             iconpm.clear();
+            shortpm.clear();
             shadowpm.clear();
             filepm.clear();
+            shortIndex = 0;
             openclose = 0;
             itemcountstatus->SetVisible(false); itemcountstatus->SetAlpha(255);
             break;
