@@ -39,6 +39,7 @@ RichText* textElem;
 Element* fullscreenpopup, *fullscreenpopupbase, *fullscreeninner;
 Element* itemcountstatus;
 Button* emptyspace;
+Element* selector;
 HRESULT err;
 
 int popupframe;
@@ -66,6 +67,28 @@ struct EventListener : public IElementListener {
     void OnListenedInput(Element* elem, struct InputEvent* ev) override { 
     }
 };
+struct EventListener2 : public IElementListener {
+
+    void (*f)(Element*, const PropertyInfo*, int, Value*, Value*);
+
+    EventListener2(void (*func)(Element*, const PropertyInfo*, int, Value*, Value*)) {
+        f = func;
+    }
+
+    void OnListenerAttach(Element* elem) override { }
+    void OnListenerDetach(Element* elem) override { }
+    bool OnPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override {
+        return true;
+    }
+    void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override {
+        f(elem, prop, type, v1, v2);
+    }
+    void OnListenedEvent(Element* elem, struct Event* iev) override {
+
+    }
+    void OnListenedInput(Element* elem, struct InputEvent* ev) override {
+    }
+};
 
 Element* regElem(const wchar_t* elemName) {
     Element* result = (Element*)pMain->FindDescendent(StrToID((UCString)elemName));
@@ -85,6 +108,9 @@ Edit* regEdit(const wchar_t* editName) {
 }
 void assignFn(Element* btnName, void(*fnName)(Element* elem, Event* iev)) {
     btnName->AddListener(new EventListener(fnName));
+}
+void assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)) {
+    elemName->AddListener(new EventListener2(fnName));
 }
 
 struct parameters {
@@ -108,6 +134,7 @@ const wchar_t* CharToWChar(const char* input)
 
 double px[80]{};
 double py[80]{};
+int origX{}, origY{};
 
 void CubicBezier(const int frames, double px[], double py[], double x0, double y0, double x1, double y1) {
     for (int c = 0; c < frames; c++) {
@@ -348,7 +375,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     GetClientRect(wnd->GetHWND(), &dimensions);
     int innerSizeX = GetSystemMetrics(SM_CXICONSPACING);
     int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 20;
-    int iconPadding = (innerSizeX - 48) / 2;
+    int iconPaddingX = (innerSizeX - 48) / 2;
+    int iconPaddingY = (innerSizeY - 68) / 2;
     Event evt;
     evt.type == Button::Click;
     switch (uMsg) {
@@ -370,15 +398,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         pm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
         pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
         pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
-        float f = ((pm[wParam].elem->GetWidth() / 76.0) * 100);
+        float f = ((pm[wParam].elem->GetWidth() / (float)innerSizeX) * 100);
         wchar_t buffer[32];
         swprintf_s(buffer, L"iconfont;%d", (int)f);
         wcscat_s(buffer, L"%");
         filepm[wParam].elem->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
         iconpm[wParam].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam].elem->SetX(round(iconPadding * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam].elem->SetY(round((iconPadding * 0.72) * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam].elem->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam].elem->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
         filepm[wParam].elem->SetFont((UCString)buffer);
         break;
     }
@@ -386,13 +414,31 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         shadowpm[wParam].elem->SetAlpha(255);
         shadowpm[wParam].elem->SetWidth(64);
         shadowpm[wParam].elem->SetHeight(64);
-        shadowpm[wParam].elem->SetX(iconPadding - 8);
-        shadowpm[wParam].elem->SetY((iconPadding * 0.72) - 6);
+        shadowpm[wParam].elem->SetX(iconPaddingX - 8);
+        shadowpm[wParam].elem->SetY((iconPaddingY * 0.72) - 6);
         shortpm[wParam].elem->SetAlpha(255);
         shortpm[wParam].elem->SetWidth(32);
         shortpm[wParam].elem->SetHeight(32);
-        shortpm[wParam].elem->SetX(iconPadding);
-        shortpm[wParam].elem->SetY((iconPadding * 0.72) + 16);
+        shortpm[wParam].elem->SetX(iconPaddingX);
+        shortpm[wParam].elem->SetY((iconPaddingY * 0.72) + 16);
+        break;
+    }
+    case WM_USER + 5: {
+        POINT ppt;
+        GetCursorPos(&ppt);
+        ScreenToClient(wnd->GetHWND(), &ppt);
+        ppt.x -= 16; // 16px of window padding
+        ppt.y -= 48; // 48px of window padding
+        if (ppt.x >= origX) selector->SetWidth(ppt.x - origX);
+        if (ppt.x < origX) {
+            selector->SetWidth(origX - ppt.x);
+            selector->SetX(ppt.x);
+        }
+        if (ppt.y >= origY) selector->SetHeight(ppt.y - origY);
+        if (ppt.y < origY) {
+            selector->SetHeight(origY - ppt.y);
+            selector->SetY(ppt.y);
+        }
         break;
     }
     case WM_USER + 7: {
@@ -455,6 +501,39 @@ void SelectItem(Element* elem, Event* iev) {
     }
 }
 
+bool isPressed = 0;
+unsigned long UpdateMarqueeSelectorPosition(LPVOID lpParam) {
+    while (true) {
+        SendMessageW(wnd->GetHWND(), WM_USER + 5, NULL, NULL);
+        this_thread::sleep_for(chrono::milliseconds(10));
+        if (!isPressed) break;
+    }
+    return 0;
+}
+
+void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2) {
+    DWORD marqueeThread;
+    HANDLE marqueeThreadHandle;
+    if (pProp == Button::PressedProp()) {
+        POINT ppt;
+        GetCursorPos(&ppt);
+        ScreenToClient(wnd->GetHWND(), &ppt);
+        origX = ppt.x - 16;
+        origY = ppt.y - 48;
+        selector->SetX(origX);
+        selector->SetY(origY);
+        selector->SetVisible(true);
+        selector->SetLayoutPos(-2);
+        isPressed = 1;
+        marqueeThreadHandle = CreateThread(0, 0, UpdateMarqueeSelectorPosition, NULL, 0, &marqueeThread);
+    }
+    else if (GetAsyncKeyState(VK_LBUTTON) == 0) {
+        selector->SetVisible(false);
+        selector->SetLayoutPos(-3);
+        isPressed = 0;
+    }
+}
+
 //void dragdropAnimation() {
 //    DWORD animThread;
 //    animThreadHandle = CreateThread(0, 0, animate4, NULL, 0, &animThread);
@@ -465,6 +544,14 @@ void fullscreenAnimation() {
     HANDLE animThreadHandle = CreateThread(0, 0, animate5, NULL, 0, &animThread);
 }
 
+vector<HBITMAP> GetDesktopIcons(int size) {
+    vector<HBITMAP> bmResult;
+    for (int i = 0; i < size; i++) {
+        bmResult.push_back(GetShellItemImage(listDirBuffer[i].c_str(), 48, 48));
+    }
+    return bmResult;
+}
+
 void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
 {
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
@@ -473,17 +560,20 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
         if (elem == testButton4) {
             isColorized = !isColorized;
         }
-        BitmapPixelHandler type = isColorized ? StandardBitmapPixelHandler : AlphaBitmapPixelHandler;
+        vector<HBITMAP> icons = GetDesktopIcons(iconpm.size());
         for (int icon = 0; icon < iconpm.size(); icon++) {
             HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(2), IMAGE_ICON, 48, 48, LR_SHARED);
             HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
             HBITMAP bmp = IconToBitmap(ico);
-            bmp = GetShellItemImage(listDirBuffer[icon].c_str(), 48, 48);
+            bmp = icons[icon];
             HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
             HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
-            IterateBitmap(bmp, type, 1);
+            if (isColorized) {
+                IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
+                IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1);
+            }
             IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
-            IterateBitmap(bmpShortcut, type, 1);
+            IterateBitmap(bmpShortcut, UndoPremultiplication, 1);
             Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
             Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
             Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
@@ -499,6 +589,7 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
             bitmapShadow->Release();
             bitmapShortcut->Release();
         }
+        icons.clear();
     }
 }
 
@@ -538,6 +629,7 @@ void InitLayout(Element* elem, Event* iev) {
             parser->CreateElement((UCString)L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
             UIContainer->Add((Element**)&emptyspace, 1);
             assignFn(emptyspace, SelectItem);
+            assignExtendedFn(emptyspace, MarqueeSelector);
             swprintf_s(icount, L"        Found %d items!", count);
             itemcountstatus->SetContentString((UCString)icount);
             itemcountstatus->SetVisible(true); itemcountstatus->SetAlpha(0);
@@ -649,6 +741,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     fullscreenpopupbase = regElem(L"fullscreenpopupbase");
     fullscreeninner = regElem(L"fullscreeninner");
     itemcountstatus = regElem(L"itemcountstatus");
+    selector = regElem(L"selector");
 
     assignFn(testButton, testEventListener);
     assignFn(testButton, ApplyIcons);

@@ -14,6 +14,7 @@
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" margin="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)">
 
 				</Element>
+				<Element id="atom(selector)" class="selector" layoutpos="none" animation="alpha|s|mediumfast" background="themeable(20066, hotlight)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" padding="rect(-4rp,-4rp,-4rp,-4rp)" alpha="0" animation="alpha|linear|veryfast">
 					<Element id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client"  background="argb(128,16,16,16)" visible="false">
 						<Element id="atom(fullscreeninner)" layout="filllayout()" layoutpos="absolute" width="300rp" height="100rp" background="20575" content="Test" font="iconfont;400%" contentalign="topleft" visible="false"/>
@@ -25,7 +26,7 @@
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)"/>
 	<Button resid="outerElem" layout="filllayout()" sheet="default" class="item" visible="false" layoutpos="absolute" width="76rp" height="96rp" alpha="255" animation="alpha|s|fast">
 		<Element id="atom(iconElemShadow)" background="20575" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
-		<Element id="atom(iconElem)" background="20575" layoutpos="absolute" width="48rp" height="48rp" content="icon(2,48rp,48rp,0,0,library(imageres.dll))"/>
+		<Element id="atom(iconElem)" background="20575" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="20575" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<RichText id="atom(textElem)" background="20575" foreground="black" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
 	</Button>
@@ -41,6 +42,12 @@
 					<if mousefocused="true">
 						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
 					</if>
+				</if>
+			</if>
+			<if class="selector">
+				<Element alpha="themeable(224, 148)"/>
+				<if visible="false">
+					<Element alpha="themeable(0, 148)"/>
 				</if>
 			</if>
 		</style>
