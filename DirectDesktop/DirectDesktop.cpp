@@ -13,6 +13,7 @@
 #include <ShObjIdl.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
+#include "DirectoryHelper.h"
 
 
 using namespace DirectUI;
@@ -36,6 +37,7 @@ Element* iconElem;
 Element* shortcutElem;
 Element* iconElemShadow;
 RichText* textElem;
+Button* checkboxElem;
 Element* fullscreenpopup, *fullscreenpopupbase, *fullscreeninner;
 Element* itemcountstatus;
 Button* emptyspace;
@@ -113,12 +115,6 @@ void assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const Prop
     elemName->AddListener(new EventListener2(fnName));
 }
 
-struct parameters {
-    Element* elem{};
-    int x{};
-    int y{};
-};
-
 struct yValue {
     int y{};
 };
@@ -149,203 +145,10 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 WNDPROC WndProc;
 vector<parameters> pm;
 vector<parameters> iconpm;
-vector<parameters> shortpm;
 vector<parameters> shadowpm;
 vector<parameters> filepm;
-int smIndex = 0, shortIndex = 0;
-
-wstring hideExt(const wstring& filename, bool isEnabled) {
-    if (isEnabled) {
-        size_t lastdot = filename.find(L".lnk");
-        if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
-        else {
-            shortpm[shortIndex++].x = 1;
-            return filename.substr(0, lastdot);
-        }
-        if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
-        else {
-            shortpm[shortIndex++].x = 1;
-            return filename.substr(0, lastdot);
-        }
-        shortIndex++;
-        if (lastdot == wstring::npos) return filename;
-        return filename.substr(0, lastdot);
-    }
-    if (!isEnabled) {
-        size_t lastdot = filename.find(L".lnk");
-        if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
-        else {
-            shortpm[shortIndex++].x = 1;
-            return filename.substr(0, lastdot);
-        }
-        if (lastdot == wstring::npos) {
-            shortIndex++;
-            return filename;
-        }
-        else {
-            shortpm[shortIndex++].x = 1;
-            return filename.substr(0, lastdot);
-        }
-    }
-}
-
-vector<wstring> listDirBuffer;
-vector<wstring> list_directory() {
-    static int isFileHiddenEnabled;
-    static int isFileSuperHiddenEnabled;
-    static int isFileExtHidden;
-    LPCWSTR path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
-    HKEY hKey;
-    DWORD lResult = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
-    DWORD lResult2 = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
-    DWORD lResult3 = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
-    if (lResult == ERROR_SUCCESS)
-    {
-        DWORD dwSize = NULL;
-        DWORD dwSize2 = NULL;
-        DWORD dwSize3 = NULL;
-        lResult = RegGetValue(hKey, NULL, L"Hidden", RRF_RT_DWORD, NULL, NULL, &dwSize);
-        lResult2 = RegGetValue(hKey, NULL, L"ShowSuperHidden", RRF_RT_DWORD, NULL, NULL, &dwSize2);
-        lResult3 = RegGetValue(hKey, NULL, L"HideFileExt", RRF_RT_DWORD, NULL, NULL, &dwSize3);
-        if (lResult == ERROR_SUCCESS && dwSize != NULL)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, L"Hidden", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            isFileHiddenEnabled = *dwValue;
-            free(dwValue);
-        }
-        if (lResult == ERROR_SUCCESS && dwSize != NULL)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, L"ShowSuperHidden", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            isFileSuperHiddenEnabled = *dwValue;
-            free(dwValue);
-        }
-        if (lResult == ERROR_SUCCESS && dwSize != NULL)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, L"HideFileExt", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            isFileExtHidden = *dwValue;
-            free(dwValue);
-        }
-        RegCloseKey(hKey);
-    }
-    WIN32_FIND_DATAW findData;
-    HANDLE hFind = INVALID_HANDLE_VALUE;
-    wchar_t* full_path = new wchar_t[260];
-    wchar_t* full_path2 = new wchar_t[260];
-    wchar_t* full_path3 = new wchar_t[260];
-    DWORD d = GetEnvironmentVariableW(L"userprofile", 0, 0);
-    DWORD d2 = GetEnvironmentVariableW(L"PUBLIC", 0, 0);
-    vector<wchar_t> envName(d);
-    vector<wchar_t> envName2(d2);
-    GetEnvironmentVariableW(L"userprofile", envName.data(), 260);
-    GetEnvironmentVariableW(L"PUBLIC", envName2.data(), 260);
-    StringCchPrintfW(full_path, 260, L"%s\\Desktop\\*", envName.data());
-    StringCchPrintfW(full_path2, 260, L"%s\\Desktop\\*", envName2.data());
-    StringCchPrintfW(full_path3, 260, L"%s\\OneDrive\\Desktop\\*", envName.data());
-    vector<wstring> dir_list;
-
-    int runs = 0;
-    wchar_t buffer[260];
-    size_t asterisk = ((wstring)full_path).find(L"*");
-    size_t asterisk2 = ((wstring)full_path2).find(L"*");
-    size_t asterisk3 = ((wstring)full_path3).find(L"*");
-    wstring full_path_truncated = ((wstring)full_path).substr(0, asterisk);
-    wstring full_path2_truncated = ((wstring)full_path2).substr(0, asterisk2);
-    wstring full_path3_truncated = ((wstring)full_path3).substr(0, asterisk3);
-    hFind = FindFirstFileW(full_path, &findData);
-    while (FindNextFileW(hFind, &findData) != 0)
-    {
-        if (runs > 0) {
-            shortpm.push_back({NULL, NULL, NULL});
-            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
-            listDirBuffer.push_back(full_path_truncated + wstring(findData.cFileName));
-        }
-        runs++;
-        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
-            shortIndex--;
-            shortpm.pop_back();
-            dir_list.pop_back();
-            listDirBuffer.pop_back();
-            continue;
-        }
-        if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
-            if (findData.dwFileAttributes & 4) {
-                shortIndex--;
-                shortpm.pop_back();
-                dir_list.pop_back();
-                listDirBuffer.pop_back();
-                continue;
-            }
-        }
-    }
-
-    runs = 0;
-    hFind = FindFirstFileW(full_path2, &findData);
-    while (FindNextFileW(hFind, &findData) != 0)
-    {
-        if (runs > 0) {
-            shortpm.push_back({ NULL, NULL, NULL });
-            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
-            listDirBuffer.push_back(full_path2_truncated + wstring(findData.cFileName));
-        }
-        runs++;
-        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
-            shortIndex--;
-            shortpm.pop_back();
-            dir_list.pop_back();
-            listDirBuffer.pop_back();
-            continue;
-        }
-        if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
-            if (findData.dwFileAttributes & 4) {
-                shortIndex--;
-                shortpm.pop_back();
-                dir_list.pop_back();
-                listDirBuffer.pop_back();
-                continue;
-            }
-        }
-    }
-
-    runs = 0;
-    hFind = FindFirstFileW(full_path3, &findData);
-    while (FindNextFileW(hFind, &findData) != 0)
-    {
-        if (runs > 0) {
-            shortpm.push_back({ NULL, NULL, NULL });
-            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
-            listDirBuffer.push_back(full_path3_truncated + wstring(findData.cFileName));
-        }
-        runs++;
-        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
-            shortIndex--;
-            shortpm.pop_back();
-            dir_list.pop_back();
-            listDirBuffer.pop_back();
-            continue;
-        }
-        if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
-            if (findData.dwFileAttributes & 4) {
-                shortIndex--;
-                shortpm.pop_back();
-                dir_list.pop_back();
-                listDirBuffer.pop_back();
-                continue;
-            }
-        }
-    }
-
-    delete[] full_path;
-    delete[] full_path2;
-    delete[] full_path3;
-    envName.clear();
-    envName2.clear();
-
-    FindClose(hFind);
-    return dir_list;
-}
+vector<parameters> cbpm;
+int smIndex = 0;
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     HRESULT hr = CoInitialize(NULL);
@@ -455,6 +258,7 @@ unsigned long animate(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
     //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 1, yV->y, NULL);
+    free(yV);
     return 0;
 }
 
@@ -467,6 +271,7 @@ unsigned long fastin(LPVOID lpParam) {
         SendMessageW(wnd->GetHWND(), WM_USER + 3, yV->y, NULL);
         //this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 400)));
     //}
+    free(yV);
     return 0;
 }
 
@@ -499,6 +304,37 @@ void SelectItem(Element* elem, Event* iev) {
         }
         if (elem != emptyspace) elem->SetSelected(true);
     }
+}
+
+void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    if (pProp == Element::MouseWithinProp()) {
+        checkboxElem = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
+        checkboxElem->SetLayoutPos(-2);
+    }
+}
+
+void CheckboxStuff(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    UpdateCache u;
+    if (pProp == Element::MouseFocusedProp()) {
+        Element* parent = elem->GetParent();
+        Value* v = elem->GetValue(Element::MouseFocusedProp, 1, &u);
+        Element* item = parent->FindDescendent(StrToID((UCString)L"innerElem"));
+        item->SetValue(Element::MouseFocusedProp(), 1, v);
+    }
+    //elem->SetLayoutPos(-3);
+    //if (pProp == Element::SelectedProp()) {
+    //    elem->SetLayoutPos(-2);
+    //}
+}
+
+void SelectItemCheck(Element* elem, Event* iev) {
+    //if (iev->type == Button::Click) {
+    //    for (int checks = 0; checks < cbpm.size(); checks++) {
+    //        assignExtendedFn(cbpm[checks].elem, CheckboxStuff);
+    //    }
+    //    bool selectChecker = !(elem->GetSelected());
+    //    elem->SetSelected(selectChecker);
+    //}
 }
 
 bool isPressed = 0;
@@ -642,6 +478,7 @@ void InitLayout(Element* elem, Event* iev) {
             shortpm.resize(count);
             shadowpm.resize(count);
             filepm.resize(count);
+            cbpm.resize(count);
             RECT dimensions;
             GetClientRect(wnd->GetHWND(), &dimensions);
             DWORD* animThread = new DWORD[count];
@@ -658,13 +495,18 @@ void InitLayout(Element* elem, Event* iev) {
                 shortcutElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"shortcutElem"));
                 iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
                 textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
+                checkboxElem = (Button*)outerElem->FindDescendent(StrToID((UCString)L"checkboxElem"));
                 textElem->SetContentString((UCString)files[i].c_str());
                 pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y;
                 iconpm[i].elem = iconElem;
                 shortpm[i].elem = shortcutElem;
                 shadowpm[i].elem = iconElemShadow;
                 filepm[i].elem = textElem;
+                cbpm[i].elem = checkboxElem;
                 assignFn(outerElem, SelectItem);
+                assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
+                assignFn(outerElem, SelectItemCheck);
+                assignExtendedFn(checkboxElem, CheckboxStuff);
                 yValue* yV = new yValue{ i };
                 yValue* yV2 = new yValue{ i };
                 smIndex++;
@@ -693,6 +535,7 @@ void InitLayout(Element* elem, Event* iev) {
             shortpm.clear();
             shadowpm.clear();
             filepm.clear();
+            cbpm.clear();
             shortIndex = 0;
             openclose = 0;
             itemcountstatus->SetVisible(false); itemcountstatus->SetAlpha(255);

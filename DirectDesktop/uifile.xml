@@ -24,23 +24,25 @@
 		</Element>
 	</HWNDElement>
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)"/>
-	<Button resid="outerElem" layout="filllayout()" sheet="default" class="item" visible="false" layoutpos="absolute" width="76rp" height="96rp" alpha="255" animation="alpha|s|fast">
+	<Button resid="outerElem" layout="filllayout()" sheet="default" visible="false" layoutpos="absolute" width="76rp" height="96rp" alpha="255" animation="alpha|s|fast">
+		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" background="20575" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<Element id="atom(iconElem)" background="20575" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="20575" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<RichText id="atom(textElem)" background="20575" foreground="black" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
+		<Button id="atom(checkboxElem)" class="checkbox" background="20575" layoutpos="none" width="20rp" height="20rp" x="6rp" y="6rp"/>
 	</Button>
 	<stylesheets>
 		<style resid="default">
 			<if class="item">
-				<Button background="argb(0,0,0,0)"/>
+				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="0" animation="alpha|log|veryfast"/>
 				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))"/>
+					<Element background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))" alpha="255"/>
 				</if>
 				<if selected="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
+					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha ="255"/>
 					<if mousefocused="true">
-						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
+						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))" alpha="255"/>
 					</if>
 				</if>
 			</if>
@@ -48,6 +50,18 @@
 				<Element alpha="themeable(224, 148)"/>
 				<if visible="false">
 					<Element alpha="themeable(0, 148)"/>
+				</if>
+			</if>
+			<if class="checkbox">
+				<Button content="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
+				<if mousefocused="true">
+					<Button content="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
+				</if>
+				<if selected="true">
+					<Button content="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
+					<if mousefocused="true">
+						<Button content="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
+					</if>
 				</if>
 			</if>
 		</style>

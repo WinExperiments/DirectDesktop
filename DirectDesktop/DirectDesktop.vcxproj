@@ -146,6 +146,7 @@
     <ClInclude Include="BlurCore.cpp" />
     <ClInclude Include="BlurCore.h" />
     <ClInclude Include="ColorHelper.h" />
+    <ClInclude Include="DirectoryHelper.h" />
     <ClInclude Include="DirectUI\accessibility.h" />
     <ClInclude Include="DirectUI\AccessibleButton.h" />
     <ClInclude Include="DirectUI\AnimationStrip.h" />
@@ -260,6 +261,7 @@
     <ClCompile Include="BitmapHelper.cpp" />
     <ClCompile Include="ColorHelper.cpp" />
     <ClCompile Include="DirectDesktop.cpp" />
+    <ClCompile Include="DirectoryHelper.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
   </ItemGroup>
   <ItemGroup>
