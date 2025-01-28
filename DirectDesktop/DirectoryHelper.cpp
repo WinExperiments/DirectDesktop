@@ -42,48 +42,30 @@ wstring hideExt(const wstring& filename, bool isEnabled) {
     }
 }
 
-
-
-vector<wstring> list_directory() {
-    static int isFileHiddenEnabled;
-    static int isFileSuperHiddenEnabled;
-    static int isFileExtHidden;
-    LPCWSTR path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
+int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
+    int result{};
     HKEY hKey;
-    DWORD lResult = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
-    DWORD lResult2 = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
-    DWORD lResult3 = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
+    DWORD lResult = RegOpenKeyEx(hKeyName, path, 0, KEY_READ, &hKey);
     if (lResult == ERROR_SUCCESS)
     {
         DWORD dwSize = NULL;
-        DWORD dwSize2 = NULL;
-        DWORD dwSize3 = NULL;
-        lResult = RegGetValue(hKey, NULL, L"Hidden", RRF_RT_DWORD, NULL, NULL, &dwSize);
-        lResult2 = RegGetValue(hKey, NULL, L"ShowSuperHidden", RRF_RT_DWORD, NULL, NULL, &dwSize2);
-        lResult3 = RegGetValue(hKey, NULL, L"HideFileExt", RRF_RT_DWORD, NULL, NULL, &dwSize3);
+        lResult = RegGetValue(hKey, NULL, valueToFind, RRF_RT_DWORD, NULL, NULL, &dwSize);
         if (lResult == ERROR_SUCCESS && dwSize != NULL)
         {
             DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, L"Hidden", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            isFileHiddenEnabled = *dwValue;
-            free(dwValue);
-        }
-        if (lResult == ERROR_SUCCESS && dwSize != NULL)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, L"ShowSuperHidden", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            isFileSuperHiddenEnabled = *dwValue;
-            free(dwValue);
-        }
-        if (lResult == ERROR_SUCCESS && dwSize != NULL)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, L"HideFileExt", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            isFileExtHidden = *dwValue;
+            lResult = RegGetValue(hKey, NULL, valueToFind, RRF_RT_DWORD, NULL, dwValue, &dwSize);
+            result = *dwValue;
             free(dwValue);
         }
         RegCloseKey(hKey);
     }
+    return result;
+}
+
+vector<wstring> list_directory() {
+    int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
+    int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
+    int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
     WIN32_FIND_DATAW findData;
     HANDLE hFind = INVALID_HANDLE_VALUE;
     wchar_t* full_path = new wchar_t[260];

@@ -15,4 +15,5 @@ extern int shortIndex;
 extern vector<parameters> shortpm;
 extern vector<wstring> listDirBuffer;
 
+int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 vector<wstring> list_directory();

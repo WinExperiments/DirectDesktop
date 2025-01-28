@@ -148,7 +148,7 @@ vector<parameters> iconpm;
 vector<parameters> shadowpm;
 vector<parameters> filepm;
 vector<parameters> cbpm;
-int smIndex = 0;
+int smIndex = 0, showcheckboxes = 0;
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     HRESULT hr = CoInitialize(NULL);
@@ -297,44 +297,38 @@ unsigned long animate5(LPVOID lpParam) {
 
 void SelectItem(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
-        if (GetAsyncKeyState(VK_CONTROL) == 0) {
+        Button* checkbox = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
+        if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 pm[items].elem->SetSelected(false);
+                if (cbpm[items].elem->GetSelected() == false && showcheckboxes == 1) cbpm[items].elem->SetVisible(false);
             }
         }
         if (elem != emptyspace) elem->SetSelected(true);
+        if (showcheckboxes == 1) checkbox->SetVisible(true);
     }
 }
 
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    if (pProp == Element::MouseWithinProp()) {
-        checkboxElem = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
-        checkboxElem->SetLayoutPos(-2);
+    checkboxElem = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));   
+    if (pProp == Element::MouseFocusedProp() && showcheckboxes == 1) {
+        for (int items = 0; items < cbpm.size(); items++) {
+            if (cbpm[items].elem->GetSelected() == false) cbpm[items].elem->SetVisible(false);
+        }
+        checkboxElem->SetVisible(true);
     }
 }
 
-void CheckboxStuff(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+bool checked = 0;
+void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
     UpdateCache u;
     if (pProp == Element::MouseFocusedProp()) {
         Element* parent = elem->GetParent();
         Value* v = elem->GetValue(Element::MouseFocusedProp, 1, &u);
         Element* item = parent->FindDescendent(StrToID((UCString)L"innerElem"));
+        //item->SetAlpha(255);
         item->SetValue(Element::MouseFocusedProp(), 1, v);
     }
-    //elem->SetLayoutPos(-3);
-    //if (pProp == Element::SelectedProp()) {
-    //    elem->SetLayoutPos(-2);
-    //}
-}
-
-void SelectItemCheck(Element* elem, Event* iev) {
-    //if (iev->type == Button::Click) {
-    //    for (int checks = 0; checks < cbpm.size(); checks++) {
-    //        assignExtendedFn(cbpm[checks].elem, CheckboxStuff);
-    //    }
-    //    bool selectChecker = !(elem->GetSelected());
-    //    elem->SetSelected(selectChecker);
-    //}
 }
 
 bool isPressed = 0;
@@ -459,12 +453,14 @@ void InitLayout(Element* elem, Event* iev) {
         unsigned int count = files.size();
         testButton->SetEnabled(true);
         testButton5->SetEnabled(false);
+        showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
         switch (openclose) {
         case 0: {
             Button* emptyspace;
             parser->CreateElement((UCString)L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
             UIContainer->Add((Element**)&emptyspace, 1);
             assignFn(emptyspace, SelectItem);
+            assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
             assignExtendedFn(emptyspace, MarqueeSelector);
             swprintf_s(icount, L"        Found %d items!", count);
             itemcountstatus->SetContentString((UCString)icount);
@@ -505,8 +501,7 @@ void InitLayout(Element* elem, Event* iev) {
                 cbpm[i].elem = checkboxElem;
                 assignFn(outerElem, SelectItem);
                 assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
-                assignFn(outerElem, SelectItemCheck);
-                assignExtendedFn(checkboxElem, CheckboxStuff);
+                assignExtendedFn(checkboxElem, CheckboxHandler);
                 yValue* yV = new yValue{ i };
                 yValue* yV2 = new yValue{ i };
                 smIndex++;
