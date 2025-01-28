@@ -28,8 +28,8 @@
 	</Button>
 	<Button resid="outerElem" layout="filllayout()" sheet="default" visible="false" layoutpos="absolute" width="76rp" height="96rp" alpha="255" animation="alpha|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
-		<Element id="atom(iconElemShadow)" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
-		<Element id="atom(iconElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
+		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
+		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" foreground="black" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
 		<Button id="atom(checkboxElem)" class="checkbox" background="argb(0,0,0,0)" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>

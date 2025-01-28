@@ -4,6 +4,7 @@
 using namespace std;
 
 int shortIndex;
+vector<parameters> pm;
 vector<parameters> shortpm;
 vector<wstring> listDirBuffer;
 

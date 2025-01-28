@@ -9,9 +9,11 @@ struct parameters {
     DirectUI::Element* elem{};
     int x{};
     int y{};
+    wstring filename;
 };
 
 extern int shortIndex;
+extern vector<parameters> pm;
 extern vector<parameters> shortpm;
 extern vector<wstring> listDirBuffer;
 

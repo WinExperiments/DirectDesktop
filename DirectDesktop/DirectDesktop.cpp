@@ -11,6 +11,7 @@
 #include <vector>
 #include <WinUser.h>
 #include <ShObjIdl.h>
+#include <shellapi.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
@@ -143,11 +144,10 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 }
 
 WNDPROC WndProc;
-vector<parameters> pm;
-vector<parameters> iconpm;
-vector<parameters> shadowpm;
-vector<parameters> filepm;
-vector<parameters> cbpm;
+vector<Element*> iconpm;
+vector<Element*> shadowpm;
+vector<Element*> filepm;
+vector<Element*> cbpm;
 int smIndex = 0, showcheckboxes = 0;
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
@@ -205,24 +205,24 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         wchar_t buffer[32];
         swprintf_s(buffer, L"iconfont;%d", (int)f);
         wcscat_s(buffer, L"%");
-        filepm[wParam].elem->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
-        iconpm[wParam].elem->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam].elem->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam].elem->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam].elem->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        filepm[wParam].elem->SetFont((UCString)buffer);
+        filepm[wParam]->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
+        iconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
+        filepm[wParam]->SetFont((UCString)buffer);
         break;
     }
     case WM_USER + 4: {
-        shadowpm[wParam].elem->SetAlpha(255);
-        shadowpm[wParam].elem->SetWidth(64);
-        shadowpm[wParam].elem->SetHeight(64);
-        shadowpm[wParam].elem->SetX(iconPaddingX - 8);
-        shadowpm[wParam].elem->SetY((iconPaddingY * 0.72) - 6);
+        shadowpm[wParam]->SetAlpha(255);
+        shadowpm[wParam]->SetWidth(64);
+        shadowpm[wParam]->SetHeight(64);
+        shadowpm[wParam]->SetX(iconPaddingX - 8);
+        shadowpm[wParam]->SetY((iconPaddingY * 0.72) - 6);
         shortpm[wParam].elem->SetAlpha(255);
         shortpm[wParam].elem->SetWidth(32);
         shortpm[wParam].elem->SetHeight(32);
-        shortpm[wParam].elem->SetX(iconPaddingX);
+        shortpm[wParam].elem ->SetX(iconPaddingX);
         shortpm[wParam].elem->SetY((iconPaddingY * 0.72) + 16);
         break;
     }
@@ -295,17 +295,26 @@ unsigned long animate5(LPVOID lpParam) {
     return 0;
 }
 
+Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
+    static int clicks; // temporary double click test, proper one later
     if (iev->type == Button::Click) {
         Button* checkbox = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
         if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 pm[items].elem->SetSelected(false);
-                if (cbpm[items].elem->GetSelected() == false && showcheckboxes == 1) cbpm[items].elem->SetVisible(false);
+                if (cbpm[items]->GetSelected() == false && showcheckboxes == 1) cbpm[items]->SetVisible(false);
             }
         }
         if (elem != emptyspace) elem->SetSelected(true);
         if (showcheckboxes == 1) checkbox->SetVisible(true);
+        if (elem == elemStorage) clicks++; else clicks = 0;
+        if (clicks % 2 == 1) {
+            for (int items = 0; items < pm.size(); items++) {
+                if (pm[items].elem == elem) ShellExecuteW(NULL, NULL, (pm[items].filename).c_str(), NULL, NULL, SW_SHOWNORMAL);
+            }
+        }
+        elemStorage = elem;
     }
 }
 
@@ -313,7 +322,7 @@ void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Va
     checkboxElem = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));   
     if (pProp == Element::MouseFocusedProp() && showcheckboxes == 1) {
         for (int items = 0; items < cbpm.size(); items++) {
-            if (cbpm[items].elem->GetSelected() == false) cbpm[items].elem->SetVisible(false);
+            if (cbpm[items]->GetSelected() == false) cbpm[items]->SetVisible(false);
         }
         checkboxElem->SetVisible(true);
     }
@@ -377,7 +386,7 @@ void fullscreenAnimation() {
 vector<HBITMAP> GetDesktopIcons(int size) {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < size; i++) {
-        bmResult.push_back(GetShellItemImage(listDirBuffer[i].c_str(), 48, 48));
+        bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), 48, 48));
     }
     return bmResult;
 }
@@ -407,8 +416,8 @@ void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
             Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
             Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
             Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
-            iconpm[icon].elem->SetValue(Element::ContentProp, 1, bitmap);
-            shadowpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShadow);
+            iconpm[icon]->SetValue(Element::ContentProp, 1, bitmap);
+            shadowpm[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
             if (shortpm[icon].x == 1) shortpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
             DeleteObject(ico);
             DeleteObject(icoShortcut);
@@ -493,12 +502,12 @@ void InitLayout(Element* elem, Event* iev) {
                 textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
                 checkboxElem = (Button*)outerElem->FindDescendent(StrToID((UCString)L"checkboxElem"));
                 textElem->SetContentString((UCString)files[i].c_str());
-                pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y;
-                iconpm[i].elem = iconElem;
+                pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y, pm[i].filename = listDirBuffer[i];
+                iconpm[i] = iconElem;
                 shortpm[i].elem = shortcutElem;
-                shadowpm[i].elem = iconElemShadow;
-                filepm[i].elem = textElem;
-                cbpm[i].elem = checkboxElem;
+                shadowpm[i] = iconElemShadow;
+                filepm[i] = textElem;
+                cbpm[i] = checkboxElem;
                 assignFn(outerElem, SelectItem);
                 assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
                 assignExtendedFn(checkboxElem, CheckboxHandler);
