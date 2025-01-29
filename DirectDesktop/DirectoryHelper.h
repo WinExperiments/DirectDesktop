@@ -10,14 +10,16 @@ struct parameters {
     int x{};
     int y{};
     wstring filename;
+    bool isDirectory;
 };
 
-extern int shortIndex;
-extern vector<parameters> pm;
-extern vector<parameters> shortpm;
-extern vector<wstring> listDirBuffer;
+extern int shortIndex, subshortIndex, dirIndex;
+extern vector<parameters> pm, subpm;
+extern vector<parameters> shortpm, subshortpm;
+extern vector<wstring> listDirBuffer, sublistDirBuffer;
 
 int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 vector<wstring> list_directory();
+vector<wstring> list_subdirectory(wstring path);

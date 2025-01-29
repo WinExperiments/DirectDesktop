@@ -35,7 +35,8 @@ Element* shortcutElem;
 Element* iconElemShadow;
 RichText* textElem;
 Button* checkboxElem;
-Element* fullscreenpopup, *fullscreenpopupbase, *fullscreeninner;
+Element* fullscreenpopup, *fullscreeninner;
+Button* fullscreenpopupbase, *centered;
 Element* itemcountstatus;
 Button* emptyspace;
 Element* selector;
@@ -43,6 +44,7 @@ HRESULT err;
 
 int popupframe;
 vector<int> frame;
+bool treatdirasgroup = 0;
 
 struct EventListener : public IElementListener {
 
@@ -140,11 +142,11 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 }
 
 WNDPROC WndProc;
-vector<Element*> iconpm;
-vector<Element*> shadowpm;
-vector<Element*> filepm;
+vector<Element*> iconpm, subiconpm;
+vector<Element*> shadowpm, subshadowpm;
+vector<Element*> filepm, subfilepm;
 vector<Element*> cbpm;
-int smIndex = 0, showcheckboxes = 0;
+int showcheckboxes = 0;
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     HRESULT hr = CoInitialize(NULL);
@@ -189,6 +191,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 1: {
         //pm[wParam].elem->SetAlpha(255);
         pm[wParam].elem->SetVisible(true);
+        break;
+    }
+    case WM_USER + 2: {
+        //subpm[wParam].elem->SetAlpha(255);
+        subpm[wParam].elem->SetVisible(true);
         break;
     }
     case WM_USER + 3: {
@@ -243,11 +250,49 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 6: {
         fullscreenpopupbase->SetVisible(true);
         fullscreeninner->SetVisible(true);
-        fullscreeninner->SetY(100 * (1 - py[popupframe - 1]) + 1);
+        fullscreeninner->SetY(dimensions.bottom * 0.1 * (1 - py[popupframe - 1]) + 1);
         break;
     }
     case WM_USER + 7: {
         fullscreenpopup->SetLayoutPos(-3);
+        centered->DestroyAll(true);
+        break;
+    }
+    case WM_USER + 8: {
+        parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
+        centered->Add((Element**)&fullscreeninner, 1);
+        centered->SetMinSize(800, 480);
+        fullscreeninner->SetMinSize(800, 480);
+    }
+    case WM_USER + 9: {
+        double bezierProgress = py[frame[wParam] - 1];
+        subpm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
+        subpm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
+        subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
+        subpm[wParam].elem->SetY(subpm[wParam].y); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
+        float f = ((subpm[wParam].elem->GetWidth() / (float)innerSizeX) * 100);
+        wchar_t buffer[32];
+        swprintf_s(buffer, L"iconfont;%d", (int)f);
+        wcscat_s(buffer, L"%");
+        subfilepm[wParam]->SetHeight(subpm[wParam].elem->GetHeight() * 0.35);
+        subiconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
+        subiconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+        subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
+        subiconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
+        subfilepm[wParam]->SetFont((UCString)buffer);
+        break;
+    }
+    case WM_USER + 10: {
+        subshadowpm[wParam]->SetAlpha(255);
+        subshadowpm[wParam]->SetWidth(64);
+        subshadowpm[wParam]->SetHeight(64);
+        subshadowpm[wParam]->SetX(iconPaddingX - 8);
+        subshadowpm[wParam]->SetY((iconPaddingY * 0.72) - 6);
+        subshortpm[wParam].elem->SetAlpha(255);
+        subshortpm[wParam].elem->SetWidth(32);
+        subshortpm[wParam].elem->SetHeight(32);
+        subshortpm[wParam].elem->SetX(iconPaddingX);
+        subshortpm[wParam].elem->SetY((iconPaddingY * 0.72) + 16);
         break;
     }
     }
@@ -258,6 +303,13 @@ unsigned long animate(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
     //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 1, yV->y, NULL);
+    free(yV);
+    return 0;
+}
+
+unsigned long subanimate(LPVOID lpParam) {
+    yValue* yV = (yValue*)lpParam;
+    SendMessageW(wnd->GetHWND(), WM_USER + 2, yV->y, NULL);
     free(yV);
     return 0;
 }
@@ -275,30 +327,57 @@ unsigned long fastin(LPVOID lpParam) {
     return 0;
 }
 
-//unsigned long animate4(LPVOID lpParam) {
-//    CubicBezier(60, px, py, 0.75, 0.45, 0.0, 1.0);
-//    for (int m = 1; m <= 60; m++) {
-//        l = m;
-//        SendMessage(wnd->GetHWND(), WM_USER + 6, NULL, NULL);
-//        std::this_thread::sleep_for(std::chrono::milliseconds((int)((px[l] - px[l - 1]) * 50)));
-//    }
-//    return 0;
-//}
+unsigned long subfastin(LPVOID lpParam) {
+    yValue* yV = (yValue*)lpParam;
+    SendMessageW(wnd->GetHWND(), WM_USER + 10, yV->y, NULL);
+    frame[yV->y] = 24;
+    SendMessageW(wnd->GetHWND(), WM_USER + 9, yV->y, NULL);
+    free(yV);
+    return 0;
+}
 
 unsigned long animate5(LPVOID lpParam) {
-    CubicBezier(20, px, py, 0.05, 0.9, 0.3, 1.0);
-    for (int m = 1; m <= 20; m++) {
+    CubicBezier(30, px, py, 0.05, 0.9, 0.3, 1.0);
+    SendMessageW(wnd->GetHWND(), WM_USER + 8, NULL, NULL);
+    for (int m = 1; m <= 30; m++) {
         popupframe = m;
-        SendMessage(wnd->GetHWND(), WM_USER + 6, NULL, NULL);
-        this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 300)));
+        SendMessageW(wnd->GetHWND(), WM_USER + 6, NULL, NULL);
+        this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 200)));
     }
     return 0;
 }
 
 unsigned long animate6(LPVOID lpParam) {
     this_thread::sleep_for(chrono::milliseconds(400));
-    SendMessage(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
+    SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
     return 0;
+}
+
+void fullscreenAnimation() {
+    fullscreenpopup->SetLayoutPos(4);
+    fullscreenpopup->SetAlpha(255);
+    parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
+    centered->Add((Element**)&fullscreeninner, 1);
+    centered->SetMinSize(800, 480);
+    fullscreeninner->SetMinSize(800, 480);
+    fullscreenpopupbase->SetVisible(true);
+    fullscreeninner->SetVisible(true);
+}
+void fullscreenAnimation2() {
+    DWORD animThread;
+    HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
+}
+
+wstring bufferOpenInExplorer;
+void OpenGroupInExplorer(Element* elem, Event* iev) {
+    if (iev->type == TouchButton::Click) {
+        SHELLEXECUTEINFOW execInfo = {};
+        execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+        execInfo.lpVerb = L"open";
+        execInfo.nShow = SW_SHOWNORMAL;
+        execInfo.lpFile = bufferOpenInExplorer.c_str();
+        ShellExecuteExW(&execInfo);
+    }
 }
 
 int clicks = 1;
@@ -308,6 +387,181 @@ unsigned long DoubleClickHandler(LPVOID lpParam) {
     this_thread::sleep_for(chrono::milliseconds(_wtoi(dcms)));
     clicks = 1;
     return 0;
+}
+
+vector<HBITMAP> GetDesktopIcons(int size) {
+    vector<HBITMAP> bmResult;
+    for (int i = 0; i < size; i++) {
+        bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), 48, 48));
+    }
+    return bmResult;
+}
+vector<HBITMAP> GetSubdirectoryIcons(int size) {
+    vector<HBITMAP> bmResult;
+    for (int i = 0; i < size; i++) {
+        bmResult.push_back(GetShellItemImage((subpm[i].filename).c_str(), 48, 48));
+    }
+    return bmResult;
+}
+void ApplyIcons(Element* elem = NULL, Event* iev = NULL) {
+    HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
+    static bool isColorized = 0;
+    if (iev->type == Button::Click) {
+        if (elem == testButton4) {
+            isColorized = !isColorized;
+        }
+        vector<HBITMAP> icons = GetDesktopIcons(iconpm.size());
+        for (int icon = 0; icon < iconpm.size(); icon++) {
+            HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(2), IMAGE_ICON, 48, 48, LR_SHARED);
+            HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
+            HBITMAP bmp = IconToBitmap(ico);
+            bmp = icons[icon];
+            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
+            HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
+            if (isColorized) {
+                IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
+                IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1);
+            }
+            IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
+            IterateBitmap(bmpShortcut, UndoPremultiplication, 1);
+            Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
+            Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+            Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
+            iconpm[icon]->SetValue(Element::ContentProp, 1, bitmap);
+            shadowpm[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
+            if (shortpm[icon].x == 1) shortpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
+            DeleteObject(ico);
+            DeleteObject(icoShortcut);
+            DeleteObject(bmp);
+            DeleteObject(bmpShadow);
+            DeleteObject(bmpShortcut);
+            bitmap->Release();
+            bitmapShadow->Release();
+            bitmapShortcut->Release();
+        }
+        icons.clear();
+    }
+}
+void ApplySubIcons() {
+    HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
+        vector<HBITMAP> icons = GetSubdirectoryIcons(subiconpm.size());
+        for (int icon = 0; icon < subiconpm.size(); icon++) {
+            HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(2), IMAGE_ICON, 48, 48, LR_SHARED);
+            HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
+            HBITMAP bmp = IconToBitmap(ico);
+            bmp = icons[icon];
+            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
+            HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
+            IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
+            IterateBitmap(bmpShortcut, UndoPremultiplication, 1);
+            Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
+            Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+            Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
+            subiconpm[icon]->SetValue(Element::ContentProp, 1, bitmap);
+            subshadowpm[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
+            if (subshortpm[icon].x == 1) subshortpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
+            DeleteObject(ico);
+            DeleteObject(icoShortcut);
+            DeleteObject(bmp);
+            DeleteObject(bmpShadow);
+            DeleteObject(bmpShortcut);
+            bitmap->Release();
+            bitmapShadow->Release();
+            bitmapShortcut->Release();
+        }
+        icons.clear();
+}
+
+void SelectSubItem(Element* elem, Event* iev) {
+    if (iev->type == Button::Click) {
+        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        SHELLEXECUTEINFOW execInfo = {};
+        execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+        execInfo.lpVerb = L"open";
+        execInfo.nShow = SW_SHOWNORMAL;
+        for (int items = 0; items < subpm.size(); items++) {
+            if (subpm[items].elem == elem) {
+                execInfo.lpFile = (subpm[items].filename).c_str();
+                ShellExecuteExW(&execInfo);
+            }
+        }
+        CoUninitialize();
+    }
+}
+
+void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
+    fullscreenAnimation();
+    Element* groupdirectory{};
+    parser->CreateElement((UCString)L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
+    fullscreeninner->Add((Element**)&groupdirectory, 1);
+    ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID((UCString)L"groupdirlist"));
+    Element* SubUIContainer = (ScrollViewer*)groupdirlist->FindDescendent(StrToID((UCString)L"SubUIContainer"));
+    vector<wstring> subfiles = list_subdirectory(filename + wstring(L"\\*"));
+    unsigned int count = subfiles.size();
+    Value* v;
+    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID((UCString)L"dirname"));
+    dirname->SetContentString((UCString)elementForLabel->GetContentString(&v));
+    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"Customize"));
+    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"OpenInExplorer"));
+    assignFn(OpenInExplorer, OpenGroupInExplorer);
+    bufferOpenInExplorer = (wstring)filename;
+    if (count <= 128 && count > 0) {
+        int x = 0, y = 0;
+        frame.resize(count);
+        subpm.resize(count);
+        subiconpm.resize(count);
+        subshortpm.resize(count);
+        subshadowpm.resize(count);
+        subfilepm.resize(count);
+        RECT dimensions;
+        dimensions = *(groupdirectory->GetPadding(&v));
+        int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
+        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 24;
+        DWORD* animThread = new DWORD[count];
+        DWORD* animThread2 = new DWORD[count];
+        HANDLE* animThreadHandle = new HANDLE[count];
+        HANDLE* animThreadHandle2 = new HANDLE[count];
+        for (int i = 0; i < count; i++) {
+            Button* outerElemGrouped;
+            parser->CreateElement((UCString)L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+            SubUIContainer->Add((Element**)&outerElemGrouped, 1);
+            iconElem = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElem"));
+            shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"shortcutElem"));
+            iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElemShadow"));
+            textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID((UCString)L"textElem"));
+            textElem->SetContentString((UCString)subfiles[i].c_str());
+            subpm[i].elem = outerElemGrouped, subpm[i].x = x, subpm[i].y = y, subpm[i].filename = sublistDirBuffer[i];
+            subiconpm[i] = iconElem;
+            subshortpm[i].elem = shortcutElem;
+            subshadowpm[i] = iconElemShadow;
+            subfilepm[i] = textElem;
+            assignFn(outerElemGrouped, SelectSubItem);
+            outerElemGrouped->SetClass((UCString)L"singleclicked");
+            yValue* yV = new yValue{ i };
+            yValue* yV2 = new yValue{ i };
+            x += outerSizeX;
+            if (x > 800 - (dimensions.left + dimensions.right + outerSizeX)) {
+                x = 0;
+                y += outerSizeY;
+            }
+            animThreadHandle[i] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[i]));
+            animThreadHandle2[i] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[i]));
+        }
+        ApplySubIcons();
+        SubUIContainer->SetHeight(y);
+        subfiles.clear();
+        delete[] animThread;
+        delete[] animThread2;
+        delete[] animThreadHandle;
+        delete[] animThreadHandle2;
+    }
+    else {
+        if (count > 128) {
+            SubUIContainer->SetContentString((UCString)L"This folder is too large.");
+        }
+        else SubUIContainer->SetContentString((UCString)L"This folder is empty.");
+    }
+    v->Release();
 }
 
 Element* elemStorage;
@@ -341,8 +595,12 @@ void SelectItem(Element* elem, Event* iev) {
         if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items].elem == elem) {
+                    textElem = (RichText*)elem->FindDescendent(StrToID((UCString)L"textElem"));
                     execInfo.lpFile = (pm[items].filename).c_str();
-                    ShellExecuteExW(&execInfo);
+                    if (pm[items].isDirectory == true && treatdirasgroup == true) {
+                        ShowDirAsGroup(execInfo.lpFile, textElem);
+                    }
+                    else ShellExecuteExW(&execInfo);
                 }
             }
         }
@@ -359,7 +617,6 @@ void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Va
         checkboxElem->SetVisible(true);
     }
 }
-
 void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
     UpdateCache u;
     if (pProp == Element::MouseFocusedProp()) {
@@ -404,89 +661,37 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
     }
 }
 
-//void dragdropAnimation() {
-//    DWORD animThread;
-//    animThreadHandle = CreateThread(0, 0, animate4, NULL, 0, &animThread);
-//}
-
-void fullscreenAnimation() {
-    DWORD animThread;
-    HANDLE animThreadHandle = CreateThread(0, 0, animate5, NULL, 0, &animThread);
-}
-
-void fullscreenAnimation2() {
-    DWORD animThread;
-    HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
-}
-
-vector<HBITMAP> GetDesktopIcons(int size) {
-    vector<HBITMAP> bmResult;
-    for (int i = 0; i < size; i++) {
-        bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), 48, 48));
-    }
-    return bmResult;
-}
-
-void ApplyIcons(Element* elem = NULL, Event* iev = NULL)
-{
-    HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
-    static bool isColorized = 0;
+void testEventListener2(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
-        if (elem == testButton4) {
-            isColorized = !isColorized;
-        }
-        vector<HBITMAP> icons = GetDesktopIcons(iconpm.size());
-        for (int icon = 0; icon < iconpm.size(); icon++) {
-            HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(2), IMAGE_ICON, 48, 48, LR_SHARED);
-            HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
-            HBITMAP bmp = IconToBitmap(ico);
-            bmp = icons[icon];
-            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
-            HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
-            if (isColorized) {
-                IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
-                IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1);
-            }
-            IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
-            IterateBitmap(bmpShortcut, UndoPremultiplication, 1);
-            Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
-            Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
-            Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
-            iconpm[icon]->SetValue(Element::ContentProp, 1, bitmap);
-            shadowpm[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
-            if (shortpm[icon].x == 1) shortpm[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
-            DeleteObject(ico);
-            DeleteObject(icoShortcut);
-            DeleteObject(bmp);
-            DeleteObject(bmpShadow);
-            DeleteObject(bmpShortcut);
-            bitmap->Release();
-            bitmapShadow->Release();
-            bitmapShortcut->Release();
-        }
-        icons.clear();
+        treatdirasgroup = !treatdirasgroup;
+        UCString str = treatdirasgroup ? (UCString)L"TreatDirAsGroup (Y)" : (UCString)L"TreatDirAsGroup (N)";
+        testButton2->SetContentString(str);
     }
 }
-
-bool dragdrop = 0;
-
-//void testEventListener2(Element* elem, Event* iev) {
-//    if (iev->type == Button::Click) {
-//        dragdropAnimation();
-//    }
-//}
 
 void testEventListener3(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
         switch (fullscreenpopup->GetAlpha()) {
         case 0:
-            fullscreenpopup->SetLayoutPos(4);
-            fullscreenpopup->SetAlpha(255);
-            fullscreenAnimation();
+            if (elem != fullscreenpopupbase) {
+                fullscreenpopup->SetLayoutPos(4);
+                fullscreenpopup->SetAlpha(255);
+                fullscreenAnimation();
+            }
             break;
         case 255:
-            fullscreenpopup->SetAlpha(0);
-            fullscreenAnimation2();
+            if (centered->GetMouseWithin() == false) {
+                fullscreenpopup->SetAlpha(0);
+                fullscreenAnimation2();
+                sublistDirBuffer.clear();
+                frame.clear();
+                subpm.clear();
+                subiconpm.clear();
+                subshortpm.clear();
+                subshadowpm.clear();
+                subfilepm.clear();
+                subshortIndex = 0;
+            }
             break;
         }
     }
@@ -514,7 +719,6 @@ void InitLayout(Element* elem, Event* iev) {
             itemcountstatus->SetContentString((UCString)icount);
             itemcountstatus->SetVisible(true); itemcountstatus->SetAlpha(0);
             int x = 0, y = 0;
-            smIndex = 0;
             CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
             frame.resize(count);
             pm.resize(count);
@@ -550,10 +754,13 @@ void InitLayout(Element* elem, Event* iev) {
                 assignFn(outerElem, SelectItem);
                 assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
                 assignExtendedFn(checkboxElem, CheckboxHandler);
-                if (shellstate[4] == 51) outerElem->SetClass((UCString)L"doubleclicked"); else outerElem->SetClass((UCString)L"singleclicked");
+                if (shellstate[4] == 51) {
+                    outerElem->SetClass((UCString)L"doubleclicked");
+                    //if (pm[i].isDirectory == true && treatdirasgroup == true) outerElem->SetClass((UCString)L"singleclicked");
+                }
+                else outerElem->SetClass((UCString)L"singleclicked");
                 yValue* yV = new yValue{ i };
                 yValue* yV2 = new yValue{ i };
-                smIndex++;
                 y += outerSizeY;
                 if (y > dimensions.bottom - (outerSizeY + 74)) { // 74 is 64px of non-desktop area + 8px padding + 2px borders. 
                     y = 0;
@@ -580,6 +787,7 @@ void InitLayout(Element* elem, Event* iev) {
             shadowpm.clear();
             filepm.clear();
             cbpm.clear();
+            dirIndex = 0;
             shortIndex = 0;
             openclose = 0;
             itemcountstatus->SetVisible(false); itemcountstatus->SetAlpha(255);
@@ -625,18 +833,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     mainContainer = regElem(L"mainContainer");
     UIContainer = regElem(L"UIContainer");
     fullscreenpopup = regElem(L"fullscreenpopup");
-    fullscreenpopupbase = regElem(L"fullscreenpopupbase");
-    fullscreeninner = regElem(L"fullscreeninner");
+    fullscreenpopupbase = regBtn(L"fullscreenpopupbase");
+    centered = regBtn(L"centered");
     itemcountstatus = regElem(L"itemcountstatus");
     selector = regElem(L"selector");
 
     assignFn(testButton, testEventListener);
     assignFn(testButton, ApplyIcons);
-    //assignFn(testButton2, testEventListener2);
+    assignFn(testButton2, testEventListener2);
     assignFn(testButton3, testEventListener3);
     assignFn(testButton4, ApplyIcons);
     assignFn(testButton5, InitLayout);
     assignFn(testButton5, ApplyIcons);
+    assignFn(fullscreenpopupbase, testEventListener3);
 
     wnd->Host(pMain);
 

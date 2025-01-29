@@ -16,9 +16,14 @@
 #define IDR_MAINFRAME                   128
 #define IDR_UIFILE1                     129
 #define IDB_BITMAP1                     130
+#define IDS_STRING130                   130
 #define IDB_BITMAP2                     131
+#define IDS_STRING131                   131
 #define IDR_UIFILE2                     132
+#define IDS_STRING132                   132
 #define IDB_BITMAP3                     133
+#define IDS_STRING133                   133
+#define IDS_STRING134                   134
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

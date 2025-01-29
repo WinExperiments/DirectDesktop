@@ -3,30 +3,30 @@
 
 using namespace std;
 
-int shortIndex;
-vector<parameters> pm;
-vector<parameters> shortpm;
-vector<wstring> listDirBuffer;
+int shortIndex, subshortIndex, dirIndex;
+vector<parameters> pm, subpm;
+vector<parameters> shortpm, subshortpm;
+vector<wstring> listDirBuffer, sublistDirBuffer;
 
-wstring hideExt(const wstring& filename, bool isEnabled) {
+wstring hideExt(const wstring& filename, bool isEnabled, bool type) {
     if (isEnabled) {
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
-            shortpm[shortIndex++].x = 1;
+            type ? shortpm[shortIndex++].x = 1 : subshortpm[subshortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
-            shortpm[shortIndex++].x = 1;
+            type ? shortpm[shortIndex++].x = 1 : subshortpm[subshortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
         else {
-            shortpm[shortIndex++].x = 1;
+            type ? shortpm[shortIndex++].x = 1 : subshortpm[subshortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
-        shortIndex++;
+        type ? shortIndex++ : subshortIndex++;
         if (lastdot == wstring::npos) return filename;
         return filename.substr(0, lastdot);
     }
@@ -34,20 +34,20 @@ wstring hideExt(const wstring& filename, bool isEnabled) {
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
-            shortpm[shortIndex++].x = 1;
+            type ? shortpm[shortIndex++].x = 1 : subshortpm[subshortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
-            shortpm[shortIndex++].x = 1;
+            type ? shortpm[shortIndex++].x = 1 : subshortpm[subshortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) {
-            shortIndex++;
+            type ? shortIndex++ : subshortIndex++;
             return filename;
         }
         else {
-            shortpm[shortIndex++].x = 1;
+            type ? shortpm[shortIndex++].x = 1 : subshortpm[subshortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
     }
@@ -88,6 +88,23 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
     return result;
 }
 
+void AddFile(wstring path, WIN32_FIND_DATAW data) {
+    pm.push_back({ NULL, NULL, NULL });
+    shortpm.push_back({ NULL, NULL, NULL });
+    listDirBuffer.push_back(path + wstring(data.cFileName));
+    if (data.dwFileAttributes & 16) {
+        pm[dirIndex++].isDirectory = true;
+    }
+    else pm[dirIndex++].isDirectory = false;
+}
+void RemoveFile() {
+    dirIndex--;
+    shortIndex--;
+    pm.pop_back();
+    shortpm.pop_back();
+    listDirBuffer.pop_back();
+}
+
 vector<wstring> list_directory() {
     int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
     int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
@@ -120,24 +137,19 @@ vector<wstring> list_directory() {
     while (FindNextFileW(hFind, &findData) != 0)
     {
         if (runs > 0) {
-            shortpm.push_back({ NULL, NULL, NULL });
-            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
-            listDirBuffer.push_back(full_path_truncated + wstring(findData.cFileName));
+            AddFile(full_path_truncated, findData);
+            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden, 1));
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
-            shortIndex--;
-            shortpm.pop_back();
             dir_list.pop_back();
-            listDirBuffer.pop_back();
+            RemoveFile();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
-                shortIndex--;
-                shortpm.pop_back();
                 dir_list.pop_back();
-                listDirBuffer.pop_back();
+                RemoveFile();
                 continue;
             }
         }
@@ -148,24 +160,19 @@ vector<wstring> list_directory() {
     while (FindNextFileW(hFind, &findData) != 0)
     {
         if (runs > 0) {
-            shortpm.push_back({ NULL, NULL, NULL });
-            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
-            listDirBuffer.push_back(full_path2_truncated + wstring(findData.cFileName));
+            AddFile(full_path2_truncated, findData);
+            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden, 1));
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
-            shortIndex--;
-            shortpm.pop_back();
             dir_list.pop_back();
-            listDirBuffer.pop_back();
+            RemoveFile();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
-                shortIndex--;
-                shortpm.pop_back();
                 dir_list.pop_back();
-                listDirBuffer.pop_back();
+                RemoveFile();
                 continue;
             }
         }
@@ -176,24 +183,19 @@ vector<wstring> list_directory() {
     while (FindNextFileW(hFind, &findData) != 0)
     {
         if (runs > 0) {
-            shortpm.push_back({ NULL, NULL, NULL });
-            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden));
-            listDirBuffer.push_back(full_path3_truncated + wstring(findData.cFileName));
+            AddFile(full_path3_truncated, findData);
+            dir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden, 1));
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
-            shortIndex--;
-            shortpm.pop_back();
             dir_list.pop_back();
-            listDirBuffer.pop_back();
+            RemoveFile();
             continue;
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
-                shortIndex--;
-                shortpm.pop_back();
                 dir_list.pop_back();
-                listDirBuffer.pop_back();
+                RemoveFile();
                 continue;
             }
         }
@@ -207,4 +209,47 @@ vector<wstring> list_directory() {
 
     FindClose(hFind);
     return dir_list;
+}
+
+vector<wstring> list_subdirectory(wstring path) {
+    int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
+    int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
+    int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = INVALID_HANDLE_VALUE;
+    vector<wstring> subdir_list;
+
+    int runs = 0;
+    wchar_t buffer[260];
+    size_t asterisk = path.find(L"*");
+    wstring path_truncated = path.substr(0, asterisk);
+    hFind = FindFirstFileW(path.c_str(), &findData);
+    while (FindNextFileW(hFind, &findData) != 0)
+    {
+        if (runs > 0) {
+            subshortpm.push_back({ NULL, NULL, NULL });
+            subdir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden, 0));
+            sublistDirBuffer.push_back(path_truncated + wstring(findData.cFileName));
+        }
+        runs++;
+        if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
+            subshortIndex--;
+            subshortpm.pop_back();
+            subdir_list.pop_back();
+            sublistDirBuffer.pop_back();
+            continue;
+        }
+        if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
+            if (findData.dwFileAttributes & 4) {
+                subshortIndex--;
+                subshortpm.pop_back();
+                subdir_list.pop_back();
+                sublistDirBuffer.pop_back();
+                continue;
+            }
+        }
+    }
+
+    FindClose(hFind);
+    return subdir_list;
 }
