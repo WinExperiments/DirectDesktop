@@ -26,11 +26,7 @@ DUIXmlParser* parser;
 Element* pMain;
 unsigned long key = 0;
 
-Button* testButton;
-Button* testButton2;
-Button* testButton3;
-Button* testButton4;
-Button* testButton5;
+Button* testButton, *testButton2, *testButton3, *testButton4, *testButton5;
 Element* sampleText;
 Element* mainContainer;
 Element* UIContainer;
@@ -244,10 +240,14 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         }
         break;
     }
-    case WM_USER + 7: {
+    case WM_USER + 6: {
         fullscreenpopupbase->SetVisible(true);
         fullscreeninner->SetVisible(true);
         fullscreeninner->SetY(100 * (1 - py[popupframe - 1]) + 1);
+        break;
+    }
+    case WM_USER + 7: {
+        fullscreenpopup->SetLayoutPos(-3);
         break;
     }
     }
@@ -289,15 +289,30 @@ unsigned long animate5(LPVOID lpParam) {
     CubicBezier(20, px, py, 0.05, 0.9, 0.3, 1.0);
     for (int m = 1; m <= 20; m++) {
         popupframe = m;
-        SendMessage(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
+        SendMessage(wnd->GetHWND(), WM_USER + 6, NULL, NULL);
         this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 300)));
     }
     return 0;
 }
 
+unsigned long animate6(LPVOID lpParam) {
+    this_thread::sleep_for(chrono::milliseconds(400));
+    SendMessage(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
+    return 0;
+}
+
+int clicks = 1;
+BYTE* shellstate;
+unsigned long DoubleClickHandler(LPVOID lpParam) {
+    wchar_t* dcms = GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed");
+    wchar_t* test = dcms;
+    this_thread::sleep_for(chrono::milliseconds(_wtoi(dcms)));
+    clicks = 1;
+    return 0;
+}
+
 Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
-    static int clicks; // temporary double click test, proper one later
     if (iev->type == Button::Click) {
         Button* checkbox = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
         if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
@@ -308,13 +323,26 @@ void SelectItem(Element* elem, Event* iev) {
         }
         if (elem != emptyspace) elem->SetSelected(true);
         if (showcheckboxes == 1) checkbox->SetVisible(true);
-        if (elem == elemStorage) clicks++; else clicks = 0;
-        if (clicks % 2 == 1) {
+        if (shellstate[4] == 51) {
+            if (elem == elemStorage) clicks++; else clicks = 0;
+            DWORD doubleClickThread{};
+            HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, NULL, 0, &doubleClickThread);
+            elemStorage = elem;
+        }
+        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        SHELLEXECUTEINFOW execInfo = {};
+        execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+        execInfo.lpVerb = L"open";
+        execInfo.nShow = SW_SHOWNORMAL;
+        if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
-                if (pm[items].elem == elem) ShellExecuteW(NULL, NULL, (pm[items].filename).c_str(), NULL, NULL, SW_SHOWNORMAL);
+                if (pm[items].elem == elem) {
+                    execInfo.lpFile = (pm[items].filename).c_str();
+                    ShellExecuteExW(&execInfo);
+                }
             }
         }
-        elemStorage = elem;
+        CoUninitialize();
     }
 }
 
@@ -383,6 +411,11 @@ void fullscreenAnimation() {
     HANDLE animThreadHandle = CreateThread(0, 0, animate5, NULL, 0, &animThread);
 }
 
+void fullscreenAnimation2() {
+    DWORD animThread;
+    HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
+}
+
 vector<HBITMAP> GetDesktopIcons(int size) {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < size; i++) {
@@ -444,11 +477,13 @@ void testEventListener3(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
         switch (fullscreenpopup->GetAlpha()) {
         case 0:
+            fullscreenpopup->SetLayoutPos(4);
             fullscreenpopup->SetAlpha(255);
             fullscreenAnimation();
             break;
         case 255:
             fullscreenpopup->SetAlpha(0);
+            fullscreenAnimation2();
             break;
         }
     }
@@ -463,6 +498,7 @@ void InitLayout(Element* elem, Event* iev) {
         testButton->SetEnabled(true);
         testButton5->SetEnabled(false);
         showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
+        shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
         switch (openclose) {
         case 0: {
             Button* emptyspace;
@@ -511,6 +547,7 @@ void InitLayout(Element* elem, Event* iev) {
                 assignFn(outerElem, SelectItem);
                 assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
                 assignExtendedFn(checkboxElem, CheckboxHandler);
+                if (shellstate[4] == 51) outerElem->SetClass((UCString)L"doubleclicked"); else outerElem->SetClass((UCString)L"singleclicked");
                 yValue* yV = new yValue{ i };
                 yValue* yV2 = new yValue{ i };
                 smIndex++;

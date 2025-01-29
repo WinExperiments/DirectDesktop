@@ -16,6 +16,11 @@ wstring hideExt(const wstring& filename, bool isEnabled) {
             shortpm[shortIndex++].x = 1;
             return filename.substr(0, lastdot);
         }
+        if (lastdot == wstring::npos) lastdot = filename.find(L".url");
+        else {
+            shortpm[shortIndex++].x = 1;
+            return filename.substr(0, lastdot);
+        }
         if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
         else {
             shortpm[shortIndex++].x = 1;
@@ -28,6 +33,11 @@ wstring hideExt(const wstring& filename, bool isEnabled) {
     if (!isEnabled) {
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
+        else {
+            shortpm[shortIndex++].x = 1;
+            return filename.substr(0, lastdot);
+        }
+        if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
             shortpm[shortIndex++].x = 1;
             return filename.substr(0, lastdot);
@@ -45,20 +55,35 @@ wstring hideExt(const wstring& filename, bool isEnabled) {
 
 int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     int result{};
-    HKEY hKey;
-    DWORD lResult = RegOpenKeyEx(hKeyName, path, 0, KEY_READ, &hKey);
+    DWORD dwSize{};
+    LONG lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_ANY, NULL, NULL, &dwSize);
     if (lResult == ERROR_SUCCESS)
     {
-        DWORD dwSize = NULL;
-        lResult = RegGetValue(hKey, NULL, valueToFind, RRF_RT_DWORD, NULL, NULL, &dwSize);
-        if (lResult == ERROR_SUCCESS && dwSize != NULL)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValue(hKey, NULL, valueToFind, RRF_RT_DWORD, NULL, dwValue, &dwSize);
-            result = *dwValue;
-            free(dwValue);
-        }
-        RegCloseKey(hKey);
+        DWORD* dwValue = (DWORD*)malloc(dwSize);
+        lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_ANY, NULL, dwValue, &dwSize);
+        result = *dwValue;
+    }
+    return result;
+}
+
+wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
+    wchar_t* result{};
+    DWORD dwSize{};
+    LONG lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_REG_SZ, NULL, NULL, &dwSize);
+    if (lResult == ERROR_SUCCESS) {
+        result = (wchar_t*)malloc(dwSize);
+        lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_REG_SZ, NULL, result, &dwSize);
+    }
+    return result;
+}
+
+BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
+    BYTE* result{};
+    DWORD dwSize{};
+    LONG lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_REG_BINARY, NULL, NULL, &dwSize);
+    if (lResult == ERROR_SUCCESS) {
+        result = (BYTE*)malloc(dwSize);
+        lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_REG_BINARY, NULL, result, &dwSize);
     }
     return result;
 }

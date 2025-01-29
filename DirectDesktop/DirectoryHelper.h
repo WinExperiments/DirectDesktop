@@ -18,4 +18,6 @@ extern vector<parameters> shortpm;
 extern vector<wstring> listDirBuffer;
 
 int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
+wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
+BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 vector<wstring> list_directory();
