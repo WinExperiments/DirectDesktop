@@ -305,7 +305,6 @@ int clicks = 1;
 BYTE* shellstate;
 unsigned long DoubleClickHandler(LPVOID lpParam) {
     wchar_t* dcms = GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed");
-    wchar_t* test = dcms;
     this_thread::sleep_for(chrono::milliseconds(_wtoi(dcms)));
     clicks = 1;
     return 0;
@@ -313,7 +312,9 @@ unsigned long DoubleClickHandler(LPVOID lpParam) {
 
 Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
+    static int validation = 0;
     if (iev->type == Button::Click) {
+        validation++;
         Button* checkbox = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
         if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
@@ -321,7 +322,10 @@ void SelectItem(Element* elem, Event* iev) {
                 if (cbpm[items]->GetSelected() == false && showcheckboxes == 1) cbpm[items]->SetVisible(false);
             }
         }
-        if (elem != emptyspace) elem->SetSelected(true);
+        if (elem != emptyspace && checkbox->GetMouseFocused() == false) elem->SetSelected(!elem->GetSelected());
+        if (validation % 2 == 1) {
+            if (elem != emptyspace && checkbox->GetMouseFocused() == true) elem->SetSelected(!elem->GetSelected());
+        }
         if (showcheckboxes == 1) checkbox->SetVisible(true);
         if (shellstate[4] == 51) {
             if (elem == elemStorage) clicks++; else clicks = 0;
@@ -356,7 +360,6 @@ void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Va
     }
 }
 
-bool checked = 0;
 void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
     UpdateCache u;
     if (pProp == Element::MouseFocusedProp()) {
