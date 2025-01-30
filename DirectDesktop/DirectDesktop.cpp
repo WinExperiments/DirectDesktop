@@ -526,6 +526,11 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
             subshortpm[i].elem = shortcutElem;
             subshadowpm[i] = iconElemShadow;
             subfilepm[i] = textElem;
+            if (subpm[i].isHidden == true) {
+                iconElem->SetAlpha(128);
+                iconElemShadow->SetVisible(false);
+                textElem->SetAlpha(128);
+            }
             assignFn(outerElemGrouped, SelectSubItem);
             outerElemGrouped->SetClass((UCString)L"singleclicked");
             yValue* yV = new yValue{ i };
@@ -714,6 +719,7 @@ void testEventListener3(Element* elem, Event* iev) {
                 subshortpm.clear();
                 subshadowpm.clear();
                 subfilepm.clear();
+                subhiddenIndex = 0;
                 subshortIndex = 0;
                 tools->SetLayoutPos(-3);
             }
@@ -776,6 +782,11 @@ void InitLayout() {
             shadowpm[i] = iconElemShadow;
             filepm[i] = textElem;
             cbpm[i] = checkboxElem;
+            if (pm[i].isHidden == true) {
+                iconElem->SetAlpha(128);
+                iconElemShadow->SetVisible(false);
+                textElem->SetAlpha(128);
+            }
             assignFn(outerElem, SelectItem);
             assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
             assignExtendedFn(checkboxElem, CheckboxHandler);
@@ -814,6 +825,7 @@ void InitLayout() {
         filepm.clear();
         cbpm.clear();
         dirIndex = 0;
+        hiddenIndex = 0;
         shortIndex = 0;
         openclose = 0;
         itemcountstatus->SetVisible(false); itemcountstatus->SetAlpha(255);

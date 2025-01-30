@@ -3,7 +3,7 @@
 
 using namespace std;
 
-int shortIndex, subshortIndex, dirIndex;
+int shortIndex, subshortIndex, dirIndex, hiddenIndex, subhiddenIndex;
 vector<parameters> pm, subpm;
 vector<parameters> shortpm, subshortpm;
 vector<wstring> listDirBuffer, sublistDirBuffer;
@@ -57,8 +57,7 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     int result{};
     DWORD dwSize{};
     LONG lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_ANY, NULL, NULL, &dwSize);
-    if (lResult == ERROR_SUCCESS)
-    {
+    if (lResult == ERROR_SUCCESS) {
         DWORD* dwValue = (DWORD*)malloc(dwSize);
         lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_ANY, NULL, dwValue, &dwSize);
         result = *dwValue;
@@ -96,6 +95,10 @@ void AddFile(wstring path, WIN32_FIND_DATAW data) {
         pm[dirIndex++].isDirectory = true;
     }
     else pm[dirIndex++].isDirectory = false;
+    if (data.dwFileAttributes & 2) {
+        pm[hiddenIndex++].isHidden= true;
+    }
+    else pm[hiddenIndex++].isHidden = false;
 }
 void RemoveFile() {
     dirIndex--;
@@ -230,13 +233,19 @@ vector<wstring> list_subdirectory(wstring path) {
     while (FindNextFileW(hFind, &findData) != 0)
     {
         if (runs > 0) {
+            subpm.push_back({ NULL, NULL, NULL });
             subshortpm.push_back({ NULL, NULL, NULL });
             subdir_list.push_back(hideExt(wstring(findData.cFileName), isFileExtHidden, 0));
             sublistDirBuffer.push_back(path_truncated + wstring(findData.cFileName));
+            if (findData.dwFileAttributes & 2) {
+                subpm[subhiddenIndex++].isHidden = true;
+            }
+            else subpm[subhiddenIndex++].isHidden = false;
         }
         runs++;
         if (isFileHiddenEnabled == 2 && findData.dwFileAttributes & 2) {
             subshortIndex--;
+            subhiddenIndex--;
             subshortpm.pop_back();
             subdir_list.pop_back();
             sublistDirBuffer.pop_back();
@@ -244,6 +253,7 @@ vector<wstring> list_subdirectory(wstring path) {
         }
         if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
             if (findData.dwFileAttributes & 4) {
+                subhiddenIndex--;
                 subshortIndex--;
                 subshortpm.pop_back();
                 subdir_list.pop_back();

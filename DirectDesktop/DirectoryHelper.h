@@ -11,9 +11,10 @@ struct parameters {
     int y{};
     wstring filename;
     bool isDirectory;
+    bool isHidden;
 };
 
-extern int shortIndex, subshortIndex, dirIndex;
+extern int shortIndex, subshortIndex, dirIndex, hiddenIndex, subhiddenIndex;
 extern vector<parameters> pm, subpm;
 extern vector<parameters> shortpm, subshortpm;
 extern vector<wstring> listDirBuffer, sublistDirBuffer;
