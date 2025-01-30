@@ -7,7 +7,6 @@ extern const wchar_t* sheetName;
 
 void UpdateScale();
 void UpdateModeInfo();
-void ApplyIcons();
 void UpdateFontSize();
 void SetTheme();
 extern HBITMAP IconToBitmap(HICON hIcon, int x = 48, int y = 48);

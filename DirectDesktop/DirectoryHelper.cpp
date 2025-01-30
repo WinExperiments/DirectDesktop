@@ -116,17 +116,19 @@ vector<wstring> list_directory() {
     wchar_t* full_path3 = new wchar_t[260];
     DWORD d = GetEnvironmentVariableW(L"userprofile", 0, 0);
     DWORD d2 = GetEnvironmentVariableW(L"PUBLIC", 0, 0);
+    DWORD d3 = GetEnvironmentVariableW(L"onedrive", 0, 0);
     vector<wchar_t> envName(d);
     vector<wchar_t> envName2(d2);
+    vector<wchar_t> envName3(d3);
     GetEnvironmentVariableW(L"userprofile", envName.data(), 260);
     GetEnvironmentVariableW(L"PUBLIC", envName2.data(), 260);
+    GetEnvironmentVariableW(L"onedrive", envName3.data(), 260);
     StringCchPrintfW(full_path, 260, L"%s\\Desktop\\*", envName.data());
     StringCchPrintfW(full_path2, 260, L"%s\\Desktop\\*", envName2.data());
-    StringCchPrintfW(full_path3, 260, L"%s\\OneDrive\\Desktop\\*", envName.data());
+    StringCchPrintfW(full_path3, 260, L"%s\\Desktop\\*", envName3.data());
     vector<wstring> dir_list;
 
     int runs = 0;
-    wchar_t buffer[260];
     size_t asterisk = ((wstring)full_path).find(L"*");
     size_t asterisk2 = ((wstring)full_path2).find(L"*");
     size_t asterisk3 = ((wstring)full_path3).find(L"*");
@@ -206,6 +208,7 @@ vector<wstring> list_directory() {
     delete[] full_path3;
     envName.clear();
     envName2.clear();
+    envName3.clear();
 
     FindClose(hFind);
     return dir_list;
