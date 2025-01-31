@@ -36,19 +36,21 @@
 	</Button>
 	<Button resid="outerElemGrouped" layout="filllayout()" sheet="default" visible="true" background="rgb(50,50,50)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
-		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
+		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
-		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
+		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" foreground="white" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
 	</Button>
 	<Button resid="fullscreeninner" background="argb(255,0,0,0)" layoutpos="absolute" layout="filllayout()"/>
 	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="white">
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" foreground="black" padding="rect(0,16rp,0,16rp)">
+			<Element id="atom(tasksanimator)" layoutpos="right"/>
+			<Element id="atom(dirnameanimator)" layoutpos="left"/>
 			<Element id="atom(tasks)" layoutpos="right" layout="gridlayout(1,2)" foreground="gray" font="iconfont">
 				<TouchButton id="atom(Customize)" content="Customize group" contentalign="middlecenter"/>
 				<TouchButton id="atom(OpenInExplorer)" content="Open in File Explorer" contentalign="middlecenter"/>
 			</Element>
-			<RichText id="atom(dirname)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" content="Directory name" font="iconfont;160%"/> 
+			<RichText id="atom(dirname)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 		</Element>
 		<TouchScrollViewer sheet="scrollbarstyle" background="white" id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
 			<RichText id="atom(SubUIContainer)" background="white" visible="true" layoutpos="client" layout="filllayout()" foreground="black" font="iconfont"/>

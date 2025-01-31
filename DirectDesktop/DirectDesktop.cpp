@@ -12,10 +12,14 @@
 #include <WinUser.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
+#include <d2d1.h>
+#include <dwrite.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
 
+#pragma comment(lib, "d2d1")
+#pragma comment(lib, "dwrite")
 
 using namespace DirectUI;
 using namespace std;
@@ -40,10 +44,12 @@ Button* fullscreenpopupbase, *centered;
 Element* itemcountstatus;
 Button* emptyspace;
 Element* selector;
+Element* dirnameanimator;
+Element* tasksanimator;
 Element* tools;
 HRESULT err;
 
-int popupframe;
+int popupframe, dframe, tframe;
 vector<int> frame;
 bool treatdirasgroup = 0;
 
@@ -149,6 +155,7 @@ vector<Element*> filepm, subfilepm;
 vector<Element*> cbpm;
 int showcheckboxes = 0;
 int holddownseconds = 0;
+bool checkifelemexists = 0;
 void fullscreenAnimation(int width, int height);
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
@@ -256,6 +263,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 7: {
+        checkifelemexists = false;
         fullscreenpopup->SetLayoutPos(-3);
         centered->DestroyAll(true);
         break;
@@ -267,7 +275,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         fullscreeninner->SetMinSize(800, 480);
     }
     case WM_USER + 9: {
-        double bezierProgress = py[frame[wParam] - 1];
+        double bezierProgress = 1; //py[frame[wParam] - 1];
         subpm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
         subpm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
         subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
@@ -298,17 +306,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 11: {
-        HDC hdcWindow = GetDC(wnd->GetHWND());  // Get window DC
-        HDC hdcMem = CreateCompatibleDC(hdcWindow); // Create memory DC
-        HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom); // Create bitmap
-
-        // Select the bitmap into the memory DC
+        HDC hdcWindow = GetDC(wnd->GetHWND());
+        HDC hdcMem = CreateCompatibleDC(hdcWindow);
+        HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
         HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-
-        // Copy part of the window into the bitmap
         BitBlt(hdcMem, 0, 0, dimensions.right, dimensions.bottom, hdcWindow, 0, 0, SRCCOPY);
-
-        // Restore old bitmap and cleanup
         SelectObject(hdcMem, hbmOld);
         DeleteDC(hdcMem);
         ReleaseDC(wnd->GetHWND(), hdcWindow);
@@ -318,6 +320,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         bitmap->Release();
         tools->SetLayoutPos(1);
         fullscreenpopupbase->SetBackgroundStdColor(24);
+        break;
+    }
+    case WM_USER + 12: {
+        if (checkifelemexists == true) dirnameanimator->SetWidth(160 * (1 - py[dframe - 1]));
+        break;
+    }
+    case WM_USER + 13: {
+        if (checkifelemexists == true) tasksanimator->SetWidth(80 * (1 - py[tframe - 1]));
+        break;
     }
     }
     return CallWindowProc(WndProc, hWnd, uMsg, wParam, lParam);
@@ -377,9 +388,41 @@ unsigned long animate6(LPVOID lpParam) {
     return 0;
 }
 
+unsigned long grouptitlebaranimation(LPVOID lpParam) {
+    this_thread::sleep_for(chrono::milliseconds(750));
+    for (int m = 1; m <= 48; m++) {
+        dframe = m;
+        SendMessageW(wnd->GetHWND(), WM_USER + 12, NULL, NULL);
+        this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 600)));
+    }
+    return 0;
+}
+unsigned long grouptasksanimation(LPVOID lpParam) {
+    for (int m = 1; m <= 48; m++) {
+        tframe = m;
+        SendMessageW(wnd->GetHWND(), WM_USER + 13, NULL, NULL);
+        this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 450)));
+    }
+    return 0;
+}
+
 void fullscreenAnimation(int width, int height) {
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
     fullscreenpopup->SetLayoutPos(4);
     fullscreenpopup->SetAlpha(255);
+    HDC hdcWindow = GetDC(wnd->GetHWND());
+    HDC hdcMem = CreateCompatibleDC(hdcWindow);
+    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.33, dimensions.bottom * 0.33);
+    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
+    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.33, dimensions.bottom * 0.33, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
+    SelectObject(hdcMem, hbmOld);
+    DeleteDC(hdcMem);
+    ReleaseDC(wnd->GetHWND(), hdcWindow);
+    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2);
+    Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
+    fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
+    bitmap->Release();
     parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
     centered->SetMinSize(width, height);
@@ -489,9 +532,20 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
     Element* SubUIContainer = (ScrollViewer*)groupdirlist->FindDescendent(StrToID((UCString)L"SubUIContainer"));
     vector<wstring> subfiles = list_subdirectory(filename + wstring(L"\\*"));
     unsigned int count = subfiles.size();
+    CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
     Value* v;
+    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"dirnameanimator"));
+    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasksanimator"));
     RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID((UCString)L"dirname"));
     dirname->SetContentString((UCString)elementForLabel->GetContentString(&v));
+    dirname->SetAlpha(255);
+    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasks"));
+    dirname->SetAlpha(255);
+    checkifelemexists = true;
+    DWORD animThread3;
+    DWORD animThread4;
+    HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
+    HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
     TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"Customize"));
     TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"OpenInExplorer"));
     assignFn(OpenInExplorer, OpenGroupInExplorer);
@@ -659,6 +713,7 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
 }
 
 unsigned long PrepareForSimpleView(LPVOID lpParam) {
+    holddownseconds = 0;
     while (true) {
         this_thread::sleep_for(chrono::seconds(1));
         holddownseconds++;

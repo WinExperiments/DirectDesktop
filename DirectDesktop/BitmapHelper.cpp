@@ -42,7 +42,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     return hNewBitmap;
 }
 
-bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0 = original, 1 = color
+bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0 = original, 1 = color, 2 = blur
 {
     BITMAP bm;
     GetObject(hbm, sizeof(bm), &bm);
@@ -132,6 +132,67 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0
         delete[] pBits;
         vBits.clear();
         vResultBits.clear();
+        break;
+    }
+    case 2: {
+        BYTE* pBits = new BYTE[bmBits];
+        GetBitmapBits(hbm, bmBits, pBits);
+
+        int x, y;
+        int r, g, b, a;
+
+        vector<BYTE> vBitsR, vBitsG, vBitsB, vBitsA;
+        vBitsR.assign(pBits, pBits + bmBits / 4);
+        vBitsG.assign(pBits, pBits + bmBits / 4);
+        vBitsB.assign(pBits, pBits + bmBits / 4);
+        vBitsA.assign(pBits, pBits + bmBits / 4);
+        int channel = 0;
+        for (int alpha = 0; alpha < bmBits; alpha += 4) {
+            vBitsB[channel++] = pBits[alpha];
+        }
+        channel = 0;
+        for (int alpha = 1; alpha < bmBits; alpha += 4) {
+            vBitsG[channel++] = pBits[alpha];
+        }
+        channel = 0;
+        for (int alpha = 2; alpha < bmBits; alpha += 4) {
+            vBitsR[channel++] = pBits[alpha];
+        }
+        channel = 0;
+        for (int alpha = 3; alpha < bmBits; alpha += 4) {
+            vBitsA[channel++] = pBits[alpha];
+        }
+        vector<BYTE> vResultBitsR = Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, 4);
+        vector<BYTE> vResultBitsG = Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, 4);
+        vector<BYTE> vResultBitsB = Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, 4);
+        vector<BYTE> vResultBitsA = Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, 4);
+        channel = 0;
+        for (int alpha = 0; alpha < bmBits; alpha += 4) {
+            pBits[alpha] = vResultBitsB[channel++];
+        }
+        channel = 0;
+        for (int alpha = 1; alpha < bmBits; alpha += 4) {
+            pBits[alpha] = vResultBitsG[channel++];
+        }
+        channel = 0;
+        for (int alpha = 2; alpha < bmBits; alpha += 4) {
+            pBits[alpha] = vResultBitsR[channel++];
+        }
+        channel = 0;
+        for (int alpha = 3; alpha < bmBits; alpha += 4) {
+            pBits[alpha] = vResultBitsA[channel++];
+        }
+
+        SetBitmapBits(hbm, bmBits, pBits);
+        delete[] pBits;
+        vBitsR.clear();
+        vBitsG.clear();
+        vBitsB.clear();
+        vBitsA.clear();
+        vResultBitsR.clear();
+        vResultBitsG.clear();
+        vResultBitsB.clear();
+        vResultBitsA.clear();
         break;
     }
     }
