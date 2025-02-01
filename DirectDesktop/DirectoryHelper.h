@@ -11,8 +11,9 @@ struct parameters {
     int y{};
     wstring filename;
     wstring simplefilename;
-    bool isDirectory;
-    bool isHidden;
+    bool isDirectory = false;
+    bool isHidden = false;
+    bool mem_isSelected = false;
 };
 
 extern int shortIndex, subshortIndex, dirIndex, hiddenIndex, subhiddenIndex;

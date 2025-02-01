@@ -217,7 +217,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         iconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        HBITMAP capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38);
+        HBITMAP capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38 - 1, DT_WORD_ELLIPSIS);
         HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 0);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
         IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
@@ -290,7 +290,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         subiconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38);
+        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38, DT_WORD_ELLIPSIS);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         subfilepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
@@ -648,10 +648,29 @@ void SelectItem(Element* elem, Event* iev) {
         execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         execInfo.lpVerb = L"open";
         execInfo.nShow = SW_SHOWNORMAL;
+        for (int items = 0; items < pm.size(); items++) {
+            if (pm[items].mem_isSelected != pm[items].elem->GetSelected()) {
+                DWORD ellipsisType = pm[items].elem->GetSelected() ? DT_END_ELLIPSIS : DT_WORD_ELLIPSIS;
+                textElem = (RichText*)pm[items].elem->FindDescendent(StrToID((UCString)L"textElem"));
+                textElemShadow = (RichText*)pm[items].elem->FindDescendent(StrToID((UCString)L"textElemShadow"));
+                HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth(), pm[items].elem->GetHeight() * 0.38 - 1, ellipsisType);
+                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 0);
+                IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
+                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
+                Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
+                Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
+                textElem->SetValue(Element::ContentProp, 1, bitmap);
+                textElemShadow->SetValue(Element::ContentProp, 1, bitmapSh);
+                bitmap->Release();
+                bitmapSh->Release();
+                DeleteObject(capturedBitmap);
+                DeleteObject(shadowBitmap);
+            }
+            pm[items].mem_isSelected = pm[items].elem->GetSelected();
+        }
         if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items].elem == elem) {
-                    textElem = (RichText*)elem->FindDescendent(StrToID((UCString)L"textElem"));
                     execInfo.lpFile = (pm[items].filename).c_str();
                     if (pm[items].isDirectory == true && treatdirasgroup == true) {
                         ShowDirAsGroup(execInfo.lpFile, pm[items].simplefilename);

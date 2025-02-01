@@ -1,7 +1,7 @@
 #include "BitmapHelper.h"
 #include "BlurCore.h"
 
-HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height) {
+HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType) {
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = width;
@@ -17,15 +17,15 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height) {
     HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
 
     memset(pBitmapData, 0, width * height * 4);
-    HFONT hFont = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
+    LOGFONTW lf{};
+    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+    HFONT hFont = CreateFontIndirectW(&lf);
     HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
 
     SetBkMode(hdcMem, TRANSPARENT);
     SetTextColor(hdcMem, RGB(255, 255, 255));
     RECT rc = {2, 1, width - 2, height - 1};
-    DrawTextW(hdcMem, text, -1, &rc, DT_CENTER | DT_END_ELLIPSIS | DT_WORDBREAK | DT_NOFULLWIDTHCHARBREAK);
+    DrawTextW(hdcMem, text, -1, &rc, DT_CENTER | ellipsisType | DT_WORDBREAK | DT_NOFULLWIDTHCHARBREAK | DT_NOPREFIX | DT_EDITCONTROL);
     DWORD* pixels = (DWORD*)pBitmapData;
     for (int i = 0; i < width * height; i++) {
         BYTE* pPixel = (BYTE*)&pixels[i];
