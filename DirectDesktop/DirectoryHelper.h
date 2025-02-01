@@ -10,6 +10,7 @@ struct parameters {
     int x{};
     int y{};
     wstring filename;
+    wstring simplefilename;
     bool isDirectory;
     bool isHidden;
 };

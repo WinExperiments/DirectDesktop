@@ -1,6 +1,46 @@
 #include "BitmapHelper.h"
 #include "BlurCore.h"
 
+HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height) {
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = -height;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    void* pBitmapData = NULL;
+    HBITMAP hBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBitmapData, NULL, 0);
+    if (!hBitmap) return NULL;
+    HDC hdcMem = CreateCompatibleDC(NULL);
+    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+
+    memset(pBitmapData, 0, width * height * 4);
+    HFONT hFont = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
+    HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
+
+    SetBkMode(hdcMem, TRANSPARENT);
+    SetTextColor(hdcMem, RGB(255, 255, 255));
+    RECT rc = {2, 1, width - 2, height - 1};
+    DrawTextW(hdcMem, text, -1, &rc, DT_CENTER | DT_END_ELLIPSIS | DT_WORDBREAK | DT_NOFULLWIDTHCHARBREAK);
+    DWORD* pixels = (DWORD*)pBitmapData;
+    for (int i = 0; i < width * height; i++) {
+        BYTE* pPixel = (BYTE*)&pixels[i];
+        if (pPixel[0] | pPixel[1] | pPixel[2]) {
+            pPixel[3] = 255;
+        }
+    }
+    SelectObject(hdcMem, hOldFont);
+    SelectObject(hdcMem, hOldBitmap);
+    DeleteObject(hFont);
+    DeleteDC(hdcMem);
+
+    return hBitmap;
+}
+
 HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
 {
     BITMAP bmp;
@@ -8,33 +48,25 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
 
     int originalWidth = bmp.bmWidth;
     int originalHeight = bmp.bmHeight;
-
-    // New dimensions with padding
     int newWidth = originalWidth + 2 * padding;
     int newHeight = originalHeight + 2 * padding;
 
-    // Create a new bitmap
     HDC hdcScreen = GetDC(NULL);
     HDC hdcMem = CreateCompatibleDC(hdcScreen);
     HBITMAP hNewBitmap = CreateCompatibleBitmap(hdcScreen, newWidth, newHeight);
     HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hNewBitmap);
-
-    // Fill the new bitmap with the padding color
     HBRUSH hBrush = CreateSolidBrush(0);
+
     RECT rect = { 0, 0, newWidth, newHeight };
     FillRect(hdcMem, &rect, hBrush);
     DeleteObject(hBrush);
-
-    // Copy the original bitmap into the center of the new bitmap
     HDC hdcOriginal = CreateCompatibleDC(hdcScreen);
     HBITMAP hOldOriginalBitmap = (HBITMAP)SelectObject(hdcOriginal, hOriginalBitmap);
 
     BitBlt(hdcMem, padding, padding, originalWidth, originalHeight, hdcOriginal, 0, 0, SRCCOPY);
 
-    // Cleanup
     SelectObject(hdcOriginal, hOldOriginalBitmap);
     DeleteDC(hdcOriginal);
-
     SelectObject(hdcMem, hOldBitmap);
     DeleteDC(hdcMem);
     ReleaseDC(NULL, hdcScreen);
@@ -42,7 +74,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     return hNewBitmap;
 }
 
-bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0 = original, 1 = color, 2 = blur
+bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurradius, float alpha) // type: 0 = original, 1 = color, 2 = blur
 {
     BITMAP bm;
     GetObject(hbm, sizeof(bm), &bm);
@@ -103,7 +135,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0
 
             for (x = 0; x < bm.bmWidth; x++)
             {
-                a = (pPixel[3] & 0xFFFFFF) * 0.33;
+                a = (pPixel[3] & 0xFFFFFF) * alpha;
 
                 handler(r, g, b, a);
 
@@ -122,7 +154,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0
         for (int alpha = 3; alpha < bmBits; alpha += 4) {
             vBits[channel++] = pBits[alpha];
         }
-        vector<BYTE> vResultBits = Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, 4);
+        vector<BYTE> vResultBits = Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
         channel = 0;
         for (int alpha = 3; alpha < bmBits; alpha += 4) {
             pBits[alpha] = vResultBits[channel++];
@@ -162,10 +194,10 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type) // type: 0
         for (int alpha = 3; alpha < bmBits; alpha += 4) {
             vBitsA[channel++] = pBits[alpha];
         }
-        vector<BYTE> vResultBitsR = Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, 4);
-        vector<BYTE> vResultBitsG = Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, 4);
-        vector<BYTE> vResultBitsB = Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, 4);
-        vector<BYTE> vResultBitsA = Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, 4);
+        vector<BYTE> vResultBitsR = Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+        vector<BYTE> vResultBitsG = Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+        vector<BYTE> vResultBitsB = Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+        vector<BYTE> vResultBitsA = Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
         channel = 0;
         for (int alpha = 0; alpha < bmBits; alpha += 4) {
             pBits[alpha] = vResultBitsB[channel++];

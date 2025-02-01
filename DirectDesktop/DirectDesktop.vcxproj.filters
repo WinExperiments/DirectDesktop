@@ -345,9 +345,6 @@
     <ClInclude Include="ImmersiveColor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StyleModifier.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AccentColorHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -358,6 +355,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DirectoryHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StyleModifier.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

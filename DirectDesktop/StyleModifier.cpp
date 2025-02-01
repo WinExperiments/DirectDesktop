@@ -103,3 +103,16 @@ void UndoPremultiplication(int& r, int& g, int& b, int& a)
     g = rgbVal.g / (a / 255.0);
     b = rgbVal.b / (a / 255.0);
 }
+
+void DesaturateWhiten(int& r, int& g, int& b, int& a)
+{
+    rgb_t rgbVal = { r, g, b };
+
+    hsl_t hslVal = rgb2hsl(rgbVal);
+
+    a = hslVal.l * 1.25;
+    if (a > 255.0) a = 255.0;
+    r = 255.0;
+    g = 255.0;
+    b = 255.0;
+}

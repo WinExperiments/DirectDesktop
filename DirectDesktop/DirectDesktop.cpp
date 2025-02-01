@@ -12,14 +12,9 @@
 #include <WinUser.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
-#include <d2d1.h>
-#include <dwrite.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
-
-#pragma comment(lib, "d2d1")
-#pragma comment(lib, "dwrite")
 
 using namespace DirectUI;
 using namespace std;
@@ -38,6 +33,7 @@ Element* iconElem;
 Element* shortcutElem;
 Element* iconElemShadow;
 RichText* textElem;
+RichText* textElemShadow;
 Button* checkboxElem;
 Element* fullscreenpopup, *fullscreeninner;
 Button* fullscreenpopupbase, *centered;
@@ -151,7 +147,8 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 WNDPROC WndProc;
 vector<Element*> iconpm, subiconpm;
 vector<Element*> shadowpm, subshadowpm;
-vector<Element*> filepm, subfilepm;
+vector<RichText*> filepm, subfilepm;
+vector<RichText*> fileshadowpm;
 vector<Element*> cbpm;
 int showcheckboxes = 0;
 int holddownseconds = 0;
@@ -214,16 +211,24 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         pm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
         pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
         pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
-        float f = ((pm[wParam].elem->GetWidth() / (float)innerSizeX) * 100);
-        wchar_t buffer[32];
-        swprintf_s(buffer, L"iconfont;%d", (int)f);
-        wcscat_s(buffer, L"%");
-        filepm[wParam]->SetHeight(pm[wParam].elem->GetHeight() * 0.35);
+        filepm[wParam]->SetHeight(pm[wParam].elem->GetHeight() * 0.38);
+        fileshadowpm[wParam]->SetHeight(pm[wParam].elem->GetHeight() * 0.38 - 1);
         iconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        filepm[wParam]->SetFont((UCString)buffer);
+        HBITMAP capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38);
+        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 0);
+        IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
+        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
+        Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
+        Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
+        filepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
+        fileshadowpm[wParam]->SetValue(Element::ContentProp, 1, bitmapSh);
+        bitmap->Release();
+        bitmapSh->Release();
+        DeleteObject(capturedBitmap);
+        DeleteObject(shadowBitmap);
         break;
     }
     case WM_USER + 4: {
@@ -280,16 +285,17 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         subpm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
         subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
         subpm[wParam].elem->SetY(subpm[wParam].y); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
-        float f = ((subpm[wParam].elem->GetWidth() / (float)innerSizeX) * 100);
-        wchar_t buffer[32];
-        swprintf_s(buffer, L"iconfont;%d", (int)f);
-        wcscat_s(buffer, L"%");
-        subfilepm[wParam]->SetHeight(subpm[wParam].elem->GetHeight() * 0.35);
+        subfilepm[wParam]->SetHeight(subpm[wParam].elem->GetHeight() * 0.38);
         subiconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        subfilepm[wParam]->SetFont((UCString)buffer);
+        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38);
+        IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
+        Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
+        subfilepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
+        bitmap->Release();
+        DeleteObject(capturedBitmap);
         break;
     }
     case WM_USER + 10: {
@@ -523,7 +529,7 @@ void SelectSubItem(Element* elem, Event* iev) {
     }
 }
 
-void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
+void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     fullscreenAnimation(800, 480);
     Element* groupdirectory{};
     parser->CreateElement((UCString)L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
@@ -533,11 +539,10 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
     vector<wstring> subfiles = list_subdirectory(filename + wstring(L"\\*"));
     unsigned int count = subfiles.size();
     CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
-    Value* v;
     dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"dirnameanimator"));
     tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasksanimator"));
     RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID((UCString)L"dirname"));
-    dirname->SetContentString((UCString)elementForLabel->GetContentString(&v));
+    dirname->SetContentString((UCString)simplefilename.c_str());
     dirname->SetAlpha(255);
     Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasks"));
     dirname->SetAlpha(255);
@@ -558,6 +563,7 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
         subshortpm.resize(count);
         subshadowpm.resize(count);
         subfilepm.resize(count);
+        Value* v;
         RECT dimensions;
         dimensions = *(groupdirectory->GetPadding(&v));
         int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
@@ -575,7 +581,7 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
             iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElemShadow"));
             textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID((UCString)L"textElem"));
             textElem->SetContentString((UCString)subfiles[i].c_str());
-            subpm[i].elem = outerElemGrouped, subpm[i].x = x, subpm[i].y = y, subpm[i].filename = sublistDirBuffer[i];
+            subpm[i].elem = outerElemGrouped, subpm[i].x = x, subpm[i].y = y, subpm[i].filename = sublistDirBuffer[i], subpm[i].simplefilename = subfiles[i];
             subiconpm[i] = iconElem;
             subshortpm[i].elem = shortcutElem;
             subshadowpm[i] = iconElemShadow;
@@ -604,6 +610,7 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
         delete[] animThread2;
         delete[] animThreadHandle;
         delete[] animThreadHandle2;
+        v->Release();
     }
     else {
         if (count > 128) {
@@ -611,7 +618,6 @@ void ShowDirAsGroup(LPCWSTR filename, Element* elementForLabel) {
         }
         else SubUIContainer->SetContentString((UCString)L"This folder is empty.");
     }
-    v->Release();
 }
 
 Element* elemStorage;
@@ -648,7 +654,7 @@ void SelectItem(Element* elem, Event* iev) {
                     textElem = (RichText*)elem->FindDescendent(StrToID((UCString)L"textElem"));
                     execInfo.lpFile = (pm[items].filename).c_str();
                     if (pm[items].isDirectory == true && treatdirasgroup == true) {
-                        ShowDirAsGroup(execInfo.lpFile, textElem);
+                        ShowDirAsGroup(execInfo.lpFile, pm[items].simplefilename);
                     }
                     else ShellExecuteExW(&execInfo);
                 }
@@ -812,6 +818,7 @@ void InitLayout() {
         shortpm.resize(count);
         shadowpm.resize(count);
         filepm.resize(count);
+        fileshadowpm.resize(count);
         cbpm.resize(count);
         RECT dimensions;
         GetClientRect(wnd->GetHWND(), &dimensions);
@@ -829,18 +836,20 @@ void InitLayout() {
             shortcutElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"shortcutElem"));
             iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
             textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
+            textElemShadow = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElemShadow"));
             checkboxElem = (Button*)outerElem->FindDescendent(StrToID((UCString)L"checkboxElem"));
-            textElem->SetContentString((UCString)files[i].c_str());
-            pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y, pm[i].filename = listDirBuffer[i];
+            pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y, pm[i].filename = listDirBuffer[i], pm[i].simplefilename = files[i];
             iconpm[i] = iconElem;
             shortpm[i].elem = shortcutElem;
             shadowpm[i] = iconElemShadow;
             filepm[i] = textElem;
+            fileshadowpm[i] = textElemShadow;
             cbpm[i] = checkboxElem;
             if (pm[i].isHidden == true) {
                 iconElem->SetAlpha(128);
                 iconElemShadow->SetVisible(false);
-                textElem->SetAlpha(128);
+                textElem->SetAlpha(192);
+                textElemShadow->SetAlpha(128);
             }
             assignFn(outerElem, SelectItem);
             assignExtendedFn(outerElem, ShowCheckboxIfNeeded);

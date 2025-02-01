@@ -31,7 +31,8 @@
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
-		<RichText id="atom(textElem)" background="argb(0,0,0,0)" foreground="black" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
+		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom"/>
+		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)"/>
 		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
 	</Button>
 	<Button resid="outerElemGrouped" layout="filllayout()" sheet="default" visible="true" background="rgb(50,50,50)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
@@ -39,7 +40,7 @@
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp"/>
-		<RichText id="atom(textElem)" background="argb(0,0,0,0)" foreground="white" layoutpos="bottom" content=" " contentalign="wrapcenter|endellipsis" font="iconfont;100%"/>
+		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom"/>
 	</Button>
 	<Button resid="fullscreeninner" background="argb(255,0,0,0)" layoutpos="absolute" layout="filllayout()"/>
 	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="white">
