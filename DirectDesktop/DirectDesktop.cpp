@@ -144,6 +144,14 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
     py[frames - 1] = 1;
 }
 
+void SetTheme() {
+    StyleSheet* sheet = pMain->GetSheet();
+    Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+    parser->GetSheet((UCString)sheetName, &sheetStorage);
+    pMain->SetValue(Element::SheetProp, 1, sheetStorage);
+    sheetStorage->Release();
+}
+
 WNDPROC WndProc;
 vector<Element*> iconpm, subiconpm;
 vector<Element*> shadowpm, subshadowpm;
@@ -188,8 +196,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     Event evt;
     evt.type == Button::Click;
     switch (uMsg) {
-    case WM_DWMCOLORIZATIONCOLORCHANGED: {
+    case WM_SETTINGCHANGE: {
         UpdateModeInfo();
+        SetTheme();
         break;
     }
     case WM_COMMAND: {
@@ -290,8 +299,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         subiconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38, DT_WORD_ELLIPSIS);
+        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38, DT_END_ELLIPSIS);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
+        if (theme) IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         subfilepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
         bitmap->Release();
@@ -325,7 +335,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
         bitmap->Release();
         tools->SetLayoutPos(1);
-        fullscreenpopupbase->SetBackgroundStdColor(24);
+        //fullscreenpopupbase->SetBackgroundStdColor(24);
         break;
     }
     case WM_USER + 12: {
@@ -545,7 +555,6 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     dirname->SetContentString((UCString)simplefilename.c_str());
     dirname->SetAlpha(255);
     Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasks"));
-    dirname->SetAlpha(255);
     checkifelemexists = true;
     DWORD animThread3;
     DWORD animThread4;
@@ -790,7 +799,7 @@ void testEventListener3(Element* elem, Event* iev) {
         case 255:
             if (centered->GetMouseWithin() == false) {
                 fullscreenpopup->SetAlpha(0);
-                fullscreenpopupbase->SetBackgroundColor(2148536336);
+                //fullscreenpopupbase->SetBackgroundColor(2148536336);
                 fullscreenAnimation2();
                 sublistDirBuffer.clear();
                 frame.clear();
@@ -967,6 +976,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     assignFn(testButton, testEventListener3);
 
     InitLayout();
+    SetTheme();
 
     wnd->Host(pMain);
 

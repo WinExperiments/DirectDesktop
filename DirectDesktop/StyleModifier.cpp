@@ -3,9 +3,10 @@
 #include "ColorHelper.h"
 #include "AccentColorHelper.h"
 #include "ImmersiveColor.h"
+#include "DirectoryHelper.h"
 
 COLORREF ImmersiveColor;
-int btnforeground;
+float EnhanceWhiteText{};
 bool theme;
 const wchar_t* sheetName;
 
@@ -29,28 +30,10 @@ HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
 }
 
 void UpdateModeInfo() {
-    //int i = 0;
-    //LPCWSTR path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
-    //HKEY hKey;
-    //DWORD lResult = RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hKey);
-    //if (lResult == ERROR_SUCCESS)
-    //{
-    //    DWORD dwSize = NULL;
-    //    lResult = RegGetValue(hKey, NULL, L"AppsUseLightTheme", RRF_RT_DWORD, NULL, NULL, &dwSize);
-    //    if (lResult == ERROR_SUCCESS && dwSize != NULL)
-    //    {
-    //        DWORD* dwValue = (DWORD*)malloc(dwSize);
-    //        lResult = RegGetValue(hKey, NULL, L"AppsUseLightTheme", RRF_RT_DWORD, NULL, dwValue, &dwSize);
-    //        i = *dwValue;
-    //        free(dwValue);
-    //    }
-    //    RegCloseKey(hKey);
-    //}
-    //if (i == 1) theme = 1;
-    //else theme = 0;
+    theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
     ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
-    //btnforeground = theme ? 16777215 : 0;
-    //sheetName = theme ? L"w" : L"wd";
+    EnhanceWhiteText = theme ? 1.0 : 1.25;
+    sheetName = theme ? L"default" : L"defaultdark";
 }
 
 rgb_t ImmersiveToRGB(COLORREF immersivecolor) {
@@ -110,7 +93,7 @@ void DesaturateWhiten(int& r, int& g, int& b, int& a)
 
     hsl_t hslVal = rgb2hsl(rgbVal);
 
-    a = hslVal.l * 1.25;
+    a = hslVal.l * EnhanceWhiteText;
     if (a > 255.0) a = 255.0;
     r = 255.0;
     g = 255.0;

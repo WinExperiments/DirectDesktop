@@ -8,7 +8,7 @@
 				</Element>
 				<Element id="atom(selector)" class="selector" layoutpos="none" animation="alpha|s|mediumfast" background="themeable(20066, hotlight)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
-					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" background="argb(128,16,16,16)" visible="false">
+					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false">
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>
 					<Element id="atom(tools)" layout="flowlayout(0,0,2,0)" layoutpos="none" background="Window" padding="rect(8rp,8rp,8rp,8rp)">
@@ -35,27 +35,27 @@
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)"/>
 		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
 	</Button>
-	<Button resid="outerElemGrouped" layout="filllayout()" sheet="default" visible="true" background="rgb(50,50,50)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
+	<Button resid="outerElemGrouped" layout="filllayout()" sheet="default" background="argb(0,0,0,0)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom"/>
 	</Button>
-	<Button resid="fullscreeninner" background="argb(255,0,0,0)" layoutpos="absolute" layout="filllayout()"/>
-	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="white">
-		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" foreground="black" padding="rect(0,16rp,0,16rp)">
+	<Button resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()"/>
+	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
+		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<Element id="atom(tasks)" layoutpos="right" layout="gridlayout(1,2)" foreground="gray" font="iconfont">
-				<TouchButton id="atom(Customize)" content="Customize group" contentalign="middlecenter"/>
-				<TouchButton id="atom(OpenInExplorer)" content="Open in File Explorer" contentalign="middlecenter"/>
+			<Element id="atom(tasks)" layoutpos="right" layout="gridlayout(1,2)" font="iconfont">
+				<TouchButton id="atom(Customize)" content="Customize group" contentalign="middlecenter" class="popupbutton"/>
+				<TouchButton id="atom(OpenInExplorer)" content="Open in File Explorer" contentalign="middlecenter" class="popupbutton"/>
 			</Element>
-			<RichText id="atom(dirname)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+			<RichText id="atom(dirname)" class="popuptext" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 		</Element>
-		<TouchScrollViewer sheet="scrollbarstyle" background="white" id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
-			<RichText id="atom(SubUIContainer)" background="white" visible="true" layoutpos="client" layout="filllayout()" foreground="black" font="iconfont"/>
-		</TouchScrollViewer>
+		<ScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
+			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
+		</ScrollViewer>
 	</Element>
 	<stylesheets>
 		<style resid="default">
@@ -88,6 +88,78 @@
 						<Button content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
+			</if>
+			<if class="popupbg">
+				<Button background="argb(0,0,0,0)"/>
+			</if>
+			<if class="popupwindow">
+				<Button background="argb(224,240,240,240)"/>
+			</if>
+			<if class="popuptext">
+				<RichText foreground="black"/>
+			</if>
+			<if class="popupbutton">
+				<TouchButton foreground="20007"/>
+			</if>
+			<if class="ScrollViewer">
+				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
+				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
+				<viewer layoutpos="nineclient" />
+			</if>
+			<if class="singleclicked">
+				<Button cursor="hand"/>
+			</if>
+			<if class="doubleclicked">
+				<Button cursor="arrow"/>
+			</if>
+		</style>
+		<style resid="defaultdark">
+			<if class="item">
+				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="0" animation="alpha|log|veryfast"/>
+				<if mousefocused="true">
+					<Element background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))" alpha="255"/>
+				</if>
+				<if selected="true">
+					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha ="255"/>
+					<if mousefocused="true">
+						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))" alpha="255"/>
+					</if>
+				</if>
+			</if>
+			<if class="selector">
+				<Element alpha="themeable(224, 148)"/>
+				<if visible="false">
+					<Element alpha="themeable(0, 148)"/>
+				</if>
+			</if>
+			<if class="checkbox">
+				<Button content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<if mousefocused="true">
+					<Button content="themeable(dtb(DirectUI::Button,3,2), '')"/>
+				</if>
+				<if selected="true">
+					<Button content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
+					<if mousefocused="true">
+						<Button content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+					</if>
+				</if>
+			</if>
+			<if class="popupbg">
+				<Button background="argb(96,32,32,32)"/>
+			</if>
+			<if class="popupwindow">
+				<Button background="argb(224,40,40,40)"/>
+			</if>
+			<if class="popuptext">
+				<RichText foreground="white"/>
+			</if>
+			<if class="popupbutton">
+				<TouchButton foreground="20002"/>
+			</if>
+			<if class="ScrollViewer">
+				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
+				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
+				<viewer layoutpos="nineclient" />
 			</if>
 			<if class="singleclicked">
 				<Button cursor="hand"/>
@@ -184,7 +256,9 @@
 				</if>
 			</if>
 			<if class="ScrollViewer">
-				<Viewer layoutpos="nineclient"/>
+				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
+				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
+				<viewer layoutpos="nineclient" />
 			</if>
 		</style>
 	</stylesheets>
