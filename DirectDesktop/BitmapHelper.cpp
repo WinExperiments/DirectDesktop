@@ -1,6 +1,7 @@
 #include "BitmapHelper.h"
 #include "BlurCore.h"
 
+TEXTMETRICW tm;
 HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType) {
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -24,8 +25,8 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
 
     SetBkMode(hdcMem, TRANSPARENT);
     SetTextColor(hdcMem, RGB(255, 255, 255));
-    RECT rc = {2, 1, width - 2, height - 1};
-    DrawTextW(hdcMem, text, -1, &rc, DT_CENTER | ellipsisType | DT_WORDBREAK | DT_NOFULLWIDTHCHARBREAK | DT_NOPREFIX | DT_EDITCONTROL);
+    RECT rc = {2, 0, width - 2, height};
+    DrawTextW(hdcMem, text, -1, &rc, DT_CENTER | ellipsisType | DT_LVICON);
     DWORD* pixels = (DWORD*)pBitmapData;
     for (int i = 0; i < width * height; i++) {
         BYTE* pPixel = (BYTE*)&pixels[i];
@@ -33,6 +34,7 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
             pPixel[3] = 255;
         }
     }
+    GetTextMetricsW(hdcMem, &tm);
     SelectObject(hdcMem, hOldFont);
     SelectObject(hdcMem, hOldBitmap);
     DeleteObject(hFont);
@@ -111,6 +113,8 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
                 pPixel[2] = r;
                 pPixel[1] = g;
                 pPixel[0] = b;
+                a *= alpha;
+                if (a > 255) a = 255;
                 pPixel[3] = a;
 
                 pPixel += 4;

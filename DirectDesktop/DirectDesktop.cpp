@@ -186,15 +186,44 @@ HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     CoUninitialize();
 }
 
+void GetFontHeight() {
+    LOGFONTW lf{};
+    RECT rc = { 0, 0, 100, 100 };
+    HDC hdcBuffer = CreateCompatibleDC(NULL);
+    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+    DrawTextW(hdcBuffer, L" ", -1, &rc, DT_CENTER);
+    GetTextMetricsW(hdcBuffer, &tm);
+    DeleteDC(hdcBuffer);
+}
+float CalcTextLines(const wchar_t* str, int width) {
+    HDC hdcBuffer = CreateCompatibleDC(NULL);
+    LOGFONTW lf{};
+    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+    HFONT hFont = CreateFontIndirectW(&lf);
+    HFONT hOldFont = (HFONT)SelectObject(hdcBuffer, hFont);
+    RECT rc = { 0, 0, width - 4, tm.tmHeight };
+    wchar_t filenameBuffer[260]{};
+    wcscpy_s(filenameBuffer, str);
+    DrawTextExW(hdcBuffer, filenameBuffer, -1, &rc, DT_MODIFYSTRING | DT_END_ELLIPSIS | DT_CENTER | DT_LVICON, NULL);
+    int lines_b1 = wcscmp(str, filenameBuffer);
+    RECT rc2 = { 0, 0, width - 4, tm.tmHeight * 2 };
+    wchar_t filenameBuffer2[260]{};
+    wcscpy_s(filenameBuffer2, str);
+    DrawTextExW(hdcBuffer, filenameBuffer2, -1, &rc2, DT_MODIFYSTRING | DT_WORD_ELLIPSIS | DT_CENTER | DT_LVICON, NULL);
+    int lines_b2 = wcscmp(str, filenameBuffer2);
+    DeleteObject(hFont);
+    DeleteObject(hOldFont);
+    DeleteDC(hdcBuffer);
+    if (lines_b1 == 1 && lines_b2 == 0) return 2.0; else if (lines_b1 == 1 && lines_b2 == 1) return 1.5; else return 1;
+}
+
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
     int innerSizeX = GetSystemMetrics(SM_CXICONSPACING);
-    int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 20;
+    int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) - tm.tmHeight;
     int iconPaddingX = (innerSizeX - 48) / 2;
-    int iconPaddingY = (innerSizeY - 68) / 2;
-    Event evt;
-    evt.type == Button::Click;
+    int iconPaddingY = (innerSizeY - 48 + tm.tmHeight) / 2;
     switch (uMsg) {
     case WM_SETTINGCHANGE: {
         UpdateModeInfo();
@@ -216,19 +245,22 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 3: {
         double bezierProgress = py[frame[wParam] - 1];
+        int lines_basedOnEllipsis{};
+        lines_basedOnEllipsis = floor(CalcTextLines(pm[wParam].simplefilename.c_str(), innerSizeX)) * tm.tmHeight;
         pm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        pm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
+        pm[wParam].elem->SetHeight((innerSizeY + lines_basedOnEllipsis + 7) * (0.7 + 0.3 * bezierProgress));
         pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
         pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
-        filepm[wParam]->SetHeight(pm[wParam].elem->GetHeight() * 0.38);
-        fileshadowpm[wParam]->SetHeight(pm[wParam].elem->GetHeight() * 0.38 - 1);
+        filepm[wParam]->SetHeight(lines_basedOnEllipsis + 4);
+        fileshadowpm[wParam]->SetHeight(lines_basedOnEllipsis + 4);
         iconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        HBITMAP capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38 - 1, DT_WORD_ELLIPSIS);
-        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 0);
-        IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
+        iconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
+        HBITMAP capturedBitmap;
+        capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX - 2, lines_basedOnEllipsis, DT_END_ELLIPSIS);
+        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 1);
+        IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
         IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
@@ -245,12 +277,12 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         shadowpm[wParam]->SetWidth(64);
         shadowpm[wParam]->SetHeight(64);
         shadowpm[wParam]->SetX(iconPaddingX - 8);
-        shadowpm[wParam]->SetY((iconPaddingY * 0.72) - 6);
+        shadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6);
         shortpm[wParam].elem->SetAlpha(255);
         shortpm[wParam].elem->SetWidth(32);
         shortpm[wParam].elem->SetHeight(32);
         shortpm[wParam].elem ->SetX(iconPaddingX);
-        shortpm[wParam].elem->SetY((iconPaddingY * 0.72) + 16);
+        shortpm[wParam].elem->SetY((iconPaddingY * 0.575) + 16);
         break;
     }
     case WM_USER + 5: {
@@ -291,17 +323,23 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 9: {
         double bezierProgress = 1; //py[frame[wParam] - 1];
         subpm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        subpm[wParam].elem->SetHeight(innerSizeY * (0.7 + 0.3 * bezierProgress));
+        subpm[wParam].elem->SetHeight((innerSizeY + tm.tmHeight + 24) * (0.7 + 0.3 * bezierProgress));
         subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
         subpm[wParam].elem->SetY(subpm[wParam].y); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
-        subfilepm[wParam]->SetHeight(subpm[wParam].elem->GetHeight() * 0.38);
+        int textlines = 1;
+        if (tm.tmHeight <= 18) textlines = 2;
+        subfilepm[wParam]->SetHeight(tm.tmHeight * textlines + 4);
+        if (subfilepm[wParam]->GetHeight() > (iconPaddingY * 0.575 + 48)) subfilepm[wParam]->SetHeight(iconPaddingY * 0.575 + 48);
         subiconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
-        subiconpm[wParam]->SetY(round((iconPaddingY * 0.72) * (0.7 + 0.3 * bezierProgress)));
-        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, innerSizeY * 0.38, DT_END_ELLIPSIS);
-        IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
-        if (theme) IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1);
+        subiconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
+        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, tm.tmHeight * textlines, DT_END_ELLIPSIS);
+        if (theme) {
+            IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1);
+            IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9);
+        }
+        else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         subfilepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
         bitmap->Release();
@@ -313,12 +351,12 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         subshadowpm[wParam]->SetWidth(64);
         subshadowpm[wParam]->SetHeight(64);
         subshadowpm[wParam]->SetX(iconPaddingX - 8);
-        subshadowpm[wParam]->SetY((iconPaddingY * 0.72) - 6);
+        subshadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6);
         subshortpm[wParam].elem->SetAlpha(255);
         subshortpm[wParam].elem->SetWidth(32);
         subshortpm[wParam].elem->SetHeight(32);
         subshortpm[wParam].elem->SetX(iconPaddingX);
-        subshortpm[wParam].elem->SetY((iconPaddingY * 0.72) + 16);
+        subshortpm[wParam].elem->SetY((iconPaddingY * 0.575) + 16);
         break;
     }
     case WM_USER + 11: {
@@ -335,7 +373,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
         bitmap->Release();
         tools->SetLayoutPos(1);
-        //fullscreenpopupbase->SetBackgroundStdColor(24);
+        fullscreenpopup->SetBackgroundStdColor(24);
         break;
     }
     case WM_USER + 12: {
@@ -435,7 +473,7 @@ void fullscreenAnimation(int width, int height) {
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
     ReleaseDC(wnd->GetHWND(), hdcWindow);
-    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2);
+    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 4, 1);
     Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
     fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     bitmap->Release();
@@ -499,11 +537,11 @@ void ApplyIcons(vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<p
         HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
         HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
         if (isColorized) {
-            IterateBitmap(bmp, StandardBitmapPixelHandler, 1);
-            IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1);
+            IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
+            IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
         }
-        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0);
-        IterateBitmap(bmpShortcut, UndoPremultiplication, 1);
+        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, 4, 0.33);
+        IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
         Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
         Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
@@ -576,7 +614,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
         RECT dimensions;
         dimensions = *(groupdirectory->GetPadding(&v));
         int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
-        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 24;
+        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 27;
         DWORD* animThread = new DWORD[count];
         DWORD* animThread2 = new DWORD[count];
         HANDLE* animThreadHandle = new HANDLE[count];
@@ -589,7 +627,6 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"shortcutElem"));
             iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElemShadow"));
             textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID((UCString)L"textElem"));
-            textElem->SetContentString((UCString)subfiles[i].c_str());
             subpm[i].elem = outerElemGrouped, subpm[i].x = x, subpm[i].y = y, subpm[i].filename = sublistDirBuffer[i], subpm[i].simplefilename = subfiles[i];
             subiconpm[i] = iconElem;
             subshortpm[i].elem = shortcutElem;
@@ -659,12 +696,19 @@ void SelectItem(Element* elem, Event* iev) {
         execInfo.nShow = SW_SHOWNORMAL;
         for (int items = 0; items < pm.size(); items++) {
             if (pm[items].mem_isSelected != pm[items].elem->GetSelected()) {
-                DWORD ellipsisType = pm[items].elem->GetSelected() ? DT_END_ELLIPSIS : DT_WORD_ELLIPSIS;
+                float spacingInternal = CalcTextLines(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth());
+                int extraBottomSpacing = (pm[items].elem->GetSelected() == true) ? ceil(spacingInternal) * tm.tmHeight : floor(spacingInternal) *tm.tmHeight;
                 textElem = (RichText*)pm[items].elem->FindDescendent(StrToID((UCString)L"textElem"));
                 textElemShadow = (RichText*)pm[items].elem->FindDescendent(StrToID((UCString)L"textElemShadow"));
-                HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth(), pm[items].elem->GetHeight() * 0.38 - 1, ellipsisType);
-                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 0);
-                IterateBitmap(capturedBitmap, DesaturateWhiten, 1);
+                if (spacingInternal == 1.5) {
+                    if (pm[items].elem->GetSelected() == true) pm[items].elem->SetHeight(pm[items].elem->GetHeight() + extraBottomSpacing * 0.5);
+                    else pm[items].elem->SetHeight(pm[items].elem->GetHeight() - extraBottomSpacing);
+                }
+                textElem->SetHeight(extraBottomSpacing + 4);
+                textElemShadow->SetHeight(extraBottomSpacing + 4);
+                HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth() - 2, extraBottomSpacing, DT_END_ELLIPSIS);
+                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 1);
+                IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
                 IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
                 Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
                 Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
@@ -818,6 +862,7 @@ void testEventListener3(Element* elem, Event* iev) {
 }
 
 void InitLayout() {
+    GetFontHeight();
     static bool openclose = 0;
     wchar_t icount[32];
     vector<wstring> files = list_directory();
@@ -838,7 +883,7 @@ void InitLayout() {
         swprintf_s(icount, L"        Found %d items!", count);
         itemcountstatus->SetContentString((UCString)icount);
         itemcountstatus->SetVisible(true); itemcountstatus->SetAlpha(0);
-        int x = 0, y = 0;
+        int x = 4, y = 4;
         CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
         frame.resize(count);
         pm.resize(count);
@@ -855,7 +900,7 @@ void InitLayout() {
         HANDLE* animThreadHandle = new HANDLE[count];
         HANDLE* animThreadHandle2 = new HANDLE[count];
         int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
-        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 24;
+        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 27;
         for (int i = 0; i < count; i++) {
             Button* outerElem;
             parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
@@ -891,7 +936,7 @@ void InitLayout() {
             yValue* yV2 = new yValue{ i };
             y += outerSizeY;
             if (y > dimensions.bottom - outerSizeY) {
-                y = 0;
+                y = 4;
                 x += outerSizeX;
             }
             animThreadHandle[i] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[i]));
@@ -941,7 +986,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     InitProcessPriv(14, NULL, 0, true);
     InitThread(2);
     RegisterAllControls();
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 750, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
+    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 768, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);

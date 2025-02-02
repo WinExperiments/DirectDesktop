@@ -393,6 +393,48 @@
     <Image Include="DirectDesktop.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\101.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\102.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\103.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\104.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\105.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\106.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\107.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\201.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\202.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\203.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\204.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\205.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\206.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\207.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectUI\DirectUI.def">

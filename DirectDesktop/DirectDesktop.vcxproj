@@ -269,6 +269,20 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="DirectDesktop.ico" />
+    <Image Include="ImageResources\101.bmp" />
+    <Image Include="ImageResources\102.bmp" />
+    <Image Include="ImageResources\103.bmp" />
+    <Image Include="ImageResources\104.bmp" />
+    <Image Include="ImageResources\105.bmp" />
+    <Image Include="ImageResources\106.bmp" />
+    <Image Include="ImageResources\107.bmp" />
+    <Image Include="ImageResources\201.bmp" />
+    <Image Include="ImageResources\202.bmp" />
+    <Image Include="ImageResources\203.bmp" />
+    <Image Include="ImageResources\204.bmp" />
+    <Image Include="ImageResources\205.bmp" />
+    <Image Include="ImageResources\206.bmp" />
+    <Image Include="ImageResources\207.bmp" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

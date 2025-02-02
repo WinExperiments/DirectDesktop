@@ -2,12 +2,12 @@
 	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="borderlayout()" layoutpos="client">
-			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client" background="gradient(lightblue, lightsteelblue, 1)">
+			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 
 				</Element>
 				<Element id="atom(selector)" class="selector" layoutpos="none" animation="alpha|s|mediumfast" background="themeable(20066, hotlight)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
-				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
+				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0" animation="alpha|linear|veryfast">
 					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false">
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>
@@ -32,7 +32,7 @@
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom"/>
-		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)"/>
+		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
 		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
 	</Button>
 	<Button resid="outerElemGrouped" layout="filllayout()" sheet="default" background="argb(0,0,0,0)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
@@ -40,7 +40,7 @@
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
 		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp"/>
-		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom"/>
+		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</Button>
 	<Button resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()"/>
 	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
@@ -59,6 +59,9 @@
 	</Element>
 	<stylesheets>
 		<style resid="default">
+			<if id="atom(mainContainer)">
+				<Element background="gradient(powderblue, lightblue, 1)"/>
+			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="0" animation="alpha|log|veryfast"/>
 				<if mousefocused="true">
@@ -93,7 +96,25 @@
 				<Button background="argb(0,0,0,0)"/>
 			</if>
 			<if class="popupwindow">
-				<Button background="argb(224,240,240,240)"/>
+				<Button background="resbmp(101,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<ifgreaterequal dpi="384">
+					<Button background="resbmp(107,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="288">
+					<Button background="resbmp(106,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="240">
+					<Button background="resbmp(105,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="192">
+					<Button background="resbmp(104,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="144">
+					<Button background="resbmp(103,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="120">
+					<Button background="resbmp(102,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
 			</if>
 			<if class="popuptext">
 				<RichText foreground="black"/>
@@ -114,6 +135,9 @@
 			</if>
 		</style>
 		<style resid="defaultdark">
+			<if id="atom(mainContainer)">
+				<Element background="gradient(lightslategray, slategray, 1)"/>
+			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="0" animation="alpha|log|veryfast"/>
 				<if mousefocused="true">
@@ -148,7 +172,25 @@
 				<Button background="argb(96,32,32,32)"/>
 			</if>
 			<if class="popupwindow">
-				<Button background="argb(224,40,40,40)"/>
+				<Button background="resbmp(201,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<ifgreaterequal dpi="384">
+					<Button background="resbmp(207,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="288">
+					<Button background="resbmp(206,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="240">
+					<Button background="resbmp(205,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="192">
+					<Button background="resbmp(204,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="144">
+					<Button background="resbmp(203,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
+				<ifgreaterequal dpi="120">
+					<Button background="resbmp(202,7,-1,0,0,1,1)"/>
+				</ifgreaterequal>
 			</if>
 			<if class="popuptext">
 				<RichText foreground="white"/>
