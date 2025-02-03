@@ -64,6 +64,15 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     }
     return result;
 }
+void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue) {
+    int result{};
+    HKEY hKey;
+    LONG lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
+    if (lResult == ERROR_SUCCESS) {
+        lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+    }
+    RegCloseKey(hKey);
+}
 
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     wchar_t* result{};
@@ -114,19 +123,16 @@ vector<wstring> list_directory() {
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
     WIN32_FIND_DATAW findData;
     HANDLE hFind = INVALID_HANDLE_VALUE;
-    wchar_t* full_path = new wchar_t[260];
+    wchar_t* full_path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
     wchar_t* full_path2 = new wchar_t[260];
     wchar_t* full_path3 = new wchar_t[260];
-    DWORD d = GetEnvironmentVariableW(L"userprofile", 0, 0);
     DWORD d2 = GetEnvironmentVariableW(L"PUBLIC", 0, 0);
     DWORD d3 = GetEnvironmentVariableW(L"onedrive", 0, 0);
-    vector<wchar_t> envName(d);
     vector<wchar_t> envName2(d2);
     vector<wchar_t> envName3(d3);
-    GetEnvironmentVariableW(L"userprofile", envName.data(), 260);
     GetEnvironmentVariableW(L"PUBLIC", envName2.data(), 260);
     GetEnvironmentVariableW(L"onedrive", envName3.data(), 260);
-    StringCchPrintfW(full_path, 260, L"%s\\Desktop\\*", envName.data());
+    StringCchPrintfW(full_path, 260, L"%s\\*", full_path);
     StringCchPrintfW(full_path2, 260, L"%s\\Desktop\\*", envName2.data());
     StringCchPrintfW(full_path3, 260, L"%s\\Desktop\\*", envName3.data());
     vector<wstring> dir_list;
@@ -209,7 +215,6 @@ vector<wstring> list_directory() {
     delete[] full_path;
     delete[] full_path2;
     delete[] full_path3;
-    envName.clear();
     envName2.clear();
     envName3.clear();
 

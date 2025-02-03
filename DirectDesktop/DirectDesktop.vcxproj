@@ -253,6 +253,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImmersiveColor.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="StyleModifier.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -262,12 +263,14 @@
     <ClCompile Include="ColorHelper.cpp" />
     <ClCompile Include="DirectDesktop.cpp" />
     <ClCompile Include="DirectoryHelper.cpp" />
+    <ClCompile Include="SettingsHelper.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DirectDesktop.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\resources\directdesktop\108.png" />
     <Image Include="DirectDesktop.ico" />
     <Image Include="ImageResources\101.bmp" />
     <Image Include="ImageResources\102.bmp" />
@@ -276,6 +279,14 @@
     <Image Include="ImageResources\105.bmp" />
     <Image Include="ImageResources\106.bmp" />
     <Image Include="ImageResources\107.bmp" />
+    <Image Include="ImageResources\108.png" />
+    <Image Include="ImageResources\115.png" />
+    <Image Include="ImageResources\122.png" />
+    <Image Include="ImageResources\129.png" />
+    <Image Include="ImageResources\136.png" />
+    <Image Include="ImageResources\143.png" />
+    <Image Include="ImageResources\150.png" />
+    <Image Include="ImageResources\157.png" />
     <Image Include="ImageResources\201.bmp" />
     <Image Include="ImageResources\202.bmp" />
     <Image Include="ImageResources\203.bmp" />
@@ -283,6 +294,14 @@
     <Image Include="ImageResources\205.bmp" />
     <Image Include="ImageResources\206.bmp" />
     <Image Include="ImageResources\207.bmp" />
+    <Image Include="ImageResources\208.png" />
+    <Image Include="ImageResources\215.png" />
+    <Image Include="ImageResources\222.png" />
+    <Image Include="ImageResources\229.png" />
+    <Image Include="ImageResources\236.png" />
+    <Image Include="ImageResources\243.png" />
+    <Image Include="ImageResources\250.png" />
+    <Image Include="ImageResources\257.png" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

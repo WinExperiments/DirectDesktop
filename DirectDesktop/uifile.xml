@@ -11,13 +11,28 @@
 					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false">
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>
+					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" minsize="size(0,128rp)" background="argb(0,0,0,0)">
+						<Element id="atom(itemcountstatus)" layoutpos="client" animation="alpha|s|slow|delaylong" foreground="themeable(gtc(ControlPanel,7,1,3803), hotlight)" font="messagefont;115%" contentalign="middlecenter"/>
+					</Button>
+					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+						<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
+							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+								<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+								<RichText content="Settings" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+							</Element>
+						</Button>
+						<Button id="atom(testButton)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
+							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+								<RichText content="resstr(137)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+								<RichText content="Refresh" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+							</Element>
+						</Button>
+					</Button>
 					<Element id="atom(tools)" layout="flowlayout(0,0,2,0)" layoutpos="none" background="Window" padding="rect(8rp,8rp,8rp,8rp)">
 						<CCPushButton id="atom(testButton5)" height="32rp" width="0" content="Initialize layout"/>
-						<CCPushButton id="atom(testButton)" height="32rp" width="128rp" content="Refresh" Enabled="false"/>
 						<CCPushButton id="atom(testButton3)" height="32rp" width="0" content="Simulate popup"/>
 						<CCPushButton id="atom(testButton4)" height="32rp" width="128rp" content="AccentColorIcons (N)"/>
 						<CCPushButton id="atom(testButton2)" height="32rp" width="128rp" content="TreatDirAsGroup (N)"/>
-						<Element id="atom(itemcountstatus)" animation="alpha|s|slow|delaylong" foreground="themeable(gtc(ControlPanel,7,1,3803), hotlight)" font="messagefont;115%"/>
 					</Element>
 				</Element>
 			</Element>
@@ -56,6 +71,52 @@
 		<ScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
 			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
 		</ScrollViewer>
+	</Element>
+	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
+		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
+			<Element id="atom(dirnameanimator)" layoutpos="left"/>
+			<RichText id="atom(name)" class="popuptext" content="Settings" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+		</Element>
+		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,8rp,0,8rp)" layout="flowlayout()">
+			<TouchButton id="atom(PageTab1)" content="General" class="pilltab" selected="true"/>
+			<TouchButton id="atom(PageTab2)" content="Personalize" class="pilltab"/>
+		</Element>
+		<ScrollViewer id="atom(settingslist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
+			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
+		</ScrollViewer>
+	</Element>
+	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="resstr(30522, library(shell32.dll))" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<Button id="atom(ItemCheckboxes)" class="togglebutton"/>
+			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="resstr(24155, library(shell32.dll))" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<Button id="atom(ShowHiddenFiles)" class="togglebutton"/>
+			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="resstr(30503, library(shell32.dll))" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<Button id="atom(FilenameExts)" class="togglebutton"/>
+			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="Open folders inside the desktop" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<Button id="atom(TreatDirAsGroup)" class="togglebutton"/>
+			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="Show accent color on icons (will be moved to personalize later)" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<Button id="atom(EnableAccent)" class="togglebutton"/>
+			</Element>
+		</Element>
+		<RichText layoutpos="bottom" class="toggletext" content="After closing this window, refresh to apply your changes." foreground="gray"/>
 	</Element>
 	<stylesheets>
 		<style resid="default">
@@ -126,6 +187,66 @@
 				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
 				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
 				<viewer layoutpos="nineclient" />
+			</if>
+			<if class="simpleviewbutton">
+				<Button background="argb(0,0,0,0)" foreground="white"/>
+				<if mousefocused="true">
+					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+				</if>
+				<if Pressed="true">
+					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+				</if>
+			</if>
+			<if class="pilltab">
+				<TouchButton background="themeable(dtb(PillTab::Tab,1,1), argb(0, 0, 0, 0))" height="32rp" padding="rect(10rp,0,10rp,0)" margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 1rp))" accessible="True" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)" font="messagefont;115%"/>
+				<if mousefocused="true">
+					<TouchButton background="themeable(dtb(PillTab::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
+				</if>
+				<if selected="true">
+					<TouchButton background="themeable(dtb(PillTab::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
+				</if>
+				<ifgreaterequal dpi="192">
+					<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,1), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)"/>
+					<if mousefocused="true">
+						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
+					</if>
+					<if selected="true">
+						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
+					</if>
+				</ifgreaterequal>
+			</if>
+			<if class="togglecontainer">
+				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
+			</if>
+			<if class="toggletext">
+				<RichText layoutpos="left" padding="rect(0,0,8rp,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)"/>
+			</if>
+			<if class="togglebuttoncontainer">
+				<Element layoutpos="right"/>
+			</if>
+			<if class="togglebutton">
+				<Button width="40rp" height="20rp" background="sgraphic(108,7,-1,0,0,1,1)" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<Button background="sgraphic(115,7,-1,0,0,1,1)"/>
+				</if>
+				<if Pressed="true">
+					<Button background="sgraphic(122,7,-1,0,0,1,1)"/>
+				</if>
+				<if Enabled="false">
+					<Button background="sgraphic(129,7,-1,0,0,1,1)"/>
+				</if>
+				<if selected="true">
+					<Button background="sgraphic(136,7,-1,0,0,1,1)"/>
+					<if mousefocused="true">
+						<Button background="sgraphic(143,7,-1,0,0,1,1)"/>
+					</if>
+					<if Pressed="true">
+						<Button background="sgraphic(150,7,-1,0,0,1,1)"/>
+					</if>
+					<if Enabled="false">
+						<Button background="sgraphic(157,7,-1,0,0,1,1)"/>
+					</if>
+				</if>
 			</if>
 			<if class="singleclicked">
 				<Button cursor="hand"/>
@@ -203,6 +324,66 @@
 				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
 				<viewer layoutpos="nineclient" />
 			</if>
+			<if class="simpleviewbutton">
+				<Button background="argb(0,0,0,0)" foreground="white"/>
+				<if mousefocused="true">
+					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+				</if>
+				<if Pressed="true">
+					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+				</if>
+			</if>
+			<if class="pilltab">
+				<TouchButton background="themeable(dtb(PillTab::Tab,1,1), argb(0, 0, 0, 0))" height="32rp" padding="rect(10rp,0,10rp,0)" margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 1rp))" accessible="True" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)" font="messagefont;115%"/>
+				<if mousefocused="true">
+					<TouchButton background="themeable(dtb(PillTab::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
+				</if>
+				<if selected="true">
+					<TouchButton background="themeable(dtb(PillTab::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
+				</if>
+				<ifgreaterequal dpi="192">
+					<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,1), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)"/>
+					<if mousefocused="true">
+						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
+					</if>
+					<if selected="true">
+						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
+					</if>
+				</ifgreaterequal>
+			</if>
+			<if class="togglecontainer">
+				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
+			</if>
+			<if class="toggletext">
+				<RichText layoutpos="left" padding="rect(0,0,8rp,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)"/>
+			</if>
+			<if class="togglebuttoncontainer">
+				<Element layoutpos="right"/>
+			</if>
+			<if class="togglebutton">
+				<Button width="40rp" height="20rp" background="sgraphic(208,7,-1,0,0,1,1)" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<Button background="sgraphic(215,7,-1,0,0,1,1)"/>
+				</if>
+				<if Pressed="true">
+					<Button background="sgraphic(222,7,-1,0,0,1,1)"/>					
+				</if>
+				<if Enabled="false">
+					<Button background="sgraphic(229,7,-1,0,0,1,1)"/>
+				</if>
+				<if selected="true">
+					<Button background="sgraphic(236,7,-1,0,0,1,1)"/>
+					<if mousefocused="true">
+						<Button background="sgraphic(243,7,-1,0,0,1,1)"/>						
+					</if>
+					<if Pressed="true">
+						<Button background="sgraphic(250,7,-1,0,0,1,1)"/>						
+					</if>
+					<if Enabled="false">
+						<Button background="sgraphic(257,7,-1,0,0,1,1)"/>
+					</if>
+				</if>
+			</if>
 			<if class="singleclicked">
 				<Button cursor="hand"/>
 			</if>
@@ -256,10 +437,10 @@
 				</if>
 			</if>
 			<if id="atom(TouchScrollBar_Track)">
-				<Element layoutpos="client" background="20575"/>
+				<Element layoutpos="client" background="argb(0,0,0,0)"/>
 			</if>
 			<if class="Page">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="20575"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)"/>
 				<if id="atom(PageUp)">
 					<TouchRepeatButton width="16rp"/>
 				</if>

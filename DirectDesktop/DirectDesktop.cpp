@@ -15,6 +15,7 @@
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
+#include "SettingsHelper.h";
 
 using namespace DirectUI;
 using namespace std;
@@ -43,11 +44,13 @@ Element* selector;
 Element* dirnameanimator;
 Element* tasksanimator;
 Element* tools;
+Button* SimpleViewTop, *SimpleViewBottom;
+Button* SimpleViewSettings;
+RichText* SubUIContainer;
 HRESULT err;
 
 int popupframe, dframe, tframe;
 vector<int> frame;
-bool treatdirasgroup = 0;
 
 struct EventListener : public IElementListener {
 
@@ -158,9 +161,9 @@ vector<Element*> shadowpm, subshadowpm;
 vector<RichText*> filepm, subfilepm;
 vector<RichText*> fileshadowpm;
 vector<Element*> cbpm;
-int showcheckboxes = 0;
 int holddownseconds = 0;
 bool checkifelemexists = 0;
+bool issubviewopen = 0;
 void fullscreenAnimation(int width, int height);
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
@@ -215,6 +218,35 @@ float CalcTextLines(const wchar_t* str, int width) {
     DeleteObject(hOldFont);
     DeleteDC(hdcBuffer);
     if (lines_b1 == 1 && lines_b2 == 0) return 2.0; else if (lines_b1 == 1 && lines_b2 == 1) return 1.5; else return 1;
+}
+
+Value* bitmapbuffer;
+void ShowSimpleView() {
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
+    Value* bitmap;
+    HBITMAP hbmCapture{};
+    if (!issubviewopen) {
+        HDC hdcWindow = GetDC(wnd->GetHWND());
+        HDC hdcMem = CreateCompatibleDC(hdcWindow);
+        hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
+        HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
+        BitBlt(hdcMem, 0, 0, dimensions.right, dimensions.bottom, hdcWindow, 0, 0, SRCCOPY);
+        SelectObject(hdcMem, hbmOld);
+        DeleteDC(hdcMem);
+        ReleaseDC(wnd->GetHWND(), hdcWindow);
+    }
+    bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
+    fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
+    if (issubviewopen) {
+        fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmapbuffer);
+    }
+    else fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
+    SimpleViewTop->SetLayoutPos(1);
+    SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
+    SimpleViewBottom->SetLayoutPos(3);
+    fullscreenpopup->SetBackgroundStdColor(24);
+    if (!issubviewopen) bitmapbuffer = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
 }
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -293,13 +325,14 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (ppt.x < origX) {
             selector->SetWidth(origX - ppt.x);
             selector->SetX(ppt.x);
+            holddownseconds = 0;
         }
         if (ppt.y >= origY) selector->SetHeight(ppt.y - origY);
         if (ppt.y < origY) {
             selector->SetHeight(origY - ppt.y);
             selector->SetY(ppt.y);
+            holddownseconds = 0;
         }
-        holddownseconds = 0;
         break;
     }
     case WM_USER + 6: {
@@ -312,6 +345,10 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         checkifelemexists = false;
         fullscreenpopup->SetLayoutPos(-3);
         centered->DestroyAll(true);
+        if (issubviewopen) {
+            ShowSimpleView();
+        }
+        issubviewopen = false;
         break;
     }
     case WM_USER + 8: {
@@ -360,21 +397,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 11: {
-        HDC hdcWindow = GetDC(wnd->GetHWND());
-        HDC hdcMem = CreateCompatibleDC(hdcWindow);
-        HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
-        HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-        BitBlt(hdcMem, 0, 0, dimensions.right, dimensions.bottom, hdcWindow, 0, 0, SRCCOPY);
-        SelectObject(hdcMem, hbmOld);
-        DeleteDC(hdcMem);
-        ReleaseDC(wnd->GetHWND(), hdcWindow);
-        Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
-        fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
-        fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
-        bitmap->Release();
-        tools->SetLayoutPos(1);
-        fullscreenpopup->SetBackgroundStdColor(24);
-        break;
+        holddownseconds++;
+        if (holddownseconds == 2 && selector->GetWidth() < 2 && selector->GetHeight() < 2) {
+            ShowSimpleView();
+            break;
+        }
     }
     case WM_USER + 12: {
         if (checkifelemexists == true) dirnameanimator->SetWidth(160 * (1 - py[dframe - 1]));
@@ -488,6 +515,26 @@ void fullscreenAnimation2() {
     DWORD animThread;
     HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
 }
+void ShowPopupCore() {
+    fullscreenpopup->SetLayoutPos(4);
+    fullscreenpopup->SetAlpha(255);
+    fullscreenAnimation(800, 480);
+}
+void HidePopupCore() {
+    fullscreenpopup->SetAlpha(0);
+    fullscreenAnimation2();
+    sublistDirBuffer.clear();
+    frame.clear();
+    subpm.clear();
+    subiconpm.clear();
+    subshortpm.clear();
+    subshadowpm.clear();
+    subfilepm.clear();
+    subhiddenIndex = 0;
+    subshortIndex = 0;
+    SimpleViewTop->SetLayoutPos(-3);
+    SimpleViewBottom->SetLayoutPos(-3);
+}
 
 wstring bufferOpenInExplorer;
 void OpenGroupInExplorer(Element* elem, Event* iev) {
@@ -525,7 +572,6 @@ vector<HBITMAP> GetSubdirectoryIcons() {
     return bmResult;
 }
 
-bool isColorized;
 void ApplyIcons(vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<parameters> pmShortcut, vector<HBITMAP> iconstofetch) {
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
@@ -583,7 +629,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     parser->CreateElement((UCString)L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
     fullscreeninner->Add((Element**)&groupdirectory, 1);
     ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID((UCString)L"groupdirlist"));
-    Element* SubUIContainer = (ScrollViewer*)groupdirlist->FindDescendent(StrToID((UCString)L"SubUIContainer"));
+    SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID((UCString)L"SubUIContainer"));
     vector<wstring> subfiles = list_subdirectory(filename + wstring(L"\\*"));
     unsigned int count = subfiles.size();
     CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
@@ -663,6 +709,51 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             SubUIContainer->SetContentString((UCString)L"This folder is too large.");
         }
         else SubUIContainer->SetContentString((UCString)L"This folder is empty.");
+    }
+}
+
+void ShowPage1() {
+    Element* SettingsPage1;
+    parser->CreateElement((UCString)L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
+    SubUIContainer->Add((Element**)&SettingsPage1, 1);
+    Button* ItemCheckboxes = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ItemCheckboxes"));
+    Button* ShowHiddenFiles = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ShowHiddenFiles"));
+    Button* FilenameExts = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"FilenameExts"));
+    Button* TreatDirAsGroup = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"TreatDirAsGroup"));
+    Button* EnableAccent = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"EnableAccent"));
+    ItemCheckboxes->SetSelected(showcheckboxes);
+    if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden") == 1) ShowHiddenFiles->SetSelected(true);
+    else ShowHiddenFiles->SetSelected(false);
+    FilenameExts->SetSelected(GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt"));
+    TreatDirAsGroup->SetSelected(treatdirasgroup);
+    EnableAccent->SetSelected(isColorized);
+    assignFn(ItemCheckboxes, ToggleCheckbox);
+    assignFn(ShowHiddenFiles, ToggleShowHidden);
+    assignFn(FilenameExts, ToggleFilenameExts);
+    assignFn(TreatDirAsGroup, ToggleGroupMode);
+    assignFn(EnableAccent, ToggleAccentIcons);
+}
+void ShowSettings(Element* elem, Event* iev) {
+    if (iev->type == Button::Click) {
+        fullscreenpopup->SetLayoutPos(-3);
+        centered->DestroyAll(true);
+        ShowPopupCore();
+        SimpleViewTop->SetLayoutPos(-3);
+        SimpleViewBottom->SetLayoutPos(-3);
+        issubviewopen = 1;
+        Element* settingsview{};
+        parser->CreateElement((UCString)L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
+        fullscreeninner->Add((Element**)&settingsview, 1);
+        ScrollViewer* settingslist = (ScrollViewer*)settingsview->FindDescendent(StrToID((UCString)L"settingslist"));
+        SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID((UCString)L"SubUIContainer"));
+        ShowPage1();
+        CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
+        dirnameanimator = (Element*)settingsview->FindDescendent(StrToID((UCString)L"dirnameanimator"));
+        RichText* name = (RichText*)settingsview->FindDescendent(StrToID((UCString)L"name"));
+        name->SetAlpha(255);
+        checkifelemexists = true;
+        DWORD animThread3;
+        HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     }
 }
 
@@ -791,13 +882,16 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
 }
 
 unsigned long PrepareForSimpleView(LPVOID lpParam) {
-    holddownseconds = 0;
     while (true) {
         this_thread::sleep_for(chrono::seconds(1));
-        holddownseconds++;
-        if (holddownseconds == 2 && isPressed == 1) SendMessageW(wnd->GetHWND(), WM_USER + 11, NULL, NULL);
-        break;
-        if (!isPressed) break;
+        if (isPressed) {
+            holddownseconds++;
+            SendMessageW(wnd->GetHWND(), WM_USER + 11, NULL, NULL);
+        }
+        else {
+            holddownseconds = 0;
+            break;
+        }
     }
     return 0;
 }
@@ -815,46 +909,17 @@ void OpenSimpleView(Element* elem, const PropertyInfo* pProp, int type, Value* p
     }
 }
 
-void testEventListener2(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
-        treatdirasgroup = !treatdirasgroup;
-        UCString str = treatdirasgroup ? (UCString)L"TreatDirAsGroup (Y)" : (UCString)L"TreatDirAsGroup (N)";
-        testButton2->SetContentString(str);
-    }
-}
-void testEventListener4(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
-        isColorized = !isColorized;
-        UCString str = isColorized ? (UCString)L"AccentColorIcons (Y)" : (UCString)L"AccentColorIcons (N)";
-        testButton4->SetContentString(str);
-    }
-}
-
 void testEventListener3(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
         switch (fullscreenpopup->GetAlpha()) {
         case 0:
             if (elem != fullscreenpopupbase) {
-                fullscreenpopup->SetLayoutPos(4);
-                fullscreenpopup->SetAlpha(255);
-                fullscreenAnimation(800, 480);
+                ShowPopupCore();
             }
             break;
         case 255:
-            if (centered->GetMouseWithin() == false) {
-                fullscreenpopup->SetAlpha(0);
-                //fullscreenpopupbase->SetBackgroundColor(2148536336);
-                fullscreenAnimation2();
-                sublistDirBuffer.clear();
-                frame.clear();
-                subpm.clear();
-                subiconpm.clear();
-                subshortpm.clear();
-                subshadowpm.clear();
-                subfilepm.clear();
-                subhiddenIndex = 0;
-                subshortIndex = 0;
-                tools->SetLayoutPos(-3);
+            if (centered->GetMouseWithin() == false && elem->GetMouseFocused() == true) {
+                HidePopupCore();
             }
             break;
         }
@@ -869,7 +934,6 @@ void InitLayout() {
     unsigned int count = files.size();
     testButton->SetEnabled(true);
     testButton5->SetEnabled(false);
-    showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
     switch (openclose) {
     case 0: {
@@ -1012,14 +1076,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     itemcountstatus = regElem(L"itemcountstatus");
     selector = regElem(L"selector");
     tools = regElem(L"tools");
+    SimpleViewTop = regBtn(L"SimpleViewTop");
+    SimpleViewBottom = regBtn(L"SimpleViewBottom");
+    SimpleViewSettings = regBtn(L"SimpleViewSettings");
 
     assignFn(testButton, testEventListener);
-    assignFn(testButton2, testEventListener2);
     assignFn(testButton3, testEventListener3);
-    assignFn(testButton4, testEventListener4);
     assignFn(fullscreenpopupbase, testEventListener3);
     assignFn(testButton, testEventListener3);
+    assignFn(SimpleViewTop, testEventListener3);
+    assignFn(SimpleViewBottom, testEventListener3);
+    assignFn(SimpleViewSettings, ShowSettings);
 
+    showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     InitLayout();
     SetTheme();
 
