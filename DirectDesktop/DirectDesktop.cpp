@@ -11,6 +11,7 @@
 #include <vector>
 #include <WinUser.h>
 #include <ShlObj_core.h>
+#include <ShlGuid.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
 #include "StyleModifier.h"
@@ -168,10 +169,9 @@ bool issubviewopen = 0;
 void fullscreenAnimation(int width, int height);
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
-    HRESULT hr = CoInitialize(NULL);
 
     IShellItem* pShellItem{};
-    hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
+    HRESULT hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
 
     IShellItemImageFactory* pImageFactory{};
     hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
@@ -183,11 +183,9 @@ HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     pImageFactory->Release();
 
     if (SUCCEEDED(hr)) {
-        CoUninitialize();
         return hBitmap;
     }
 
-    CoUninitialize();
 }
 
 void GetFontHeight() {
@@ -609,7 +607,6 @@ void ApplyIcons(vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<p
 
 void SelectSubItem(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         SHELLEXECUTEINFOW execInfo = {};
         execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         execInfo.lpVerb = L"open";
@@ -620,7 +617,6 @@ void SelectSubItem(Element* elem, Event* iev) {
                 ShellExecuteExW(&execInfo);
             }
         }
-        CoUninitialize();
     }
 }
 
@@ -783,7 +779,6 @@ void SelectItem(Element* elem, Event* iev) {
             HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, NULL, 0, &doubleClickThread);
             elemStorage = elem;
         }
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         SHELLEXECUTEINFOW execInfo = {};
         execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         execInfo.lpVerb = L"open";
@@ -826,11 +821,9 @@ void SelectItem(Element* elem, Event* iev) {
                 }
             }
         }
-        CoUninitialize();
     }
     else if (iev->type == Button::Context)
     {
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         for (int items = 0; items < pm.size(); items++) {
             if (pm[items].elem == elem) {
                 LPCWSTR folderPath = pm[items].filename.c_str();
@@ -873,7 +866,6 @@ void SelectItem(Element* elem, Event* iev) {
             }
         }
     }
-    CoUninitialize();
 }
 
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
@@ -975,6 +967,47 @@ void testEventListener3(Element* elem, Event* iev) {
     }
 }
 
+void DesktopRightClick(Element* elem, Event* iev) {
+    if (iev->type == Button::Context) {
+
+        IShellView* pShellView = NULL;
+        IContextMenu* pContextMenu = NULL;
+        IShellFolder* pShellFolder = NULL;
+
+        HRESULT hr = SHGetDesktopFolder(&pShellFolder);
+        pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
+
+        LPCONTEXTMENU3 pICv1 = NULL;
+        pShellView->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu3, (LPVOID*)&pICv1);
+        if (pICv1)
+        {
+            HMENU hm = CreatePopupMenu();
+            pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+
+            UINT uFlags = TPM_RIGHTBUTTON;
+            if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+                uFlags |= TPM_RIGHTALIGN;
+            else
+                uFlags |= TPM_LEFTALIGN;
+
+            // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
+            uFlags |= TPM_RETURNCMD;
+
+            POINT pt;
+            GetCursorPos(&pt);
+            int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
+            CMINVOKECOMMANDINFO ici;
+            ZeroMemory(&ici, sizeof(ici));
+            ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
+            ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
+            ici.nShow = SW_SHOWNORMAL;
+
+            pICv1->InvokeCommand(&ici);
+        }
+        pShellFolder->Release();
+    }
+}
+
 void InitLayout() {
     GetFontHeight();
     static bool openclose = 0;
@@ -992,6 +1025,7 @@ void InitLayout() {
         assignFn(emptyspace, SelectItem);
         assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
         assignExtendedFn(emptyspace, MarqueeSelector);
+        assignFn(emptyspace, DesktopRightClick);
         assignExtendedFn(emptyspace, OpenSimpleView);
         swprintf_s(icount, L"        Found %d items!", count);
         itemcountstatus->SetContentString((UCString)icount);
@@ -1099,6 +1133,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     InitProcessPriv(14, NULL, 0, true);
     InitThread(2);
     RegisterAllControls();
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
     NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 768, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
@@ -1146,6 +1182,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     wnd->ShowWindow(SW_SHOW);
     StartMessagePump();
     UnInitProcessPriv(0);
+    CoUninitialize();
 
     return 0;
 }
