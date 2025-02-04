@@ -10,6 +10,7 @@
 #include <cmath>
 #include <vector>
 #include <WinUser.h>
+#include <ShlObj_core.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
 #include "StyleModifier.h"
@@ -756,6 +757,8 @@ void ShowSettings(Element* elem, Event* iev) {
         HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     }
 }
+#define MIN_SHELL_ID 1
+#define MAX_SHELL_ID 30000
 
 Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
@@ -825,6 +828,52 @@ void SelectItem(Element* elem, Event* iev) {
         }
         CoUninitialize();
     }
+    else if (iev->type == Button::Context)
+    {
+        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        for (int items = 0; items < pm.size(); items++) {
+            if (pm[items].elem == elem) {
+                LPCWSTR folderPath = pm[items].filename.c_str();
+                LPITEMIDLIST pidl = NULL;
+                SHParseDisplayName(folderPath, NULL, &pidl, 0, NULL);
+
+                IShellFolder* ppFolder = NULL;
+                LPITEMIDLIST pidlChild = NULL;
+                HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
+
+                LPCONTEXTMENU pICv1 = NULL;
+                ppFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST*)&pidlChild ,IID_IContextMenu, NULL, (void**)&pICv1);
+                if (pICv1)
+                {
+                    HMENU hm = CreatePopupMenu();
+                    pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+                        
+                    UINT uFlags = TPM_RIGHTBUTTON;
+                    if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+                        uFlags |= TPM_RIGHTALIGN;
+                    else
+                        uFlags |= TPM_LEFTALIGN;
+
+                    // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
+                    uFlags |= TPM_RETURNCMD;
+
+                    POINT pt;
+                    GetCursorPos(&pt);
+                    int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
+                    CMINVOKECOMMANDINFO ici;
+                    ZeroMemory(&ici , sizeof(ici));
+                    ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
+                    ici.lpVerb = MAKEINTRESOURCEA(menuItemId-1);
+                    ici.nShow = SW_SHOWNORMAL;
+
+                    pICv1->InvokeCommand(&ici);
+                }
+                CoTaskMemFree(pidl);
+                ppFolder->Release();
+            }
+        }
+    }
+    CoUninitialize();
 }
 
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
