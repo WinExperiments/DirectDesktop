@@ -773,7 +773,7 @@ void SelectItem(Element* elem, Event* iev) {
             if (elem != emptyspace && checkbox->GetMouseFocused() == true) elem->SetSelected(!elem->GetSelected());
         }
         if (showcheckboxes == 1) checkbox->SetVisible(true);
-        if (shellstate[4] == 51) {
+        if (shellstate[4] >= 48 && shellstate[4] <= 63) {
             if (elem == elemStorage) clicks++; else clicks = 0;
             DWORD doubleClickThread{};
             HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, NULL, 0, &doubleClickThread);
@@ -1074,7 +1074,7 @@ void InitLayout() {
             assignFn(outerElem, SelectItem);
             assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
             assignExtendedFn(checkboxElem, CheckboxHandler);
-            if (shellstate[4] == 51) {
+            if (shellstate[4] >= 48 && shellstate[4] <= 63) {
                 outerElem->SetClass((UCString)L"doubleclicked");
                 //if (pm[i].isDirectory == true && treatdirasgroup == true) outerElem->SetClass((UCString)L"singleclicked");
             }
@@ -1133,7 +1133,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     InitProcessPriv(14, NULL, 0, true);
     InitThread(2);
     RegisterAllControls();
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
     NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 768, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
