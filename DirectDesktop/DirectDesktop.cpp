@@ -28,7 +28,7 @@ DUIXmlParser* parser;
 Element* pMain;
 unsigned long key = 0;
 
-Button* testButton, *testButton2, *testButton3, *testButton4, *testButton5;
+Button* testButton2, *testButton3, *testButton4, *testButton5;
 Element* sampleText;
 Element* mainContainer;
 Element* UIContainer;
@@ -47,7 +47,8 @@ Element* dirnameanimator;
 Element* tasksanimator;
 Element* tools;
 Button* SimpleViewTop, *SimpleViewBottom;
-Button* SimpleViewSettings;
+TouchButton* SimpleViewSettings;
+TouchButton* PageTab1, *PageTab2;
 RichText* SubUIContainer;
 HRESULT err;
 
@@ -110,6 +111,10 @@ RichText* regRichText(const wchar_t* elemName) {
 }
 Button* regBtn(const wchar_t* btnName) {
     Button* result = (Button*)pMain->FindDescendent(StrToID((UCString)btnName));
+    return result;
+}
+TouchButton* regTouchBtn(const wchar_t* btnName) {
+    TouchButton* result = (TouchButton*)pMain->FindDescendent(StrToID((UCString)btnName));
     return result;
 }
 Edit* regEdit(const wchar_t* editName) {
@@ -631,21 +636,6 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     vector<wstring> subfiles = list_subdirectory(filename + wstring(L"\\*"));
     unsigned int count = subfiles.size();
     CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
-    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"dirnameanimator"));
-    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasksanimator"));
-    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID((UCString)L"dirname"));
-    dirname->SetContentString((UCString)simplefilename.c_str());
-    dirname->SetAlpha(255);
-    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasks"));
-    checkifelemexists = true;
-    DWORD animThread3;
-    DWORD animThread4;
-    HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
-    HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
-    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"Customize"));
-    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"OpenInExplorer"));
-    assignFn(OpenInExplorer, OpenGroupInExplorer);
-    bufferOpenInExplorer = (wstring)filename;
     if (count <= 128 && count > 0) {
         int x = 0, y = 0;
         frame.resize(count);
@@ -671,7 +661,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"shortcutElem"));
             iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElemShadow"));
             textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID((UCString)L"textElem"));
-            subpm[i].elem = outerElemGrouped, subpm[i].x = x, subpm[i].y = y, subpm[i].filename = sublistDirBuffer[i], subpm[i].simplefilename = subfiles[i];
+            subpm[i].elem = outerElemGrouped, subpm[i].filename = sublistDirBuffer[i], subpm[i].simplefilename = subfiles[i];
             subiconpm[i] = iconElem;
             subshortpm[i].elem = shortcutElem;
             subshadowpm[i] = iconElemShadow;
@@ -683,17 +673,20 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             }
             assignFn(outerElemGrouped, SelectSubItem);
             outerElemGrouped->SetClass((UCString)L"singleclicked");
-            yValue* yV = new yValue{ i };
-            yValue* yV2 = new yValue{ i };
+        }
+        ApplyIcons(subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons());
+        for (int j = 0; j < count; j++) {
+            subpm[j].x = x, subpm[j].y = y;
+            yValue* yV = new yValue{ j };
+            yValue* yV2 = new yValue{ j };
             x += outerSizeX;
             if (x > 800 - (dimensions.left + dimensions.right + outerSizeX)) {
                 x = 0;
                 y += outerSizeY;
             }
-            animThreadHandle[i] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[i]));
-            animThreadHandle2[i] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[i]));
+            animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
+            animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[j]));
         }
-        ApplyIcons(subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons());
         SubUIContainer->SetHeight(y);
         subfiles.clear();
         delete[] animThread;
@@ -708,31 +701,62 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
         }
         else SubUIContainer->SetContentString((UCString)L"This folder is empty.");
     }
+    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"dirnameanimator"));
+    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasksanimator"));
+    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID((UCString)L"dirname"));
+    dirname->SetContentString((UCString)simplefilename.c_str());
+    dirname->SetAlpha(255);
+    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasks"));
+    checkifelemexists = true;
+    DWORD animThread3;
+    DWORD animThread4;
+    HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
+    HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
+    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"Customize"));
+    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"OpenInExplorer"));
+    Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
+    assignFn(OpenInExplorer, OpenGroupInExplorer);
+    bufferOpenInExplorer = (wstring)filename;
 }
 
-void ShowPage1() {
-    Element* SettingsPage1;
-    parser->CreateElement((UCString)L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
-    SubUIContainer->Add((Element**)&SettingsPage1, 1);
-    Button* ItemCheckboxes = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ItemCheckboxes"));
-    Button* ShowHiddenFiles = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ShowHiddenFiles"));
-    Button* FilenameExts = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"FilenameExts"));
-    Button* TreatDirAsGroup = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"TreatDirAsGroup"));
-    Button* EnableAccent = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"EnableAccent"));
-    ItemCheckboxes->SetSelected(showcheckboxes);
-    if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden") == 1) ShowHiddenFiles->SetSelected(true);
-    else ShowHiddenFiles->SetSelected(false);
-    FilenameExts->SetSelected(GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt"));
-    TreatDirAsGroup->SetSelected(treatdirasgroup);
-    EnableAccent->SetSelected(isColorized);
-    assignFn(ItemCheckboxes, ToggleCheckbox);
-    assignFn(ShowHiddenFiles, ToggleShowHidden);
-    assignFn(FilenameExts, ToggleFilenameExts);
-    assignFn(TreatDirAsGroup, ToggleGroupMode);
-    assignFn(EnableAccent, ToggleAccentIcons);
+void ShowPage1(Element* elem, Event* iev) {
+    if (iev->type == TouchButton::Click) {
+        PageTab2->SetSelected(false);
+        PageTab1->SetSelected(true);
+        SubUIContainer->DestroyAll(true);
+        Element* SettingsPage1;
+        parser->CreateElement((UCString)L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
+        SubUIContainer->Add((Element**)&SettingsPage1, 1);
+        Button* ItemCheckboxes = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ItemCheckboxes"));
+        Button* ShowHiddenFiles = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ShowHiddenFiles"));
+        Button* FilenameExts = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"FilenameExts"));
+        Button* TreatDirAsGroup = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"TreatDirAsGroup"));
+        ItemCheckboxes->SetSelected(showcheckboxes);
+        if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden") == 1) ShowHiddenFiles->SetSelected(true);
+        else ShowHiddenFiles->SetSelected(false);
+        FilenameExts->SetSelected(GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt"));
+        TreatDirAsGroup->SetSelected(treatdirasgroup);
+        assignFn(ItemCheckboxes, ToggleCheckbox);
+        assignFn(ShowHiddenFiles, ToggleShowHidden);
+        assignFn(FilenameExts, ToggleFilenameExts);
+        assignFn(TreatDirAsGroup, ToggleGroupMode);
+    }
+}
+void ShowPage2(Element* elem, Event* iev) {
+    if (iev->type == TouchButton::Click) {
+        PageTab1->SetSelected(false);
+        PageTab2->SetSelected(true);
+        SubUIContainer->DestroyAll(true);
+        Element* SettingsPage2;
+        parser->CreateElement((UCString)L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
+        SubUIContainer->Add((Element**)&SettingsPage2, 1);
+        Button* EnableAccent = (Button*)SettingsPage2->FindDescendent(StrToID((UCString)L"EnableAccent"));
+        EnableAccent->SetSelected(isColorized);
+        assignFn(EnableAccent, ToggleAccentIcons);
+    }
 }
 void ShowSettings(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->type == TouchButton::Click) {
         fullscreenpopup->SetLayoutPos(-3);
         centered->DestroyAll(true);
         ShowPopupCore();
@@ -744,7 +768,11 @@ void ShowSettings(Element* elem, Event* iev) {
         fullscreeninner->Add((Element**)&settingsview, 1);
         ScrollViewer* settingslist = (ScrollViewer*)settingsview->FindDescendent(StrToID((UCString)L"settingslist"));
         SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID((UCString)L"SubUIContainer"));
-        ShowPage1();
+        PageTab1 = (TouchButton*)settingsview->FindDescendent(StrToID((UCString)L"PageTab1"));
+        PageTab2 = (TouchButton*)settingsview->FindDescendent(StrToID((UCString)L"PageTab2"));
+        assignFn(PageTab1, ShowPage1);
+        assignFn(PageTab2, ShowPage2);
+        ShowPage1(elem, iev);
         CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
         dirnameanimator = (Element*)settingsview->FindDescendent(StrToID((UCString)L"dirnameanimator"));
         RichText* name = (RichText*)settingsview->FindDescendent(StrToID((UCString)L"name"));
@@ -983,9 +1011,12 @@ void DesktopRightClick(Element* elem, Event* iev) {
         if (pICv1)
         {
             HMENU hm = CreatePopupMenu();
-            AppendMenuW(hm, MF_STRING, 1, L"Open Edit Mode");
-            AppendMenuW(hm, MF_SEPARATOR, 1, L"_");
-            pICv1->QueryContextMenu(hm, 2, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+            AppendMenuW(hm, MF_STRING, 0, L"View");
+            pICv1->QueryContextMenu(hm, 1, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+            RemoveMenu(hm, 1, MF_BYPOSITION);
+            RemoveMenu(hm, 1, MF_BYPOSITION);
+            RemoveMenu(hm, 1, MF_BYPOSITION);
+            InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2, L"Open Edit Mode");
 
             UINT uFlags = TPM_RIGHTBUTTON;
             if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
@@ -1006,7 +1037,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
             ici.nShow = SW_SHOWNORMAL;
             pICv1->InvokeCommand(&ici);
             switch (menuItemId) {
-            case 1:
+            case 2:
                 ShowSimpleView();
                 break;
             case 4:
@@ -1025,7 +1056,6 @@ void InitLayout() {
     wchar_t icount[32];
     vector<wstring> files = list_directory();
     unsigned int count = files.size();
-    testButton->SetEnabled(true);
     testButton5->SetEnabled(false);
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
     switch (openclose) {
@@ -1069,7 +1099,7 @@ void InitLayout() {
             textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
             textElemShadow = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElemShadow"));
             checkboxElem = (Button*)outerElem->FindDescendent(StrToID((UCString)L"checkboxElem"));
-            pm[i].elem = outerElem, pm[i].x = x, pm[i].y = y, pm[i].filename = listDirBuffer[i], pm[i].simplefilename = files[i];
+            pm[i].elem = outerElem, pm[i].filename = listDirBuffer[i], pm[i].simplefilename = files[i];
             iconpm[i] = iconElem;
             shortpm[i].elem = shortcutElem;
             shadowpm[i] = iconElemShadow;
@@ -1090,17 +1120,20 @@ void InitLayout() {
                 //if (pm[i].isDirectory == true && treatdirasgroup == true) outerElem->SetClass((UCString)L"singleclicked");
             }
             else outerElem->SetClass((UCString)L"singleclicked");
-            yValue* yV = new yValue{ i };
-            yValue* yV2 = new yValue{ i };
+        }
+        ApplyIcons(iconpm, shadowpm, shortpm, GetDesktopIcons());
+        for (int j = 0; j < count; j++) {
+            pm[j].x = x, pm[j].y = y;
+            yValue* yV = new yValue{ j };
+            yValue* yV2 = new yValue{ j };
             y += outerSizeY;
             if (y > dimensions.bottom - outerSizeY) {
                 y = 4;
                 x += outerSizeX;
             }
-            animThreadHandle[i] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[i]));
-            animThreadHandle2[i] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[i]));
+            animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
+            animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
         }
-        ApplyIcons(iconpm, shadowpm, shortpm, GetDesktopIcons());
         files.clear();
         openclose = 1;
         delete[] animThread;
@@ -1129,13 +1162,6 @@ void InitLayout() {
     }
 }
 
-void testEventListener(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
-        InitLayout();
-        InitLayout();
-    }
-}
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
@@ -1159,7 +1185,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UpdateModeInfo();
 
     sampleText = regElem(L"sampleText");
-    testButton = regBtn(L"testButton");
     testButton2 = regBtn(L"testButton2");
     testButton3 = regBtn(L"testButton3");
     testButton4 = regBtn(L"testButton4");
@@ -1174,12 +1199,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     tools = regElem(L"tools");
     SimpleViewTop = regBtn(L"SimpleViewTop");
     SimpleViewBottom = regBtn(L"SimpleViewBottom");
-    SimpleViewSettings = regBtn(L"SimpleViewSettings");
+    SimpleViewSettings = regTouchBtn(L"SimpleViewSettings");
 
-    assignFn(testButton, testEventListener);
     assignFn(testButton3, testEventListener3);
     assignFn(fullscreenpopupbase, testEventListener3);
-    assignFn(testButton, testEventListener3);
     assignFn(SimpleViewTop, testEventListener3);
     assignFn(SimpleViewBottom, testEventListener3);
     assignFn(SimpleViewSettings, ShowSettings);

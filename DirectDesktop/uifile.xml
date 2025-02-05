@@ -15,18 +15,12 @@
 						<Element id="atom(itemcountstatus)" layoutpos="client" animation="alpha|s|slow|delaylong" foreground="themeable(gtc(ControlPanel,7,1,3803), hotlight)" font="messagefont;115%" contentalign="middlecenter"/>
 					</Button>
 					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-						<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
+						<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
 							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
 								<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 								<RichText content="Settings" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 							</Element>
-						</Button>
-						<Button id="atom(testButton)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
-							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-								<RichText content="resstr(137)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-								<RichText content="Refresh" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-							</Element>
-						</Button>
+						</TouchButton>
 					</Button>
 					<Element id="atom(tools)" layout="flowlayout(0,0,2,0)" layoutpos="none" background="Window" padding="rect(8rp,8rp,8rp,8rp)">
 						<CCPushButton id="atom(testButton5)" height="32rp" width="0" content="Initialize layout"/>
@@ -41,7 +35,7 @@
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
-	<Button resid="outerElem" layout="filllayout()" sheet="default" visible="false" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
+	<Button resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
@@ -50,7 +44,7 @@
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
 		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
 	</Button>
-	<Button resid="outerElemGrouped" layout="filllayout()" sheet="default" background="argb(0,0,0,0)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
+	<Button resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
@@ -62,9 +56,9 @@
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<Element id="atom(tasks)" layoutpos="right" layout="gridlayout(1,2)" font="iconfont">
-				<TouchButton id="atom(Customize)" content="Customize group" contentalign="middlecenter" class="popupbutton"/>
-				<TouchButton id="atom(OpenInExplorer)" content="Open in File Explorer" contentalign="middlecenter" class="popupbutton"/>
+			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)" font="iconfont">
+				<TouchButton id="atom(Customize)" content="Customize group" class="popupbutton"/>
+				<TouchButton id="atom(OpenInExplorer)" content="Open in File Explorer" class="popupbutton"/>
 			</Element>
 			<RichText id="atom(dirname)" class="popuptext" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 		</Element>
@@ -110,8 +104,11 @@
 				<Button id="atom(TreatDirAsGroup)" class="togglebutton"/>
 			</Element>
 		</Element>
+		<RichText layoutpos="bottom" class="toggletext" content="After closing this window, refresh to apply your changes." foreground="gray"/>
+	</Element>
+	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="Show accent color on icons (will be moved to personalize later)" class="toggletext"/>
+			<RichText content="Show accent color on icons" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<Button id="atom(EnableAccent)" class="togglebutton"/>
 			</Element>
@@ -189,12 +186,12 @@
 				<viewer layoutpos="nineclient" />
 			</if>
 			<if class="simpleviewbutton">
-				<Button background="argb(0,0,0,0)" foreground="white"/>
+				<TouchButton background="argb(0,0,0,0)" foreground="white"/>
 				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 				</if>
 				<if Pressed="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 				</if>
 			</if>
 			<if class="pilltab">
@@ -317,7 +314,13 @@
 				<RichText foreground="white"/>
 			</if>
 			<if class="popupbutton">
-				<TouchButton foreground="20002"/>
+				<TouchButton foreground="20002" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)"/>
+				<if mousefocused="true">
+					<TouchButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+				</if>
+				<if Pressed="true">
+					<TouchButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+				</if>
 			</if>
 			<if class="ScrollViewer">
 				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
@@ -325,12 +328,12 @@
 				<viewer layoutpos="nineclient" />
 			</if>
 			<if class="simpleviewbutton">
-				<Button background="argb(0,0,0,0)" foreground="white"/>
+				<TouchButton background="argb(0,0,0,0)" foreground="white"/>
 				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 				</if>
 				<if Pressed="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 				</if>
 			</if>
 			<if class="pilltab">
