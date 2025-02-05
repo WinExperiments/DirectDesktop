@@ -53,6 +53,7 @@ HRESULT err;
 
 int popupframe, dframe, tframe;
 vector<int> frame;
+void InitLayout();
 
 struct EventListener : public IElementListener {
 
@@ -463,7 +464,7 @@ unsigned long animate5(LPVOID lpParam) {
 }
 
 unsigned long animate6(LPVOID lpParam) {
-    //this_thread::sleep_for(chrono::milliseconds(400));
+    this_thread::sleep_for(chrono::milliseconds(100));
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
     return 0;
 }
@@ -982,7 +983,9 @@ void DesktopRightClick(Element* elem, Event* iev) {
         if (pICv1)
         {
             HMENU hm = CreatePopupMenu();
-            pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+            AppendMenuW(hm, MF_STRING, 1, L"Open Edit Mode");
+            AppendMenuW(hm, MF_SEPARATOR, 1, L"_");
+            pICv1->QueryContextMenu(hm, 2, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
             UINT uFlags = TPM_RIGHTBUTTON;
             if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
@@ -1001,8 +1004,16 @@ void DesktopRightClick(Element* elem, Event* iev) {
             ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
             ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
             ici.nShow = SW_SHOWNORMAL;
-
             pICv1->InvokeCommand(&ici);
+            switch (menuItemId) {
+            case 1:
+                ShowSimpleView();
+                break;
+            case 4:
+                InitLayout();
+                InitLayout();
+                break;
+            }
         }
         pShellFolder->Release();
     }
