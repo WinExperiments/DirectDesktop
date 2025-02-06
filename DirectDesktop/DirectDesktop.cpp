@@ -10,14 +10,13 @@
 #include <cmath>
 #include <vector>
 #include <WinUser.h>
-#include <ShlObj_core.h>
-#include <ShlGuid.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
-#include "SettingsHelper.h";
+#include "SettingsHelper.h"
+#include "ContextMenus.h"
 
 using namespace DirectUI;
 using namespace std;
@@ -54,7 +53,6 @@ HRESULT err;
 
 int popupframe, dframe, tframe;
 vector<int> frame;
-void InitLayout();
 
 struct EventListener : public IElementListener {
 
@@ -143,7 +141,7 @@ const wchar_t* CharToWChar(const char* input)
 
 double px[80]{};
 double py[80]{};
-int origX{}, origY{};
+int origX{}, origY{}, globaliconsz, globalshiconsz;
 
 void CubicBezier(const int frames, double px[], double py[], double x0, double y0, double x1, double y1) {
     for (int c = 0; c < frames; c++) {
@@ -172,6 +170,7 @@ vector<Element*> cbpm;
 int holddownseconds = 0;
 bool checkifelemexists = 0;
 bool issubviewopen = 0;
+bool hiddenIcons;
 void fullscreenAnimation(int width, int height);
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
@@ -257,10 +256,10 @@ void ShowSimpleView() {
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    int innerSizeX = GetSystemMetrics(SM_CXICONSPACING);
-    int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) - tm.tmHeight;
-    int iconPaddingX = (innerSizeX - 48) / 2;
-    int iconPaddingY = (innerSizeY - 48 + tm.tmHeight) / 2;
+    int innerSizeX = GetSystemMetrics(SM_CXICONSPACING) + globaliconsz - 48;
+    int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) + globaliconsz - 48 - tm.tmHeight;
+    int iconPaddingX = (GetSystemMetrics(SM_CXICONSPACING) - 48) / 2;
+    int iconPaddingY = (GetSystemMetrics(SM_CYICONSPACING) - 48) / 2;
     switch (uMsg) {
     case WM_SETTINGCHANGE: {
         UpdateModeInfo();
@@ -272,7 +271,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 1: {
         //pm[wParam].elem->SetAlpha(255);
-        pm[wParam].elem->SetVisible(true);
+        pm[wParam].elem->SetVisible(!hiddenIcons);
         break;
     }
     case WM_USER + 2: {
@@ -290,8 +289,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
         filepm[wParam]->SetHeight(lines_basedOnEllipsis + 4);
         fileshadowpm[wParam]->SetHeight(lines_basedOnEllipsis + 4);
-        iconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam]->SetWidth(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam]->SetHeight(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
         HBITMAP capturedBitmap;
@@ -311,15 +310,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 4: {
         shadowpm[wParam]->SetAlpha(255);
-        shadowpm[wParam]->SetWidth(64);
-        shadowpm[wParam]->SetHeight(64);
+        shadowpm[wParam]->SetWidth(globaliconsz + 16);
+        shadowpm[wParam]->SetHeight(globaliconsz + 16);
         shadowpm[wParam]->SetX(iconPaddingX - 8);
         shadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6);
         shortpm[wParam].elem->SetAlpha(255);
-        shortpm[wParam].elem->SetWidth(32);
-        shortpm[wParam].elem->SetHeight(32);
+        shortpm[wParam].elem->SetWidth(globalshiconsz);
+        shortpm[wParam].elem->SetHeight(globalshiconsz);
         shortpm[wParam].elem ->SetX(iconPaddingX);
-        shortpm[wParam].elem->SetY((iconPaddingY * 0.575) + 16);
+        shortpm[wParam].elem->SetY((iconPaddingY * 0.575) + globaliconsz - globalshiconsz);
         break;
     }
     case WM_USER + 5: {
@@ -365,15 +364,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 9: {
         double bezierProgress = 1; //py[frame[wParam] - 1];
         subpm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        subpm[wParam].elem->SetHeight((innerSizeY + tm.tmHeight + 24) * (0.7 + 0.3 * bezierProgress));
+        subpm[wParam].elem->SetHeight((innerSizeY + tm.tmHeight + 23) * (0.7 + 0.3 * bezierProgress));
         subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
         subpm[wParam].elem->SetY(subpm[wParam].y); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
         int textlines = 1;
         if (tm.tmHeight <= 18) textlines = 2;
         subfilepm[wParam]->SetHeight(tm.tmHeight * textlines + 4);
         if (subfilepm[wParam]->GetHeight() > (iconPaddingY * 0.575 + 48)) subfilepm[wParam]->SetHeight(iconPaddingY * 0.575 + 48);
-        subiconpm[wParam]->SetWidth(round(48 * (0.7 + 0.3 * bezierProgress)));
-        subiconpm[wParam]->SetHeight(round(48 * (0.7 + 0.3 * bezierProgress)));
+        subiconpm[wParam]->SetWidth(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
+        subiconpm[wParam]->SetHeight(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
         HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, tm.tmHeight * textlines, DT_END_ELLIPSIS);
@@ -390,15 +389,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 10: {
         subshadowpm[wParam]->SetAlpha(255);
-        subshadowpm[wParam]->SetWidth(64);
-        subshadowpm[wParam]->SetHeight(64);
+        subshadowpm[wParam]->SetWidth(globaliconsz + 16);
+        subshadowpm[wParam]->SetHeight(globaliconsz + 16);
         subshadowpm[wParam]->SetX(iconPaddingX - 8);
         subshadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6);
         subshortpm[wParam].elem->SetAlpha(255);
-        subshortpm[wParam].elem->SetWidth(32);
-        subshortpm[wParam].elem->SetHeight(32);
+        subshortpm[wParam].elem->SetWidth(globalshiconsz);
+        subshortpm[wParam].elem->SetHeight(globalshiconsz);
         subshortpm[wParam].elem->SetX(iconPaddingX);
-        subshortpm[wParam].elem->SetY((iconPaddingY * 0.575) + 16);
+        subshortpm[wParam].elem->SetY((iconPaddingY * 0.575) + globaliconsz - globalshiconsz);
         break;
     }
     case WM_USER + 11: {
@@ -565,14 +564,14 @@ unsigned long DoubleClickHandler(LPVOID lpParam) {
 vector<HBITMAP> GetDesktopIcons() {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < pm.size(); i++) {
-        bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), 48, 48));
+        bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), globaliconsz, globaliconsz));
     }
     return bmResult;
 }
 vector<HBITMAP> GetSubdirectoryIcons() {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < subpm.size(); i++) {
-        bmResult.push_back(GetShellItemImage((subpm[i].filename).c_str(), 48, 48));
+        bmResult.push_back(GetShellItemImage((subpm[i].filename).c_str(), globaliconsz, globaliconsz));
     }
     return bmResult;
 }
@@ -581,10 +580,8 @@ void ApplyIcons(vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<p
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
     for (int icon = 0; icon < pmIcon.size(); icon++) {
-        HICON ico = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(2), IMAGE_ICON, 48, 48, LR_SHARED);
-        HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, 32, 32, LR_SHARED);
-        HBITMAP bmp = IconToBitmap(ico);
-        bmp = icons[icon];
+        HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz, globalshiconsz, LR_SHARED);
+        HBITMAP bmp = icons[icon];
         HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
         HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
         if (isColorized) {
@@ -599,7 +596,6 @@ void ApplyIcons(vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<p
         pmIcon[icon]->SetValue(Element::ContentProp, 1, bitmap);
         pmIconShadow[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
         if (pmShortcut[icon].x == 1) pmShortcut[icon].elem->SetValue(Element::ContentProp, 1, bitmapShortcut);
-        DeleteObject(ico);
         DeleteObject(icoShortcut);
         DeleteObject(bmp);
         DeleteObject(bmpShadow);
@@ -647,8 +643,8 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
         Value* v;
         RECT dimensions;
         dimensions = *(groupdirectory->GetPadding(&v));
-        int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
-        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 27;
+        int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + globaliconsz - 44;
+        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + globaliconsz - 21;
         DWORD* animThread = new DWORD[count];
         DWORD* animThread2 = new DWORD[count];
         HANDLE* animThreadHandle = new HANDLE[count];
@@ -782,8 +778,6 @@ void ShowSettings(Element* elem, Event* iev) {
         HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     }
 }
-#define MIN_SHELL_ID 1
-#define MAX_SHELL_ID 30000
 
 Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
@@ -848,50 +842,6 @@ void SelectItem(Element* elem, Event* iev) {
                     }
                     else ShellExecuteExW(&execInfo);
                 }
-            }
-        }
-    }
-    else if (iev->type == Button::Context)
-    {
-        for (int items = 0; items < pm.size(); items++) {
-            if (pm[items].elem == elem) {
-                LPCWSTR folderPath = pm[items].filename.c_str();
-                LPITEMIDLIST pidl = NULL;
-                SHParseDisplayName(folderPath, NULL, &pidl, 0, NULL);
-
-                IShellFolder* ppFolder = NULL;
-                LPITEMIDLIST pidlChild = NULL;
-                HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
-
-                LPCONTEXTMENU pICv1 = NULL;
-                ppFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST*)&pidlChild ,IID_IContextMenu, NULL, (void**)&pICv1);
-                if (pICv1)
-                {
-                    HMENU hm = CreatePopupMenu();
-                    pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
-                        
-                    UINT uFlags = TPM_RIGHTBUTTON;
-                    if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
-                        uFlags |= TPM_RIGHTALIGN;
-                    else
-                        uFlags |= TPM_LEFTALIGN;
-
-                    // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
-                    uFlags |= TPM_RETURNCMD;
-
-                    POINT pt;
-                    GetCursorPos(&pt);
-                    int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
-                    CMINVOKECOMMANDINFO ici;
-                    ZeroMemory(&ici , sizeof(ici));
-                    ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-                    ici.lpVerb = MAKEINTRESOURCEA(menuItemId-1);
-                    ici.nShow = SW_SHOWNORMAL;
-
-                    pICv1->InvokeCommand(&ici);
-                }
-                CoTaskMemFree(pidl);
-                ppFolder->Release();
             }
         }
     }
@@ -996,60 +946,6 @@ void testEventListener3(Element* elem, Event* iev) {
     }
 }
 
-void DesktopRightClick(Element* elem, Event* iev) {
-    if (iev->type == Button::Context) {
-
-        IShellView* pShellView = NULL;
-        IContextMenu* pContextMenu = NULL;
-        IShellFolder* pShellFolder = NULL;
-
-        HRESULT hr = SHGetDesktopFolder(&pShellFolder);
-        pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
-
-        LPCONTEXTMENU3 pICv1 = NULL;
-        pShellView->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu3, (LPVOID*)&pICv1);
-        if (pICv1)
-        {
-            HMENU hm = CreatePopupMenu();
-            AppendMenuW(hm, MF_STRING, 0, L"View");
-            pICv1->QueryContextMenu(hm, 1, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2, L"Open Edit Mode");
-
-            UINT uFlags = TPM_RIGHTBUTTON;
-            if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
-                uFlags |= TPM_RIGHTALIGN;
-            else
-                uFlags |= TPM_LEFTALIGN;
-
-            // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
-            uFlags |= TPM_RETURNCMD;
-
-            POINT pt;
-            GetCursorPos(&pt);
-            int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
-            CMINVOKECOMMANDINFO ici;
-            ZeroMemory(&ici, sizeof(ici));
-            ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-            ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
-            ici.nShow = SW_SHOWNORMAL;
-            pICv1->InvokeCommand(&ici);
-            switch (menuItemId) {
-            case 2:
-                ShowSimpleView();
-                break;
-            case 4:
-                InitLayout();
-                InitLayout();
-                break;
-            }
-        }
-        pShellFolder->Release();
-    }
-}
-
 void InitLayout() {
     GetFontHeight();
     static bool openclose = 0;
@@ -1087,8 +983,8 @@ void InitLayout() {
         DWORD* animThread2 = new DWORD[count];
         HANDLE* animThreadHandle = new HANDLE[count];
         HANDLE* animThreadHandle2 = new HANDLE[count];
-        int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + 4;
-        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + 27;
+        int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + globaliconsz - 44;
+        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + globaliconsz - 21;
         for (int i = 0; i < count; i++) {
             Button* outerElem;
             parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
@@ -1113,6 +1009,7 @@ void InitLayout() {
                 textElemShadow->SetAlpha(128);
             }
             assignFn(outerElem, SelectItem);
+            assignFn(outerElem, ItemRightClick);
             assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
             assignExtendedFn(checkboxElem, CheckboxHandler);
             if (shellstate[4] >= 48 && shellstate[4] <= 63) {
@@ -1172,7 +1069,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     RegisterAllControls();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 768, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
+    int windowsThemeX = (GetSystemMetrics(SM_CXSIZEFRAME) + GetSystemMetrics(SM_CXEDGE) * 2) * 2;
+    int windowsThemeY = (GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CYEDGE) * 2) * 2 + GetSystemMetrics(SM_CYCAPTION);
+    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200 + windowsThemeX, 768 + windowsThemeY, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
@@ -1208,6 +1107,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     assignFn(SimpleViewSettings, ShowSettings);
 
     showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
+    hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
+    globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
+    if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
     InitLayout();
     SetTheme();
 

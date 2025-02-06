@@ -39,7 +39,7 @@
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
-		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
+		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" alpha ="0" animation="alpha|s|mediumslow|delayshort" contentalign="bottomleft"/>
 		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
 		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
@@ -48,7 +48,7 @@
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="48rp" height="48rp"/>
-		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" width="32rp" height="32rp"/>
+		<Element id="atom(shortcutElem)" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</Button>
 	<Button resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()"/>
