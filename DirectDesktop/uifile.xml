@@ -178,7 +178,13 @@
 				<RichText foreground="black"/>
 			</if>
 			<if class="popupbutton">
-				<TouchButton foreground="20007"/>
+				<TouchButton foreground="20007" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)"/>
+				<if mousefocused="true">
+					<TouchButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+				</if>
+				<if Pressed="true">
+					<TouchButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+				</if>
 			</if>
 			<if class="ScrollViewer">
 				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
