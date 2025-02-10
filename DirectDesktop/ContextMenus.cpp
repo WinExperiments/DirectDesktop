@@ -42,7 +42,9 @@ void DesktopRightClick(Element* elem, Event* iev) {
             RemoveMenu(hm, 1, MF_BYPOSITION);
             RemoveMenu(hm, 1, MF_BYPOSITION);
             RemoveMenu(hm, 1, MF_BYPOSITION);
-            InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2, L"Open Edit Mode");
+            RemoveMenu(hm, 1, MF_BYPOSITION);
+            InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 3, L"Open Edit Mode");
+            InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2, L"Refresh");
 
             UINT uFlags = TPM_RIGHTBUTTON;
             if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
@@ -58,17 +60,15 @@ void DesktopRightClick(Element* elem, Event* iev) {
             int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
             switch (menuItemId) {
             case 2:
-                ShowSimpleView();
+                InitLayout();
                 break;
-            case 4:
-                InitLayout();
-                InitLayout();
+            case 3:
+                ShowSimpleView();
                 break;
             case 101:
                 globaliconsz = 96;
                 globalshiconsz = 48;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
-                InitLayout();
                 InitLayout();
                 break;
             case 102:
@@ -76,13 +76,11 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 globalshiconsz = 32;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
                 InitLayout();
-                InitLayout();
                 break;
             case 103:
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
-                InitLayout();
                 InitLayout();
                 break;
             case 105:

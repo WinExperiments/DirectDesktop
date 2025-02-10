@@ -518,4 +518,9 @@
   <ItemGroup>
     <Xml Include="uifile.xml" />
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="DirectDesktop.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
 </Project>

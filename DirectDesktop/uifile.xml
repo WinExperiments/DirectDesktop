@@ -12,7 +12,7 @@
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>
 					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" minsize="size(0,128rp)" background="argb(0,0,0,0)">
-						<Element id="atom(itemcountstatus)" layoutpos="client" animation="alpha|s|slow|delaylong" foreground="themeable(gtc(ControlPanel,7,1,3803), hotlight)" font="messagefont;115%" contentalign="middlecenter"/>
+						
 					</Button>
 					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
 						<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
@@ -22,12 +22,6 @@
 							</Element>
 						</TouchButton>
 					</Button>
-					<Element id="atom(tools)" layout="flowlayout(0,0,2,0)" layoutpos="none" background="Window" padding="rect(8rp,8rp,8rp,8rp)">
-						<CCPushButton id="atom(testButton5)" height="32rp" width="0" content="Initialize layout"/>
-						<CCPushButton id="atom(testButton3)" height="32rp" width="0" content="Simulate popup"/>
-						<CCPushButton id="atom(testButton4)" height="32rp" width="128rp" content="AccentColorIcons (N)"/>
-						<CCPushButton id="atom(testButton2)" height="32rp" width="128rp" content="TreatDirAsGroup (N)"/>
-					</Element>
 				</Element>
 			</Element>
 		</Element>
@@ -112,6 +106,10 @@
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<Button id="atom(EnableAccent)" class="togglebutton"/>
 			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<Edit id="atom(chooseColor)" themedborder="true" layoutpos="left" width="300rp"/>
+			<Button id="atom(ApplyColor)" content="Apply color" layoutpos="right" background="black" foreground="white" width="128rp"/>
 		</Element>
 		<RichText layoutpos="bottom" class="toggletext" content="After closing this window, refresh to apply your changes." foreground="gray"/>
 	</Element>

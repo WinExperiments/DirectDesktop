@@ -6,6 +6,8 @@ using namespace DirectUI;
 bool showcheckboxes;
 bool treatdirasgroup;
 bool isColorized;
+Element* UIContainer;
+Edit* chooseColor;
 
 void ToggleCheckbox(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
@@ -36,5 +38,12 @@ void ToggleAccentIcons(Element* elem, Event* iev) {
     if (iev->type == Button::Click) {
         isColorized = !isColorized;
         elem->SetSelected(!elem->GetSelected());
+    }
+}
+void ApplySelectedColor(Element* elem, Event* iev) {
+    if (iev->type == Button::Click) {
+        Value* v;
+        UCString colorID = chooseColor->GetContentString(&v);
+        UIContainer->SetBackgroundStdColor(_wtoi((wchar_t*)colorID));
     }
 }

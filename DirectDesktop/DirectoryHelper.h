@@ -14,16 +14,13 @@ struct parameters {
     bool isDirectory = false;
     bool isHidden = false;
     bool mem_isSelected = false;
+    bool isShortcut = false;
 };
 
-extern int shortIndex, subshortIndex, dirIndex, hiddenIndex, subhiddenIndex;
 extern vector<parameters> pm, subpm;
-extern vector<parameters> shortpm, subshortpm;
-extern vector<wstring> listDirBuffer, sublistDirBuffer;
 
 int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue);
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
-vector<wstring> list_directory();
-vector<wstring> list_subdirectory(wstring path);
+void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset);
