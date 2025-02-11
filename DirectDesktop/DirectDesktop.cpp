@@ -50,6 +50,24 @@ HRESULT err;
 int popupframe, dframe, tframe;
 vector<int> frame;
 
+int dpi, dpiOld = 1;
+float flScaleFactor;
+bool isDpiPreviouslyChanged;
+void InitialUpdateScale() {
+    HDC screen = GetDC(0);
+    dpi = static_cast<int>(GetDeviceCaps(screen, LOGPIXELSX));
+    ReleaseDC(0, screen);
+    flScaleFactor = dpi / 96.0;
+}
+
+void UpdateScale() {
+    static HWND hWnd = wnd->GetHWND();
+    dpiOld = dpi;
+    dpi = GetDpiForWindow(hWnd);
+    isDpiPreviouslyChanged = true;
+    flScaleFactor = dpi / 96.0;
+}
+
 struct EventListener : public IElementListener {
 
     void (*f)(Element*, Event*);
@@ -179,7 +197,7 @@ HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
     pShellItem->Release();
 
-    SIZE size = { width, height };
+    SIZE size = { width * flScaleFactor, height * flScaleFactor };
     HBITMAP hBitmap{};
     hr = pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap);
     pImageFactory->Release();
@@ -194,7 +212,7 @@ void GetFontHeight() {
     LOGFONTW lf{};
     RECT rc = { 0, 0, 100, 100 };
     HDC hdcBuffer = CreateCompatibleDC(NULL);
-    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+    SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, dpi);
     DrawTextW(hdcBuffer, L" ", -1, &rc, DT_CENTER);
     GetTextMetricsW(hdcBuffer, &tm);
     DeleteDC(hdcBuffer);
@@ -253,14 +271,19 @@ void ShowSimpleView() {
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    int innerSizeX = GetSystemMetrics(SM_CXICONSPACING) + globaliconsz - 48;
-    int innerSizeY = GetSystemMetrics(SM_CYICONSPACING) + globaliconsz - 48 - tm.tmHeight;
-    int iconPaddingX = (GetSystemMetrics(SM_CXICONSPACING) - 48) / 2;
-    int iconPaddingY = (GetSystemMetrics(SM_CYICONSPACING) - 48) / 2;
+    int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor;
+    int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor - tm.tmHeight;
+    int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) - 48 * flScaleFactor) / 2;
+    int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) - 48 * flScaleFactor) / 2;
     switch (uMsg) {
     case WM_SETTINGCHANGE: {
         UpdateModeInfo();
         SetTheme();
+        break;
+    }
+    case WM_DPICHANGED: {
+        UpdateScale();
+        InitLayout();
         break;
     }
     case WM_COMMAND: {
@@ -281,20 +304,20 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         int lines_basedOnEllipsis{};
         lines_basedOnEllipsis = floor(CalcTextLines(pm[wParam].simplefilename.c_str(), innerSizeX)) * tm.tmHeight;
         pm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        pm[wParam].elem->SetHeight((innerSizeY + lines_basedOnEllipsis + 7) * (0.7 + 0.3 * bezierProgress));
+        pm[wParam].elem->SetHeight((innerSizeY + lines_basedOnEllipsis + 7 * flScaleFactor) * (0.7 + 0.3 * bezierProgress));
         pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
         pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
-        filepm[wParam]->SetHeight(lines_basedOnEllipsis + 4);
-        fileshadowpm[wParam]->SetHeight(lines_basedOnEllipsis + 4);
-        iconpm[wParam]->SetWidth(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam]->SetHeight(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
+        filepm[wParam]->SetHeight(lines_basedOnEllipsis + 4 * flScaleFactor);
+        fileshadowpm[wParam]->SetHeight(lines_basedOnEllipsis + 5 * flScaleFactor);
+        iconpm[wParam]->SetWidth(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
+        iconpm[wParam]->SetHeight(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
         iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         iconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
         HBITMAP capturedBitmap;
-        capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX - 2, lines_basedOnEllipsis, DT_END_ELLIPSIS);
-        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 1);
+        capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, DT_END_ELLIPSIS);
+        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
+        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
         filepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
@@ -307,15 +330,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 4: {
         shadowpm[wParam]->SetAlpha(255);
-        shadowpm[wParam]->SetWidth(globaliconsz + 16);
-        shadowpm[wParam]->SetHeight(globaliconsz + 16);
-        shadowpm[wParam]->SetX(iconPaddingX - 8);
-        shadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6);
+        shadowpm[wParam]->SetWidth((globaliconsz + 16) * flScaleFactor);
+        shadowpm[wParam]->SetHeight((globaliconsz + 16) * flScaleFactor);
+        shadowpm[wParam]->SetX(iconPaddingX - 8 * flScaleFactor);
+        shadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6 * flScaleFactor);
         shortpm[wParam]->SetAlpha(255);
-        shortpm[wParam]->SetWidth(globalshiconsz);
-        shortpm[wParam]->SetHeight(globalshiconsz);
+        shortpm[wParam]->SetWidth(globalshiconsz * flScaleFactor);
+        shortpm[wParam]->SetHeight(globalshiconsz * flScaleFactor);
         shortpm[wParam] ->SetX(iconPaddingX);
-        shortpm[wParam]->SetY((iconPaddingY * 0.575) + globaliconsz - globalshiconsz);
+        shortpm[wParam]->SetY((iconPaddingY * 0.575) + (globaliconsz - globalshiconsz) * flScaleFactor);
         break;
     }
     case WM_USER + 5: {
@@ -353,21 +376,21 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 8: {
         parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
         centered->Add((Element**)&fullscreeninner, 1);
-        centered->SetMinSize(800, 480);
-        fullscreeninner->SetMinSize(800, 480);
+        centered->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
+        fullscreeninner->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
     }
     case WM_USER + 9: {
         double bezierProgress = 1; //py[frame[wParam] - 1];
         subpm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        subpm[wParam].elem->SetHeight((innerSizeY + tm.tmHeight + 23) * (0.7 + 0.3 * bezierProgress));
+        subpm[wParam].elem->SetHeight((innerSizeY + tm.tmHeight + 23 * flScaleFactor) * (0.7 + 0.3 * bezierProgress));
         subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
         subpm[wParam].elem->SetY(subpm[wParam].y); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
         int textlines = 1;
-        if (tm.tmHeight <= 18) textlines = 2;
-        subfilepm[wParam]->SetHeight(tm.tmHeight * textlines + 4);
+        if (tm.tmHeight <= 18 * flScaleFactor) textlines = 2;
+        subfilepm[wParam]->SetHeight(tm.tmHeight * textlines + 4 * flScaleFactor);
         if (subfilepm[wParam]->GetHeight() > (iconPaddingY * 0.575 + 48)) subfilepm[wParam]->SetHeight(iconPaddingY * 0.575 + 48);
-        subiconpm[wParam]->SetWidth(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
-        subiconpm[wParam]->SetHeight(round(globaliconsz * (0.7 + 0.3 * bezierProgress)));
+        subiconpm[wParam]->SetWidth(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
+        subiconpm[wParam]->SetHeight(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
         subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
         subiconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
         HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, tm.tmHeight * textlines, DT_END_ELLIPSIS);
@@ -384,26 +407,26 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 10: {
         subshadowpm[wParam]->SetAlpha(255);
-        subshadowpm[wParam]->SetWidth(globaliconsz + 16);
-        subshadowpm[wParam]->SetHeight(globaliconsz + 16);
-        subshadowpm[wParam]->SetX(iconPaddingX - 8);
-        subshadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6);
+        subshadowpm[wParam]->SetWidth((globaliconsz + 16) * flScaleFactor);
+        subshadowpm[wParam]->SetHeight((globaliconsz + 16) * flScaleFactor);
+        subshadowpm[wParam]->SetX(iconPaddingX - 8 * flScaleFactor);
+        subshadowpm[wParam]->SetY((iconPaddingY * 0.575) - 6 * flScaleFactor);
         subshortpm[wParam]->SetAlpha(255);
-        subshortpm[wParam]->SetWidth(globalshiconsz);
-        subshortpm[wParam]->SetHeight(globalshiconsz);
+        subshortpm[wParam]->SetWidth(globalshiconsz * flScaleFactor);
+        subshortpm[wParam]->SetHeight(globalshiconsz * flScaleFactor);
         subshortpm[wParam]->SetX(iconPaddingX);
-        subshortpm[wParam]->SetY((iconPaddingY * 0.575) + globaliconsz - globalshiconsz);
+        subshortpm[wParam]->SetY((iconPaddingY * 0.575) + (globaliconsz - globalshiconsz) * flScaleFactor);
         break;
     }
     case WM_USER + 11: {
         break;
     }
     case WM_USER + 12: {
-        if (checkifelemexists == true) dirnameanimator->SetWidth(160 * (1 - py[dframe - 1]));
+        if (checkifelemexists == true) dirnameanimator->SetWidth((160 * (1 - py[dframe - 1])) * flScaleFactor);
         break;
     }
     case WM_USER + 13: {
-        if (checkifelemexists == true) tasksanimator->SetWidth(80 * (1 - py[tframe - 1]));
+        if (checkifelemexists == true) tasksanimator->SetWidth((80 * (1 - py[tframe - 1])) * flScaleFactor);
         break;
     }
     }
@@ -495,7 +518,7 @@ void fullscreenAnimation(int width, int height) {
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
     ReleaseDC(wnd->GetHWND(), hdcWindow);
-    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 4, 1);
+    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 4 * flScaleFactor, 1);
     Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
     fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     bitmap->Release();
@@ -513,7 +536,7 @@ void fullscreenAnimation2() {
 void ShowPopupCore() {
     fullscreenpopup->SetLayoutPos(4);
     fullscreenpopup->SetAlpha(255);
-    fullscreenAnimation(800, 480);
+    fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
 }
 void HidePopupCore() {
     fullscreenpopup->SetAlpha(0);
@@ -568,15 +591,15 @@ void ApplyIcons(vector <parameters>pmLVItem, vector<Element*> pmIcon, vector<Ele
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
     for (int icon = 0; icon < pmIcon.size(); icon++) {
-        HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz, globalshiconsz, LR_SHARED);
+        HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
         HBITMAP bmp = icons[icon];
-        HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8);
+        HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor);
         HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
         if (isColorized) {
             IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
             IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
         }
-        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, 4, 0.33);
+        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * flScaleFactor), 0.33);
         IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
         Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
@@ -611,7 +634,7 @@ void SelectSubItem(Element* elem, Event* iev) {
 }
 
 void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
-    fullscreenAnimation(800, 480);
+    fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
     Element* groupdirectory{};
     parser->CreateElement((UCString)L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
     fullscreeninner->Add((Element**)&groupdirectory, 1);
@@ -632,8 +655,8 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
         Value* v;
         RECT dimensions;
         dimensions = *(groupdirectory->GetPadding(&v));
-        int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + globaliconsz - 44;
-        int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + globaliconsz - 21;
+        int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
+        int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
         DWORD* animThread = new DWORD[count];
         DWORD* animThread2 = new DWORD[count];
         HANDLE* animThreadHandle = new HANDLE[count];
@@ -665,7 +688,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             yValue* yV = new yValue{ j };
             yValue* yV2 = new yValue{ j };
             x += outerSizeX;
-            if (x > 800 - (dimensions.left + dimensions.right + outerSizeX)) {
+            if (x > 800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) {
                 x = 0;
                 y += outerSizeY;
             }
@@ -808,12 +831,12 @@ void SelectItem(Element* elem, Event* iev) {
                     if (pm[items].elem->GetSelected() == true) pm[items].elem->SetHeight(pm[items].elem->GetHeight() + extraBottomSpacing * 0.5);
                     else pm[items].elem->SetHeight(pm[items].elem->GetHeight() - extraBottomSpacing);
                 }
-                textElem->SetHeight(extraBottomSpacing + 4);
-                textElemShadow->SetHeight(extraBottomSpacing + 4);
-                HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth() - 2, extraBottomSpacing, DT_END_ELLIPSIS);
-                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 1);
+                textElem->SetHeight(extraBottomSpacing + 4 * flScaleFactor);
+                textElemShadow->SetHeight(extraBottomSpacing + 5 * flScaleFactor);
+                HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth() - 4 * flScaleFactor, extraBottomSpacing, DT_END_ELLIPSIS);
+                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
                 IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, 2, 1);
+                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1);
                 Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
                 Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
                 textElem->SetValue(Element::ContentProp, 1, bitmap);
@@ -939,7 +962,7 @@ void InitLayout() {
     assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
     assignExtendedFn(emptyspace, MarqueeSelector);
     assignFn(emptyspace, DesktopRightClick);
-    int x = 4, y = 4;
+    int x = 4 * flScaleFactor, y = 4 * flScaleFactor;
     CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
     frame.resize(count);
     pm.resize(count);
@@ -955,8 +978,8 @@ void InitLayout() {
     DWORD* animThread2 = new DWORD[count];
     HANDLE* animThreadHandle = new HANDLE[count];
     HANDLE* animThreadHandle2 = new HANDLE[count];
-    int outerSizeX = GetSystemMetrics(SM_CXICONSPACING) + globaliconsz - 44;
-    int outerSizeY = GetSystemMetrics(SM_CYICONSPACING) + globaliconsz - 21;
+    int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
+    int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
     for (int i = 0; i < count; i++) {
         Button* outerElem;
         parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
@@ -997,7 +1020,7 @@ void InitLayout() {
         yValue* yV2 = new yValue{ j };
         y += outerSizeY;
         if (y > dimensions.bottom - outerSizeY) {
-            y = 4;
+            y = 4 * flScaleFactor;
             x += outerSizeX;
         }
         animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
@@ -1022,8 +1045,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     RegisterAllControls();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
-    int windowsThemeX = (GetSystemMetrics(SM_CXSIZEFRAME) + GetSystemMetrics(SM_CXEDGE) * 2) * 2;
-    int windowsThemeY = (GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CYEDGE) * 2) * 2 + GetSystemMetrics(SM_CYCAPTION);
+    int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
+    int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
     NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200 + windowsThemeX, 768 + windowsThemeY, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
@@ -1034,6 +1057,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     pMain->SetVisible(true);
     pMain->EndDefer(key);
 
+    InitialUpdateScale();
     UpdateModeInfo();
 
     sampleText = regElem(L"sampleText");
