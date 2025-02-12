@@ -27,7 +27,8 @@
 #define IDS_STRING135                   135
 #define IDS_STRING136                   136
 #define IDS_STRING137                   137
-#define IDB_PNG96                       270
+#define IDS_STRING105                   138
+#define IDS_STRING138                   138
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

@@ -21,6 +21,12 @@
 								<RichText content="Settings" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 							</Element>
 						</TouchButton>
+						<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
+							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+								<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+								<RichText content="Close" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+							</Element>
+						</TouchButton>
 					</Button>
 				</Element>
 			</Element>

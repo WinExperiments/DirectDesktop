@@ -42,7 +42,7 @@ Element* selector;
 Element* dirnameanimator;
 Element* tasksanimator;
 Button* SimpleViewTop, *SimpleViewBottom;
-TouchButton* SimpleViewSettings;
+TouchButton* SimpleViewSettings, *SimpleViewClose;
 TouchButton* PageTab1, *PageTab2;
 RichText* SubUIContainer;
 HRESULT err;
@@ -284,6 +284,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_DPICHANGED: {
         UpdateScale();
         InitLayout();
+        break;
+    }
+    case WM_WINDOWPOSCHANGING: {
+        ((LPWINDOWPOS)lParam)->hwndInsertAfter = HWND_BOTTOM;
+        return 0L;
         break;
     }
     case WM_COMMAND: {
@@ -606,6 +611,9 @@ void ApplyIcons(vector <parameters>pmLVItem, vector<Element*> pmIcon, vector<Ele
         Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
         pmIcon[icon]->SetValue(Element::ContentProp, 1, bitmap);
         pmIconShadow[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
+        if (pm[icon].isDirectory == true && treatdirasgroup == true) {
+            iconpm[icon]->SetBackgroundColor(2147483648);
+        }
         if (pmLVItem[icon].isShortcut == true) pmShortcut[icon]->SetValue(Element::ContentProp, 1, bitmapShortcut);
         DeleteObject(icoShortcut);
         DeleteObject(bmp);
@@ -793,6 +801,11 @@ void ShowSettings(Element* elem, Event* iev) {
         HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     }
 }
+void ExitWindow(Element* elem, Event* iev) {
+    if (iev->type == TouchButton::Click) {
+        exit(0);
+    }
+}
 
 Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
@@ -962,7 +975,6 @@ void InitLayout() {
     assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
     assignExtendedFn(emptyspace, MarqueeSelector);
     assignFn(emptyspace, DesktopRightClick);
-    int x = 4 * flScaleFactor, y = 4 * flScaleFactor;
     CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
     frame.resize(count);
     pm.resize(count);
@@ -973,7 +985,8 @@ void InitLayout() {
     fileshadowpm.resize(count);
     cbpm.resize(count);
     RECT dimensions;
-    GetClientRect(wnd->GetHWND(), &dimensions);
+    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+    int x = 4 * flScaleFactor + dimensions.left, y = 4 * flScaleFactor + dimensions.top;
     DWORD* animThread = new DWORD[count];
     DWORD* animThread2 = new DWORD[count];
     HANDLE* animThreadHandle = new HANDLE[count];
@@ -1020,7 +1033,7 @@ void InitLayout() {
         yValue* yV2 = new yValue{ j };
         y += outerSizeY;
         if (y > dimensions.bottom - outerSizeY) {
-            y = 4 * flScaleFactor;
+            y = 4 * flScaleFactor + dimensions.top;
             x += outerSizeX;
         }
         animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
@@ -1047,7 +1060,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, CW_USEDEFAULT, CW_USEDEFAULT, 1200 + windowsThemeX, 768 + windowsThemeY, NULL, WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, 0, &wnd);
+    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, WS_POPUP | WS_MAXIMIZE, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
@@ -1070,11 +1083,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SimpleViewTop = regBtn(L"SimpleViewTop");
     SimpleViewBottom = regBtn(L"SimpleViewBottom");
     SimpleViewSettings = regTouchBtn(L"SimpleViewSettings");
+    SimpleViewClose = regTouchBtn(L"SimpleViewClose");
 
     assignFn(fullscreenpopupbase, testEventListener3);
     assignFn(SimpleViewTop, testEventListener3);
     assignFn(SimpleViewBottom, testEventListener3);
     assignFn(SimpleViewSettings, ShowSettings);
+    assignFn(SimpleViewClose, ExitWindow);
 
     showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
