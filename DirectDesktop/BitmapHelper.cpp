@@ -158,7 +158,9 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
         for (int alpha = 3; alpha < bmBits; alpha += 4) {
             vBits[channel++] = pBits[alpha];
         }
-        vector<BYTE> vResultBits = Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+        vector<BYTE> vResultBits;
+        if (blurradius >= 1) vResultBits = Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+        else vResultBits = vBits;
         channel = 0;
         for (int alpha = 3; alpha < bmBits; alpha += 4) {
             pBits[alpha] = vResultBits[channel++];

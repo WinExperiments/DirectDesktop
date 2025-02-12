@@ -68,18 +68,21 @@ void DesktopRightClick(Element* elem, Event* iev) {
             case 101:
                 globaliconsz = 96;
                 globalshiconsz = 48;
+                globalgpiconsz = 32;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
                 InitLayout();
                 break;
             case 102:
                 globaliconsz = 48;
                 globalshiconsz = 32;
+                globalgpiconsz = 16;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
                 InitLayout();
                 break;
             case 103:
                 globaliconsz = 32;
                 globalshiconsz = 32;
+                globalgpiconsz = 12;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
                 InitLayout();
                 break;

@@ -10,7 +10,7 @@ using namespace DirectUI;
 extern void InitLayout();
 extern void ShowSimpleView();
 extern bool hiddenIcons;
-extern int globaliconsz, globalshiconsz;
+extern int globaliconsz, globalshiconsz, globalgpiconsz;
 extern NativeHWNDHost* wnd;
 
 

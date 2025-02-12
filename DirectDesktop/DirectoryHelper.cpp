@@ -94,9 +94,10 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
     return result;
 }
 
-void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset) {
+void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset, unsigned short limit) {
     if (!PathFileExistsW(path)) return;
     static int dirIndex{}, hiddenIndex{}, shortIndex{};
+    int runs = 0;
     if (bReset) dirIndex = 0, hiddenIndex = 0, shortIndex = 0;
     int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
     int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
@@ -119,7 +120,8 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
 
     LPENUMIDLIST pEnumIDL = NULL;
     hr = psfFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
-    while (true) {
+    while (runs < limit) {
+        if (pEnumIDL == nullptr) break;
         hr = pEnumIDL->Next(1, &pidl, NULL);
         if (hr == NOERROR) {
             WIN32_FIND_DATA fd;
@@ -154,9 +156,10 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
             pMalloc->Free(pidl);
         }
         else break;
+        runs++;
     }
 
-    pEnumIDL->Release();
+    if (pEnumIDL != nullptr) pEnumIDL->Release();
     psfFolder->Release();
     pMalloc->Release();
 }

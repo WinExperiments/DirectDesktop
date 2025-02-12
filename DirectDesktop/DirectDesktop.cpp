@@ -155,7 +155,7 @@ const wchar_t* CharToWChar(const char* input)
 
 double px[80]{};
 double py[80]{};
-int origX{}, origY{}, globaliconsz, globalshiconsz;
+int origX{}, origY{}, globaliconsz, globalshiconsz, globalgpiconsz;
 
 void CubicBezier(const int frames, double px[], double py[], double x0, double y0, double x1, double y1) {
     for (int c = 0; c < frames; c++) {
@@ -434,6 +434,47 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (checkifelemexists == true) tasksanimator->SetWidth((80 * (1 - py[tframe - 1])) * flScaleFactor);
         break;
     }
+    case WM_USER + 14: {
+        int padding = 3, paddingInner = 2;
+        if (globaliconsz > 48) {
+            padding = 12;
+            paddingInner = 8;
+        }
+        else if (globaliconsz > 32) {
+            padding = 6;
+            paddingInner = 4;
+        }
+        for (int icon = 0; icon < pm.size(); icon++) {
+            if (pm[icon].isDirectory == true && treatdirasgroup == true) {
+                int x = padding * flScaleFactor, y = padding * flScaleFactor;
+                iconpm[icon]->SetClass((UCString)L"groupthumbnail");
+                vector<parameters> dummypm;
+                vector<wstring> dummy, filenames;
+                EnumerateFolder((LPWSTR)pm[icon].filename.c_str(), &dummypm, &dummy, &filenames, 1, 4);
+                for (int thumbs = 0; thumbs < filenames.size(); thumbs++) {
+                    HBITMAP thumbIcon = GetShellItemImage(filenames[thumbs].c_str(), globalgpiconsz * flScaleFactor, globalgpiconsz * flScaleFactor);
+                    if (isColorized) {
+                        IterateBitmap(thumbIcon, StandardBitmapPixelHandler, 1, 0, 1);
+                    }
+                    Value* vThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
+                    Element* GroupedIcon;
+                    parser->CreateElement((UCString)L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
+                    iconpm[icon]->Add((Element**)&GroupedIcon, 1);
+                    GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz* flScaleFactor);
+                    GroupedIcon->SetX(x), GroupedIcon->SetY(y);
+                    x += ((globalgpiconsz + paddingInner) * flScaleFactor);
+                    if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
+                        x = padding * flScaleFactor;
+                        y += ((globalgpiconsz + paddingInner) * flScaleFactor);
+                    }
+                    GroupedIcon->SetValue(Element::ContentProp, 1, vThumbIcon);
+                    DeleteObject(thumbIcon);
+                    vThumbIcon->Release();
+                }
+            }
+        }
+        break;
+    }
     }
     return CallWindowProc(WndProc, hWnd, uMsg, wParam, lParam);
 }
@@ -513,13 +554,12 @@ unsigned long grouptasksanimation(LPVOID lpParam) {
 void fullscreenAnimation(int width, int height) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    fullscreenpopup->SetLayoutPos(4);
-    fullscreenpopup->SetAlpha(255);
     HDC hdcWindow = GetDC(wnd->GetHWND());
     HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.33, dimensions.bottom * 0.33);
+    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.16, dimensions.bottom * 0.16);
     HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.33, dimensions.bottom * 0.33, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
+    SetStretchBltMode(hdcMem, HALFTONE);
+    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.16, dimensions.bottom * 0.16, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
     ReleaseDC(wnd->GetHWND(), hdcWindow);
@@ -527,6 +567,9 @@ void fullscreenAnimation(int width, int height) {
     Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
     fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     bitmap->Release();
+    this_thread::sleep_for(chrono::milliseconds(80));
+    fullscreenpopup->SetLayoutPos(4);
+    fullscreenpopup->SetAlpha(255);
     parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
     centered->SetMinSize(width, height);
@@ -580,47 +623,58 @@ unsigned long DoubleClickHandler(LPVOID lpParam) {
 vector<HBITMAP> GetDesktopIcons() {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < pm.size(); i++) {
-        bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), globaliconsz, globaliconsz));
+        if (pm[i].isDirectory == true && treatdirasgroup == true) bmResult.push_back(NULL);
+        else bmResult.push_back(GetShellItemImage((pm[i].filename).c_str(), globaliconsz, globaliconsz));
     }
     return bmResult;
 }
-vector<HBITMAP> GetSubdirectoryIcons() {
+vector<HBITMAP> GetSubdirectoryIcons(int limit = subpm.size(), int width = globaliconsz, int height = globaliconsz) {
     vector<HBITMAP> bmResult;
-    for (int i = 0; i < subpm.size(); i++) {
-        bmResult.push_back(GetShellItemImage((subpm[i].filename).c_str(), globaliconsz, globaliconsz));
+    for (int i = 0; i < limit; i++) {
+        bmResult.push_back(GetShellItemImage((subpm[i].filename).c_str(), width, height));
     }
     return bmResult;
 }
 
-void ApplyIcons(vector <parameters>pmLVItem, vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<Element*> pmShortcut, vector<HBITMAP> iconstofetch) {
+unsigned long ApplyThumbnailIcons(LPVOID lpParam) {
+    SendMessageW(wnd->GetHWND(), WM_USER + 14, NULL, NULL);
+    return 0;
+}
+
+void ApplyIcons(vector<parameters> pmLVItem, vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<Element*> pmShortcut, vector<HBITMAP> iconstofetch) {
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
     for (int icon = 0; icon < pmIcon.size(); icon++) {
         HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
-        HBITMAP bmp = icons[icon];
-        HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor);
+        // The use of the 3 lines below is because we can't use a fully transparent bitmap
+        HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
+        HBITMAP dummyii = IconToBitmap(dummyi);
+        IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005);
+        HBITMAP bmp{};
+        if (pm[icon].isDirectory == false || treatdirasgroup == false || pmIcon != iconpm) bmp = icons[icon];
+        else bmp = dummyii;
+        if (bmp != dummyii) { 
+            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor);
+            IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * flScaleFactor), 0.33);
+            Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+            pmIconShadow[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
+            DeleteObject(bmpShadow);
+            bitmapShadow->Release();
+        }
         HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
         if (isColorized) {
             IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
             IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
         }
-        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * flScaleFactor), 0.33);
         IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
         Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
-        Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
         Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
         pmIcon[icon]->SetValue(Element::ContentProp, 1, bitmap);
-        pmIconShadow[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
-        if (pm[icon].isDirectory == true && treatdirasgroup == true) {
-            iconpm[icon]->SetBackgroundColor(2147483648);
-        }
         if (pmLVItem[icon].isShortcut == true) pmShortcut[icon]->SetValue(Element::ContentProp, 1, bitmapShortcut);
         DeleteObject(icoShortcut);
         DeleteObject(bmp);
-        DeleteObject(bmpShadow);
         DeleteObject(bmpShortcut);
         bitmap->Release();
-        bitmapShadow->Release();
         bitmapShortcut->Release();
     }
     icons.clear();
@@ -1046,6 +1100,8 @@ void InitLayout() {
     delete[] animThreadHandle2;
     delete[] cBuffer;
     delete[] secondaryPath;
+    DWORD dd;
+    HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -1096,6 +1152,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
     if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
+    globalgpiconsz = 12;
+    if (globaliconsz > 48) globalgpiconsz = 32;
+    else if (globaliconsz > 32) globalgpiconsz = 16;
     InitLayout();
     SetTheme();
 
