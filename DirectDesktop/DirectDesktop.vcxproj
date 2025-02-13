@@ -258,6 +258,7 @@
     <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="StyleModifier.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Templates.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AccentColorHelper.cpp" />
@@ -338,6 +339,7 @@
     <Image Include="ImageResources\161.png" />
     <Image Include="ImageResources\162.png" />
     <Image Include="ImageResources\163.png" />
+    <Image Include="ImageResources\164.bmp" />
     <Image Include="ImageResources\201.bmp" />
     <Image Include="ImageResources\202.bmp" />
     <Image Include="ImageResources\203.bmp" />
@@ -401,6 +403,7 @@
     <Image Include="ImageResources\261.png" />
     <Image Include="ImageResources\262.png" />
     <Image Include="ImageResources\263.png" />
+    <Image Include="ImageResources\264.bmp" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

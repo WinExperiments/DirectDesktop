@@ -123,7 +123,7 @@
 	<stylesheets>
 		<style resid="default">
 			<if id="atom(mainContainer)">
-				<Element background="gradient(powderblue, lightblue, 1)"/>
+				<Element background="black"/>
 			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="0" animation="alpha|log|veryfast"/>
@@ -156,7 +156,7 @@
 				</if>
 			</if>
 			<if class="popupbg">
-				<Button background="argb(0,0,0,0)"/>
+				<Button background="resbmp(164,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="popupwindow">
 				<Button background="resbmp(101,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -310,7 +310,7 @@
 		</style>
 		<style resid="defaultdark">
 			<if id="atom(mainContainer)">
-				<Element background="gradient(lightslategray, slategray, 1)"/>
+				<Element background="black"/>
 			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="0" animation="alpha|log|veryfast"/>
@@ -343,7 +343,7 @@
 				</if>
 			</if>
 			<if class="popupbg">
-				<Button background="argb(96,32,32,32)"/>
+				<Button background="resbmp(264,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="popupwindow">
 				<Button background="resbmp(201,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>

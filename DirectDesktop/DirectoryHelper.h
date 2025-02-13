@@ -24,3 +24,4 @@ void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, D
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset, unsigned short limit = 65535);
+void ToggleDesktopIcons(bool visibility, bool wholeHost);

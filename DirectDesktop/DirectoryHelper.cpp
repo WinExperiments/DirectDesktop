@@ -163,3 +163,27 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
     psfFolder->Release();
     pMalloc->Release();
 }
+
+void ToggleDesktopIcons(bool visibility, bool wholeHost) {
+    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    HWND hWndDesktop = NULL;
+    if (hWndProgman) {
+        hWndDesktop = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
+        if (hWndDesktop && !wholeHost) {
+            hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
+        }
+    }
+    if (!hWndDesktop) {
+        HWND hWorkerW = FindWindowW(L"WorkerW", NULL);
+        if (hWorkerW)
+        {
+            hWndDesktop = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
+            if (hWndDesktop && !wholeHost) {
+                hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
+            }
+        }
+    }
+    if (hWndDesktop) {
+        ShowWindow(hWndDesktop, visibility ? SW_SHOW : SW_HIDE);
+    }
+}

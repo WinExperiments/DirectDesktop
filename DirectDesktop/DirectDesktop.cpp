@@ -12,11 +12,15 @@
 #include <WinUser.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
+#include <uxtheme.h>
+#include <dwmapi.h>
 #include "StyleModifier.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
 #include "SettingsHelper.h"
 #include "ContextMenus.h"
+#include "Templates.h"
+#pragma comment (lib, "dwmapi.lib")
 
 using namespace DirectUI;
 using namespace std;
@@ -176,6 +180,8 @@ void SetTheme() {
 }
 
 WNDPROC WndProc;
+HANDLE hMutex;
+constexpr LPCWSTR szWindowClass = L"DIRECTDESKTOP";
 vector<parameters> pm, subpm;
 vector<Element*> shortpm, subshortpm;
 vector<Element*> iconpm, subiconpm;
@@ -239,13 +245,12 @@ float CalcTextLines(const wchar_t* str, int width) {
     if (lines_b1 == 1 && lines_b2 == 0) return 2.0; else if (lines_b1 == 1 && lines_b2 == 1) return 1.5; else return 1;
 }
 
-Value* bitmapbuffer;
 void ShowSimpleView() {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    Value* bitmap;
-    HBITMAP hbmCapture{};
-    if (!issubviewopen) {
+    if (!hiddenIcons) {
+        Value* bitmap;
+        HBITMAP hbmCapture{};
         HDC hdcWindow = GetDC(wnd->GetHWND());
         HDC hdcMem = CreateCompatibleDC(hdcWindow);
         hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
@@ -254,18 +259,19 @@ void ShowSimpleView() {
         SelectObject(hdcMem, hbmOld);
         DeleteDC(hdcMem);
         ReleaseDC(wnd->GetHWND(), hdcWindow);
+        bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
+        fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
+        centered->SetBackgroundStdColor(7);
+        fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
     }
-    bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
-    fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
-    if (issubviewopen) {
-        fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmapbuffer);
+    else {
+        fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
+        fullscreeninner->SetBackgroundStdColor(7);
     }
-    else fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
     SimpleViewTop->SetLayoutPos(1);
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
     SimpleViewBottom->SetLayoutPos(3);
-    fullscreenpopup->SetBackgroundStdColor(24);
-    if (!issubviewopen) bitmapbuffer = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
+    fullscreenpopup->SetBackgroundStdColor(7);
 }
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -275,10 +281,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor - tm.tmHeight;
     int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) - 48 * flScaleFactor) / 2;
     int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) - 48 * flScaleFactor) / 2;
+    int i = 20002;
     switch (uMsg) {
     case WM_SETTINGCHANGE: {
         UpdateModeInfo();
         SetTheme();
+        if (wParam == SPI_SETWORKAREA) {
+            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+            SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, SWP_NOZORDER);
+        }
         break;
     }
     case WM_DPICHANGED: {
@@ -289,6 +300,10 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_WINDOWPOSCHANGING: {
         ((LPWINDOWPOS)lParam)->hwndInsertAfter = HWND_BOTTOM;
         return 0L;
+        break;
+    }
+    case WM_CLOSE: {
+        ToggleDesktopIcons(!hiddenIcons, false);
         break;
     }
     case WM_COMMAND: {
@@ -350,12 +365,18 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         POINT ppt;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
-        if (ppt.x >= origX) selector->SetWidth(ppt.x - origX);
+        if (ppt.x >= origX) {
+            selector->SetWidth(ppt.x - origX);
+            selector->SetX(origX);
+        }
         if (ppt.x < origX) {
             selector->SetWidth(origX - ppt.x);
             selector->SetX(ppt.x);
         }
-        if (ppt.y >= origY) selector->SetHeight(ppt.y - origY);
+        if (ppt.y >= origY) {
+            selector->SetHeight(ppt.y - origY);
+            selector->SetY(origY);
+        }
         if (ppt.y < origY) {
             selector->SetHeight(origY - ppt.y);
             selector->SetY(ppt.y);
@@ -372,10 +393,10 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         checkifelemexists = false;
         fullscreenpopup->SetLayoutPos(-3);
         centered->DestroyAll(true);
-        if (issubviewopen) {
-            ShowSimpleView();
-        }
-        issubviewopen = false;
+        //if (issubviewopen) {
+        //    ShowSimpleView();
+        //}
+        //issubviewopen = false;
         break;
     }
     case WM_USER + 8: {
@@ -556,14 +577,14 @@ void fullscreenAnimation(int width, int height) {
     GetClientRect(wnd->GetHWND(), &dimensions);
     HDC hdcWindow = GetDC(wnd->GetHWND());
     HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.16, dimensions.bottom * 0.16);
+    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.1, dimensions.bottom * 0.1);
     HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
     SetStretchBltMode(hdcMem, HALFTONE);
-    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.16, dimensions.bottom * 0.16, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
+    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.1, dimensions.bottom * 0.1, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
     ReleaseDC(wnd->GetHWND(), hdcWindow);
-    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 4 * flScaleFactor, 1);
+    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 2 * flScaleFactor, 1);
     Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
     fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     bitmap->Release();
@@ -573,6 +594,7 @@ void fullscreenAnimation(int width, int height) {
     parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
     centered->SetMinSize(width, height);
+    centered->SetBackgroundColor(0);
     fullscreeninner->SetMinSize(width, height);
     fullscreenpopupbase->SetVisible(true);
     fullscreeninner->SetVisible(true);
@@ -1039,7 +1061,7 @@ void InitLayout() {
     fileshadowpm.resize(count);
     cbpm.resize(count);
     RECT dimensions;
-    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+    GetClientRect(wnd->GetHWND(), &dimensions);
     int x = 4 * flScaleFactor + dimensions.left, y = 4 * flScaleFactor + dimensions.top;
     DWORD* animThread = new DWORD[count];
     DWORD* animThread2 = new DWORD[count];
@@ -1087,7 +1109,7 @@ void InitLayout() {
         yValue* yV2 = new yValue{ j };
         y += outerSizeY;
         if (y > dimensions.bottom - outerSizeY) {
-            y = 4 * flScaleFactor + dimensions.top;
+            y = 4 * flScaleFactor;
             x += outerSizeX;
         }
         animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
@@ -1109,14 +1131,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
+    hMutex = CreateMutex(NULL, TRUE, szWindowClass);
+    if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError())
+    {
+        return 1;
+    }
     InitProcessPriv(14, NULL, 0, true);
     InitThread(2);
     RegisterAllControls();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
+    RECT dimensions;
+    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, WS_POPUP | WS_MAXIMIZE, 0, &wnd);
+    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, WS_POPUP, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
@@ -1160,7 +1189,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     wnd->Host(pMain);
 
+    ToggleDesktopIcons(false, false);
     wnd->ShowWindow(SW_SHOW);
+    MARGINS m = { -1, -1, -1, -1 };
+    DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
     StartMessagePump();
     UnInitProcessPriv(0);
     CoUninitialize();

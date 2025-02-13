@@ -366,6 +366,9 @@
     <ClInclude Include="ContextMenus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Templates.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -784,6 +787,12 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="ImageResources\263.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\164.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\264.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
