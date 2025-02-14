@@ -2,6 +2,7 @@
 #include "strsafe.h"
 #include <shlobj.h>
 #include <shlwapi.h>
+#pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "shlwapi.lib")
 
 using namespace std;
@@ -164,26 +165,76 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
     pMalloc->Release();
 }
 
-void ToggleDesktopIcons(bool visibility, bool wholeHost) {
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    WCHAR className[64];
+    GetClassNameW(hwnd, className, sizeof(className) / 2);
+    if (wcscmp(className, L"WorkerW") == 0) {
+        HWND hSHELLDLL_DefView = FindWindowExW(hwnd, NULL, L"SHELLDLL_DefView", NULL);
+        if (hSHELLDLL_DefView) {
+            *(HWND*)lParam = hwnd;
+            return 0;
+        }
+    }
+    return 1;
+}
+BOOL CALLBACK EnumWindowsProc2(HWND hwnd, LPARAM lParam) {
+    WCHAR className[64];
+    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
+    GetClassNameW(hwnd, className, sizeof(className) / 2);
+    if (wcscmp(className, L"WorkerW") == 0) {
+        DWORD pid = 0, pid2 = 0;
+        DWORD threadId = GetWindowThreadProcessId(hWndProgman, &pid);
+        DWORD threadId2 = GetWindowThreadProcessId(hwnd, &pid2);
+        if (threadId == threadId2) {
+            RECT dimensions;
+            GetWindowRect(hwnd, &dimensions);
+            int right = GetSystemMetrics(SM_CXSCREEN);
+            int bottom = GetSystemMetrics(SM_CYSCREEN);
+            if (dimensions.right == right && dimensions.bottom == bottom) {
+                *(HWND*)lParam = hwnd;
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+HWND GetWorkerW() {
+    HWND hWorkerW = NULL;
+    EnumWindows(EnumWindowsProc, (LPARAM)&hWorkerW);
+    return hWorkerW;
+}
+HWND GetWorkerW2() {
+    HWND hWorkerW = NULL;
+    EnumWindows(EnumWindowsProc2, (LPARAM)&hWorkerW);
+    return hWorkerW;
+}
+
+bool ToggleDesktopIcons(bool visibility, bool wholeHost) {
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
     HWND hWndDesktop = NULL;
     if (hWndProgman) {
         hWndDesktop = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
         if (hWndDesktop && !wholeHost) {
             hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
+            //if (hWndDesktop) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside Program Manager", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
         }
     }
     if (!hWndDesktop) {
-        HWND hWorkerW = FindWindowW(L"WorkerW", NULL);
-        if (hWorkerW)
-        {
+        HWND hWorkerW = GetWorkerW();
+        if (hWorkerW) {
             hWndDesktop = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
             if (hWndDesktop && !wholeHost) {
                 hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
+                //if (hWndDesktop) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside WorkerW", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+                //else TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Error", NULL, L"No SysListView32 found", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
             }
         }
     }
     if (hWndDesktop) {
         ShowWindow(hWndDesktop, visibility ? SW_SHOW : SW_HIDE);
+        return true;
     }
+    return false;
 }

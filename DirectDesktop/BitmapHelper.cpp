@@ -235,6 +235,9 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
     }
     }
 
-
     return true;
+}
+
+void BlurBackground(HWND hwnd, bool blur) {
+    ToggleAcrylicBlur(hwnd, blur);
 }

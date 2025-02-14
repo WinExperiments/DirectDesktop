@@ -272,6 +272,7 @@ void ShowSimpleView() {
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
     SimpleViewBottom->SetLayoutPos(3);
     fullscreenpopup->SetBackgroundStdColor(7);
+    BlurBackground(GetWorkerW(), false);
 }
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -288,7 +289,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         SetTheme();
         if (wParam == SPI_SETWORKAREA) {
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-            SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, SWP_NOZORDER);
+            SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
         }
         break;
     }
@@ -549,7 +550,7 @@ unsigned long animate5(LPVOID lpParam) {
 }
 
 unsigned long animate6(LPVOID lpParam) {
-    this_thread::sleep_for(chrono::milliseconds(100));
+    //this_thread::sleep_for(chrono::milliseconds(100));
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
     return 0;
 }
@@ -577,10 +578,10 @@ void fullscreenAnimation(int width, int height) {
     GetClientRect(wnd->GetHWND(), &dimensions);
     HDC hdcWindow = GetDC(wnd->GetHWND());
     HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.1, dimensions.bottom * 0.1);
+    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.08, dimensions.bottom * 0.08);
     HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
     SetStretchBltMode(hdcMem, HALFTONE);
-    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.1, dimensions.bottom * 0.1, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
+    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.08, dimensions.bottom * 0.08, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
     ReleaseDC(wnd->GetHWND(), hdcWindow);
@@ -588,7 +589,7 @@ void fullscreenAnimation(int width, int height) {
     Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
     fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     bitmap->Release();
-    this_thread::sleep_for(chrono::milliseconds(80));
+    //this_thread::sleep_for(chrono::milliseconds(80));
     fullscreenpopup->SetLayoutPos(4);
     fullscreenpopup->SetAlpha(255);
     parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
@@ -598,6 +599,7 @@ void fullscreenAnimation(int width, int height) {
     fullscreeninner->SetMinSize(width, height);
     fullscreenpopupbase->SetVisible(true);
     fullscreeninner->SetVisible(true);
+    BlurBackground(GetWorkerW(), true);
 }
 void fullscreenAnimation2() {
     DWORD animThread;
@@ -619,6 +621,7 @@ void HidePopupCore() {
     subfilepm.clear();
     SimpleViewTop->SetLayoutPos(-3);
     SimpleViewBottom->SetLayoutPos(-3);
+    BlurBackground(GetWorkerW(), false);
 }
 
 wstring bufferOpenInExplorer;
@@ -879,7 +882,7 @@ void ShowSettings(Element* elem, Event* iev) {
 }
 void ExitWindow(Element* elem, Event* iev) {
     if (iev->type == TouchButton::Click) {
-        exit(0);
+        SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, NULL);
     }
 }
 
@@ -984,7 +987,7 @@ unsigned long UpdateMarqueeSelectorPosition(LPVOID lpParam) {
 void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2) {
     DWORD marqueeThread;
     HANDLE marqueeThreadHandle;
-    if (pProp == Button::PressedProp()) {
+    if (pProp == Button::CapturedProp()) {
         POINT ppt;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
@@ -1132,8 +1135,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ int       nCmdShow)
 {
     hMutex = CreateMutex(NULL, TRUE, szWindowClass);
-    if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError())
-    {
+    if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError()) {
         return 1;
     }
     InitProcessPriv(14, NULL, 0, true);
@@ -1145,11 +1147,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, WS_POPUP, 0, &wnd);
+    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    HWND hSHELLDLL_DefView = NULL;
+    if (hWndProgman) {
+        hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
+        SetParent(hSHELLDLL_DefView, NULL);
+        this_thread::sleep_for(chrono::milliseconds(250));
+        GetWorkerW2(); // dummy function to generate a screen-sized WorkerW
+        HWND hWorkerW = GetWorkerW2();
+        if (hWorkerW) {
+            SetParent(hSHELLDLL_DefView, hWorkerW);
+        }
+    }
+    if (!hSHELLDLL_DefView) {
+        HWND hWorkerW = GetWorkerW();
+        if (hWorkerW) {
+            hSHELLDLL_DefView = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
+        }
+    }
+    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, WS_POPUP | WS_TABSTOP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
     WndProc = (WNDPROC)SetWindowLongPtr(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
+    SetParent(wnd->GetHWND(), hSHELLDLL_DefView);
 
     parser->CreateElement((UCString)L"main", parent, NULL, NULL, &pMain);
     pMain->SetVisible(true);
@@ -1188,8 +1209,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetTheme();
 
     wnd->Host(pMain);
-
-    ToggleDesktopIcons(false, false);
+    bool testB = ToggleDesktopIcons(false, false);
+    //if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+    //else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
     wnd->ShowWindow(SW_SHOW);
     MARGINS m = { -1, -1, -1, -1 };
     DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);

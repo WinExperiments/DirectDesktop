@@ -7,7 +7,7 @@
 
 				</Element>
 				<Element id="atom(selector)" class="selector" layoutpos="none" animation="alpha|s|mediumfast" background="themeable(20066, hotlight)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
-				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0" animation="alpha|linear|veryfast">
+				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
 					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false">
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>

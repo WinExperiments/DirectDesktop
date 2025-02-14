@@ -1,5 +1,6 @@
 #pragma once
 #include "framework.h"
+#include "StyleModifier.h"
 #include <vector>
 #include <cmath>
 
@@ -70,4 +71,43 @@ vector<BYTE> Blur(vector<BYTE>& source, int w, int h, int radius)
     gaussBlur_4(lowpass, target, w, h, radius);
 
     return target;
+}
+
+enum ACCENT_STATE {
+    ACCENT_DISABLED = 0,
+    ACCENT_ENABLE_GRADIENT = 1,
+    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+    ACCENT_ENABLE_BLURBEHIND = 3,
+    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 // Acrylic blur effect
+};
+
+struct ACCENT_POLICY {
+    ACCENT_STATE AccentState;
+    DWORD AccentFlags;
+    DWORD GradientColor;
+    DWORD AnimationId;
+};
+
+struct WINDOWCOMPOSITIONATTRIBDATA {
+    DWORD dwAttrib;
+    PVOID pvData;
+    SIZE_T cbData;
+};
+
+typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+
+void ToggleAcrylicBlur(HWND hwnd, bool blur) {
+    HMODULE hUser = GetModuleHandleW(L"user32.dll");
+    if (hUser) {
+        pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
+            (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+
+        if (SetWindowCompositionAttribute) {
+            ACCENT_STATE as = blur ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
+            int blurcolor = theme ? 0x20E0E0E0 : 0x00000000;
+            ACCENT_POLICY policy = { as, 0, blurcolor, 0 };
+            WINDOWCOMPOSITIONATTRIBDATA data = { 19, &policy, sizeof(ACCENT_POLICY) };
+            SetWindowCompositionAttribute(hwnd, &data);
+        }
+    }
 }
