@@ -304,7 +304,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_CLOSE: {
-        ToggleDesktopIcons(!hiddenIcons, false);
+        int logging = IDNO;
+        ToggleDesktopIcons(!hiddenIcons, false, &logging);
         break;
     }
     case WM_COMMAND: {
@@ -1136,6 +1137,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     hMutex = CreateMutex(NULL, TRUE, szWindowClass);
     if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError()) {
+        TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL,
+            L"DirectDesktop is already running", TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
         return 1;
     }
     InitProcessPriv(14, NULL, 0, true);
@@ -1147,30 +1150,61 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
+    int logging;
+    TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", NULL,
+        L"Enable logging?", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    HWND hWorkerW = NULL;
     HWND hSHELLDLL_DefView = NULL;
+    int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
     if (hWndProgman) {
         hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
-        SetParent(hSHELLDLL_DefView, NULL);
+        if (WindowsBuild > 26016 && logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
+            L"Version is 24H2, skipping WorkerW creation!!!", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
         this_thread::sleep_for(chrono::milliseconds(250));
-        GetWorkerW2(); // dummy function to generate a screen-sized WorkerW
-        HWND hWorkerW = GetWorkerW2();
-        if (hWorkerW) {
-            SetParent(hSHELLDLL_DefView, hWorkerW);
+        if (hSHELLDLL_DefView) {
+            bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, false, &logging);
+            if (logging == IDYES) {
+                if (pos) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL, L"Successfully manipulated windows.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+                else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+            }
         }
     }
     if (!hSHELLDLL_DefView) {
-        HWND hWorkerW = GetWorkerW();
-        if (hWorkerW) {
-            hSHELLDLL_DefView = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
+        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
+            L"SHELLDLL_DefView was not inside Program Manager, retrying...", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true, &logging);
+        if (logging == IDYES) {
+            if (pos) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL, L"Successfully manipulated windows.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+            else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
         }
     }
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, WS_POPUP | WS_TABSTOP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, &wnd);
+    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
+    SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
+    SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
     WndProc = (WNDPROC)SetWindowLongPtr(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
-    SetParent(wnd->GetHWND(), hSHELLDLL_DefView);
+    if (WindowsBuild > 26016) {
+        // This does not work properly...
+        SetWindowLongPtrW(hWorkerW, GWL_STYLE, 0x96000000L);
+        SetWindowLongPtrW(hWorkerW, GWL_EXSTYLE, 0x20000880L);
+        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
+            L"Applied styles to the new 24H2 WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        SetWindowLongPtrW(hSHELLDLL_DefView, GWL_EXSTYLE, 0xC0080000L);
+        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
+            L"Applied styles to the new 24H2 SHELLDLL_DefView.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+    }
+    HWND dummyHWnd;
+    dummyHWnd = SetParent(wnd->GetHWND(), hSHELLDLL_DefView);
+    if (logging == IDYES) {
+        if (dummyHWnd) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
+            L"DirectDesktop is now a part of Explorer.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL,
+            L"DirectDesktop is still hosted in its own window.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+    }
 
     parser->CreateElement((UCString)L"main", parent, NULL, NULL, &pMain);
     pMain->SetVisible(true);
@@ -1209,9 +1243,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetTheme();
 
     wnd->Host(pMain);
-    bool testB = ToggleDesktopIcons(false, false);
-    //if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-    //else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+    bool testB = ToggleDesktopIcons(false, false, &logging);
+    if (logging == IDYES) {
+        if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+    }
     wnd->ShowWindow(SW_SHOW);
     MARGINS m = { -1, -1, -1, -1 };
     DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);

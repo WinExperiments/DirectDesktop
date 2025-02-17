@@ -177,6 +177,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     }
     return 1;
 }
+int messageId = 1280;
 BOOL CALLBACK EnumWindowsProc2(HWND hwnd, LPARAM lParam) {
     WCHAR className[64];
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
@@ -205,20 +206,39 @@ HWND GetWorkerW() {
     EnumWindows(EnumWindowsProc, (LPARAM)&hWorkerW);
     return hWorkerW;
 }
-HWND GetWorkerW2() {
+HWND GetWorkerW2(int *x, int *y) {
     HWND hWorkerW = NULL;
     EnumWindows(EnumWindowsProc2, (LPARAM)&hWorkerW);
     return hWorkerW;
 }
 
-bool ToggleDesktopIcons(bool visibility, bool wholeHost) {
+bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView, int* logging) {
+    int x = 0, y = 0;
+    if (*WindowsBuild < 26016) *hWorkerW = GetWorkerW2(&x, &y); else *hWorkerW = FindWindowExW(*hWndProgman, NULL, L"WorkerW", NULL);
+    if (hWorkerW) {
+        if (findSHELLDLL_DefView) *hSHELLDLL_DefView = FindWindowExW(*hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
+        if (*logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
+            L"Found WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        if (*WindowsBuild > 26016) {
+            SetParent(*hSHELLDLL_DefView, *hWorkerW);
+            SetParent(*hWorkerW, NULL);
+            if (*logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
+                L"Added DirectDesktop inside the new 24H2 WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        }
+    }
+    else if (*logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL,
+        L"No WorkerW found.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+    return 1;
+}
+
+bool ToggleDesktopIcons(bool visibility, bool wholeHost, int* logging) {
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
     HWND hWndDesktop = NULL;
     if (hWndProgman) {
         hWndDesktop = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
         if (hWndDesktop && !wholeHost) {
             hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
-            //if (hWndDesktop) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside Program Manager", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+            if (hWndDesktop && *logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside Program Manager", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
         }
     }
     if (!hWndDesktop) {
@@ -227,14 +247,22 @@ bool ToggleDesktopIcons(bool visibility, bool wholeHost) {
             hWndDesktop = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
             if (hWndDesktop && !wholeHost) {
                 hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
-                //if (hWndDesktop) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside WorkerW", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-                //else TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Error", NULL, L"No SysListView32 found", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+                if (hWndDesktop && *logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside WorkerW", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
             }
+        }
+    }
+    if (!hWndDesktop) {
+        HWND hWorkerW = FindWindowExW(hWndProgman, NULL, L"WorkerW", NULL);
+        if (hWorkerW) hWndDesktop = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
+        if (hWndDesktop && !wholeHost) {
+            hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
+            if (hWndDesktop && *logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside WorkerW inside Program Manager", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
         }
     }
     if (hWndDesktop) {
         ShowWindow(hWndDesktop, visibility ? SW_SHOW : SW_HIDE);
         return true;
     }
+    else if (*logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Error", NULL, L"No SysListView32 found", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
     return false;
 }

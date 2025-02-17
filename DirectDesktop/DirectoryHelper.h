@@ -24,6 +24,7 @@ void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, D
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset, unsigned short limit = 65535);
-bool ToggleDesktopIcons(bool visibility, bool wholeHost);
+bool ToggleDesktopIcons(bool visibility, bool wholeHost, int* logging);
 HWND GetWorkerW();
-HWND GetWorkerW2();
+HWND GetWorkerW2(int* x, int* y);
+bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView, int* logging);

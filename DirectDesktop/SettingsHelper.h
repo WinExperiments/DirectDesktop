@@ -11,6 +11,8 @@ extern bool isColorized;
 extern Element* UIContainer;
 extern Edit* chooseColor;
 
+bool GetWindowsBuild(int build);
+
 void ToggleCheckbox(Element* elem, Event* iev);
 void ToggleShowHidden(Element* elem, Event* iev);
 void ToggleFilenameExts(Element* elem, Event* iev);
