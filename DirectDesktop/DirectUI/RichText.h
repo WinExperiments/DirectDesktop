@@ -2,96 +2,189 @@
 
 #include <dwrite.h>
 
-namespace DirectUI {
+struct RichTextCacheMetrics
+{
+	UINT sizeBytes;
+	UINT glyphRunCount;
+	UINT entryCount;
+};
 
-  struct UILIB_API RichText : public Element {
-  
-    static PropertyInfo * WINAPI BaselineProp(void);
-    static IClassInfo * WINAPI GetClassInfoPtr(void);
-    static PropertyInfo * WINAPI LineSpacingProp(void);
-    static PropertyInfo * WINAPI OverhangOffsetProp(void);
-    virtual HRESULT SetMaxLineCount(UINT);
-    static PropertyInfo * WINAPI TypographyProp(void);
-    static PropertyInfo * WINAPI AliasedRenderingProp(void);
-    static PropertyInfo * WINAPI ColorFontPaletteIndexProp(void);
-    static PropertyInfo * WINAPI ConstrainLayoutProp(void);
-    static PropertyInfo * WINAPI DisableAccTextExtendProp(void);
-    static PropertyInfo * WINAPI FontColorRunsProp(void);
-    static PropertyInfo * WINAPI FontSizeRunsProp(void);
-    static PropertyInfo * WINAPI FontWeightRunsProp(void);
-    virtual HRESULT GetColorFontPaletteIndex(void);
-    virtual HRESULT GetConstrainLayout(void);
-    static PropertyInfo * WINAPI LocaleProp(void);
-    static PropertyInfo * WINAPI MapRunsToClustersProp(void);
-    virtual void OnEvent(DirectUI::Event *);
-    virtual void Paint(HDC__ *,tagRECT const *,tagRECT const *,tagRECT *,tagRECT *);
-    static PropertyInfo * WINAPI TypographyRunsProp(void);
-    static PropertyInfo * WINAPI VerticalScriptProp(void);
-    HRESULT _EnsureLeadDrawOffsetIsSet(void);
-    HRESULT _FlushDWrite(void);
-    HRESULT _PrepareTextRender(void);
-    HRESULT _SetAcceleratorAccentIfAppropriate(void);
-    HRESULT _SetTypographyInternal(void);
-    HRESULT SetConstrainLayout(int);
-    HRESULT GetShortcutChar(void);
-    HRESULT SetAliasedRendering(bool);
-    HRESULT SetBaseline(int);
-    HRESULT SetColorFontPaletteIndex(int);
-    HRESULT SetDisableAccTextExtend(bool);
-    HRESULT SetFontColorRuns(USHORT const *);
-    HRESULT SetFontSizeRuns(USHORT const *);
-    HRESULT SetFontWeightRuns(USHORT const *);
-    HRESULT SetLineSpacing(int);
-    HRESULT SetLocale(USHORT const *);
-    HRESULT SetMapRunsToClusters(bool);
-    HRESULT SetOverhangOffset(int);
-    HRESULT SetTypography(USHORT const *);
-    HRESULT SetTypographyRuns(USHORT const *);
-    HRESULT SetVerticalScript(bool);
-    RichText(void);
-    virtual HRESULT CreateCache(UINT,struct IDUIRichTextCache * *);
-    virtual SIZE GetContentSize(int,int,DirectUI::Surface *);
-    virtual HRESULT GetFactory(void);
-    virtual HRESULT GetFontColorRuns(DirectUI::Value * *);
-    virtual HRESULT GetForegroundColorRef(ULONG *);
-    virtual HRESULT GetLineCount(void);
-    virtual HRESULT GetTrimmedLineCount(void);
-    virtual HRESULT GetVerticalScript(void);
-    virtual HRESULT Initialize(DirectUI::Element *,ULONG *);
-    virtual void OnHosted(DirectUI::Element *);
-    virtual void OnPropertyChanged(DirectUI::PropertyInfo const *,int,DirectUI::Value *,DirectUI::Value *);
-    virtual HRESULT SetCache(ULONG, struct IDUIRichTextCache *);
-    virtual HRESULT SetDWriteFontCollection(IDWriteFontCollection *);
-    virtual HRESULT SetDWriteTextLayout(IDWriteTextLayout *);
-    virtual HRESULT StopUsingCache(void);
-    virtual HRESULT _AdjustRangeForPathJoinCharacters(DWRITE_TEXT_RANGE *);
-    virtual HRESULT _ApplyDrawTextFlags(void);
-    virtual HRESULT _ApplyIntratextFormatting(void);
-    virtual HRESULT _BuildRenderStringForDWrite(USHORT const *,USHORT,bool);
-    virtual HRESULT _CreateDWriteLayout(tagRECT const *,DirectUI::Value *);
-    virtual HRESULT _EnsureTextFormat(void);
-    virtual HRESULT _GetDWFontSize(float,bool);
-    virtual HRESULT _GetDWFontWeight(void);
-    virtual HRESULT _GetDWMetrics(DWRITE_TEXT_METRICS *);
-    virtual HRESULT _GetDWOverhangMetrics(DWRITE_OVERHANG_METRICS *);
-    virtual HRESULT _GetDefaultOverhang(void);
-    virtual HRESULT _GetMinSizeWidth(void);
-    virtual HRESULT _GetScaledOverhangOffset(void);
-    virtual HRESULT _InitDWrite(void);
-    virtual HRESULT _PaintStringContentDWrite(HDC__ *,tagRECT const *,tagRECT const *,DirectUI::Value *);
-    virtual HRESULT _SetFontColorRun(USHORT const *,DWRITE_TEXT_RANGE);
-    virtual HRESULT _SetFontSizeRun(USHORT const *,DWRITE_TEXT_RANGE);
-    virtual HRESULT _SetFontSizeRunsInternal(void);
-    virtual HRESULT _SetFontWeightRun(USHORT const *,DWRITE_TEXT_RANGE);
-    virtual HRESULT _SetFontWeightRunsInternal(void);
-    virtual HRESULT _SetLineSpacingInternal(void);
-    virtual HRESULT _SetRangedStringRunsWithValue(USHORT const *,enum StringRunStyles);
-    virtual HRESULT _SetStrikethrough(void);
-    virtual HRESULT _SetTypographyRun(USHORT const *,DWRITE_TEXT_RANGE);
-    virtual HRESULT _SetTypographyRunsInternal(void);
-    virtual HRESULT _SetUnderline(void);
-    virtual HRESULT _UpdateRangeForClusterMetrics(DWRITE_TEXT_RANGE *);
+typedef void (CALLBACK *RichTextCacheEnumerateCallback)(DWORD, void*);
 
-  };
+MIDL_INTERFACE("a483cc92-093b-4e44-b39b-3fc767e2ffc6")
+IDUIRichTextCache : IUnknown
+{
+	virtual void STDMETHODCALLTYPE CalculateMetrics(RichTextCacheMetrics*) = 0;
+	virtual HRESULT STDMETHODCALLTYPE Clear() = 0;
+	virtual void STDMETHODCALLTYPE Enumerate(RichTextCacheEnumerateCallback, void*) = 0;
+	virtual HRESULT STDMETHODCALLTYPE Remove(DWORD) = 0;
+};
 
+namespace DirectUI
+{
+	class RichTextCache;
+	class RichTextShared;
+	class GdiTextRenderer;
+
+	enum StringRunStyles
+	{
+		RUN_FONTCOLOR = 0,
+		RUN_FONTSIZE = 1,
+		RUN_FONTWEIGHT = 2,
+		RUN_TYPOGRAPHY = 3,
+	};
+
+	class RichText : public Element
+	{
+	public:
+		UILIB_API static IClassInfo* WINAPI GetClassInfoPtr();
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
+
+	private:
+		static IClassInfo* s_pClassInfo;
+
+	public:
+		UILIB_API IClassInfo* GetClassInfoW() override;
+
+		UILIB_API RichText();
+		RichText(const RichText&) = default;
+
+		UILIB_API ~RichText() override;
+
+		UILIB_API static HRESULT WINAPI Register();
+		UILIB_API static HRESULT WINAPI Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+
+		UILIB_API HRESULT Initialize(Element* pParent, DWORD* pdwDeferCookie);
+
+		UILIB_API void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		UILIB_API void OnEvent(Event* pEvent) override;
+		UILIB_API void OnHosted(Element* peNew) override;
+		UILIB_API void Paint(HDC hDC, const RECT* prcBounds, const RECT* prcInvalid, RECT* prcSkipBorder, RECT* prcSkipContent) override;
+		UILIB_API SIZE GetContentSize(int pxConstW, int pxConstH, Surface* psrf) override;
+
+		UILIB_API static const PropertyInfo* WINAPI FontColorRunsProp();
+		UILIB_API static const PropertyInfo* WINAPI FontSizeRunsProp();
+		UILIB_API static const PropertyInfo* WINAPI FontWeightRunsProp();
+		UILIB_API static const PropertyInfo* WINAPI OverhangOffsetProp();
+		UILIB_API static const PropertyInfo* WINAPI TypographyProp();
+		UILIB_API static const PropertyInfo* WINAPI TypographyRunsProp();
+		UILIB_API static const PropertyInfo* WINAPI LocaleProp();
+		UILIB_API static const PropertyInfo* WINAPI BaselineProp();
+		UILIB_API static const PropertyInfo* WINAPI LineSpacingProp();
+		UILIB_API static const PropertyInfo* WINAPI AliasedRenderingProp();
+		UILIB_API static const PropertyInfo* WINAPI DisableAccTextExtendProp();
+		UILIB_API static const PropertyInfo* WINAPI MapRunsToClustersProp();
+		UILIB_API static const PropertyInfo* WINAPI VerticalScriptProp();
+		UILIB_API static const PropertyInfo* WINAPI ConstrainLayoutProp();
+		UILIB_API static const PropertyInfo* WINAPI ColorFontPaletteIndexProp();
+
+		const WCHAR* GetFontColorRuns(Value** ppv);
+		const WCHAR* GetFontSizeRuns(Value** ppv);
+		const WCHAR* GetFontWeightRuns(Value** ppv);
+		const WCHAR* GetTypography(Value** ppv);
+		const WCHAR* GetTypographyRuns(Value** ppv);
+		const WCHAR* GetLocale(Value** ppv);
+
+		int GetBaseline();
+		int GetLineSpacing();
+		int GetOverhangOffset();
+		bool GetAliasedRendering();
+		bool GetDisableAccTextExtend();
+		bool GetMapRunsToClusters();
+		bool GetVerticalScript();
+		int GetConstrainLayout();
+		int GetColorFontPaletteIndex();
+
+		UILIB_API HRESULT SetFontColorRuns(const WCHAR* v);
+		UILIB_API HRESULT SetFontSizeRuns(const WCHAR* v);
+		UILIB_API HRESULT SetFontWeightRuns(const WCHAR* v);
+		UILIB_API HRESULT SetTypography(const WCHAR* v);
+		UILIB_API HRESULT SetTypographyRuns(const WCHAR* v);
+		UILIB_API HRESULT SetLocale(const WCHAR* v);
+		UILIB_API HRESULT SetBaseline(int v);
+		UILIB_API HRESULT SetLineSpacing(int v);
+		UILIB_API HRESULT SetOverhangOffset(int v);
+		UILIB_API HRESULT SetAliasedRendering(bool v);
+		UILIB_API HRESULT SetDisableAccTextExtend(bool v);
+		UILIB_API HRESULT SetMapRunsToClusters(bool v);
+		UILIB_API HRESULT SetVerticalScript(bool v);
+		UILIB_API HRESULT SetConstrainLayout(int v);
+		UILIB_API HRESULT SetColorFontPaletteIndex(int v);
+
+		UILIB_API virtual HRESULT GetForegroundColorRef(COLORREF* pclrForeground);
+
+		// ReSharper disable once CppHidingFunction
+		UILIB_API WCHAR GetShortcutChar();
+		UILIB_API void SetDWriteTextLayout(IDWriteTextLayout* pdwTextLayout);
+		UILIB_API DWORD GetTrimmedLineCount();
+		UILIB_API DWORD GetLineCount();
+		UILIB_API IDWriteFactory* GetFactory();
+		UILIB_API void SetDWriteFontCollection(IDWriteFontCollection* pdwFontCollection);
+		UILIB_API void SetMaxLineCount(UINT cLinesMax);
+		UILIB_API static HRESULT WINAPI CreateCache(UINT cAverageNumberOfEntries, IDUIRichTextCache** ppCache);
+		UILIB_API void SetCache(DWORD dwKey, IDUIRichTextCache* pCache);
+		UILIB_API void StopUsingCache();
+
+	private:
+		HRESULT _SetRangedStringRunsWithValue(const WCHAR* pcszString, StringRunStyles iRunStyle);
+		void _AdjustRangeForPathJoinCharacters(DWRITE_TEXT_RANGE* prange);
+		void _UpdateRangeForClusterMetrics(DWRITE_TEXT_RANGE* prange);
+		HRESULT _SetFontColorRun(const WCHAR* pcszString, DWRITE_TEXT_RANGE range);
+		HRESULT _SetFontSizeRun(const WCHAR* pcszString, DWRITE_TEXT_RANGE range);
+		HRESULT _SetFontStretchRun(const WCHAR* pcszString, DWRITE_TEXT_RANGE range);
+		HRESULT _SetFontWeightRun(const WCHAR* pcszString, DWRITE_TEXT_RANGE range);
+		HRESULT _SetTypographyRun(const WCHAR* pcszString, DWRITE_TEXT_RANGE range);
+		HRESULT _SetInlineImageRun(const WCHAR* pcszString, DWRITE_TEXT_RANGE range);
+		HRESULT _SetFontColorRunsInternal();
+		HRESULT _SetFontSizeRunsInternal();
+		HRESULT _SetFontWeightRunsInternal();
+		HRESULT _SetStrikethrough();
+		HRESULT _SetTypographyInternal();
+		HRESULT _SetTypographyRunsInternal();
+		HRESULT _SetUnderline();
+		HRESULT _SetLineSpacingInternal();
+
+		int _nFontStyle;
+		int _nDrawRectLeadOffset;
+		int _fExternalDWriteLayout;
+		int _fHasStrikethrough;
+		int _fHasUnderline;
+		bool _fAcceleratorIsUnderlined;
+		bool _fCanReuseOverhangValues;
+		UINT _uiShortcutTextPosition;
+		WCHAR _chShortcutChar;
+		RECT _rcLayoutRect;
+		RECT _rcOverhangRect;
+		UINT _cLinesMax;
+		DWORD _dwCacheKey;
+		RichTextCache* _pCache;
+		RichTextShared* _pShared;
+		IDWriteFontCollection* _pDWFontCollection;
+		IDWriteTextFormat* _pDWTextFormat;
+		IDWriteTextLayout* _pDWLayout;
+		IDWriteInlineObject* _pDWEllipsisInlineObject;
+		GdiTextRenderer* _pDWTextRender;
+
+		DWRITE_FONT_WEIGHT _GetDWFontWeight();
+		DWRITE_FONT_STYLE _GetDWFontStyle();
+		float _GetDWFontSize(float flSize, bool fScaleByPlateau);
+		HRESULT _GetDWMetrics(DWRITE_TEXT_METRICS* pMetrics);
+		HRESULT _GetDWOverhangMetrics(DWRITE_OVERHANG_METRICS* pMetrics);
+		int _GetScaledOverhangOffset();
+		int _GetDefaultOverhang();
+		void _EnsureLeadDrawOffsetIsSet();
+		int _GetMinSizeWidth();
+		HRESULT _InitDWrite();
+		void _FlushDWrite();
+		UINT _GetTextHeight();
+		HRESULT _EnsureTextFormat();
+		HRESULT _ApplyDrawTextFlags();
+		HRESULT _ApplyIntratextFormatting();
+		void _SetAcceleratorAccentIfAppropriate();
+		HRESULT _CreateDWriteLayout(const RECT* prcContent, Value* pvContent);
+		HRESULT _EnsureDWriteLayout(const RECT* prcContent, Value* pvContent);
+		const WCHAR* _BuildRenderStringForDWrite(const WCHAR* pszSrc, WCHAR wcShortcut, bool fGluePaths);
+		void _PaintStringContentDWrite(HDC hDC, const RECT* prcContent, const RECT* prcInvalid, Value* pvContent);
+		void _PrepareTextRender();
+	};
 }

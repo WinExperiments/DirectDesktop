@@ -1,51 +1,66 @@
 #pragma once
 
+typedef class UID (WINAPI *UIDPROC)();
+
 class UID
 {
 public:
 	// user defined ctor
 	// to enable correct return by outptr sematics
 	// https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#return-values
-	UID() { }
+	UID() : _address(nullptr)
+	{
+	}
 
-	void *value{};
+	UID(const BYTE* address) : _address(address)
+	{
+	}
+
+	UID(UIDPROC proc) : _address(proc()._address)
+	{
+	}
+
+	const BYTE* _address;
 };
 
-inline bool operator==(UID id, UID( (*ev)(void))) {
-	UID z;
-	auto p = ev();
-	return id.value == p.value;
+inline bool operator==(const UID& lhs, const UID& rhs)
+{
+	return lhs._address == rhs._address;
 }
 
-struct GMA_ACTIONINFO
+inline bool operator==(const UID& lhs, const UIDPROC& rhs)
 {
+	return lhs._address == rhs()._address;
+}
 
-};
-
-typedef struct tagGMSG
-{
-} GMSG, *LPGMSG;
-
-
-DECLARE_HANDLE(HGADGET);
-
-struct EventMsg
-{
-
-};
-
+typedef int (CALLBACK *PfnUiaLookupId)(AutomationIdentifierType, const GUID*);
+typedef LRESULT (CALLBACK *PfnUiaReturnRawElementProvider)(HWND hwnd, WPARAM wParam, LPARAM lParam, IRawElementProviderSimple*);
+typedef HRESULT (CALLBACK *PfnUiaHostProviderFromHwnd)(HWND, IRawElementProviderSimple**);
+typedef HRESULT (CALLBACK *PfnUiaRaiseAutomationEvent)(IRawElementProviderSimple*, int);
+typedef HRESULT (CALLBACK *PfnUiaRaiseAutomationPropertyChangedEvent)(IRawElementProviderSimple*, int, VARIANT, VARIANT);
+typedef HRESULT (CALLBACK *PfnUiaRaiseStructureChangedEvent)(IRawElementProviderSimple*, StructureChangeType, int*, int);
 
 
 //forward declares
 namespace DirectUI
 {
-	typedef unsigned short UChar;
-	typedef UChar* UString;
-	typedef const unsigned short* UCString;
+	template <typename T, typename U>
+	struct _IsSame
+	{
+		static constexpr bool Value = false;
+	};
+
+	template <typename T>
+	struct _IsSame<T, T>
+	{
+		static constexpr bool Value = true;
+	};
+
+	static_assert(_IsSame<wchar_t, unsigned short>::Value, "Please enable \"Treat WChar_t As Built in Type\" in the project settings");
 
 
-
-	typedef class ProviderProxy* (__stdcall * ProviderProxyCall)(class Element *);
+	typedef class ProviderProxy* (CALLBACK *PfnCreateProxy)(class Element*);
+	typedef int MethodId;
 
 
 	struct ThemeChangedEvent
@@ -53,15 +68,21 @@ namespace DirectUI
 
 	};
 
-	struct KeyboardEvent
+	/*struct KeyboardEvent
 	{
 
-	};
+	};*/
 
 	struct CellInfo
 	{
 
 	};
+
+	class ElementProvider;
+	class InvokeHelper;
+	class Layout;
+	class Value;
+	struct PropertyInfo;
 
 	//// Misc
 	//class CritSecLock;

@@ -3,7 +3,7 @@
 namespace DirectUI
 {
 	class UILIB_API TableItemProvider
-		: public PatternProvider<TableItemProvider, ITableItemProvider, 10>
+		: public PatternProvider<TableItemProvider, ITableItemProvider, Schema::Pattern::TableItem>
 		, public ITableItemProvider
 	{
 	public:
@@ -12,7 +12,7 @@ namespace DirectUI
 
 		virtual unsigned long __stdcall AddRef(void);
 		virtual long __stdcall GetColumnHeaderItems(SAFEARRAY * *);
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 		virtual long __stdcall GetRowHeaderItems(SAFEARRAY * *);
 		virtual long __stdcall QueryInterface(GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);

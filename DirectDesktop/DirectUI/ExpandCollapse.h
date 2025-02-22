@@ -4,7 +4,7 @@ namespace DirectUI
 {
 
 	class UILIB_API ExpandCollapseProvider
-		: public PatternProvider<ExpandCollapseProvider, IExpandCollapseProvider,1>
+		: public PatternProvider<ExpandCollapseProvider, IExpandCollapseProvider, Schema::Pattern::ExpandCollapse>
 		, public IExpandCollapseProvider
 	{
 	public:
@@ -13,7 +13,7 @@ namespace DirectUI
 		virtual ~ExpandCollapseProvider(void);;
 
 
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 
 
 		//IUnknown

@@ -4,7 +4,7 @@
 #include "DirectoryHelper.h"
 
 void DesktopRightClick(Element* elem, Event* iev) {
-    if (iev->type == Button::Context) {
+    if (iev->uidType == Button::Context) {
 
         IShellView* pShellView = NULL;
         IContextMenu3* pContextMenu = NULL;
@@ -70,21 +70,21 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 globalshiconsz = 48;
                 globalgpiconsz = 32;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
-                InitLayout();
+                RearrangeIcons(true, true);
                 break;
             case 102:
                 globaliconsz = 48;
                 globalshiconsz = 32;
                 globalgpiconsz = 16;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
-                InitLayout();
+                RearrangeIcons(true, true);
                 break;
             case 103:
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
-                InitLayout();
+                RearrangeIcons(true, true);
                 break;
             case 105:
                 for (int items = 0; items < pm.size(); items++) {
@@ -108,7 +108,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
 }
 
 void ItemRightClick(Element* elem, Event* iev) {
-    if (iev->type == Button::Context)
+    if (iev->uidType == Button::Context)
     {
         for (int items = 0; items < pm.size(); items++) {
             if (pm[items].elem == elem) {

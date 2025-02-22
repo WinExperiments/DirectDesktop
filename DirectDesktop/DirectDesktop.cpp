@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "DirectUI/DirectUI.h"
+#include "DUser/DUser.h"
 #include "DirectDesktop.h"
 #include <string>
 #include "resource.h"
@@ -9,6 +10,7 @@
 #include <chrono>
 #include <cmath>
 #include <vector>
+#include <list>
 #include <WinUser.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
@@ -19,8 +21,11 @@
 #include "DirectoryHelper.h"
 #include "SettingsHelper.h"
 #include "ContextMenus.h"
-#include "Templates.h"
 #pragma comment (lib, "dwmapi.lib")
+#pragma comment (lib, "dui70.lib")
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "Shcore.lib")
+#pragma comment (lib, "DUser.lib")
 
 using namespace DirectUI;
 using namespace std;
@@ -42,7 +47,7 @@ Button* checkboxElem;
 Element* fullscreenpopup, *fullscreeninner;
 Button* fullscreenpopupbase, *centered;
 Button* emptyspace;
-Element* selector;
+Element* selector, *selector2;
 Element* dirnameanimator;
 Element* tasksanimator;
 Button* SimpleViewTop, *SimpleViewBottom;
@@ -50,6 +55,7 @@ TouchButton* SimpleViewSettings, *SimpleViewClose;
 TouchButton* PageTab1, *PageTab2;
 RichText* SubUIContainer;
 HRESULT err;
+HWND hWorkerW = NULL;
 
 int popupframe, dframe, tframe;
 vector<int> frame;
@@ -82,7 +88,7 @@ struct EventListener : public IElementListener {
 
     void OnListenerAttach(Element* elem) override { }
     void OnListenerDetach(Element* elem) override { }
-    bool OnPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override {
+    bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override {
         return true;
     }
     void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override {
@@ -104,7 +110,7 @@ struct EventListener2 : public IElementListener {
 
     void OnListenerAttach(Element* elem) override { }
     void OnListenerDetach(Element* elem) override { }
-    bool OnPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override {
+    bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override {
         return true;
     }
     void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override {
@@ -118,23 +124,23 @@ struct EventListener2 : public IElementListener {
 };
 
 Element* regElem(const wchar_t* elemName) {
-    Element* result = (Element*)pMain->FindDescendent(StrToID((UCString)elemName));
+    Element* result = (Element*)pMain->FindDescendent(StrToID(elemName));
     return result;
 }
 RichText* regRichText(const wchar_t* elemName) {
-    RichText* result = (RichText*)pMain->FindDescendent(StrToID((UCString)elemName));
+    RichText* result = (RichText*)pMain->FindDescendent(StrToID(elemName));
     return result;
 }
 Button* regBtn(const wchar_t* btnName) {
-    Button* result = (Button*)pMain->FindDescendent(StrToID((UCString)btnName));
+    Button* result = (Button*)pMain->FindDescendent(StrToID(btnName));
     return result;
 }
 TouchButton* regTouchBtn(const wchar_t* btnName) {
-    TouchButton* result = (TouchButton*)pMain->FindDescendent(StrToID((UCString)btnName));
+    TouchButton* result = (TouchButton*)pMain->FindDescendent(StrToID(btnName));
     return result;
 }
 Edit* regEdit(const wchar_t* editName) {
-    Edit* result = (Edit*)pMain->FindDescendent(StrToID((UCString)editName));
+    Edit* result = (Edit*)pMain->FindDescendent(StrToID(editName));
     return result;
 }
 void assignFn(Element* btnName, void(*fnName)(Element* elem, Event* iev)) {
@@ -174,7 +180,7 @@ void CubicBezier(const int frames, double px[], double py[], double x0, double y
 void SetTheme() {
     StyleSheet* sheet = pMain->GetSheet();
     Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-    parser->GetSheet((UCString)sheetName, &sheetStorage);
+    parser->GetSheet(sheetName, &sheetStorage);
     pMain->SetValue(Element::SheetProp, 1, sheetStorage);
     sheetStorage->Release();
 }
@@ -263,6 +269,8 @@ void ShowSimpleView() {
         fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
         centered->SetBackgroundStdColor(7);
         fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
+        bitmap->Release();
+        DeleteObject(hbmCapture);
     }
     else {
         fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
@@ -290,6 +298,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (wParam == SPI_SETWORKAREA) {
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
             SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+            SetWindowPos(hWorkerW, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+            RearrangeIcons(true, false);
         }
         break;
     }
@@ -339,7 +349,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, DT_END_ELLIPSIS);
         HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1);
+        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1.33);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
         filepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
@@ -370,18 +380,26 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (ppt.x >= origX) {
             selector->SetWidth(ppt.x - origX);
             selector->SetX(origX);
+            selector2->SetWidth(ppt.x - origX);
+            selector2->SetX(origX);
         }
         if (ppt.x < origX) {
             selector->SetWidth(origX - ppt.x);
             selector->SetX(ppt.x);
+            selector2->SetWidth(origX - ppt.x);
+            selector2->SetX(ppt.x);
         }
         if (ppt.y >= origY) {
             selector->SetHeight(ppt.y - origY);
             selector->SetY(origY);
+            selector2->SetHeight(ppt.y - origY);
+            selector2->SetY(origY);
         }
         if (ppt.y < origY) {
             selector->SetHeight(origY - ppt.y);
             selector->SetY(ppt.y);
+            selector2->SetHeight(origY - ppt.y);
+            selector2->SetY(ppt.y);
         }
         break;
     }
@@ -402,7 +420,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 8: {
-        parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
+        parser->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
         centered->Add((Element**)&fullscreeninner, 1);
         centered->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
         fullscreeninner->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
@@ -470,7 +488,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         for (int icon = 0; icon < pm.size(); icon++) {
             if (pm[icon].isDirectory == true && treatdirasgroup == true) {
                 int x = padding * flScaleFactor, y = padding * flScaleFactor;
-                iconpm[icon]->SetClass((UCString)L"groupthumbnail");
+                iconpm[icon]->DestroyAll(true);
+                iconpm[icon]->SetClass(L"groupthumbnail");
                 vector<parameters> dummypm;
                 vector<wstring> dummy, filenames;
                 EnumerateFolder((LPWSTR)pm[icon].filename.c_str(), &dummypm, &dummy, &filenames, 1, 4);
@@ -481,7 +500,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                     }
                     Value* vThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
                     Element* GroupedIcon;
-                    parser->CreateElement((UCString)L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
+                    parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
                     iconpm[icon]->Add((Element**)&GroupedIcon, 1);
                     GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz* flScaleFactor);
                     GroupedIcon->SetX(x), GroupedIcon->SetY(y);
@@ -593,7 +612,7 @@ void fullscreenAnimation(int width, int height) {
     //this_thread::sleep_for(chrono::milliseconds(80));
     fullscreenpopup->SetLayoutPos(4);
     fullscreenpopup->SetAlpha(255);
-    parser->CreateElement((UCString)L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
+    parser->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
     centered->SetMinSize(width, height);
     centered->SetBackgroundColor(0);
@@ -627,7 +646,7 @@ void HidePopupCore() {
 
 wstring bufferOpenInExplorer;
 void OpenGroupInExplorer(Element* elem, Event* iev) {
-    if (iev->type == TouchButton::Click) {
+    if (iev->uidType == TouchButton::Click) {
         SHELLEXECUTEINFOW execInfo = {};
         execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         execInfo.lpVerb = L"open";
@@ -707,7 +726,7 @@ void ApplyIcons(vector<parameters> pmLVItem, vector<Element*> pmIcon, vector<Ele
 }
 
 void SelectSubItem(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         SHELLEXECUTEINFOW execInfo = {};
         execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         execInfo.lpVerb = L"open";
@@ -724,10 +743,10 @@ void SelectSubItem(Element* elem, Event* iev) {
 void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
     Element* groupdirectory{};
-    parser->CreateElement((UCString)L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
+    parser->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
     fullscreeninner->Add((Element**)&groupdirectory, 1);
-    ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID((UCString)L"groupdirlist"));
-    SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID((UCString)L"SubUIContainer"));
+    ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID(L"groupdirlist"));
+    SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID(L"SubUIContainer"));
     vector<wstring> subfiles, ssss;
     EnumerateFolder((LPWSTR)filename, &subpm, &subfiles, &ssss, true);
     unsigned int count = subfiles.size();
@@ -751,12 +770,12 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
         HANDLE* animThreadHandle2 = new HANDLE[count];
         for (int i = 0; i < count; i++) {
             Button* outerElemGrouped;
-            parser->CreateElement((UCString)L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+            parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
             SubUIContainer->Add((Element**)&outerElemGrouped, 1);
-            iconElem = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElem"));
-            shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"shortcutElem"));
-            iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID((UCString)L"iconElemShadow"));
-            textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID((UCString)L"textElem"));
+            iconElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElem"));
+            shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"shortcutElem"));
+            iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElemShadow"));
+            textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID(L"textElem"));
             subpm[i].elem = outerElemGrouped, subpm[i].filename = ssss[i], subpm[i].simplefilename = subfiles[i];
             subiconpm[i] = iconElem;
             subshortpm[i] = shortcutElem;
@@ -768,7 +787,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
                 textElem->SetAlpha(128);
             }
             assignFn(outerElemGrouped, SelectSubItem);
-            outerElemGrouped->SetClass((UCString)L"singleclicked");
+            outerElemGrouped->SetClass(L"singleclicked");
         }
         ApplyIcons(subpm, subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons());
         for (int j = 0; j < count; j++) {
@@ -793,40 +812,40 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     }
     else {
         if (count > 128) {
-            SubUIContainer->SetContentString((UCString)L"This folder is too large.");
+            SubUIContainer->SetContentString(L"This folder is too large.");
         }
-        else SubUIContainer->SetContentString((UCString)L"This folder is empty.");
+        else SubUIContainer->SetContentString(L"This folder is empty.");
     }
-    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"dirnameanimator"));
-    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasksanimator"));
-    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID((UCString)L"dirname"));
-    dirname->SetContentString((UCString)simplefilename.c_str());
+    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
+    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
+    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirname"));
+    dirname->SetContentString(simplefilename.c_str());
     dirname->SetAlpha(255);
-    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID((UCString)L"tasks"));
+    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID(L"tasks"));
     checkifelemexists = true;
     DWORD animThread3;
     DWORD animThread4;
     HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
-    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"Customize"));
-    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID((UCString)L"OpenInExplorer"));
+    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"Customize"));
+    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"OpenInExplorer"));
     Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
     assignFn(OpenInExplorer, OpenGroupInExplorer);
     bufferOpenInExplorer = (wstring)filename;
 }
 
 void ShowPage1(Element* elem, Event* iev) {
-    if (iev->type == TouchButton::Click) {
+    if (iev->uidType == TouchButton::Click) {
         PageTab2->SetSelected(false);
         PageTab1->SetSelected(true);
         SubUIContainer->DestroyAll(true);
         Element* SettingsPage1;
-        parser->CreateElement((UCString)L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
+        parser->CreateElement(L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
         SubUIContainer->Add((Element**)&SettingsPage1, 1);
-        Button* ItemCheckboxes = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ItemCheckboxes"));
-        Button* ShowHiddenFiles = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"ShowHiddenFiles"));
-        Button* FilenameExts = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"FilenameExts"));
-        Button* TreatDirAsGroup = (Button*)SettingsPage1->FindDescendent(StrToID((UCString)L"TreatDirAsGroup"));
+        Button* ItemCheckboxes = (Button*)SettingsPage1->FindDescendent(StrToID(L"ItemCheckboxes"));
+        Button* ShowHiddenFiles = (Button*)SettingsPage1->FindDescendent(StrToID(L"ShowHiddenFiles"));
+        Button* FilenameExts = (Button*)SettingsPage1->FindDescendent(StrToID(L"FilenameExts"));
+        Button* TreatDirAsGroup = (Button*)SettingsPage1->FindDescendent(StrToID(L"TreatDirAsGroup"));
         ItemCheckboxes->SetSelected(showcheckboxes);
         if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden") == 1) ShowHiddenFiles->SetSelected(true);
         else ShowHiddenFiles->SetSelected(false);
@@ -839,23 +858,23 @@ void ShowPage1(Element* elem, Event* iev) {
     }
 }
 void ShowPage2(Element* elem, Event* iev) {
-    if (iev->type == TouchButton::Click) {
+    if (iev->uidType == TouchButton::Click) {
         PageTab1->SetSelected(false);
         PageTab2->SetSelected(true);
         SubUIContainer->DestroyAll(true);
         Element* SettingsPage2;
-        parser->CreateElement((UCString)L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
+        parser->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
         SubUIContainer->Add((Element**)&SettingsPage2, 1);
-        Button* EnableAccent = (Button*)SettingsPage2->FindDescendent(StrToID((UCString)L"EnableAccent"));
-        chooseColor = (Edit*)SettingsPage2->FindDescendent(StrToID((UCString)L"chooseColor"));
-        Button* ApplyColor = (Button*)SettingsPage2->FindDescendent(StrToID((UCString)L"ApplyColor"));
+        Button* EnableAccent = (Button*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
+        chooseColor = (Edit*)SettingsPage2->FindDescendent(StrToID(L"chooseColor"));
+        Button* ApplyColor = (Button*)SettingsPage2->FindDescendent(StrToID(L"ApplyColor"));
         EnableAccent->SetSelected(isColorized);
         assignFn(EnableAccent, ToggleAccentIcons);
         assignFn(ApplyColor, ApplySelectedColor);
     }
 }
 void ShowSettings(Element* elem, Event* iev) {
-    if (iev->type == TouchButton::Click) {
+    if (iev->uidType == TouchButton::Click) {
         fullscreenpopup->SetLayoutPos(-3);
         centered->DestroyAll(true);
         ShowPopupCore();
@@ -863,18 +882,18 @@ void ShowSettings(Element* elem, Event* iev) {
         SimpleViewBottom->SetLayoutPos(-3);
         issubviewopen = 1;
         Element* settingsview{};
-        parser->CreateElement((UCString)L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
+        parser->CreateElement(L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
         fullscreeninner->Add((Element**)&settingsview, 1);
-        ScrollViewer* settingslist = (ScrollViewer*)settingsview->FindDescendent(StrToID((UCString)L"settingslist"));
-        SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID((UCString)L"SubUIContainer"));
-        PageTab1 = (TouchButton*)settingsview->FindDescendent(StrToID((UCString)L"PageTab1"));
-        PageTab2 = (TouchButton*)settingsview->FindDescendent(StrToID((UCString)L"PageTab2"));
+        ScrollViewer* settingslist = (ScrollViewer*)settingsview->FindDescendent(StrToID(L"settingslist"));
+        SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID(L"SubUIContainer"));
+        PageTab1 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab1"));
+        PageTab2 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab2"));
         assignFn(PageTab1, ShowPage1);
         assignFn(PageTab2, ShowPage2);
         ShowPage1(elem, iev);
         CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
-        dirnameanimator = (Element*)settingsview->FindDescendent(StrToID((UCString)L"dirnameanimator"));
-        RichText* name = (RichText*)settingsview->FindDescendent(StrToID((UCString)L"name"));
+        dirnameanimator = (Element*)settingsview->FindDescendent(StrToID(L"dirnameanimator"));
+        RichText* name = (RichText*)settingsview->FindDescendent(StrToID(L"name"));
         name->SetAlpha(255);
         checkifelemexists = true;
         DWORD animThread3;
@@ -882,7 +901,7 @@ void ShowSettings(Element* elem, Event* iev) {
     }
 }
 void ExitWindow(Element* elem, Event* iev) {
-    if (iev->type == TouchButton::Click) {
+    if (iev->uidType == TouchButton::Click) {
         SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, NULL);
     }
 }
@@ -890,9 +909,9 @@ void ExitWindow(Element* elem, Event* iev) {
 Element* elemStorage;
 void SelectItem(Element* elem, Event* iev) {
     static int validation = 0;
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         validation++;
-        Button* checkbox = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));
+        Button* checkbox = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));
         if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 pm[items].elem->SetSelected(false);
@@ -918,8 +937,8 @@ void SelectItem(Element* elem, Event* iev) {
             if (pm[items].mem_isSelected != pm[items].elem->GetSelected()) {
                 float spacingInternal = CalcTextLines(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth());
                 int extraBottomSpacing = (pm[items].elem->GetSelected() == true) ? ceil(spacingInternal) * tm.tmHeight : floor(spacingInternal) *tm.tmHeight;
-                textElem = (RichText*)pm[items].elem->FindDescendent(StrToID((UCString)L"textElem"));
-                textElemShadow = (RichText*)pm[items].elem->FindDescendent(StrToID((UCString)L"textElemShadow"));
+                textElem = (RichText*)pm[items].elem->FindDescendent(StrToID(L"textElem"));
+                textElemShadow = (RichText*)pm[items].elem->FindDescendent(StrToID(L"textElemShadow"));
                 if (spacingInternal == 1.5) {
                     if (pm[items].elem->GetSelected() == true) pm[items].elem->SetHeight(pm[items].elem->GetHeight() + extraBottomSpacing * 0.5);
                     else pm[items].elem->SetHeight(pm[items].elem->GetHeight() - extraBottomSpacing);
@@ -929,7 +948,7 @@ void SelectItem(Element* elem, Event* iev) {
                 HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth() - 4 * flScaleFactor, extraBottomSpacing, DT_END_ELLIPSIS);
                 HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
                 IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1);
+                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1.33);
                 Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
                 Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
                 textElem->SetValue(Element::ContentProp, 1, bitmap);
@@ -956,7 +975,7 @@ void SelectItem(Element* elem, Event* iev) {
 }
 
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    checkboxElem = (Button*)elem->FindDescendent(StrToID((UCString)L"checkboxElem"));   
+    checkboxElem = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));   
     if (pProp == Element::MouseFocusedProp() && showcheckboxes == 1) {
         for (int items = 0; items < cbpm.size(); items++) {
             if (cbpm[items]->GetSelected() == false) cbpm[items]->SetVisible(false);
@@ -969,7 +988,7 @@ void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* 
     if (pProp == Element::MouseFocusedProp()) {
         Element* parent = elem->GetParent();
         Value* v = elem->GetValue(Element::MouseFocusedProp, 1, &u);
-        Element* item = parent->FindDescendent(StrToID((UCString)L"innerElem"));
+        Element* item = parent->FindDescendent(StrToID(L"innerElem"));
         //item->SetAlpha(255);
         item->SetValue(Element::MouseFocusedProp(), 1, v);
     }
@@ -988,6 +1007,8 @@ unsigned long UpdateMarqueeSelectorPosition(LPVOID lpParam) {
 void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2) {
     DWORD marqueeThread;
     HANDLE marqueeThreadHandle;
+    HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"SystemSettingsAdminFlows.exe"), MAKEINTRESOURCE(10), IMAGE_ICON, 16, 16, LR_SHARED);
+    HBITMAP selectorBmp = IconToBitmap(dummyi);
     if (pProp == Button::CapturedProp()) {
         POINT ppt;
         GetCursorPos(&ppt);
@@ -998,18 +1019,26 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
         selector->SetY(origY);
         selector->SetVisible(true);
         selector->SetLayoutPos(-2);
+        IterateBitmap(selectorBmp, SimpleBitmapPixelHandler, 3, 0, 0.33);
+        Value* selectorBmpV = DirectUI::Value::CreateGraphic(selectorBmp, 7, 0xffffffff, false, false, false);
+        selector2->SetValue(Element::BackgroundProp, 1, selectorBmpV);
+        selector2->SetVisible(true);
+        selector2->SetLayoutPos(-2);
         isPressed = 1;
         marqueeThreadHandle = CreateThread(0, 0, UpdateMarqueeSelectorPosition, NULL, 0, &marqueeThread);
+        selectorBmpV->Release();
     }
-    else if (GetAsyncKeyState(VK_LBUTTON) == 0) {
+    else if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
         selector->SetVisible(false);
         selector->SetLayoutPos(-3);
+        selector2->SetVisible(false);
+        selector2->SetLayoutPos(-3);
         isPressed = 0;
     }
 }
 
 void testEventListener3(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         switch (fullscreenpopup->GetAlpha()) {
         case 0:
             if (elem != fullscreenpopupbase) {
@@ -1023,6 +1052,42 @@ void testEventListener3(Element* elem, Event* iev) {
             break;
         }
     }
+}
+
+void RearrangeIcons(bool animation, bool reloadgroups) {
+    unsigned int count = pm.size();
+    static const int savedanim = pm[0].elem->GetAnimation();
+    ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
+    if (reloadgroups) {
+        DWORD dd;
+        HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
+    }
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
+    int x = 4 * flScaleFactor + dimensions.left, y = 4 * flScaleFactor + dimensions.top;
+    DWORD* animThread = new DWORD[count];
+    DWORD* animThread2 = new DWORD[count];
+    HANDLE* animThreadHandle = new HANDLE[count];
+    HANDLE* animThreadHandle2 = new HANDLE[count];
+    int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
+    int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
+    for (int j = 0; j < count; j++) {
+        if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
+        pm[j].x = x, pm[j].y = y;
+        yValue* yV = new yValue{ j };
+        yValue* yV2 = new yValue{ j };
+        y += outerSizeY;
+        if (y > dimensions.bottom - outerSizeY) {
+            y = 4 * flScaleFactor;
+            x += outerSizeX;
+        }
+        animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
+        animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
+    }
+    delete[] animThread;
+    delete[] animThread2;
+    delete[] animThreadHandle;
+    delete[] animThreadHandle2;
 }
 
 void InitLayout() {
@@ -1049,7 +1114,7 @@ void InitLayout() {
     unsigned int count{};
     count = files.size();
     Button* emptyspace;
-    parser->CreateElement((UCString)L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
+    parser->CreateElement(L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
     UIContainer->Add((Element**)&emptyspace, 1);
     assignFn(emptyspace, SelectItem);
     assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
@@ -1064,25 +1129,16 @@ void InitLayout() {
     filepm.resize(count);
     fileshadowpm.resize(count);
     cbpm.resize(count);
-    RECT dimensions;
-    GetClientRect(wnd->GetHWND(), &dimensions);
-    int x = 4 * flScaleFactor + dimensions.left, y = 4 * flScaleFactor + dimensions.top;
-    DWORD* animThread = new DWORD[count];
-    DWORD* animThread2 = new DWORD[count];
-    HANDLE* animThreadHandle = new HANDLE[count];
-    HANDLE* animThreadHandle2 = new HANDLE[count];
-    int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
-    int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
     for (int i = 0; i < count; i++) {
         Button* outerElem;
-        parser->CreateElement((UCString)L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
+        parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
         UIContainer->Add((Element**)&outerElem, 1);
-        iconElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElem"));
-        shortcutElem = (Element*)outerElem->FindDescendent(StrToID((UCString)L"shortcutElem"));
-        iconElemShadow = (Element*)outerElem->FindDescendent(StrToID((UCString)L"iconElemShadow"));
-        textElem = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElem"));
-        textElemShadow = (RichText*)outerElem->FindDescendent(StrToID((UCString)L"textElemShadow"));
-        checkboxElem = (Button*)outerElem->FindDescendent(StrToID((UCString)L"checkboxElem"));
+        iconElem = (Element*)outerElem->FindDescendent(StrToID(L"iconElem"));
+        shortcutElem = (Element*)outerElem->FindDescendent(StrToID(L"shortcutElem"));
+        iconElemShadow = (Element*)outerElem->FindDescendent(StrToID(L"iconElemShadow"));
+        textElem = (RichText*)outerElem->FindDescendent(StrToID(L"textElem"));
+        textElemShadow = (RichText*)outerElem->FindDescendent(StrToID(L"textElemShadow"));
+        checkboxElem = (Button*)outerElem->FindDescendent(StrToID(L"checkboxElem"));
         pm[i].elem = outerElem, pm[i].filename = filePaths[i], pm[i].simplefilename = files[i];
         iconpm[i] = iconElem;
         shortpm[i] = shortcutElem;
@@ -1101,33 +1157,15 @@ void InitLayout() {
         assignExtendedFn(outerElem, ShowCheckboxIfNeeded);
         assignExtendedFn(checkboxElem, CheckboxHandler);
         if (shellstate[4] >= 48 && shellstate[4] <= 63) {
-            outerElem->SetClass((UCString)L"doubleclicked");
-            //if (pm[i].isDirectory == true && treatdirasgroup == true) outerElem->SetClass((UCString)L"singleclicked");
+            outerElem->SetClass(L"doubleclicked");
+            //if (pm[i].isDirectory == true && treatdirasgroup == true) outerElem->SetClass(L"singleclicked");
         }
-        else outerElem->SetClass((UCString)L"singleclicked");
+        else outerElem->SetClass(L"singleclicked");
     }
-    ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
-    for (int j = 0; j < count; j++) {
-        pm[j].x = x, pm[j].y = y;
-        yValue* yV = new yValue{ j };
-        yValue* yV2 = new yValue{ j };
-        y += outerSizeY;
-        if (y > dimensions.bottom - outerSizeY) {
-            y = 4 * flScaleFactor;
-            x += outerSizeX;
-        }
-        animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
-        animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
-    }
+    RearrangeIcons(false, true);
     files.clear();
-    delete[] animThread;
-    delete[] animThread2;
-    delete[] animThreadHandle;
-    delete[] animThreadHandle2;
     delete[] cBuffer;
     delete[] secondaryPath;
-    DWORD dd;
-    HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -1141,8 +1179,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             L"DirectDesktop is already running", TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
         return 1;
     }
-    InitProcessPriv(14, NULL, 0, true);
-    InitThread(2);
+    InitProcessPriv(14, NULL, true, true, true);
+    InitThread(TSM_IMMERSIVE);
     RegisterAllControls();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
@@ -1154,7 +1192,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", NULL,
         L"Enable logging?", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-    HWND hWorkerW = NULL;
     HWND hSHELLDLL_DefView = NULL;
     int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
     if (hWndProgman) {
@@ -1180,7 +1217,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
         }
     }
-    NativeHWNDHost::Create((UCString)L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
+    NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
@@ -1199,6 +1236,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     HWND dummyHWnd;
     dummyHWnd = SetParent(wnd->GetHWND(), hSHELLDLL_DefView);
+    HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
+    SetClassLongPtrW(hWorkerW, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
+    SetClassLongPtrW(hSHELLDLL_DefView, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
+    SetClassLongPtrW(wnd->GetHWND(), GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
     if (logging == IDYES) {
         if (dummyHWnd) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
             L"DirectDesktop is now a part of Explorer.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
@@ -1206,7 +1247,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             L"DirectDesktop is still hosted in its own window.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
     }
 
-    parser->CreateElement((UCString)L"main", parent, NULL, NULL, &pMain);
+    parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
     pMain->SetVisible(true);
     pMain->EndDefer(key);
 
@@ -1220,6 +1261,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     fullscreenpopupbase = regBtn(L"fullscreenpopupbase");
     centered = regBtn(L"centered");
     selector = regElem(L"selector");
+    selector2 = regElem(L"selector2");
     SimpleViewTop = regBtn(L"SimpleViewTop");
     SimpleViewBottom = regBtn(L"SimpleViewBottom");
     SimpleViewSettings = regTouchBtn(L"SimpleViewSettings");

@@ -7,7 +7,7 @@ namespace DirectUI
 	public:
 		Edit(Edit const &);
 		Edit(void);
-		virtual ~Edit(void);
+		virtual ~Edit();
 		Edit & operator=(Edit const &);
 
 		static long __stdcall Create(unsigned int, Element *, unsigned long *, Element * *);
@@ -40,7 +40,7 @@ namespace DirectUI
 
 		virtual IClassInfo * GetClassInfoW(void);
 		virtual SIZE GetContentSize(int, int, Surface *);
-		virtual unsigned short const * GetContentStringAsDisplayed(Value * *);
+		virtual const WCHAR* GetContentStringAsDisplayed(Value * *);
 		virtual bool IsContentProtected(void);
 		virtual unsigned int MessageCallback(LPGMSG);
 		virtual void OnInput(InputEvent *);

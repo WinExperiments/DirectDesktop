@@ -221,7 +221,7 @@ bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWN
             L"Found WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
         if (*WindowsBuild > 26016) {
             SetParent(*hSHELLDLL_DefView, *hWorkerW);
-            SetParent(*hWorkerW, NULL);
+            //SetParent(*hWorkerW, NULL);
             if (*logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
                 L"Added DirectDesktop inside the new 24H2 WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
         }

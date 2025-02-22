@@ -2,13 +2,12 @@
 
 namespace DirectUI
 {
-	class UILIB_API ScrollViewer
-		: public BaseScrollViewer
+	class UILIB_API ScrollViewer : public BaseScrollViewer
 	{
 	public:
 		ScrollViewer(ScrollViewer const &);
-		ScrollViewer(void);
-		virtual ~ScrollViewer(void);
+		ScrollViewer();
+		~ScrollViewer() override;
 		ScrollViewer & operator=(ScrollViewer const &);
 
 		static long __stdcall Create(Element *, unsigned long *, Element * *);
@@ -17,7 +16,7 @@ namespace DirectUI
 		static void __stdcall SetClassInfoPtr(IClassInfo *);
 		
 		virtual IClassInfo * GetClassInfoW(void);
-		virtual void OnListenedPropertyChanged(Element *, PropertyInfo const *, int, Value *, Value *);
+		void OnListenedPropertyChanged(Element *, PropertyInfo const *, int, Value *, Value *) override;
 		virtual void OnPropertyChanged(PropertyInfo const *, int, Value *, Value *);
 	protected:
 		//1

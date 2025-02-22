@@ -76,7 +76,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     return hNewBitmap;
 }
 
-bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurradius, float alpha) // type: 0 = original, 1 = color, 2 = blur
+bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurradius, float alphaValue) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
 {
     BITMAP bm;
     GetObject(hbm, sizeof(bm), &bm);
@@ -113,7 +113,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
                 pPixel[2] = r;
                 pPixel[1] = g;
                 pPixel[0] = b;
-                a *= alpha;
+                a *= alphaValue;
                 if (a > 255) a = 255;
                 pPixel[3] = a;
 
@@ -139,7 +139,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
 
             for (x = 0; x < bm.bmWidth; x++)
             {
-                a = (pPixel[3] & 0xFFFFFF) * alpha;
+                a = (pPixel[3] & 0xFFFFFF);
 
                 handler(r, g, b, a);
 
@@ -163,7 +163,9 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
         else vResultBits = vBits;
         channel = 0;
         for (int alpha = 3; alpha < bmBits; alpha += 4) {
-            pBits[alpha] = vResultBits[channel++];
+            short tempAlpha = vResultBits[channel++] * alphaValue;
+            if (tempAlpha > 255) tempAlpha = 255;
+            pBits[alpha] = tempAlpha;
         }
 
         SetBitmapBits(hbm, bmBits, pBits);
@@ -231,6 +233,33 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
         vResultBitsG.clear();
         vResultBitsB.clear();
         vResultBitsA.clear();
+        break;
+    }
+    case 3: {
+        BYTE* pBits = new BYTE[bmBits];
+        GetBitmapBits(hbm, bmBits, pBits);
+
+        BYTE* pPixel;
+        int x, y;
+        int r, g, b, a;
+
+        for (y = 0; y < bm.bmHeight; y++)
+        {
+            pPixel = pBits + bm.bmWidth * 4 * y;
+
+            for (x = 0; x < bm.bmWidth; x++)
+            {
+                pPixel[2] = (int)(ImmersiveColor % 16777216);
+                pPixel[1] = (int)((ImmersiveColor / 256) % 65536);
+                pPixel[0] = (int)((ImmersiveColor / 65536) % 256);
+                pPixel[3] = 255 * alphaValue;
+
+                pPixel += 4;
+            }
+        }
+
+        SetBitmapBits(hbm, bmBits, pBits);
+        delete[] pBits;
         break;
     }
     }

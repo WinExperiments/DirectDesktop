@@ -18,7 +18,7 @@ namespace DirectUI
 		bool GetOptimizeMove();
 		bool GetTransparent();
 		long GetClientAccessibleImpl(IAccessible**);
-		long SetBackgroundOwnerID(UCString);
+		long SetBackgroundOwnerID(const WCHAR*);
 		long SetOptimizeMove(bool);
 		long SetTransparent(bool);
 
@@ -54,7 +54,7 @@ namespace DirectUI
 		//3
 		virtual bool OnNotify(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT*);
 		//4
-		virtual bool OnSysChar(UChar);
+		virtual bool OnSysChar(WCHAR);
 		//5
 		virtual bool OnSinkThemeChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT*);
 		//6
@@ -109,5 +109,25 @@ namespace DirectUI
 		void SyncColorsAndFonts();
 		void UnvirtualizePosition();
 		void _DeleteCtrlWnd();
+
+		bool _fHwndCreate;
+		bool _fSpecOptimizeMove;
+		bool _fMoveDeferred;
+		HWND _hwndCtrl;
+		HWND _hwndSink;
+		LRESULT (CALLBACK *_pfnCtrlOrgProc)(HWND, UINT, WPARAM, LPARAM);
+		HWND _hwndAccName;
+		BOOL _fCtrlAttached;
+		RECT _rcBounds;
+		HFONT _hFont;
+		COLORREF _crBkColor;
+		HBRUSH _hBkBrush;
+		COLORREF _crForegroundColor;
+		bool _fForegroundColorSet;
+		UINT _nCreate;
+		int _cAnimate;
+		bool _fSentMouseWheel;
+		bool _fHandledMouseWheel;
+		DirectUI::DuiAccessible *_pClientAccessible;
 	};
 }

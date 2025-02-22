@@ -10,40 +10,40 @@ Element* UIContainer;
 Edit* chooseColor;
 
 void ToggleCheckbox(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         showcheckboxes = !showcheckboxes;
         elem->SetSelected(!elem->GetSelected());
         SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect", showcheckboxes);
     }
 }
 void ToggleShowHidden(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         elem->SetSelected(!elem->GetSelected());
         SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden", (!elem->GetSelected() + 1));
     }
 }
 void ToggleFilenameExts(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         elem->SetSelected(!elem->GetSelected());
         SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt", elem->GetSelected());
     }
 }
 void ToggleGroupMode(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         treatdirasgroup = !treatdirasgroup;
         elem->SetSelected(!elem->GetSelected());
     }
 }
 void ToggleAccentIcons(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         isColorized = !isColorized;
         elem->SetSelected(!elem->GetSelected());
     }
 }
 void ApplySelectedColor(Element* elem, Event* iev) {
-    if (iev->type == Button::Click) {
+    if (iev->uidType == Button::Click) {
         Value* v;
-        UCString colorID = chooseColor->GetContentString(&v);
-        UIContainer->SetBackgroundStdColor(_wtoi((wchar_t*)colorID));
+        const wchar_t* colorID = chooseColor->GetContentString(&v);
+        UIContainer->SetBackgroundStdColor(_wtoi(colorID));
     }
 }

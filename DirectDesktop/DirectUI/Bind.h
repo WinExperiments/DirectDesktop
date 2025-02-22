@@ -19,11 +19,11 @@ namespace DirectUI
 
 		virtual IClassInfo * GetClassInfoW(void);
 
-		UCString GetConnect(Value * *);
-		UCString GetProperty(Value * *);
+		const WCHAR* GetConnect(Value * *);
+		const WCHAR* GetProperty(Value * *);
 		long Initialize(Element *, unsigned long *);
-		long SetConnect(UCString);
-		long SetProperty(UCString);
+		long SetConnect(const WCHAR*);
+		long SetProperty(const WCHAR*);
 	private:
 		static IClassInfo* s_pClassInfo;
 	};

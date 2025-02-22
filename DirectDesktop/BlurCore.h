@@ -104,7 +104,7 @@ void ToggleAcrylicBlur(HWND hwnd, bool blur) {
 
         if (SetWindowCompositionAttribute) {
             ACCENT_STATE as = blur ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
-            int blurcolor = theme ? 0x20E0E0E0 : 0x00000000;
+            int blurcolor = 0x00000000;
             ACCENT_POLICY policy = { as, 0, blurcolor, 0 };
             WINDOWCOMPOSITIONATTRIBDATA data = { 19, &policy, sizeof(ACCENT_POLICY) };
             SetWindowCompositionAttribute(hwnd, &data);

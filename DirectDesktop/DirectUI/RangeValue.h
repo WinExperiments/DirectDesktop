@@ -3,7 +3,7 @@
 namespace DirectUI
 {
 	class UILIB_API RangeValueProvider
-		: public PatternProvider<RangeValueProvider, IRangeValueProvider, 4>
+		: public PatternProvider<RangeValueProvider, IRangeValueProvider, Schema::Pattern::RangeValue>
 		, public IRangeValueProvider
 	{
 	public:
@@ -11,7 +11,7 @@ namespace DirectUI
 		virtual ~RangeValueProvider(void);
 
 		virtual unsigned long __stdcall AddRef(void);
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 		virtual long __stdcall QueryInterface(GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);
 		virtual long __stdcall SetValue(double);

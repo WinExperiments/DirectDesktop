@@ -3,14 +3,14 @@
 namespace DirectUI
 {
 	class UILIB_API ToggleProvider
-		: public PatternProvider<ToggleProvider, IToggleProvider, 11>
+		: public PatternProvider<ToggleProvider, IToggleProvider, Schema::Pattern::Toggle>
 		, public IToggleProvider
 	{
 	public:
 		ToggleProvider(void);
 		virtual ~ToggleProvider(void);
 		virtual unsigned long __stdcall AddRef(void);
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 		virtual long __stdcall QueryInterface(GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);
 		virtual long __stdcall Toggle(void);

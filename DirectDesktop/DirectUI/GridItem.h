@@ -3,7 +3,7 @@
 namespace DirectUI
 {
 	class UILIB_API GridItemProvider
-		: PatternProvider<GridItemProvider, IGridItemProvider, 2>
+		: public PatternProvider<GridItemProvider, IGridItemProvider, Schema::Pattern::GridItem>
 		, public IGridItemProvider
 	{
 	public:
@@ -11,7 +11,7 @@ namespace DirectUI
 		virtual ~GridItemProvider(void);
 
 		virtual unsigned long __stdcall AddRef(void);
-		virtual ProviderProxyCall GetProxyCreator(void);;
+		virtual PfnCreateProxy GetProxyCreator(void);;
 		virtual long __stdcall QueryInterface(GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);
 		virtual long __stdcall get_Column(int *);

@@ -2,71 +2,14 @@
 
 namespace DirectUI
 {
-	class UILIB_API ClassInfoBase //: IClassInfo
-	{
-	public:
-		ClassInfoBase(ClassInfoBase const &);
-		ClassInfoBase();
-		ClassInfoBase & operator=(ClassInfoBase const &);
-
-		//0
-		virtual void AddRef();
-		//1
-		virtual int Release();
-
-		//2
-		virtual HRESULT WINAPI CreateInstance(Element*, unsigned long*, Element** ) = 0;
-
-		//3
-		virtual const PropertyInfo* EnumPropertyInfo(unsigned int);
-		//4
-		virtual const PropertyInfo* GetByClassIndex(unsigned int);
-		//5
-		virtual unsigned int GetPICount() const;
-		//6
-		virtual unsigned int GetGlobalIndex() const;
-
-		//NULL
-		virtual IClassInfo* WINAPI GetBaseClass() = 0;
-
-		//6
-		virtual UCString GetName() const;
-		//7
-		virtual bool IsValidProperty(const PropertyInfo*) const;
-		//8
-		virtual bool IsSubclassOf(IClassInfo*) const;
-		//9
-		virtual void Destroy();
-		//10
-		virtual HINSTANCE GetModule() const;
-		//11
-		virtual bool IsGlobal() const;
-
-		//12
-		virtual void AddChild();
-		//13
-		virtual void RemoveChild();
-		//14
-		virtual int GetChildren() const;
-		//15
-		virtual void AssertPIZeroRef() const;
-
-		virtual ~ClassInfoBase() ;
-
-		static bool WINAPI ClassExist(IClassInfo**, const PropertyInfo* const*, unsigned int, IClassInfo*, HINSTANCE, UCString, bool);
-		long Initialize(HINSTANCE, UCString name, bool hasPropertyInfo, const PropertyInfo* const* properties, unsigned int properties_count);
-		long Register();
-	//private:
-		char data[0x10];
-	};
-
+	class Viewer;
 
 	class UILIB_API BaseScrollBar
 	{
 	public:
-		BaseScrollBar(BaseScrollBar const &);
+		BaseScrollBar(BaseScrollBar const&);
 		BaseScrollBar();
-		BaseScrollBar & operator=(BaseScrollBar const &);
+		BaseScrollBar& operator=(BaseScrollBar const&);
 		//0
 		virtual Element* GetElement() = 0;
 		//1
@@ -114,87 +57,91 @@ namespace DirectUI
 		bool OnPositionChanging(Value*);
 		static UID WINAPI Scroll();
 		void SetPinned(bool);
+
 	private:
 		int GetPageInc();
 	};
 
-	class UILIB_API BaseScrollViewer : public Element, public IElementListener
+	class UILIB_API BaseScrollViewer
+		: public Element
+		, public IElementListener
 	{
 	public:
-		BaseScrollViewer(BaseScrollViewer const &);
 		BaseScrollViewer();
-		//0
-		virtual ~BaseScrollViewer();
-		BaseScrollViewer & operator=(BaseScrollViewer const &);
+		BaseScrollViewer(const BaseScrollViewer&) = default;
 
-		long Initialize(Element*, unsigned long*);
+		~BaseScrollViewer() override;
 
-		//1
-		virtual bool OnListenedPropertyChanging(Element*, const PropertyInfo*, int, Value*, Value*);
+		// ReSharper disable once CppHiddenFunction
+		HRESULT Initialize(Element* pParent, DWORD* pdwDeferCookie);
 
-		//2
-		virtual void OnPropertyChanged(const PropertyInfo*, int, Value*, Value*);
+		void OnEvent(Event* pEvent) override;
+		void OnInput(InputEvent* pie) override;
+		bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		HRESULT Add(Element** ppe, UINT cCount) override;
 
-		//3
-		virtual void OnInput(InputEvent*);
+		//~ Begin DirectUI::IElementListener Interface
+		void OnListenerAttach(Element* peFrom) override;
+		void OnListenerDetach(Element* peFrom) override;
+		bool OnListenedPropertyChanging(Element* peFrom, const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		void OnListenedPropertyChanged(Element* peFrom, const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		void OnListenedInput(Element* peFrom, InputEvent* pInput) override;
+		void OnListenedEvent(Element* peFrom, Event* pEvent) override;
+		//~ End DirectUI::IElementListener Interface
 
-		//4
-		virtual void OnEvent(Event*);
+		static const PropertyInfo* WINAPI XOffsetProp();
+		static const PropertyInfo* WINAPI YOffsetProp();
+		static const PropertyInfo* WINAPI XScrollableProp();
+		static const PropertyInfo* WINAPI YScrollableProp();
+		static const PropertyInfo* WINAPI XBarVisibilityProp();
+		static const PropertyInfo* WINAPI YBarVisibilityProp();
+		static const PropertyInfo* WINAPI PinningProp();
 
-		//5
-		virtual long Add(Element**, unsigned int);
-
-		//6
-		virtual IClassInfo* GetClassInfoW();
-		int GetPinning();
-		int GetXBarVisibility();
 		int GetXOffset();
-		bool GetXScrollable();
-		int GetYBarVisibility();
 		int GetYOffset();
+		bool GetXScrollable();
 		bool GetYScrollable();
-
-		//第二个类虚函数表
-		//0
-		virtual void OnListenerAttach(Element*);
-		//1
-		virtual void OnListenerDetach(Element*);
-		//2
-		virtual bool OnPropertyChanging(const PropertyInfo*, int, Value*, Value*);
-		//3
-		virtual void OnListenedPropertyChanged(Element*, const PropertyInfo*, int, Value*, Value*);
-		//4
-		virtual void OnListenedEvent(Element*, Event*);
-		//5
-		virtual void OnListenedInput(Element*, InputEvent*);
-
-
-		long SetPinning(int);
-		long SetXBarVisibility(int);
-		long SetXOffset(int);
-		long SetXScrollable(bool);
-		long SetYBarVisibility(int);
-		long SetYOffset(int);
-		long SetYScrollable(bool);
+		int GetXBarVisibility();
+		int GetYBarVisibility();
+		int GetPinning();
+		int GetXScrollHeight();
+		int GetYScrollWidth();
+		HRESULT SetXOffset(int v);
+		HRESULT SetYOffset(int v);
+		HRESULT SetXScrollable(bool v);
+		HRESULT SetYScrollable(bool v);
+		HRESULT SetXBarVisibility(int v);
+		HRESULT SetYBarVisibility(int v);
+		HRESULT SetPinning(int v);
 
 		static IClassInfo* WINAPI GetClassInfoPtr();
-
-		static long WINAPI Register();
-		static void WINAPI SetClassInfoPtr(IClassInfo*);
-
-		static const PropertyInfo* WINAPI PinningProp();
-		static const PropertyInfo* WINAPI XBarVisibilityProp();
-		static const PropertyInfo* WINAPI XOffsetProp();
-		static const PropertyInfo* WINAPI XScrollableProp();
-		static const PropertyInfo* WINAPI YBarVisibilityProp();
-		static const PropertyInfo* WINAPI YOffsetProp();
-		static const PropertyInfo* WINAPI YScrollableProp();
-	
-	protected:
-		void FireAnimationChangeEvent(bool);
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
 
 	private:
-		void CheckScroll(BaseScrollBar*, int, int, int);
 		static IClassInfo* s_pClassInfo;
+
+	public:
+		IClassInfo* GetClassInfoW() override;
+
+		static HRESULT WINAPI Register();
+
+	protected:
+		Viewer* _peViewer;
+		Element* _peContent;
+		int _iLastLayoutPassShown;
+		int _cLastLayoutPassShownCount;
+
+		virtual HRESULT CreateScrollBars() = 0;
+		virtual HRESULT AddChildren() = 0;
+		virtual BaseScrollBar* GetHScroll() = 0;
+		virtual BaseScrollBar* GetVScroll() = 0;
+
+		void FireAnimationChangeEvent(bool fStart);
+
+	private:
+		int _iMouseWheelDeltaCarryOver;
+
+		void CheckScroll(BaseScrollBar* psb, BOOL fScrollable, int iVisibility, BOOL fPreventLoop);
 	};
 }

@@ -17,7 +17,7 @@ namespace DirectUI
 
 		virtual ~DuiAccessible();
 		
-		void Initialize(Element*);
+		void Initialize(Element* pe);
 		static HRESULT WINAPI Create(Element*, DuiAccessible**);
 		static Element* WINAPI GetAccessibleParent(Element*);
 		static HRESULT WINAPI AccNavigate(Element*, long, Element**);
@@ -25,34 +25,34 @@ namespace DirectUI
 		virtual HRESULT Disconnect(void);
 
 		// IUnknown
-		virtual HRESULT WINAPI QueryInterface(REFIID riid, void**ppvObject);
-		virtual ULONG WINAPI AddRef();
-		virtual ULONG WINAPI Release();
+		STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override;
+		STDMETHODIMP_(ULONG) AddRef() override;
+		STDMETHODIMP_(ULONG) Release() override;
 		
 		// IDispatch
-		virtual HRESULT WINAPI GetTypeInfoCount(UINT*pctinfo);
-		virtual HRESULT WINAPI GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo**ppTInfo );
-		virtual HRESULT WINAPI GetIDsOfNames(REFIID riid, LPOLESTR*rgszNames, UINT cNames, LCID lcid, DISPID*rgDispId);	
-		virtual HRESULT WINAPI Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS*pDispParams, VARIANT*pVarResult, EXCEPINFO*pExcepInfo, UINT*puArgErr);
+		STDMETHODIMP GetTypeInfoCount(UINT* pctinfo) override;
+		STDMETHODIMP GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo ) override;
+		STDMETHODIMP GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId) override;	
+		STDMETHODIMP Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override;
 		
 		// IAccIdentity
-		virtual HRESULT WINAPI GetIdentityString(DWORD dwIDChild, BYTE**ppIDString, DWORD*pdwIDStringLen);
+		STDMETHODIMP GetIdentityString(DWORD dwIDChild, BYTE** ppIDString, DWORD* pdwIDStringLen) override;
 		
 		// IAccessible
-		virtual HRESULT WINAPI get_accParent(IDispatch**);
-		virtual HRESULT WINAPI get_accChildCount(long*);
-		virtual HRESULT WINAPI get_accChild(VARIANT, IDispatch**);
-		virtual HRESULT WINAPI get_accName(VARIANT, BSTR*);
-		virtual HRESULT WINAPI get_accValue(VARIANT, BSTR*);
-		virtual HRESULT WINAPI get_accDescription(VARIANT, BSTR*);
-		virtual HRESULT WINAPI get_accRole(VARIANT, VARIANT*);
-		virtual HRESULT WINAPI get_accState(VARIANT, VARIANT*);
-		virtual HRESULT WINAPI get_accHelp(VARIANT, BSTR*);
-		virtual HRESULT WINAPI get_accHelpTopic(BSTR*, VARIANT, long*);
-		virtual HRESULT WINAPI get_accKeyboardShortcut(VARIANT, BSTR*);
-		virtual HRESULT WINAPI get_accFocus(VARIANT*);
-		virtual HRESULT WINAPI get_accSelection(VARIANT*);
-		virtual HRESULT WINAPI get_accDefaultAction(VARIANT, BSTR*);
+		STDMETHODIMP get_accParent(IDispatch** ppdispParent) override;
+		STDMETHODIMP get_accChildCount(long* pcountChildren) override;
+		STDMETHODIMP get_accChild(VARIANT varChild, IDispatch** ppdispChild) override;
+		STDMETHODIMP get_accName(VARIANT varChild, BSTR* pszName) override;
+		STDMETHODIMP get_accValue(VARIANT varChild, BSTR* pszValue) override;
+		STDMETHODIMP get_accDescription(VARIANT varChild, BSTR* pszDescription) override;
+		STDMETHODIMP get_accRole(VARIANT varChild, VARIANT* pvarRole) override;
+		STDMETHODIMP get_accState(VARIANT varChild, VARIANT* pvarState) override;
+		STDMETHODIMP get_accHelp(VARIANT varChild, BSTR* pszHelp) override;
+		STDMETHODIMP get_accHelpTopic(BSTR* pszHelpFile, VARIANT varChild, long* pidTopic) override;
+		STDMETHODIMP get_accKeyboardShortcut(VARIANT varChild, BSTR* pszKeyboardShortcut) override;
+		STDMETHODIMP get_accFocus(VARIANT* pvarChild) override;
+		STDMETHODIMP get_accSelection(VARIANT* pvarChildren) override;
+		STDMETHODIMP get_accDefaultAction(VARIANT varChild, BSTR* pszDefaultAction) override;
 		
 		virtual HRESULT WINAPI accSelect(long flagsSelect, VARIANT varID);
 		virtual HRESULT WINAPI accLocation(long*pxLeft, long*pyTop, long*pcxWidth, long*pcyHeight, VARIANT varID);

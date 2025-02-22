@@ -3,7 +3,7 @@
 namespace DirectUI
 {
 	class UILIB_API SelectionProvider
-		: public PatternProvider<SelectionProvider, ISelectionProvider, 8>
+		: public PatternProvider<SelectionProvider, ISelectionProvider, Schema::Pattern::Selection>
 		, public ISelectionProvider
 	{
 	public:
@@ -11,7 +11,7 @@ namespace DirectUI
 		virtual ~SelectionProvider(void);
 
 		virtual unsigned long __stdcall AddRef(void);
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 		virtual long __stdcall GetSelection(SAFEARRAY * *);
 		virtual long __stdcall QueryInterface(GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);

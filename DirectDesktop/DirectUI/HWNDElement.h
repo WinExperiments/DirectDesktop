@@ -25,7 +25,7 @@ namespace DirectUI
 		virtual void UpdateTooltip(Element*);
 
 		//6
-		virtual void ActivateTooltip(Element*, unsigned long);
+		virtual void ActivateTooltip(Element*, DWORD);
 		//7
 		virtual void RemoveTooltip(Element*);
 
@@ -41,6 +41,7 @@ namespace DirectUI
 
 		//11
 		virtual void OnThemeChanged(ThemeChangedEvent*);
+		virtual void OnImmersiveColorSchemeChanged();
 
 		//12
 		virtual void OnNoChildWithShortcutFound(KeyboardEvent*);
@@ -49,11 +50,13 @@ namespace DirectUI
 		virtual void OnGetDlgCode(LPMSG, LRESULT*);
 		//14
 		virtual void OnWmThemeChanged(WPARAM wParam, LPARAM lParam);
+		virtual void OnWmSettingChanged(WPARAM wParam, LPARAM lParam);
 		//15
 		virtual void OnCompositionChanged();
 
 		//16
 		virtual bool CanSetFocus();
+		virtual bool IsMSAAEnabled();
 
 		static UID WINAPI CompositionChange();
 		static HRESULT WINAPI Create(HWND, bool, unsigned int, Element*, unsigned long*, Element**pOut);
@@ -93,12 +96,27 @@ namespace DirectUI
 		static LRESULT WINAPI StaticWndProc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		//18
 		virtual LRESULT WndProc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		virtual void GetWindowClassNameAndStyle(const unsigned short**, UINT*);
 
 	protected:
+		virtual void _OnUIStateChanged(WORD, WORD);
 		static bool WINAPI FindShortcutRecursive(unsigned short, Element*, Element**, int*, int*, int);
 
 	private:
 		static IClassInfo* s_pClassInfo;
+
+	protected:
+		HWND _hWnd;
+		HWND _hWndTooltip;
+		HPALETTE _hPal;
+		bool _bParentSizeControl;
+		bool _bScreenCenter;
+		WORD _wUIState;
+		Element* _peDeepTouchElement; // @WARNING: NEW SOMEWHERE IN 10
+		Element* _peLastTrackingTooltip;
+		bool _bMouseTrackTooltip;
+		bool _bTooltipVisible;
+		DWORD _dwTooltipHiddenTime;
 	};
 
 	class UILIB_API HWNDElementProvider
@@ -117,7 +135,7 @@ namespace DirectUI
 		virtual long __stdcall QueryInterface(struct _GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);
 
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 
 		//IRawElementProviderFragmentRoot
 		//1

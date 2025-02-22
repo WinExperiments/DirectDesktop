@@ -6,9 +6,10 @@
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 
 				</Element>
-				<Element id="atom(selector)" class="selector" layoutpos="none" animation="alpha|s|mediumfast" background="themeable(20066, hotlight)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
+				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
+				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
 				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
-					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false">
+					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>
 					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" minsize="size(0,128rp)" background="argb(0,0,0,0)">
@@ -35,7 +36,7 @@
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
-	<Button resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
+	<Button resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" animation="position|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp"/>
@@ -44,7 +45,7 @@
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
 		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
 	</Button>
-	<Button resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" alpha="255" animation="alpha|s|fast">
+	<Button resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<Element id="atom(iconElem)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp"/>

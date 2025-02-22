@@ -9,6 +9,7 @@ using namespace DirectUI;
 
 extern void InitLayout();
 extern void ShowSimpleView();
+extern void RearrangeIcons(bool animation, bool reloadgroups);
 extern bool hiddenIcons;
 extern int globaliconsz, globalshiconsz, globalgpiconsz;
 extern NativeHWNDHost* wnd;

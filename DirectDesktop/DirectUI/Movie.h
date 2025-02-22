@@ -36,12 +36,12 @@ namespace DirectUI
 		int GetCompositingQuality();
 		bool GetDrawOutlines();
 		int GetInterpolationMode();
-		UCString GetPath(Value**);
+		const WCHAR* GetPath(Value**);
 		int GetPixelOffsetMode();
 		bool GetPlayAllFramesMode();
 		bool GetRepeat();
 		int GetSmoothingMode();
-		HRESULT LoadFromPath(UCString);
+		HRESULT LoadFromPath(const WCHAR*);
 		HRESULT LoadFromResource(HINSTANCE, int);
 		void Pause();
 		void Play();
@@ -52,7 +52,7 @@ namespace DirectUI
 		long SetCompositingQuality(int);
 		long SetDrawOutlines(bool);
 		long SetInterpolationMode(int);
-		long SetPath(UCString);
+		long SetPath(const WCHAR*);
 		long SetPixelOffsetMode(int);
 		long SetPlayAllFramesMode(bool);
 		long SetRepeat(bool);

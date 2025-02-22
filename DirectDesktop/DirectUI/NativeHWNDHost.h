@@ -2,45 +2,52 @@
 
 namespace DirectUI
 {
-
 	class UILIB_API NativeHWNDHost
 	{
 	public:
-		NativeHWNDHost(const NativeHWNDHost&);
-		NativeHWNDHost();
-		virtual ~NativeHWNDHost();
+		static UINT WINAPI DestroyMsg();
 
-		static LRESULT WINAPI WndProc(HWND, UINT, WPARAM, LPARAM);
-		NativeHWNDHost& operator=(const NativeHWNDHost&);
-		static UINT WINAPI AsyncDestroyMsg();
-
-		static HRESULT WINAPI Create(UCString lpClassName, UCString lpWindowName, HWND hWndParent, HICON hIcon, int x, int y, int nWidth, int nHeight, int dwExStyle, int dwStyle, HINSTANCE, UINT, NativeHWNDHost**out);
-		static HRESULT WINAPI Create(UCString lpWindowName, HWND hWndParent, HICON hIcon, int x, int y, int nWidth, int nHeight, int dwExStyle, int dwStyle, unsigned int, NativeHWNDHost**out);
+		static HRESULT WINAPI Create(const WCHAR* pszTitle, HWND hWndParent, HICON hIcon, int dX, int dY, int dWidth, int dHeight, int iExStyle, int iStyle, UINT nOptions, NativeHWNDHost** ppHost);
+		static HRESULT WINAPI Create(const WCHAR* pszClassName, const WCHAR* pszTitle, HWND hWndParent, HICON hIcon, int dX, int dY, int dWidth, int dHeight, int iExStyle, int iStyle, HINSTANCE hInstance, UINT nOptions, NativeHWNDHost** ppHost);
 
 		void Destroy();
-		void DestroyWindow();
 
-		class Element* GetElement();
 		HWND GetHWND();
+		Element* GetElement();
 
+		void Host(Element* pe);
+
+		void ShowWindow(int iShow);
 		void HideWindow();
-		void Host(class Element*);
 
-		HRESULT Initialize(UCString lpClassName, UCString lpWindowName, HWND hWndParent, HICON hIcon, int x, int y, int nWidth, int nHeight, int dwExStyle, int dwStyle, HINSTANCE, UINT);
-		HRESULT Initialize(UCString, HWND, HICON, int, int, int, int, int, int, UINT);
+		void DestroyWindow();
+		void SyncDestroyWindow();
 
-		virtual HRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT*);
+		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-		int RestoreFocus();
+		NativeHWNDHost(const NativeHWNDHost&);
+		NativeHWNDHost();
+
+		HRESULT Initialize(const WCHAR* pszTitle, HWND hWndParent, HICON hIcon, int dX, int dY, int dWidth, int dHeight, int iExStyle, int iStyle, UINT nOptions);
+		HRESULT Initialize(const WCHAR* pszClassName, const WCHAR* pszTitle, HWND hWndParent, HICON hIcon, int dX, int dY, int dWidth, int dHeight, int iExStyle, int iStyle, HINSTANCE hInstance, UINT nOptions);
+
+		virtual ~NativeHWNDHost();
+		void SetDefaultFocusID(const WCHAR*);
+
 		void SaveFocus();
-		void SetDefaultFocusID(UCString);
-		void ShowWindow(int);
+		int RestoreFocus();
+
+		virtual HWND CreateHostWindow(DWORD dwExStyle, const WCHAR* lpClassName, const WCHAR* lpWindowName, DWORD dwStyle, int nX, int nY, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+		HRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT* plRet);
 
 	private:
-		HWND m_hWnd;
-		void*unk2;
-		void*unk3;
-		void*unk4;
-		char unk5;
+		HWND _hWnd;
+		Element* _pe;
+		UINT _nOptions;
+		const WCHAR* _pszDefaultFocusID;
+		HWND _hwndFocus;
+
+	public:
+		NativeHWNDHost& operator=(const NativeHWNDHost&);
 	};
 }

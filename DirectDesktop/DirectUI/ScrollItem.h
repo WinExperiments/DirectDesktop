@@ -3,7 +3,7 @@
 namespace DirectUI
 {
 	class UILIB_API ScrollItemProvider
-		: public PatternProvider<ScrollItemProvider, IScrollItemProvider, 6>
+		: public PatternProvider<ScrollItemProvider, IScrollItemProvider, Schema::Pattern::ScrollItem>
 		, public IScrollItemProvider
 	{
 	public:
@@ -11,7 +11,7 @@ namespace DirectUI
 		virtual ~ScrollItemProvider(void);
 
 		virtual unsigned long __stdcall AddRef(void);
-		virtual ProviderProxyCall GetProxyCreator(void);
+		virtual PfnCreateProxy GetProxyCreator(void);
 		virtual long __stdcall QueryInterface(struct _GUID const &, void * *);
 		virtual unsigned long __stdcall Release(void);
 		virtual long __stdcall ScrollIntoView(void);

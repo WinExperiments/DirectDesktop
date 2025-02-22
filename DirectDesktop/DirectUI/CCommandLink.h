@@ -17,8 +17,8 @@ namespace DirectUI
 		static void __stdcall SetClassInfoPtr(IClassInfo *);
 		static PropertyInfo const * __stdcall NoteProp(void);
 		
-		UCString GetNote(Value * *);
-		long SetNote(UCString);
+		const WCHAR* GetNote(Value * *);
+		long SetNote(const WCHAR*);
 
 		virtual IClassInfo * GetClassInfoW(void);
 		virtual SIZE GetContentSize(int, int, Surface *);
