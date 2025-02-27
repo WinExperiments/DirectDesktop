@@ -9,11 +9,9 @@ extern bool treatdirasgroup;
 extern bool isColorized;
 
 extern Element* UIContainer;
-extern Edit* chooseColor;
 
 void ToggleCheckbox(Element* elem, Event* iev);
 void ToggleShowHidden(Element* elem, Event* iev);
 void ToggleFilenameExts(Element* elem, Event* iev);
 void ToggleGroupMode(Element* elem, Event* iev);
 void ToggleAccentIcons(Element* elem, Event* iev);
-void ApplySelectedColor(Element* elem, Event* iev);

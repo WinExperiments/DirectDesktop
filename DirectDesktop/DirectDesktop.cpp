@@ -56,6 +56,8 @@ TouchButton* PageTab1, *PageTab2;
 RichText* SubUIContainer;
 HRESULT err;
 HWND hWorkerW = NULL;
+HWND hSHELLDLL_DefView = NULL;
+HWND hWndTaskbar = FindWindow(L"Shell_TrayWnd", NULL);
 
 int popupframe, dframe, tframe;
 vector<int> frame;
@@ -252,6 +254,7 @@ float CalcTextLines(const wchar_t* str, int width) {
 }
 
 void ShowSimpleView() {
+    SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
     if (!hiddenIcons) {
@@ -299,9 +302,13 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
             SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             SetWindowPos(hWorkerW, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+            SetWindowPos(hSHELLDLL_DefView, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             RearrangeIcons(true, false);
         }
         break;
+    }
+    case WM_DISPLAYCHANGE: {
+        SendMessageW(wnd->GetHWND(), WM_SETTINGCHANGE, SPI_SETWORKAREA, NULL);
     }
     case WM_DPICHANGED: {
         UpdateScale();
@@ -314,8 +321,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_CLOSE: {
-        int logging = IDNO;
-        ToggleDesktopIcons(!hiddenIcons, false, &logging);
+        ToggleDesktopIcons(!hiddenIcons, false);
+        HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
+        SetClassLongPtrW(hWorkerW, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
+        SetClassLongPtrW(hSHELLDLL_DefView, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
+        if (lParam == 69) exit(0);
         break;
     }
     case WM_COMMAND: {
@@ -347,9 +357,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         iconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
         HBITMAP capturedBitmap;
         capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, DT_END_ELLIPSIS);
-        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1.33);
+        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
+        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 2);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
         filepm[wParam]->SetValue(Element::ContentProp, 1, bitmap);
@@ -631,6 +641,7 @@ void ShowPopupCore() {
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
 }
 void HidePopupCore() {
+    SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
     fullscreenpopup->SetAlpha(0);
     fullscreenAnimation2();
     frame.clear();
@@ -741,6 +752,7 @@ void SelectSubItem(Element* elem, Event* iev) {
 }
 
 void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
+    SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
     Element* groupdirectory{};
     parser->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
@@ -866,11 +878,8 @@ void ShowPage2(Element* elem, Event* iev) {
         parser->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
         SubUIContainer->Add((Element**)&SettingsPage2, 1);
         Button* EnableAccent = (Button*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
-        chooseColor = (Edit*)SettingsPage2->FindDescendent(StrToID(L"chooseColor"));
-        Button* ApplyColor = (Button*)SettingsPage2->FindDescendent(StrToID(L"ApplyColor"));
         EnableAccent->SetSelected(isColorized);
         assignFn(EnableAccent, ToggleAccentIcons);
-        assignFn(ApplyColor, ApplySelectedColor);
     }
 }
 void ShowSettings(Element* elem, Event* iev) {
@@ -902,6 +911,7 @@ void ShowSettings(Element* elem, Event* iev) {
 }
 void ExitWindow(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
+        SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
         SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, NULL);
     }
 }
@@ -946,9 +956,9 @@ void SelectItem(Element* elem, Event* iev) {
                 textElem->SetHeight(extraBottomSpacing + 4 * flScaleFactor);
                 textElemShadow->SetHeight(extraBottomSpacing + 5 * flScaleFactor);
                 HBITMAP capturedBitmap = CreateTextBitmap(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth() - 4 * flScaleFactor, extraBottomSpacing, DT_END_ELLIPSIS);
-                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
                 IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 1.33);
+                HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
+                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 2);
                 Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
                 Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
                 textElem->SetValue(Element::ContentProp, 1, bitmap);
@@ -1055,6 +1065,7 @@ void testEventListener3(Element* elem, Event* iev) {
 }
 
 void RearrangeIcons(bool animation, bool reloadgroups) {
+    GetPos();
     unsigned int count = pm.size();
     static const int savedanim = pm[0].elem->GetAnimation();
     ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
@@ -1064,23 +1075,45 @@ void RearrangeIcons(bool animation, bool reloadgroups) {
     }
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    int x = 4 * flScaleFactor + dimensions.left, y = 4 * flScaleFactor + dimensions.top;
+    int x = 4 * flScaleFactor, y = 4 * flScaleFactor;
     DWORD* animThread = new DWORD[count];
     DWORD* animThread2 = new DWORD[count];
     HANDLE* animThreadHandle = new HANDLE[count];
     HANDLE* animThreadHandle2 = new HANDLE[count];
     int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
     int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
+    int largestXPos = dimensions.right / outerSizeX - 1;
+    int largestYPos = dimensions.bottom / outerSizeY - 1;
+    vector<bool> positions{};
+    positions.resize(largestXPos * largestYPos);
     for (int j = 0; j < count; j++) {
         if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
-        pm[j].x = x, pm[j].y = y;
+        if (pm[j].xPos <= largestXPos && pm[j].yPos <= largestYPos) {
+            pm[j].x = pm[j].xPos * outerSizeX + x;
+            pm[j].y = pm[j].yPos * outerSizeY + y;
+            positions[pm[j].yPos + pm[j].xPos * largestYPos] = true;
+        }
+    }
+    int resolutionerror{};
+    for (int j = 0; j < count; j++) {
         yValue* yV = new yValue{ j };
         yValue* yV2 = new yValue{ j };
-        y += outerSizeY;
-        if (y > dimensions.bottom - outerSizeY) {
-            y = 4 * flScaleFactor;
-            x += outerSizeX;
+        if (pm[j].xPos > largestXPos || pm[j].yPos > largestYPos) {
+            int y{};
+            while (positions[y] == true) {
+                y++;
+                if (y > positions.size()) {
+                    TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Your screen resolution is too small!",
+                        L"This causes icons to render outside your display.\nMulti-page UI is not implemented at the moment.", TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, &resolutionerror);
+                    break;
+                }
+            }
+            if (resolutionerror == IDCLOSE) SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 69);
+            pm[j].xPos = y / largestYPos;
+            pm[j].yPos = y % largestYPos;
+            positions[y] = true;
         }
+        pm[j].x = pm[j].xPos * outerSizeX + x, pm[j].y = pm[j].yPos * outerSizeY + y;
         animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
         animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
     }
@@ -1088,6 +1121,7 @@ void RearrangeIcons(bool animation, bool reloadgroups) {
     delete[] animThread2;
     delete[] animThreadHandle;
     delete[] animThreadHandle2;
+    positions.clear();
 }
 
 void InitLayout() {
@@ -1104,10 +1138,11 @@ void InitLayout() {
     LPWSTR path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
     wchar_t* secondaryPath = new wchar_t[260];
     wchar_t* cBuffer = new wchar_t[260];
-    EnumerateFolder(path, &pm, &files, &filePaths, true);
+    EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, &files, &filePaths, true);
     DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
     EnumerateFolder(secondaryPath, &pm, &files, &filePaths, false);
+    EnumerateFolder(path, &pm, &files, &filePaths, false);
     d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
     EnumerateFolder(secondaryPath, &pm, &files, &filePaths, false);
@@ -1179,6 +1214,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             L"DirectDesktop is already running", TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
         return 1;
     }
+    if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"FFlags") & 0x4);
+    else {
+        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Align your icons!",
+            L"Your icons are not aligned to grid.\nThis configuration is not supported at the moment.", TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, NULL);
+        exit(0);
+    }
     InitProcessPriv(14, NULL, true, true, true);
     InitThread(TSM_IMMERSIVE);
     RegisterAllControls();
@@ -1188,11 +1229,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-    int logging;
     TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", NULL,
         L"Enable logging?", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-    HWND hSHELLDLL_DefView = NULL;
     int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
     if (hWndProgman) {
         hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
@@ -1201,7 +1240,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
         this_thread::sleep_for(chrono::milliseconds(250));
         if (hSHELLDLL_DefView) {
-            bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, false, &logging);
+            bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, false);
             if (logging == IDYES) {
                 if (pos) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL, L"Successfully manipulated windows.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
                 else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
@@ -1211,7 +1250,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (!hSHELLDLL_DefView) {
         if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
             L"SHELLDLL_DefView was not inside Program Manager, retrying...", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-        bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true, &logging);
+        bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true);
         if (logging == IDYES) {
             if (pos) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL, L"Successfully manipulated windows.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
             else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
@@ -1285,7 +1324,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetTheme();
 
     wnd->Host(pMain);
-    bool testB = ToggleDesktopIcons(false, false, &logging);
+    bool testB = ToggleDesktopIcons(false, false);
     if (logging == IDYES) {
         if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
         else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);

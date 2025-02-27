@@ -7,7 +7,6 @@ bool showcheckboxes;
 bool treatdirasgroup;
 bool isColorized;
 Element* UIContainer;
-Edit* chooseColor;
 
 void ToggleCheckbox(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
@@ -38,12 +37,5 @@ void ToggleAccentIcons(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
         isColorized = !isColorized;
         elem->SetSelected(!elem->GetSelected());
-    }
-}
-void ApplySelectedColor(Element* elem, Event* iev) {
-    if (iev->uidType == Button::Click) {
-        Value* v;
-        const wchar_t* colorID = chooseColor->GetContentString(&v);
-        UIContainer->SetBackgroundStdColor(_wtoi(colorID));
     }
 }

@@ -114,10 +114,6 @@
 				<Button id="atom(EnableAccent)" class="togglebutton"/>
 			</Element>
 		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<Edit id="atom(chooseColor)" themedborder="true" layoutpos="left" width="300rp"/>
-			<Button id="atom(ApplyColor)" content="Apply color" layoutpos="right" background="black" foreground="white" width="128rp"/>
-		</Element>
 		<RichText layoutpos="bottom" class="toggletext" content="After closing this window, refresh to apply your changes." foreground="gray"/>
 	</Element>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
