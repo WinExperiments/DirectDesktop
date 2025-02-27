@@ -9,4 +9,4 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding);
 HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType);
 void BlurBackground(HWND hwnd, bool blur);
 
-extern TEXTMETRICW tm;
+extern TEXTMETRICW textm;

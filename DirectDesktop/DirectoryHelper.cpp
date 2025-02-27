@@ -310,13 +310,11 @@ bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWN
     if (*WindowsBuild < 26016) *hWorkerW = GetWorkerW2(&x, &y); else *hWorkerW = FindWindowExW(*hWndProgman, NULL, L"WorkerW", NULL);
     if (hWorkerW) {
         if (findSHELLDLL_DefView) *hSHELLDLL_DefView = FindWindowExW(*hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
-        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
-            L"Found WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        if (logging == IDYES) MainLogger.WriteLine(L"Information: Found WorkerW.");
         if (*WindowsBuild > 26016) {
             SetParent(*hSHELLDLL_DefView, *hWorkerW);
             //SetParent(*hWorkerW, NULL);
-            if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
-                L"Added DirectDesktop inside the new 24H2 WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+            if (logging == IDYES) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 WorkerW.");
         }
     }
     else if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL,
@@ -470,6 +468,7 @@ void GetPos() {
     pmFileBuf.resize(pm.size());
     pmFileShadowBuf.resize(pm.size());
     pmCBBuf.resize(pm.size());
+    int fileCount{};
     for (int index = 0; index < pm.size(); index++) {
         for (int index2 = 0; index2 < pm.size(); index2++) {
             if (desktop_items[index2].name == pm[index].simplefilename) {
@@ -481,6 +480,12 @@ void GetPos() {
                 pmFileBuf[index2] = filepm[index];
                 pmFileShadowBuf[index2] = fileshadowpm[index];
                 pmCBBuf[index2] = cbpm[index];
+                if (logging == IDYES) {
+                    WCHAR details[320];
+                    StringCchPrintfW(details, 320, L"New item found, Item name: %s", pm[index].filename.c_str());
+                    MainLogger.WriteLine(details);
+                    fileCount++;
+                }
                 break;
             }
         }
@@ -522,6 +527,11 @@ void GetPos() {
         while (true) {
             if (r == 0) {
                 pm[index].yPos = tempYPos;
+                if (logging == IDYES) {
+                    WCHAR details[320];
+                    StringCchPrintfW(details, 320, L"Item arranged (%d of %d)\nItem name: %s\nX: %d\nY: %d\n", index + 1, fileCount, pm[index].filename.c_str(), pm[index].xPos, pm[index].yPos);
+                    MainLogger.WriteLine(details);
+                }
                 break;
             }
             if (tempYPos == 0) {

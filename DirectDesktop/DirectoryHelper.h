@@ -1,9 +1,11 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "Logger.h"
 #include "DirectUI/DirectUI.h"
 
 using namespace std;
+extern Logger MainLogger;
 
 struct parameters {
     DirectUI::Element* elem{};

@@ -1,7 +1,7 @@
 #include "BitmapHelper.h"
 #include "BlurCore.h"
 
-TEXTMETRICW tm;
+TEXTMETRICW textm;
 HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType) {
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -34,7 +34,7 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
             pPixel[3] = 255;
         }
     }
-    GetTextMetricsW(hdcMem, &tm);
+    GetTextMetricsW(hdcMem, &textm);
     SelectObject(hdcMem, hOldFont);
     SelectObject(hdcMem, hOldBitmap);
     DeleteObject(hFont);

@@ -58,16 +58,17 @@ HRESULT err;
 HWND hWorkerW = NULL;
 HWND hSHELLDLL_DefView = NULL;
 HWND hWndTaskbar = FindWindow(L"Shell_TrayWnd", NULL);
+Logger MainLogger;
 
 int popupframe, dframe, tframe;
 vector<int> frame;
 
-int dpi, dpiOld = 1;
-float flScaleFactor;
+int dpi = 96, dpiOld = 1;
+float flScaleFactor = 1.0;
 bool isDpiPreviouslyChanged;
 void InitialUpdateScale() {
     HDC screen = GetDC(0);
-    dpi = static_cast<int>(GetDeviceCaps(screen, LOGPIXELSX));
+    dpi = GetDeviceCaps(screen, LOGPIXELSX);
     ReleaseDC(0, screen);
     flScaleFactor = dpi / 96.0;
 }
@@ -228,7 +229,7 @@ void GetFontHeight() {
     HDC hdcBuffer = CreateCompatibleDC(NULL);
     SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, dpi);
     DrawTextW(hdcBuffer, L" ", -1, &rc, DT_CENTER);
-    GetTextMetricsW(hdcBuffer, &tm);
+    GetTextMetricsW(hdcBuffer, &textm);
     DeleteDC(hdcBuffer);
 }
 float CalcTextLines(const wchar_t* str, int width) {
@@ -237,12 +238,12 @@ float CalcTextLines(const wchar_t* str, int width) {
     SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
     HFONT hFont = CreateFontIndirectW(&lf);
     HFONT hOldFont = (HFONT)SelectObject(hdcBuffer, hFont);
-    RECT rc = { 0, 0, width - 4, tm.tmHeight };
+    RECT rc = { 0, 0, width - 4, textm.tmHeight };
     wchar_t filenameBuffer[260]{};
     wcscpy_s(filenameBuffer, str);
     DrawTextExW(hdcBuffer, filenameBuffer, -1, &rc, DT_MODIFYSTRING | DT_END_ELLIPSIS | DT_CENTER | DT_LVICON, NULL);
     int lines_b1 = wcscmp(str, filenameBuffer);
-    RECT rc2 = { 0, 0, width - 4, tm.tmHeight * 2 };
+    RECT rc2 = { 0, 0, width - 4, textm.tmHeight * 2 };
     wchar_t filenameBuffer2[260]{};
     wcscpy_s(filenameBuffer2, str);
     DrawTextExW(hdcBuffer, filenameBuffer2, -1, &rc2, DT_MODIFYSTRING | DT_WORD_ELLIPSIS | DT_CENTER | DT_LVICON, NULL);
@@ -290,7 +291,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
     int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor;
-    int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor - tm.tmHeight;
+    int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor - textm.tmHeight;
     int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) - 48 * flScaleFactor) / 2;
     int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) - 48 * flScaleFactor) / 2;
     int i = 20002;
@@ -321,11 +322,20 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_CLOSE: {
-        ToggleDesktopIcons(!hiddenIcons, false);
+        //ToggleDesktopIcons(!hiddenIcons, false);
         HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
+        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+        SetClassLongPtrW(hWndProgman, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
         SetClassLongPtrW(hWorkerW, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
         SetClassLongPtrW(hSHELLDLL_DefView, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
         if (lParam == 69) exit(0);
+        if (lParam == 420) {
+            wchar_t* desktoplog = new wchar_t[260];
+            wchar_t* cBuffer = new wchar_t[260];
+            DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
+            StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
+            ShellExecuteW(NULL, L"open", L"notepad.exe", desktoplog, NULL, SW_SHOW);
+        }
         break;
     }
     case WM_COMMAND: {
@@ -342,19 +352,18 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 3: {
-        double bezierProgress = py[frame[wParam] - 1];
         int lines_basedOnEllipsis{};
-        lines_basedOnEllipsis = floor(CalcTextLines(pm[wParam].simplefilename.c_str(), innerSizeX)) * tm.tmHeight;
-        pm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        pm[wParam].elem->SetHeight((innerSizeY + lines_basedOnEllipsis + 7 * flScaleFactor) * (0.7 + 0.3 * bezierProgress));
-        pm[wParam].elem->SetX(round((dimensions.right - 2 * pm[wParam].x) * 0.15 * (1 - bezierProgress) + pm[wParam].x));
-        pm[wParam].elem->SetY(round((dimensions.bottom - 2 * pm[wParam].y) * 0.15 * (1 - bezierProgress) + pm[wParam].y));
+        lines_basedOnEllipsis = floor(CalcTextLines(pm[wParam].simplefilename.c_str(), innerSizeX)) * textm.tmHeight;
+        pm[wParam].elem->SetWidth(innerSizeX);
+        pm[wParam].elem->SetHeight(innerSizeY + lines_basedOnEllipsis + 7 * flScaleFactor);
+        pm[wParam].elem->SetX(pm[wParam].x);
+        pm[wParam].elem->SetY(pm[wParam].y);
         filepm[wParam]->SetHeight(lines_basedOnEllipsis + 4 * flScaleFactor);
         fileshadowpm[wParam]->SetHeight(lines_basedOnEllipsis + 5 * flScaleFactor);
-        iconpm[wParam]->SetWidth(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
-        iconpm[wParam]->SetHeight(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
-        iconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
-        iconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
+        iconpm[wParam]->SetWidth(round(globaliconsz * flScaleFactor));
+        iconpm[wParam]->SetHeight(round(globaliconsz * flScaleFactor));
+        iconpm[wParam]->SetX(iconPaddingX);
+        iconpm[wParam]->SetY(round(iconPaddingY * 0.575));
         HBITMAP capturedBitmap;
         capturedBitmap = CreateTextBitmap(pm[wParam].simplefilename.c_str(), innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, DT_END_ELLIPSIS);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
@@ -436,20 +445,19 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         fullscreeninner->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
     }
     case WM_USER + 9: {
-        double bezierProgress = 1; //py[frame[wParam] - 1];
-        subpm[wParam].elem->SetWidth(innerSizeX * (0.7 + 0.3 * bezierProgress));
-        subpm[wParam].elem->SetHeight((innerSizeY + tm.tmHeight + 23 * flScaleFactor) * (0.7 + 0.3 * bezierProgress));
+        subpm[wParam].elem->SetWidth(innerSizeX);
+        subpm[wParam].elem->SetHeight(innerSizeY + textm.tmHeight + 23 * flScaleFactor);
         subpm[wParam].elem->SetX(subpm[wParam].x); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
         subpm[wParam].elem->SetY(subpm[wParam].y); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
         int textlines = 1;
-        if (tm.tmHeight <= 18 * flScaleFactor) textlines = 2;
-        subfilepm[wParam]->SetHeight(tm.tmHeight * textlines + 4 * flScaleFactor);
+        if (textm.tmHeight <= 18 * flScaleFactor) textlines = 2;
+        subfilepm[wParam]->SetHeight(textm.tmHeight * textlines + 4 * flScaleFactor);
         if (subfilepm[wParam]->GetHeight() > (iconPaddingY * 0.575 + 48)) subfilepm[wParam]->SetHeight(iconPaddingY * 0.575 + 48);
-        subiconpm[wParam]->SetWidth(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
-        subiconpm[wParam]->SetHeight(round((globaliconsz * (0.7 + 0.3 * bezierProgress))) * flScaleFactor);
-        subiconpm[wParam]->SetX(round(iconPaddingX * (0.7 + 0.3 * bezierProgress)));
-        subiconpm[wParam]->SetY(round((iconPaddingY * 0.575) * (0.7 + 0.3 * bezierProgress)));
-        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, tm.tmHeight * textlines, DT_END_ELLIPSIS);
+        subiconpm[wParam]->SetWidth(round(globaliconsz * flScaleFactor));
+        subiconpm[wParam]->SetHeight(round(globaliconsz * flScaleFactor));
+        subiconpm[wParam]->SetX(iconPaddingX);
+        subiconpm[wParam]->SetY(round(iconPaddingY * 0.575));
+        HBITMAP capturedBitmap = CreateTextBitmap(subpm[wParam].simplefilename.c_str(), innerSizeX, textm.tmHeight * textlines, DT_END_ELLIPSIS);
         if (theme) {
             IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1);
             IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9);
@@ -946,7 +954,7 @@ void SelectItem(Element* elem, Event* iev) {
         for (int items = 0; items < pm.size(); items++) {
             if (pm[items].mem_isSelected != pm[items].elem->GetSelected()) {
                 float spacingInternal = CalcTextLines(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth());
-                int extraBottomSpacing = (pm[items].elem->GetSelected() == true) ? ceil(spacingInternal) * tm.tmHeight : floor(spacingInternal) *tm.tmHeight;
+                int extraBottomSpacing = (pm[items].elem->GetSelected() == true) ? ceil(spacingInternal) * textm.tmHeight : floor(spacingInternal) * textm.tmHeight;
                 textElem = (RichText*)pm[items].elem->FindDescendent(StrToID(L"textElem"));
                 textElemShadow = (RichText*)pm[items].elem->FindDescendent(StrToID(L"textElemShadow"));
                 if (spacingInternal == 1.5) {
@@ -1066,9 +1074,11 @@ void testEventListener3(Element* elem, Event* iev) {
 
 void RearrangeIcons(bool animation, bool reloadgroups) {
     GetPos();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 1 of 5 complete: Imported your desktop icon positions.");
     unsigned int count = pm.size();
     static const int savedanim = pm[0].elem->GetAnimation();
     ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
     if (reloadgroups) {
         DWORD dd;
         HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
@@ -1081,11 +1091,12 @@ void RearrangeIcons(bool animation, bool reloadgroups) {
     HANDLE* animThreadHandle = new HANDLE[count];
     HANDLE* animThreadHandle2 = new HANDLE[count];
     int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
-    int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
+    int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 22) * flScaleFactor;
     int largestXPos = dimensions.right / outerSizeX - 1;
     int largestYPos = dimensions.bottom / outerSizeY - 1;
     vector<bool> positions{};
     positions.resize(largestXPos * largestYPos);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
     for (int j = 0; j < count; j++) {
         if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
         if (pm[j].xPos <= largestXPos && pm[j].yPos <= largestYPos) {
@@ -1094,6 +1105,7 @@ void RearrangeIcons(bool animation, bool reloadgroups) {
             positions[pm[j].yPos + pm[j].xPos * largestYPos] = true;
         }
     }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 4 of 5 complete: Assigned positions to items that are in your resolution's bounds.");
     int resolutionerror{};
     for (int j = 0; j < count; j++) {
         yValue* yV = new yValue{ j };
@@ -1117,6 +1129,7 @@ void RearrangeIcons(bool animation, bool reloadgroups) {
         animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
         animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
     }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
     delete[] animThread;
     delete[] animThread2;
     delete[] animThreadHandle;
@@ -1164,6 +1177,7 @@ void InitLayout() {
     filepm.resize(count);
     fileshadowpm.resize(count);
     cbpm.resize(count);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 3 complete: Created arrays according to your desktop items.");
     for (int i = 0; i < count; i++) {
         Button* outerElem;
         parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
@@ -1197,7 +1211,9 @@ void InitLayout() {
         }
         else outerElem->SetClass(L"singleclicked");
     }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 3 complete: Filled the arrays with relevant desktop icon data.");
     RearrangeIcons(false, true);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 3 complete: Arranged the icons according to your icon placements.");
     files.clear();
     delete[] cBuffer;
     delete[] secondaryPath;
@@ -1231,30 +1247,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
     TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", NULL,
         L"Enable logging?", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
+    if (logging == IDYES) {
+        wchar_t* docsfolder = new wchar_t[260];
+        wchar_t* cBuffer = new wchar_t[260];
+        DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
+        StringCchPrintfW(docsfolder, 260, L"%s\\Documents", cBuffer);
+        MainLogger.StartLogger(((wstring)docsfolder + L"\\DirectDesktop.log").c_str());
+    }
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
     int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
     if (hWndProgman) {
         hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
-        if (WindowsBuild > 26016 && logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
-            L"Version is 24H2, skipping WorkerW creation!!!", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        if (WindowsBuild > 26016 && logging == IDYES) MainLogger.WriteLine(L"Information: Version is 24H2, skipping WorkerW creation!!!");
         SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
         this_thread::sleep_for(chrono::milliseconds(250));
         if (hSHELLDLL_DefView) {
             bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, false);
-            if (logging == IDYES) {
-                if (pos) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL, L"Successfully manipulated windows.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-                else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
-            }
         }
     }
     if (!hSHELLDLL_DefView) {
-        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
-            L"SHELLDLL_DefView was not inside Program Manager, retrying...", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+        if (logging == IDYES) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
         bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true);
-        if (logging == IDYES) {
-            if (pos) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL, L"Successfully manipulated windows.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-            else TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL, L"Failed to manipulate windows.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
-        }
     }
     NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
@@ -1264,14 +1277,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
     WndProc = (WNDPROC)SetWindowLongPtr(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
     if (WindowsBuild > 26016) {
-        // This does not work properly...
         SetWindowLongPtrW(hWorkerW, GWL_STYLE, 0x96000000L);
         SetWindowLongPtrW(hWorkerW, GWL_EXSTYLE, 0x20000880L);
-        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
-            L"Applied styles to the new 24H2 WorkerW.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-        SetWindowLongPtrW(hSHELLDLL_DefView, GWL_EXSTYLE, 0xC0080000L);
-        if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", NULL,
-            L"Applied styles to the new 24H2 SHELLDLL_DefView.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
     }
     HWND dummyHWnd;
     dummyHWnd = SetParent(wnd->GetHWND(), hSHELLDLL_DefView);
@@ -1280,10 +1287,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetClassLongPtrW(hSHELLDLL_DefView, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
     SetClassLongPtrW(wnd->GetHWND(), GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
     if (logging == IDYES) {
-        if (dummyHWnd) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
-            L"DirectDesktop is now a part of Explorer.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-        else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL,
-            L"DirectDesktop is still hosted in its own window.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+        if (dummyHWnd) MainLogger.WriteLine(L"Information: DirectDesktop is now a part of Explorer.");
+        else MainLogger.WriteLine(L"Error: DirectDesktop is still hosted in its own window.");
     }
 
     parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
@@ -1324,14 +1329,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetTheme();
 
     wnd->Host(pMain);
-    bool testB = ToggleDesktopIcons(false, false);
-    if (logging == IDYES) {
-        if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-        else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
-    }
+    //bool testB = ToggleDesktopIcons(false, false);
+    //if (logging == IDYES) {
+    //    if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
+    //    else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
+    //}
     wnd->ShowWindow(SW_SHOW);
-    MARGINS m = { -1, -1, -1, -1 };
-    DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
+    if (logging == IDYES) {
+        TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", L"Logging complete", L"You can view the log by pressing the close button.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
+        SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
+    }
+    //MARGINS m = { -1, -1, -1, -1 };
+    //DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
+    //if (logging == IDYES) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
+        //L"DirectDesktop is now transparent.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
     StartMessagePump();
     UnInitProcessPriv(0);
     CoUninitialize();

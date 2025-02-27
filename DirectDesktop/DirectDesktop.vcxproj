@@ -255,6 +255,7 @@
     <ClInclude Include="DUIAppTemplate.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImmersiveColor.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="StyleModifier.h" />
@@ -267,6 +268,7 @@
     <ClCompile Include="ContextMenus.cpp" />
     <ClCompile Include="DirectDesktop.cpp" />
     <ClCompile Include="DirectoryHelper.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="SettingsHelper.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
   </ItemGroup>
