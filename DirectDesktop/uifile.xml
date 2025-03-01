@@ -6,23 +6,28 @@
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 
 				</Element>
+				<TouchButton id="atom(prevpageMain)" layoutpos="left" class="pageselector" background="resbmp(3001,7,-1,0,0,1,1)" content="resstr(140)"/>
+				<TouchButton id="atom(nextpageMain)" layoutpos="right" class="pageselector" background="resbmp(3002,7,-1,0,0,1,1)" content="resstr(141)"/>
 				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
 				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
 					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
 						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 					</Button>
-					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" minsize="size(0,128rp)" background="argb(0,0,0,0)">
-						
+					//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
+					<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
+					<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
+					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)"> // minsize="size(0,128rp)"
+						<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
 					</Button>
 					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-						<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
+						<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
 							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
 								<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 								<RichText content="Settings" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 							</Element>
 						</TouchButton>
-						<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleviewbutton">
+						<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
 							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
 								<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 								<RichText content="Close" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
@@ -33,6 +38,7 @@
 			</Element>
 		</Element>
 	</HWNDElement>
+	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
@@ -181,8 +187,9 @@
 				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
 				<viewer layoutpos="nineclient" />
 			</if>
-			<if class="simpleviewbutton">
-				<TouchButton background="argb(0,0,0,0)" foreground="white"/>
+			<if class="simpleview">
+				<RichText background="argb(0,0,0,0)" foreground="black"/>				
+				<TouchButton background="argb(0,0,0,0)" foreground="black"/>
 				<if mousefocused="true">
 					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 				</if>
@@ -289,6 +296,15 @@
 					</if>
 				</if>
 			</if>
+			<if class="pageselector">
+				<TouchButton layoutpos="absolute" width="8rp" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" padding="rect(24rp,0,24rp,0)" font="resstr(139)" alpha="0" animation="alpha|log|veryfast"/>
+				<if mousefocused="true">
+					<TouchButton alpha="255" width="160rp"/>
+				</if>
+			</if>
+			<if class="pageselectoreditmode">
+				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+			</if>
 			<if class="singleclicked">
 				<Button cursor="hand"/>
 			</if>
@@ -368,7 +384,8 @@
 				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
 				<viewer layoutpos="nineclient" />
 			</if>
-			<if class="simpleviewbutton">
+			<if class="simpleview">
+				<RichText background="argb(0,0,0,0)" foreground="white"/>
 				<TouchButton background="argb(0,0,0,0)" foreground="white"/>
 				<if mousefocused="true">
 					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
@@ -475,6 +492,15 @@
 						<ifgreaterequal dpi="384"> <Button background="sgraphic(263,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 				</if>
+			</if>
+			<if class="pageselector">
+				<TouchButton width="8rp" foreground="white" contentalign="middlecenter" padding="rect(24rp,0,24rp,0)" font="resstr(139)" alpha="0" animation="alpha|log|veryfast"/>
+				<if mousefocused="true">
+					<TouchButton alpha="255" width="160rp"/>
+				</if>
+			</if>
+			<if class="pageselectoreditmode">
+				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 			<if class="singleclicked">
 				<Button cursor="hand"/>

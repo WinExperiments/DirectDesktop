@@ -19,6 +19,8 @@ struct parameters {
     bool isShortcut = false;
     unsigned short xPos = 999;
     unsigned short yPos = 999;
+    unsigned short page{};
+    bool valid = false;
 };
 
 extern int logging;
@@ -35,7 +37,7 @@ void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, D
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset, unsigned short limit = 65535);
-void GetPos();
+void GetPos(bool getSpotlightIcon = false, int* setSpotlightIcon = nullptr);
 bool ToggleDesktopIcons(bool visibility, bool wholeHost);
 HWND GetWorkerW();
 HWND GetWorkerW2(int* x, int* y);

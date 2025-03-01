@@ -109,6 +109,7 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
     return result;
 }
 
+static int checkSpotlight{};
 void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* fileCount) {
     if (clsid == L"{645FF040-5081-101B-9F08-00AA002F954E}") {
         if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == -1) {
@@ -128,6 +129,20 @@ void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstrin
             return;
         }
     }
+    if (clsid == L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}") {
+        GetPos(true, &checkSpotlight);
+        if (checkSpotlight == 1) {
+            WCHAR clsidEx[64];
+            StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
+            pm->push_back({ NULL });
+            files->push_back(displayName);
+            filepaths->push_back(clsidEx);
+            (*dirIndex)++;
+            (*hiddenIndex)++;
+            (*shortIndex)++;
+        }
+        return;
+    }
     if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == 0) {
         WCHAR clsidEx[64];
         StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
@@ -142,6 +157,7 @@ void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstrin
         //    StringCchPrintfW(totalItems, 64, L"New item found (%d total)", ++(*fileCount));
         //    TaskDialog(NULL, NULL, L"Item Found", totalItems, clsidEx, TDCBF_OK_BUTTON, NULL, NULL);
         //}
+        return;
     }
 }
 
@@ -155,6 +171,7 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
     if (path == L"InternalCodeForNamespace") {
         HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
+        HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
         wchar_t* ThisPC = new wchar_t[260];
         ThisPC = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL);
         if (ThisPC == NULL) {
@@ -177,16 +194,20 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
         LoadStringW(WinStorageDLL, 4161, ControlPanel, 260);
         wchar_t* Network = new wchar_t[260];
         LoadStringW(WinStorageDLL, 9217, Network, 260);
+        wchar_t* LearnAbout = new wchar_t[260];
+        LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
         FindShellIcon(pm, files, filepaths, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
         FindShellIcon(pm, files, filepaths, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
         FindShellIcon(pm, files, filepaths, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
         FindShellIcon(pm, files, filepaths, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
         FindShellIcon(pm, files, filepaths, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, files, filepaths, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
         delete[] ThisPC;
         delete[] RecycleBin;
         delete[] UserFiles;
         delete[] ControlPanel;
         delete[] Network;
+        delete[] LearnAbout;
         return;
     }
     HRESULT hr;
@@ -211,15 +232,16 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
         if (pEnumIDL == nullptr) break;
         hr = pEnumIDL->Next(1, &pidl, NULL);
         if (hr == NOERROR) {
-            WIN32_FIND_DATA fd;
-            hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATA));
+            WIN32_FIND_DATAW fd;
+            hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
             pm->push_back({ NULL });
-            files->push_back(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
-            filepaths->push_back(path + (wstring)L"\\" + wstring(fd.cFileName));
             if (fd.dwFileAttributes & 16) (*pm)[dirIndex++].isDirectory = true;
             else (*pm)[dirIndex++].isDirectory = false;
             if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++].isHidden = true;
             else (*pm)[hiddenIndex++].isHidden = false;
+            /*if ((*pm)[dirIndex - 1].isDirectory == true) files->push_back((wstring)fd.cFileName);
+            else*/ files->push_back(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
+            filepaths->push_back(path + (wstring)L"\\" + wstring(fd.cFileName));
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
                 files->pop_back();
                 filepaths->pop_back();
@@ -362,24 +384,39 @@ bool ToggleDesktopIcons(bool visibility, bool wholeHost) {
 // https://stackoverflow.com/questions/70039190/how-to-read-the-values-of-iconlayouts-reg-binary-registry-file
 // and "translated" to C++ using AI.
 
-void GetPos() {
+void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
     HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
+    HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
     BYTE* value = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconLayouts");
 
     // Parse header at offset 0x10
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Preparing to parse icon layout registry at offset 0x10.");
     size_t offset = 0x10;
-    std::vector<uint16_t> head;
+    vector<uint16_t> head;
     for (int i = 0; i < 4; ++i) {  // First 4 WORDs
         head.push_back(*reinterpret_cast<uint16_t*>(&value[offset + i * 2]));
     }
     head.push_back(*reinterpret_cast<uint32_t*>(&value[offset + 8]));  // DWORD at offset + 8
 
+    uint32_t number_of_items = head[4];
     offset += 12;
+
+    if (logging == IDYES) {
+        WCHAR regReport[96];
+        StringCchPrintfW(regReport, 96, L"\nInformation: Registry reports you have %d items.", number_of_items);
+        MainLogger.WriteLine(regReport);
+    }
 
     // Start parsing desktop items
     vector<DesktopItem> desktop_items;
-    for (uint32_t x = 0; x < pm.size(); ++x) {
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Preparing to parse desktop item names.");
+    for (uint32_t x = 0; x < number_of_items; x++) {
+        if (logging == IDYES) {
+            WCHAR pReport[96];
+            StringCchPrintfW(pReport, 96, L"\nInformation: Preparing to parse item %d of %d...", x + 1, number_of_items);
+            MainLogger.WriteLine(pReport);
+        }
         DesktopItem item;
         item.index = x;
         item.size = *reinterpret_cast<uint16_t*>(&value[offset]);
@@ -428,23 +465,41 @@ void GetPos() {
             LoadStringW(WinStorageDLL, 9217, nameBuffer, 260);
             item.name = nameBuffer;
         }
+        if (item.name == L"::{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}") {
+            LoadStringW(Shell32DLL, 51761, nameBuffer, 260);
+            item.name = nameBuffer;
+            if (getSpotlightIcon) {
+                if (logging == IDYES) MainLogger.WriteLine(L"Information: Found Windows Spotlight icon.");
+                (*setSpotlightIcon) = 1;
+                break;
+            }
+        }
         delete[] nameBuffer;
 
         offset += name_len + 4;
 
-        desktop_items.push_back(item);
+        if (!getSpotlightIcon) {
+            desktop_items.push_back(item);
+            if (logging == IDYES && pm[x].filename.c_str() != nullptr) {
+                WCHAR details[320];
+                StringCchPrintfW(details, 320, L"New item found, Item name: %s\nItem name to be shown on desktop: %s", pm[x].filename.c_str(), pm[x].simplefilename.c_str());
+                MainLogger.WriteLine(details);
+            }
+        }
     }
+    if (getSpotlightIcon) return;
 
     // Parse head2 (64 bytes)
     vector<uint16_t> head2;
     size_t offs = offset;
-    for (int x = 0; x < 32; ++x) {
+    for (int x = 0; x < 32; x++) {
         head2.push_back(*reinterpret_cast<uint16_t*>(&value[offs + x * 2]));
     }
     offs += 64;
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Parsed head2.");
 
     // Parse position tables
-    for (uint32_t x = 0; x < pm.size(); ++x) {
+    for (uint32_t x = 0; x < number_of_items; ++x) {
         uint16_t column = *reinterpret_cast<uint16_t*>(&value[offs + 2]);
         uint16_t row = *reinterpret_cast<uint16_t*>(&value[offs + 6]);
         uint16_t index = *reinterpret_cast<uint16_t*>(&value[offs + 8]);
@@ -452,6 +507,7 @@ void GetPos() {
         desktop_items[index].row = row;
         offs += 10;
     }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Parsed position table.");
 
     // This is such a bad way to sort...
     vector<parameters> pmBuf;
@@ -461,6 +517,7 @@ void GetPos() {
     vector<RichText*> pmFileBuf;
     vector<RichText*> pmFileShadowBuf;
     vector<Element*> pmCBBuf;
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Created temporary arrays to arrange icons.");
     pmBuf.resize(pm.size());
     pmShortcutBuf.resize(pm.size());
     pmIconBuf.resize(pm.size());
@@ -468,11 +525,21 @@ void GetPos() {
     pmFileBuf.resize(pm.size());
     pmFileShadowBuf.resize(pm.size());
     pmCBBuf.resize(pm.size());
+    vector<DesktopItem> new_desktop_items;
+    for (int index = 0; index < number_of_items; index++) {
+        for (int index2 = 0; index2 < pm.size(); index2++) {
+            if (desktop_items[index].name == pm[index2].simplefilename) {
+                new_desktop_items.push_back(desktop_items[index]);
+                break;
+            }
+        }
+    }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Resized the temporary arrays.");
     int fileCount{};
     for (int index = 0; index < pm.size(); index++) {
         for (int index2 = 0; index2 < pm.size(); index2++) {
-            if (desktop_items[index2].name == pm[index].simplefilename) {
-                desktop_items[index2].name = L"?";
+            if (new_desktop_items[index2].name == pm[index].simplefilename) {
+                new_desktop_items[index2].name = L"?";
                 pmBuf[index2] = pm[index];
                 pmShortcutBuf[index2] = shortpm[index];
                 pmIconBuf[index2] = iconpm[index];
@@ -481,11 +548,9 @@ void GetPos() {
                 pmFileShadowBuf[index2] = fileshadowpm[index];
                 pmCBBuf[index2] = cbpm[index];
                 if (logging == IDYES) {
-                    WCHAR details[320];
-                    StringCchPrintfW(details, 320, L"New item found, Item name: %s", pm[index].filename.c_str());
-                    MainLogger.WriteLine(details);
                     fileCount++;
                 }
+                pmBuf[index2].valid = true;
                 break;
             }
         }
@@ -499,12 +564,17 @@ void GetPos() {
         fileshadowpm[index] = pmFileShadowBuf[index];
         cbpm[index] = pmCBBuf[index]; 
     }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Filled the temporary arrays.");
     ////////////////////////////////////
 
     for (int index = 0; index < pm.size(); index++) {
-        int r = desktop_items[index].row, c = desktop_items[index].column;
+        int r = new_desktop_items[index].row, c = new_desktop_items[index].column;
         short tempXPos{}, tempYPos{}, bitsX = 128, bitsY = 128, bitsXAccumulator{}, bitsYAccumulator{};
-
+        if (logging == IDYES) {
+            WCHAR details[320];
+            StringCchPrintfW(details, 320, L"\nItem prepared for arrangement (%d of %d)\nItem name: %s\nX (encoded): %d, Y (encoded): %d", index + 1, fileCount, pm[index].filename.c_str(), desktop_items[index].column, desktop_items[index].row);
+            MainLogger.WriteLine(details);
+        }
         while (true) {
             if (c == 0) {
                 pm[index].xPos = tempXPos;
@@ -529,7 +599,7 @@ void GetPos() {
                 pm[index].yPos = tempYPos;
                 if (logging == IDYES) {
                     WCHAR details[320];
-                    StringCchPrintfW(details, 320, L"Item arranged (%d of %d)\nItem name: %s\nX: %d\nY: %d\n", index + 1, fileCount, pm[index].filename.c_str(), pm[index].xPos, pm[index].yPos);
+                    StringCchPrintfW(details, 320, L"\nItem arranged (%d of %d)\nItem name: %s\nX: %d, Y: %d", index + 1, fileCount, pm[index].filename.c_str(), pm[index].xPos, pm[index].yPos);
                     MainLogger.WriteLine(details);
                 }
                 break;

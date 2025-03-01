@@ -406,6 +406,8 @@
     <Image Include="ImageResources\262.png" />
     <Image Include="ImageResources\263.png" />
     <Image Include="ImageResources\264.bmp" />
+    <Image Include="ImageResources\3001.bmp" />
+    <Image Include="ImageResources\3002.bmp" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

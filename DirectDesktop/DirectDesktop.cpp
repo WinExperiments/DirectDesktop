@@ -54,12 +54,17 @@ Button* SimpleViewTop, *SimpleViewBottom;
 TouchButton* SimpleViewSettings, *SimpleViewClose;
 TouchButton* PageTab1, *PageTab2;
 RichText* SubUIContainer;
+TouchButton* nextpage, *prevpage;
+TouchButton* prevpageMain, * nextpageMain;
+RichText* pageinfo;
+
 HRESULT err;
 HWND hWorkerW = NULL;
 HWND hSHELLDLL_DefView = NULL;
 HWND hWndTaskbar = FindWindow(L"Shell_TrayWnd", NULL);
 Logger MainLogger;
 
+int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
 vector<int> frame;
 
@@ -201,7 +206,9 @@ vector<Element*> cbpm;
 bool checkifelemexists = 0;
 bool issubviewopen = 0;
 bool hiddenIcons;
+bool editmode = 0;
 void fullscreenAnimation(int width, int height);
+void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
 
@@ -255,6 +262,7 @@ float CalcTextLines(const wchar_t* str, int width) {
 }
 
 void ShowSimpleView() {
+    editmode = true;
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
@@ -279,6 +287,18 @@ void ShowSimpleView() {
     else {
         fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
         fullscreeninner->SetBackgroundStdColor(7);
+    }
+    if (maxPageID != 1) {
+        WCHAR currentPage[64];
+        StringCchPrintfW(currentPage, 64, L"Page %d / %d", currentPageID, maxPageID);
+        pageinfo->SetContentString(currentPage);
+    }
+    else pageinfo->SetContentString(L" ");
+    if (currentPageID != maxPageID) {
+        TogglePage(nextpage, 0.9, 0.2, 0.1, 0.6);
+    }
+    if (currentPageID != 1) {
+        TogglePage(prevpage, 0, 0.2, 0.1, 0.6);
     }
     SimpleViewTop->SetLayoutPos(1);
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
@@ -343,7 +363,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 1: {
         //pm[wParam].elem->SetAlpha(255);
-        pm[wParam].elem->SetVisible(!hiddenIcons);
+        if (pm[wParam].page == currentPageID) pm[wParam].elem->SetVisible(!hiddenIcons);
+        else pm[wParam].elem->SetVisible(false);
         break;
     }
     case WM_USER + 2: {
@@ -624,7 +645,7 @@ void fullscreenAnimation(int width, int height) {
     DeleteDC(hdcMem);
     ReleaseDC(wnd->GetHWND(), hdcWindow);
     IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 2 * flScaleFactor, 1);
-    Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, false);
+    Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, true);
     fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     bitmap->Release();
     //this_thread::sleep_for(chrono::milliseconds(80));
@@ -649,6 +670,7 @@ void ShowPopupCore() {
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
 }
 void HidePopupCore() {
+    editmode = false;
     SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
     fullscreenpopup->SetAlpha(0);
     fullscreenAnimation2();
@@ -660,6 +682,8 @@ void HidePopupCore() {
     subfilepm.clear();
     SimpleViewTop->SetLayoutPos(-3);
     SimpleViewBottom->SetLayoutPos(-3);
+    nextpage->SetWidth(0);
+    prevpage->SetWidth(0);
     BlurBackground(GetWorkerW(), false);
 }
 
@@ -682,6 +706,44 @@ unsigned long DoubleClickHandler(LPVOID lpParam) {
     this_thread::sleep_for(chrono::milliseconds(_wtoi(dcms)));
     clicks = 1;
     return 0;
+}
+
+void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB) {
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
+    pageElem->SetX(dimensions.right * offsetL);
+    pageElem->SetY(dimensions.bottom * offsetT);
+    pageElem->SetWidth(dimensions.right * offsetR);
+    pageElem->SetHeight(dimensions.bottom * offsetB);
+    WCHAR currentPage[64];
+    StringCchPrintfW(currentPage, 64, L"Page %d / %d", currentPageID, maxPageID);
+    pageinfo->SetContentString(currentPage);
+}
+void GoToPrevPage(Element* elem, Event* iev) {
+    if (iev->uidType == TouchButton::Click) {
+        currentPageID--;
+        RearrangeIcons(true, false);
+        if (editmode) {
+            fullscreeninner->SetBackgroundStdColor(7);
+            TogglePage(nextpage, 0.9, 0.2, 0.1, 0.6);
+            if (currentPageID == 1) TogglePage(prevpage, 0, 0.2, 0, 0.6);
+        }
+        nextpageMain->SetVisible(true);
+        if (currentPageID == 1) prevpageMain->SetVisible(false);
+    }
+}
+void GoToNextPage(Element* elem, Event* iev) {
+    if (iev->uidType == TouchButton::Click) {
+        currentPageID++;
+        RearrangeIcons(true, false);
+        if (editmode) {
+            fullscreeninner->SetBackgroundStdColor(7);
+            TogglePage(prevpage, 0, 0.2, 0.1, 0.6);
+            if (currentPageID == maxPageID) TogglePage(nextpage, 0.9, 0.2, 0, 0.6);
+        }
+        prevpageMain->SetVisible(true);
+        if (currentPageID == maxPageID) nextpageMain->SetVisible(false);
+    }
 }
 
 vector<HBITMAP> GetDesktopIcons() {
@@ -709,6 +771,10 @@ void ApplyIcons(vector<parameters> pmLVItem, vector<Element*> pmIcon, vector<Ele
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
     for (int icon = 0; icon < pmIcon.size(); icon++) {
+        if (pmLVItem[icon].valid == false) {
+            if (logging == IDYES) MainLogger.WriteLine(L"Warning: Empty filename, applying placeholder icon...");
+            continue;
+        }
         HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
         // The use of the 3 lines below is because we can't use a fully transparent bitmap
         HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
@@ -736,7 +802,7 @@ void ApplyIcons(vector<parameters> pmLVItem, vector<Element*> pmIcon, vector<Ele
         pmIcon[icon]->SetValue(Element::ContentProp, 1, bitmap);
         if (pmLVItem[icon].isShortcut == true) pmShortcut[icon]->SetValue(Element::ContentProp, 1, bitmapShortcut);
         DeleteObject(icoShortcut);
-        DeleteObject(bmp);
+        if (bmp != nullptr) DeleteObject(bmp);
         DeleteObject(bmpShortcut);
         bitmap->Release();
         bitmapShortcut->Release();
@@ -897,6 +963,8 @@ void ShowSettings(Element* elem, Event* iev) {
         ShowPopupCore();
         SimpleViewTop->SetLayoutPos(-3);
         SimpleViewBottom->SetLayoutPos(-3);
+        nextpage->SetWidth(0);
+        prevpage->SetWidth(0);
         issubviewopen = 1;
         Element* settingsview{};
         parser->CreateElement(L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
@@ -1025,7 +1093,7 @@ unsigned long UpdateMarqueeSelectorPosition(LPVOID lpParam) {
 void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2) {
     DWORD marqueeThread;
     HANDLE marqueeThreadHandle;
-    HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"SystemSettingsAdminFlows.exe"), MAKEINTRESOURCE(10), IMAGE_ICON, 16, 16, LR_SHARED);
+    HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
     HBITMAP selectorBmp = IconToBitmap(dummyi);
     if (pProp == Button::CapturedProp()) {
         POINT ppt;
@@ -1072,17 +1140,20 @@ void testEventListener3(Element* elem, Event* iev) {
     }
 }
 
-void RearrangeIcons(bool animation, bool reloadgroups) {
+void RearrangeIcons(bool animation, bool reloadicons) {
+    maxPageID = 1;
+    prevpageMain->SetVisible(false);
+    nextpageMain->SetVisible(false);
     GetPos();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 1 of 5 complete: Imported your desktop icon positions.");
     unsigned int count = pm.size();
-    static const int savedanim = pm[0].elem->GetAnimation();
-    ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
-    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
-    if (reloadgroups) {
+    static const int savedanim = (pm[0].elem != nullptr) ? pm[0].elem->GetAnimation() : NULL;
+    if (reloadicons) {
+        ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
         DWORD dd;
         HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
     }
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
     int x = 4 * flScaleFactor, y = 4 * flScaleFactor;
@@ -1092,42 +1163,56 @@ void RearrangeIcons(bool animation, bool reloadgroups) {
     HANDLE* animThreadHandle2 = new HANDLE[count];
     int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
     int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 22) * flScaleFactor;
-    int largestXPos = dimensions.right / outerSizeX - 1;
-    int largestYPos = dimensions.bottom / outerSizeY - 1;
+    int largestXPos = dimensions.right / outerSizeX;
+    int largestYPos = dimensions.bottom / outerSizeY;
     vector<bool> positions{};
-    positions.resize(largestXPos * largestYPos);
+    positions.resize(largestXPos * largestYPos - 1);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
     for (int j = 0; j < count; j++) {
-        if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
-        if (pm[j].xPos <= largestXPos && pm[j].yPos <= largestYPos) {
-            pm[j].x = pm[j].xPos * outerSizeX + x;
-            pm[j].y = pm[j].yPos * outerSizeY + y;
-            positions[pm[j].yPos + pm[j].xPos * largestYPos] = true;
+        if (pm[j].valid == true) {
+            if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
+            if (pm[j].xPos < largestXPos && pm[j].yPos < largestYPos && positions[pm[j].yPos + pm[j].xPos * largestYPos] == false) {
+                pm[j].x = pm[j].xPos * outerSizeX + x;
+                pm[j].y = pm[j].yPos * outerSizeY + y;
+                pm[j].page = maxPageID;
+                positions[pm[j].yPos + pm[j].xPos * largestYPos] = true;
+            }
         }
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 4 of 5 complete: Assigned positions to items that are in your resolution's bounds.");
-    int resolutionerror{};
     for (int j = 0; j < count; j++) {
-        yValue* yV = new yValue{ j };
-        yValue* yV2 = new yValue{ j };
-        if (pm[j].xPos > largestXPos || pm[j].yPos > largestYPos) {
-            int y{};
-            while (positions[y] == true) {
-                y++;
-                if (y > positions.size()) {
-                    TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Your screen resolution is too small!",
-                        L"This causes icons to render outside your display.\nMulti-page UI is not implemented at the moment.", TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, &resolutionerror);
-                    break;
+        if (pm[j].valid == true) {
+            if (pm[j].xPos >= largestXPos || pm[j].yPos >= largestYPos) {
+                int y{};
+                while (positions[y] == true) {
+                    y++;
+                    if (y > positions.size()) {
+                        y = 0;
+                        for (int p = 0; p <= positions.size(); p++) {
+                            positions[p] = false;
+                        }
+                        maxPageID++;
+                        nextpageMain->SetVisible(true);
+                        break;
+                    }
                 }
+                pm[j].xPos = y / largestYPos;
+                pm[j].yPos = y % largestYPos;
+                pm[j].page = maxPageID;
+                positions[y] = true;
             }
-            if (resolutionerror == IDCLOSE) SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 69);
-            pm[j].xPos = y / largestYPos;
-            pm[j].yPos = y % largestYPos;
-            positions[y] = true;
+            pm[j].x = pm[j].xPos * outerSizeX + x, pm[j].y = pm[j].yPos * outerSizeY + y;
         }
-        pm[j].x = pm[j].xPos * outerSizeX + x, pm[j].y = pm[j].yPos * outerSizeY + y;
-        animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
-        animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
+    }
+    if (currentPageID > maxPageID) currentPageID = maxPageID;
+    if (currentPageID != 1) prevpageMain->SetVisible(true);
+    for (int j = 0; j < count; j++) {
+        if (pm[j].valid == true) {
+            yValue* yV = new yValue{ j };
+            yValue* yV2 = new yValue{ j };
+            animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
+            animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
+        }
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
     delete[] animThread;
@@ -1296,7 +1381,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     pMain->EndDefer(key);
 
     InitialUpdateScale();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated scaling.");
     UpdateModeInfo();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated color mode information.");
 
     sampleText = regElem(L"sampleText");
     mainContainer = regElem(L"mainContainer");
@@ -1310,12 +1397,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SimpleViewBottom = regBtn(L"SimpleViewBottom");
     SimpleViewSettings = regTouchBtn(L"SimpleViewSettings");
     SimpleViewClose = regTouchBtn(L"SimpleViewClose");
+    prevpage = regTouchBtn(L"prevpage");
+    nextpage = regTouchBtn(L"nextpage");
+    prevpageMain = regTouchBtn(L"prevpageMain");
+    nextpageMain = regTouchBtn(L"nextpageMain");
+    pageinfo = regRichText(L"pageinfo");
 
     assignFn(fullscreenpopupbase, testEventListener3);
     assignFn(SimpleViewTop, testEventListener3);
     assignFn(SimpleViewBottom, testEventListener3);
     assignFn(SimpleViewSettings, ShowSettings);
     assignFn(SimpleViewClose, ExitWindow);
+    assignFn(prevpage, GoToPrevPage);
+    assignFn(nextpage, GoToNextPage);
+    assignFn(prevpageMain, GoToPrevPage);
+    assignFn(nextpageMain, GoToNextPage);
 
     showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
@@ -1336,7 +1432,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //}
     wnd->ShowWindow(SW_SHOW);
     if (logging == IDYES) {
-        TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", L"Logging complete", L"You can view the log by pressing the close button.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
+        TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", L"Logging complete", L"To close DirectDesktop, press the close button.\nThis will automatically view the log.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
         SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
     }
     //MARGINS m = { -1, -1, -1, -1 };

@@ -798,6 +798,12 @@
     <Image Include="ImageResources\264.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\3001.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3002.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectUI\DirectUI.def">
