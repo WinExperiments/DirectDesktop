@@ -3,6 +3,7 @@
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
 
+int validItems;
 void DesktopRightClick(Element* elem, Event* iev) {
     if (iev->uidType == Button::Context) {
 
@@ -87,8 +88,15 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 RearrangeIcons(true, true);
                 break;
             case 105:
-                for (int items = 0; items < pm.size(); items++) {
-                    pm[items].elem->SetVisible(!pm[items].elem->GetVisible());
+                for (int items = 0; items < validItems; items++) {
+                    switch (hiddenIcons) {
+                    case 0:
+                        pm[items].elem->SetVisible(false);
+                        break;
+                    case 1:
+                        if (pm[items].page == currentPageID) pm[items].elem->SetVisible(true);
+                        break;
+                    }
                 }
                 hiddenIcons = !hiddenIcons;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons);

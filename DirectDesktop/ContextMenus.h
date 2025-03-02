@@ -12,6 +12,7 @@ extern void ShowSimpleView();
 extern void RearrangeIcons(bool animation, bool reloadicons);
 extern bool hiddenIcons;
 extern int globaliconsz, globalshiconsz, globalgpiconsz;
+extern int currentPageID;
 extern NativeHWNDHost* wnd;
 
 

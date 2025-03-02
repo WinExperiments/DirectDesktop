@@ -239,7 +239,10 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
             else (*pm)[dirIndex++].isDirectory = false;
             if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++].isHidden = true;
             else (*pm)[hiddenIndex++].isHidden = false;
-            /*if ((*pm)[dirIndex - 1].isDirectory == true) files->push_back((wstring)fd.cFileName);
+            /*if ((*pm)[dirIndex - 1].isDirectory == true) {
+                files->push_back((wstring)fd.cFileName);
+                (*pm)[shortIndex++].isShortcut = false;
+            }
             else*/ files->push_back(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
             filepaths->push_back(path + (wstring)L"\\" + wstring(fd.cFileName));
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
@@ -537,7 +540,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Resized the temporary arrays.");
     int fileCount{};
     for (int index = 0; index < pm.size(); index++) {
-        for (int index2 = 0; index2 < pm.size(); index2++) {
+        for (int index2 = 0; index2 < new_desktop_items.size(); index2++) {
             if (new_desktop_items[index2].name == pm[index].simplefilename) {
                 new_desktop_items[index2].name = L"?";
                 pmBuf[index2] = pm[index];
@@ -547,10 +550,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
                 pmFileBuf[index2] = filepm[index];
                 pmFileShadowBuf[index2] = fileshadowpm[index];
                 pmCBBuf[index2] = cbpm[index];
-                if (logging == IDYES) {
-                    fileCount++;
-                }
-                pmBuf[index2].valid = true;
+                fileCount++;
                 break;
             }
         }
@@ -567,7 +567,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Filled the temporary arrays.");
     ////////////////////////////////////
 
-    for (int index = 0; index < pm.size(); index++) {
+    for (int index = 0; index < fileCount; index++) {
         int r = new_desktop_items[index].row, c = new_desktop_items[index].column;
         short tempXPos{}, tempYPos{}, bitsX = 128, bitsY = 128, bitsXAccumulator{}, bitsYAccumulator{};
         if (logging == IDYES) {
@@ -619,5 +619,12 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
             if (tempYPos > 200) break;
         }
     }
+    validItems = fileCount;
     pmBuf.clear();
+    pmShortcutBuf.clear();
+    pmIconBuf.clear();
+    pmIconShadowBuf.clear();
+    pmFileBuf.clear();
+    pmFileShadowBuf.clear();
+    pmCBBuf.clear();
 }

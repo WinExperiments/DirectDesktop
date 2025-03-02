@@ -556,6 +556,10 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         }
         break;
     }
+    case WM_USER + 15: {
+        ShowSimpleView();
+        break;
+    }
     }
     return CallWindowProc(WndProc, hWnd, uMsg, wParam, lParam);
 }
@@ -719,14 +723,25 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
     StringCchPrintfW(currentPage, 64, L"Page %d / %d", currentPageID, maxPageID);
     pageinfo->SetContentString(currentPage);
 }
+unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
+    HidePopupCore();
+    this_thread::sleep_for(chrono::milliseconds(100));
+    SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, NULL);
+    return 0;
+}
 void GoToPrevPage(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
         currentPageID--;
-        RearrangeIcons(true, false);
+        for (int items = 0; items < validItems; items++) {
+            if (pm[items].page == currentPageID) pm[items].elem->SetVisible(!hiddenIcons);
+            else pm[items].elem->SetVisible(false);
+        }
         if (editmode) {
             fullscreeninner->SetBackgroundStdColor(7);
             TogglePage(nextpage, 0.9, 0.2, 0.1, 0.6);
             if (currentPageID == 1) TogglePage(prevpage, 0, 0.2, 0, 0.6);
+            DWORD dd;
+            HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
         }
         nextpageMain->SetVisible(true);
         if (currentPageID == 1) prevpageMain->SetVisible(false);
@@ -735,11 +750,16 @@ void GoToPrevPage(Element* elem, Event* iev) {
 void GoToNextPage(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
         currentPageID++;
-        RearrangeIcons(true, false);
+        for (int items = 0; items < validItems; items++) {
+            if (pm[items].page == currentPageID) pm[items].elem->SetVisible(!hiddenIcons);
+            else pm[items].elem->SetVisible(false);
+        }
         if (editmode) {
             fullscreeninner->SetBackgroundStdColor(7);
             TogglePage(prevpage, 0, 0.2, 0.1, 0.6);
             if (currentPageID == maxPageID) TogglePage(nextpage, 0.9, 0.2, 0, 0.6);
+            DWORD dd;
+            HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
         }
         prevpageMain->SetVisible(true);
         if (currentPageID == maxPageID) nextpageMain->SetVisible(false);
@@ -767,45 +787,44 @@ unsigned long ApplyThumbnailIcons(LPVOID lpParam) {
     return 0;
 }
 
-void ApplyIcons(vector<parameters> pmLVItem, vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<Element*> pmShortcut, vector<HBITMAP> iconstofetch) {
+void ApplyIcons(vector<parameters> pmLVItem, vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<Element*> pmShortcut, vector<HBITMAP> iconstofetch, bool subdirectory) {
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
     for (int icon = 0; icon < pmIcon.size(); icon++) {
-        if (pmLVItem[icon].valid == false) {
-            if (logging == IDYES) MainLogger.WriteLine(L"Warning: Empty filename, applying placeholder icon...");
-            continue;
+        if (icon < validItems || subdirectory == true) {
+            HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
+            // The use of the 3 lines below is because we can't use a fully transparent bitmap
+            HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
+            HBITMAP dummyii = IconToBitmap(dummyi);
+            IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005);
+            HBITMAP bmp{};
+            if (pm[icon].isDirectory == false || treatdirasgroup == false || pmIcon != iconpm) bmp = icons[icon];
+            else bmp = dummyii;
+            if (bmp != dummyii) {
+                HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor);
+                IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * flScaleFactor), 0.33);
+                Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
+                pmIconShadow[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
+                DeleteObject(bmpShadow);
+                bitmapShadow->Release();
+            }
+            HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
+            if (isColorized) {
+                IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
+                IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
+            }
+            IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
+            Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
+            Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
+            pmIcon[icon]->SetValue(Element::ContentProp, 1, bitmap);
+            if (pmLVItem[icon].isShortcut == true) pmShortcut[icon]->SetValue(Element::ContentProp, 1, bitmapShortcut);
+            DeleteObject(icoShortcut);
+            if (bmp != nullptr) DeleteObject(bmp);
+            DeleteObject(bmpShortcut);
+            bitmap->Release();
+            bitmapShortcut->Release();
         }
-        HICON icoShortcut = (HICON)LoadImageW(testInst, MAKEINTRESOURCE(163), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
-        // The use of the 3 lines below is because we can't use a fully transparent bitmap
-        HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
-        HBITMAP dummyii = IconToBitmap(dummyi);
-        IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005);
-        HBITMAP bmp{};
-        if (pm[icon].isDirectory == false || treatdirasgroup == false || pmIcon != iconpm) bmp = icons[icon];
-        else bmp = dummyii;
-        if (bmp != dummyii) { 
-            HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor);
-            IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * flScaleFactor), 0.33);
-            Value* bitmapShadow = DirectUI::Value::CreateGraphic(bmpShadow, 2, 0xffffffff, false, false, false);
-            pmIconShadow[icon]->SetValue(Element::ContentProp, 1, bitmapShadow);
-            DeleteObject(bmpShadow);
-            bitmapShadow->Release();
-        }
-        HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
-        if (isColorized) {
-            IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
-            IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
-        }
-        IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
-        Value* bitmap = DirectUI::Value::CreateGraphic(bmp, 2, 0xffffffff, false, false, false);
-        Value* bitmapShortcut = DirectUI::Value::CreateGraphic(bmpShortcut, 2, 0xffffffff, false, false, false);
-        pmIcon[icon]->SetValue(Element::ContentProp, 1, bitmap);
-        if (pmLVItem[icon].isShortcut == true) pmShortcut[icon]->SetValue(Element::ContentProp, 1, bitmapShortcut);
-        DeleteObject(icoShortcut);
-        if (bmp != nullptr) DeleteObject(bmp);
-        DeleteObject(bmpShortcut);
-        bitmap->Release();
-        bitmapShortcut->Release();
+        else if (logging == IDYES) MainLogger.WriteLine(L"Warning: Empty filename, icon application may fail...");
     }
     icons.clear();
 }
@@ -875,7 +894,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             assignFn(outerElemGrouped, SelectSubItem);
             outerElemGrouped->SetClass(L"singleclicked");
         }
-        ApplyIcons(subpm, subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons());
+        ApplyIcons(subpm, subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons(), true);
         for (int j = 0; j < count; j++) {
             subpm[j].x = x, subpm[j].y = y;
             yValue* yV = new yValue{ j };
@@ -999,7 +1018,7 @@ void SelectItem(Element* elem, Event* iev) {
         validation++;
         Button* checkbox = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));
         if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
-            for (int items = 0; items < pm.size(); items++) {
+            for (int items = 0; items < validItems; items++) {
                 pm[items].elem->SetSelected(false);
                 if (cbpm[items]->GetSelected() == false && showcheckboxes == 1) cbpm[items]->SetVisible(false);
             }
@@ -1019,7 +1038,7 @@ void SelectItem(Element* elem, Event* iev) {
         execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         execInfo.lpVerb = L"open";
         execInfo.nShow = SW_SHOWNORMAL;
-        for (int items = 0; items < pm.size(); items++) {
+        for (int items = 0; items < validItems; items++) {
             if (pm[items].mem_isSelected != pm[items].elem->GetSelected()) {
                 float spacingInternal = CalcTextLines(pm[items].simplefilename.c_str(), pm[items].elem->GetWidth());
                 int extraBottomSpacing = (pm[items].elem->GetSelected() == true) ? ceil(spacingInternal) * textm.tmHeight : floor(spacingInternal) * textm.tmHeight;
@@ -1063,7 +1082,7 @@ void SelectItem(Element* elem, Event* iev) {
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
     checkboxElem = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));   
     if (pProp == Element::MouseFocusedProp() && showcheckboxes == 1) {
-        for (int items = 0; items < cbpm.size(); items++) {
+        for (int items = 0; items < validItems; items++) {
             if (cbpm[items]->GetSelected() == false) cbpm[items]->SetVisible(false);
         }
         checkboxElem->SetVisible(true);
@@ -1149,7 +1168,7 @@ void RearrangeIcons(bool animation, bool reloadicons) {
     unsigned int count = pm.size();
     static const int savedanim = (pm[0].elem != nullptr) ? pm[0].elem->GetAnimation() : NULL;
     if (reloadicons) {
-        ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons());
+        ApplyIcons(pm, iconpm, shadowpm, shortpm, GetDesktopIcons(), false);
         DWORD dd;
         HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
     }
@@ -1168,51 +1187,45 @@ void RearrangeIcons(bool animation, bool reloadicons) {
     vector<bool> positions{};
     positions.resize(largestXPos * largestYPos - 1);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
-    for (int j = 0; j < count; j++) {
-        if (pm[j].valid == true) {
-            if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
-            if (pm[j].xPos < largestXPos && pm[j].yPos < largestYPos && positions[pm[j].yPos + pm[j].xPos * largestYPos] == false) {
-                pm[j].x = pm[j].xPos * outerSizeX + x;
-                pm[j].y = pm[j].yPos * outerSizeY + y;
-                pm[j].page = maxPageID;
-                positions[pm[j].yPos + pm[j].xPos * largestYPos] = true;
-            }
+    for (int j = 0; j < validItems; j++) {
+        if (!animation) pm[j].elem->SetAnimation(NULL); else pm[j].elem->SetAnimation(savedanim);
+        if (pm[j].xPos < largestXPos && pm[j].yPos < largestYPos && positions[pm[j].yPos + pm[j].xPos * largestYPos] == false) {
+            pm[j].x = pm[j].xPos * outerSizeX + x;
+            pm[j].y = pm[j].yPos * outerSizeY + y;
+            pm[j].page = maxPageID;
+            positions[pm[j].yPos + pm[j].xPos * largestYPos] = true;
         }
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 4 of 5 complete: Assigned positions to items that are in your resolution's bounds.");
-    for (int j = 0; j < count; j++) {
-        if (pm[j].valid == true) {
-            if (pm[j].xPos >= largestXPos || pm[j].yPos >= largestYPos) {
-                int y{};
-                while (positions[y] == true) {
-                    y++;
-                    if (y > positions.size()) {
-                        y = 0;
-                        for (int p = 0; p <= positions.size(); p++) {
-                            positions[p] = false;
-                        }
-                        maxPageID++;
-                        nextpageMain->SetVisible(true);
-                        break;
+    for (int j = 0; j < validItems; j++) {
+        if (pm[j].xPos >= largestXPos || pm[j].yPos >= largestYPos) {
+            int y{};
+            while (positions[y] == true) {
+                y++;
+                if (y > positions.size()) {
+                    y = 0;
+                    for (int p = 0; p <= positions.size(); p++) {
+                        positions[p] = false;
                     }
+                    maxPageID++;
+                    nextpageMain->SetVisible(true);
+                    break;
                 }
-                pm[j].xPos = y / largestYPos;
-                pm[j].yPos = y % largestYPos;
-                pm[j].page = maxPageID;
-                positions[y] = true;
             }
-            pm[j].x = pm[j].xPos * outerSizeX + x, pm[j].y = pm[j].yPos * outerSizeY + y;
+            pm[j].xPos = y / largestYPos;
+            pm[j].yPos = y % largestYPos;
+            pm[j].page = maxPageID;
+            positions[y] = true;
         }
+        pm[j].x = pm[j].xPos * outerSizeX + x, pm[j].y = pm[j].yPos * outerSizeY + y;
     }
     if (currentPageID > maxPageID) currentPageID = maxPageID;
     if (currentPageID != 1) prevpageMain->SetVisible(true);
-    for (int j = 0; j < count; j++) {
-        if (pm[j].valid == true) {
-            yValue* yV = new yValue{ j };
-            yValue* yV2 = new yValue{ j };
-            animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
-            animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
-        }
+    for (int j = 0; j < validItems; j++) {
+        yValue* yV = new yValue{ j };
+        yValue* yV2 = new yValue{ j };
+        animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
+        animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV2, 0, &(animThread2[j]));
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
     delete[] animThread;

@@ -297,9 +297,9 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton layoutpos="absolute" width="8rp" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" padding="rect(24rp,0,24rp,0)" font="resstr(139)" alpha="0" animation="alpha|log|veryfast"/>
+				<TouchButton width="8rp" foreground="white" contentalign="middlecenter" padding="rect(80rp,0,80rp,0)" font="resstr(139)" alpha="0"/>
 				<if mousefocused="true">
-					<TouchButton alpha="255" width="160rp"/>
+					<TouchButton alpha="255" width="160rp" padding="rect(0,0,0,0)" animation="alpha|rectangle|s|fast"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
@@ -494,9 +494,9 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton width="8rp" foreground="white" contentalign="middlecenter" padding="rect(24rp,0,24rp,0)" font="resstr(139)" alpha="0" animation="alpha|log|veryfast"/>
+				<TouchButton width="8rp" foreground="white" contentalign="middlecenter" padding="rect(80rp,0,80rp,0)" font="resstr(139)" alpha="0"/>
 				<if mousefocused="true">
-					<TouchButton alpha="255" width="160rp"/>
+					<TouchButton alpha="255" width="160rp" padding="rect(0,0,0,0)" animation="alpha|rectangle|s|fast"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">

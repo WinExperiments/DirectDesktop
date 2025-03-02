@@ -20,10 +20,9 @@ struct parameters {
     unsigned short xPos = 999;
     unsigned short yPos = 999;
     unsigned short page{};
-    bool valid = false;
 };
 
-extern int logging;
+extern int logging, validItems;
 extern vector<parameters> pm;
 extern vector<DirectUI::Element*> shortpm;
 extern vector<DirectUI::Element*> iconpm;
