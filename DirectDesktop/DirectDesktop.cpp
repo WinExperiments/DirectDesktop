@@ -516,7 +516,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 14: {
         int padding = 3, paddingInner = 2;
-        if (globaliconsz > 48) {
+        if (globaliconsz > 96) {
+            padding = 18;
+            paddingInner = 12;
+        }
+        else if (globaliconsz > 48) {
             padding = 12;
             paddingInner = 8;
         }
@@ -1430,9 +1434,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
-    if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
+    if (globaliconsz > 96) globalshiconsz = 64; else if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
     globalgpiconsz = 12;
-    if (globaliconsz > 48) globalgpiconsz = 32;
+    if (globaliconsz > 96) globalgpiconsz = 48;
+    else if (globaliconsz > 48) globalgpiconsz = 32;
     else if (globaliconsz > 32) globalgpiconsz = 16;
     InitLayout();
     SetTheme();

@@ -6,8 +6,12 @@
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 
 				</Element>
-				<TouchButton id="atom(prevpageMain)" layoutpos="left" class="pageselector" background="resbmp(3001,7,-1,0,0,1,1)" content="resstr(140)"/>
-				<TouchButton id="atom(nextpageMain)" layoutpos="right" class="pageselector" background="resbmp(3002,7,-1,0,0,1,1)" content="resstr(141)"/>
+				<TouchButton layout="filllayout()" id="atom(prevpageMain)" layoutpos="left" class="pageselector">
+					<RichText layoutpos="left" background="resbmp(3001,7,-1,0,0,1,1)" content="resstr(140)" animation="rectangle|s|fast" width="160rp"/>
+				</TouchButton>
+				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" class="pageselector">
+					<RichText layoutpos="right" background="resbmp(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
+				</TouchButton>
 				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
 				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
@@ -297,9 +301,9 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton width="8rp" foreground="white" contentalign="middlecenter" padding="rect(80rp,0,80rp,0)" font="resstr(139)" alpha="0"/>
-				<if mousefocused="true">
-					<TouchButton alpha="255" width="160rp" padding="rect(0,0,0,0)" animation="alpha|rectangle|s|fast"/>
+				<TouchButton background="argb(0,0,0,0)" width="8rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
+				<if mousewithin="true">
+					<TouchButton alpha="255" width="160rp"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
@@ -494,9 +498,9 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton width="8rp" foreground="white" contentalign="middlecenter" padding="rect(80rp,0,80rp,0)" font="resstr(139)" alpha="0"/>
-				<if mousefocused="true">
-					<TouchButton alpha="255" width="160rp" padding="rect(0,0,0,0)" animation="alpha|rectangle|s|fast"/>
+				<TouchButton background="argb(0,0,0,0)" width="8rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
+				<if mousewithin="true">
+					<TouchButton alpha="255" width="160rp"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">

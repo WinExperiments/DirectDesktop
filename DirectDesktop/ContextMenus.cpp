@@ -23,21 +23,23 @@ void DesktopRightClick(Element* elem, Event* iev) {
             MENUITEMINFOW mii{};
             mii.cbSize = sizeof(MENUITEMINFOW);
             mii.fMask = MIIM_STATE;
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 101, L"Large icons");
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 102, L"Medium icons");
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 103, L"Small icons");
-            for (int menuitem = 101; menuitem <= 103; menuitem++) {
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 101, L"Extra large icons");
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 102, L"Large icons");
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 103, L"Medium icons");
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 104, L"Small icons");
+            for (int menuitem = 101; menuitem <= 104; menuitem++) {
                 mii.fState = MFS_UNCHECKED;
                 SetMenuItemInfoW(hsm, menuitem, 0, &mii);
             }
             mii.fState = MFS_CHECKED;
-            if (globaliconsz <= 32) SetMenuItemInfoW(hsm, 103, 0, &mii);
-            else if (globaliconsz <= 48) SetMenuItemInfoW(hsm, 102, 0, &mii);
+            if (globaliconsz <= 32) SetMenuItemInfoW(hsm, 104, 0, &mii);
+            else if (globaliconsz <= 48) SetMenuItemInfoW(hsm, 103, 0, &mii);
+            else if (globaliconsz <= 96) SetMenuItemInfoW(hsm, 102, 0, &mii);
             else SetMenuItemInfoW(hsm, 101, 0, &mii);
-            AppendMenuW(hsm, MF_SEPARATOR, 104, L"_");
-            AppendMenuW(hsm, MF_STRING, 105, L"Show desktop icons");
+            AppendMenuW(hsm, MF_SEPARATOR, 105, L"_");
+            AppendMenuW(hsm, MF_STRING, 106, L"Show desktop icons");
             mii.fState = hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
-            SetMenuItemInfoW(hsm, 105, 0, &mii);
+            SetMenuItemInfoW(hsm, 106, 0, &mii);
             AppendMenuW(hm, MF_STRING | MF_POPUP, (UINT_PTR)hsm, L"View");
             pICv1->QueryContextMenu(hm, 1, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
             RemoveMenu(hm, 1, MF_BYPOSITION);
@@ -67,27 +69,34 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 ShowSimpleView();
                 break;
             case 101:
-                globaliconsz = 96;
-                globalshiconsz = 48;
-                globalgpiconsz = 32;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
+                globaliconsz = 144;
+                globalshiconsz = 64;
+                globalgpiconsz = 48;
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144);
                 RearrangeIcons(true, true);
                 break;
             case 102:
-                globaliconsz = 48;
-                globalshiconsz = 32;
-                globalgpiconsz = 16;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
+                globaliconsz = 96;
+                globalshiconsz = 48;
+                globalgpiconsz = 32;
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96);
                 RearrangeIcons(true, true);
                 break;
             case 103:
+                globaliconsz = 48;
+                globalshiconsz = 32;
+                globalgpiconsz = 16;
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48);
+                RearrangeIcons(true, true);
+                break;
+            case 104:
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", globaliconsz);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32);
                 RearrangeIcons(true, true);
                 break;
-            case 105:
+            case 106:
                 for (int items = 0; items < validItems; items++) {
                     switch (hiddenIcons) {
                     case 0:
