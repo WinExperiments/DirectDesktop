@@ -134,6 +134,7 @@
       <ConformanceMode>true</ConformanceMode>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
+      <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -256,6 +257,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImmersiveColor.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="LVItem.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="StyleModifier.h" />
@@ -269,6 +271,7 @@
     <ClCompile Include="DirectDesktop.cpp" />
     <ClCompile Include="DirectoryHelper.cpp" />
     <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="LVItem.cpp" />
     <ClCompile Include="SettingsHelper.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
   </ItemGroup>

@@ -1,4 +1,5 @@
 #pragma once
+#include "RangeValue.h"
 
 namespace DirectUI
 {
@@ -34,7 +35,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API ProgressRangeValueProxy : public IProxy
+	class UILIB_API ProgressRangeValueProxy : public RangeValueProxy
 	{
 	public:
 		ProgressRangeValueProxy(ProgressRangeValueProxy const &);

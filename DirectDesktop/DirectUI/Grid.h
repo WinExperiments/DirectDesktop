@@ -20,7 +20,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API GridProxy : public IProxy
+	class UILIB_API GridProxy : public ProviderProxy
 	{
 	public:
 		GridProxy(GridProxy const &);

@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "Logger.h"
+#include "LVItem.h"
 #include "DirectUI/DirectUI.h"
 
 using namespace std;
@@ -23,7 +24,7 @@ struct parameters {
 };
 
 extern int logging, validItems;
-extern vector<parameters> pm;
+extern vector<LVItem*> pm, subpm;
 extern vector<DirectUI::Element*> shortpm;
 extern vector<DirectUI::Element*> iconpm;
 extern vector<DirectUI::Element*> shadowpm;
@@ -35,7 +36,7 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue);
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
-void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset, unsigned short limit = 65535);
+void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, unsigned short limit = 65535);
 void GetPos(bool getSpotlightIcon = false, int* setSpotlightIcon = nullptr);
 bool ToggleDesktopIcons(bool visibility, bool wholeHost);
 HWND GetWorkerW();

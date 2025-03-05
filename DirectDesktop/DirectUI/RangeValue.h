@@ -23,7 +23,7 @@ namespace DirectUI
 		virtual long __stdcall get_Value(double *);
 	};
 
-	class UILIB_API RangeValueProxy : public IProxy
+	class UILIB_API RangeValueProxy : public ProviderProxy
 	{
 	public:
 		RangeValueProxy(RangeValueProxy const &);

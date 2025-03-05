@@ -321,122 +321,29 @@ long RefcountBase::Release()
 	return 0;
 }
 
-Button::Button(const Button&)
-{
-}
-
-Button::Button()
-{
-}
-
-Button::~Button()
-{
-}
-
-Button& Button::operator=(const Button&)
-{
-	// TODO: 在此处插入 return 语句
-	return *this;
-}
-
-long Button::Initialize(unsigned int, Element*, unsigned long*)
-{
-	return 0;
-}
-
-long Button::Create(unsigned int, Element*, unsigned long*, Element**)
-{
-	return 0;
-}
-
-long Button::Create(Element*, unsigned long*, Element**)
-{
-	return 0;
-}
-
-UID WINAPI Button::Click()
-{
-	return UID();
-}
-
-UID WINAPI Button::Context()
-{
-	return UID();
-}
-
-void Button::OnPropertyChanged(const PropertyInfo*, int, Value*, Value*)
-{
-}
-
-void Button::OnInput(InputEvent*)
-{
-}
-
-IClassInfo* Button::GetClassInfoW()
-{
-	return nullptr;
-}
-
-long Button::DefaultAction()
-{
-	return 0;
-}
-
-bool Button::GetCaptured()
-{
-	return false;
-}
-
-IClassInfo* WINAPI Button::GetClassInfoPtr()
-{
-	return nullptr;
-}
-
-bool Button::GetPressed()
-{
-	return false;
-}
-
-bool Button::OnLostDialogFocus(DialogElement*)
-{
-	return false;
-}
-
-bool Button::OnReceivedDialogFocus(DialogElement*)
-{
-	return false;
-}
-
-long WINAPI Button::Register()
-{
-	return 0;
-}
-
-long Button::SetCaptured(bool)
-{
-	return 0;
-}
-
-void WINAPI Button::SetClassInfoPtr(IClassInfo*)
-{
-}
-
-long Button::SetPressed(bool)
-{
-	return 0;
-}
-
-const PropertyInfo* WINAPI Button::CapturedProp()
-{
-	return nullptr;
-}
-
-const PropertyInfo* WINAPI Button::PressedProp()
-{
-	return nullptr;
-}
-
+HRESULT Button::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) STUB_ZERO;
+HRESULT Button::Create(UINT nActive, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) STUB_ZERO;
+void Button::OnInput(InputEvent* pie) STUB_VOID;
+UID Button::Click() STUB_ZERO;
+UID Button::Context() STUB_ZERO;
+const PropertyInfo* Button::PressedProp() STUB_ZERO;
+const PropertyInfo* Button::CapturedProp() STUB_ZERO;
+bool Button::GetPressed() STUB_ZERO;
+bool Button::GetCaptured() STUB_ZERO;
+HRESULT Button::SetPressed(bool v) STUB_ZERO;
+HRESULT Button::SetCaptured(bool v) STUB_ZERO;
+IClassInfo* Button::GetClassInfoPtr() STUB_ZERO;
+void Button::SetClassInfoPtr(IClassInfo* pClass) STUB_VOID;
 IClassInfo* Button::s_pClassInfo;
+IClassInfo* Button::GetClassInfoW() STUB_ZERO;
+HRESULT Button::Register() STUB_ZERO;
+void Button::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) STUB_VOID;
+bool Button::OnLostDialogFocus(IDialogElement* pDE) STUB_ZERO;
+bool Button::OnReceivedDialogFocus(IDialogElement* pDE) STUB_ZERO;
+HRESULT Button::DefaultAction() STUB_ZERO;
+Button::Button() STUB_VOID;
+HRESULT Button::Initialize(UINT nActive, Element* pParent, DWORD* pdwDeferCookie) STUB_ZERO;
+Button::~Button() STUB_VOID;
 
 HRESULT Element::Create(UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) STUB_ZERO;
 HRESULT Element::Destroy(bool fDelayed) STUB_ZERO;
@@ -5750,21 +5657,9 @@ long HWNDElementProvider::Init(HWNDElement*, InvokeHelper*)
 {
 	return 0;
 }
-
-HWNDElementProxy::HWNDElementProxy(HWNDElementProxy const&)
-{
-}
-
 HWNDElementProxy::HWNDElementProxy(void)
 {
 }
-
-HWNDElementProxy& HWNDElementProxy::operator=(HWNDElementProxy const&)
-{
-	// TODO: 在此处插入 return 语句
-	return *this;
-}
-
 HWNDElementProxy* HWNDElementProxy::Create(HWNDElement*)
 {
 	return nullptr;
@@ -6138,10 +6033,7 @@ unsigned int const (*__ptr32 HWNDHost::g_rgMouseMap)[3];
 
 IClassInfo* HWNDHost::s_pClassInfo;
 
-Proxy::Proxy(Proxy const&)
-{
-}
-
+	
 Proxy::Proxy(void)
 {
 }
@@ -6149,13 +6041,6 @@ Proxy::Proxy(void)
 Proxy::~Proxy(void)
 {
 }
-
-Proxy& Proxy::operator=(Proxy const&)
-{
-	// TODO: 在此处插入 return 语句
-	return *this;
-}
-
 long Proxy::SyncCallback(HGADGET__*, void*, EventMsg*)
 {
 	return 0;
@@ -8841,6 +8726,16 @@ long SelectorNoDefault::SetSelection(Element*)
 
 IClassInfo* SelectorNoDefault::s_pClassInfo;
 
+IClassInfo* ItemList::GetClassInfoPtr() STUB_ZERO;
+IClassInfo* ItemList::GetClassInfoW() STUB_ZERO;
+ItemList::ItemList() STUB_VOID;
+ItemList::~ItemList() STUB_VOID;
+HRESULT ItemList::SetReorderable(bool v) STUB_ZERO;
+bool ItemList::IsReorderable() STUB_ZERO;
+HRESULT ItemList::Register() STUB_ZERO;
+HRESULT ItemList::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) STUB_ZERO;
+void ItemList::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) STUB_VOID;
+Element* ItemList::GetAdjacent(Element* peFrom, int iNavDir, const NavReference* pnr, DWORD dwFlags) STUB_ZERO;
 
 SelectorSelectionProxy::SelectorSelectionProxy(SelectorSelectionProxy const&)
 {
@@ -10426,6 +10321,95 @@ HRESULT TouchCheckBox::Register() STUB_ZERO;
 TouchCheckBox::TouchCheckBox() STUB_VOID;
 HRESULT TouchCheckBox::Initialize(UINT nActive, Element* pParent, DWORD* pdwDeferCookie) STUB_ZERO;
 TouchCheckBox::~TouchCheckBox() STUB_VOID;
+
+UID TouchScrollViewer::ManipulationStarting() STUB_ZERO;
+UID TouchScrollViewer::ManipulationStarted() STUB_ZERO;
+UID TouchScrollViewer::ManipulationDelta() STUB_ZERO;
+UID TouchScrollViewer::ManipulationCompleted() STUB_ZERO;
+UID TouchScrollViewer::SemanticChange() STUB_ZERO;
+UID TouchScrollViewer::SnapshotTransformElement() STUB_ZERO;
+UID TouchScrollViewer::ReleaseSnapshot() STUB_ZERO;
+UID TouchScrollViewer::MapContentVisuals() STUB_ZERO;
+UID TouchScrollViewer::SetContactNeeded() STUB_ZERO;
+UID TouchScrollViewer::SetContactNotify() STUB_ZERO;
+UID TouchScrollViewer::UpdateView() STUB_ZERO;
+UID TouchScrollViewer::UpdateContentSize() STUB_ZERO;
+HRESULT TouchScrollViewer::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapModeProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::ScrollPaddingProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapIntervalXProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapOffsetXProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapPointCollectionXProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapIntervalYProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapOffsetYProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::SnapPointCollectionYProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::ManipulationVerticalAlignmentProp() STUB_ZERO;
+const PropertyInfo* TouchScrollViewer::ManipulationHorizontalAlignmentProp() STUB_ZERO;
+int TouchScrollViewer::GetInteractionMode() STUB_ZERO;
+HRESULT TouchScrollViewer::SetInteractionMode(int v) STUB_ZERO;
+int TouchScrollViewer::GetSnapMode() STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapMode(int v) STUB_ZERO;
+bool TouchScrollViewer::GetAllowArrowOut() STUB_ZERO;
+HRESULT TouchScrollViewer::SetAllowArrowOut(bool v) STUB_ZERO;
+const RECT* TouchScrollViewer::GetScrollPadding(Value** ppv) STUB_ZERO;
+HRESULT TouchScrollViewer::SetScrollPadding(int l, int t, int r, int b) STUB_ZERO;
+float TouchScrollViewer::GetZoomMinimum() STUB_ZERO;
+HRESULT TouchScrollViewer::SetZoomMinimum(float v) STUB_ZERO;
+float TouchScrollViewer::GetZoomMaximum() STUB_ZERO;
+HRESULT TouchScrollViewer::SetZoomMaximum(float v) STUB_ZERO;
+float TouchScrollViewer::GetSnapIntervalX() STUB_ZERO;
+float TouchScrollViewer::GetSnapOffsetX() STUB_ZERO;
+DynamicArray<double>* TouchScrollViewer::GetSnapPointCollectionX(Value** ppv) STUB_ZERO;
+float TouchScrollViewer::GetSnapIntervalY() STUB_ZERO;
+float TouchScrollViewer::GetSnapOffsetY() STUB_ZERO;
+DynamicArray<double>* TouchScrollViewer::GetSnapPointCollectionY(Value** ppv) STUB_ZERO;
+bool TouchScrollViewer::GetLinkIndicatorsToContent() STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapIntervalX(float v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapOffsetX(float v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapPointCollectionX(const double* rgdbl, int cdbl) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapPointCollectionX(DynamicArray<double>* v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapIntervalY(float v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapOffsetY(float v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapPointCollectionY(const double* rgdbl, int cdbl) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSnapPointCollectionY(DynamicArray<double>* v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetLinkIndicatorsToContent(bool v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetContact(UINT uiPointerID, bool fRelease) STUB_ZERO;
+HRESULT TouchScrollViewer::ZoomToRect(const RECT* pcrcTarget, bool fAnimate) STUB_ZERO;
+bool TouchScrollViewer::CanPerformManualVisualSwap() STUB_ZERO;
+bool TouchScrollViewer::IsManualVisualSwapInProgress() STUB_ZERO;
+HRESULT TouchScrollViewer::ZoomToRectManualVisualSwap(float left, float top, float right, float bottom, const int* pnHorizontalDelta, float panX, float panY, float scaleDestination, bool fAnimate) STUB_ZERO;
+HRESULT TouchScrollViewer::PrepareManualSwapDeferredZoomToRect(const RECT* pcrcTarget, const float* ppanX, const float* ppanY, float* centerXOverride, float* centerYOverride, float scaleDestination) STUB_ZERO;
+HRESULT TouchScrollViewer::ExecuteManualSwapDeferredZoomToRect(bool fAnimate) STUB_ZERO;
+HRESULT TouchScrollViewer::SetSuppressSetContact(bool fDisable) STUB_ZERO;
+HRESULT TouchScrollViewer::ResetManipulations() STUB_ZERO;
+HRESULT TouchScrollViewer::ResetInputState() STUB_ZERO;
+HRESULT TouchScrollViewer::SetVirtualizeElements(bool fVirtualize) STUB_ZERO;
+void TouchScrollViewer::SetDisableOffscreenCaching(bool fDisableOffscreen) STUB_VOID;
+int TouchScrollViewer::GetManipulationVerticalAlignment() STUB_ZERO;
+HRESULT TouchScrollViewer::SetManipulationVerticalAlignment(int v) STUB_ZERO;
+int TouchScrollViewer::GetManipulationHorizontalAlignment() STUB_ZERO;
+HRESULT TouchScrollViewer::SetManipulationHorizontalAlignment(int v) STUB_ZERO;
+HRESULT TouchScrollViewer::SetDelegateEventHandler(IUnknown* punk) STUB_ZERO;
+HRESULT TouchScrollViewer::GetVScrollbar(Element** ppeScrollbar) STUB_ZERO;
+HRESULT TouchScrollViewer::GetHScrollbar(Element** ppeScrollbar) STUB_ZERO;
+void TouchScrollViewer::GetInertiaEndpointVisibleRect(RECT* pRectEndpoint) STUB_VOID;
+float TouchScrollViewer::GetInertiaEndpointZoomLevel(float defaultZoomLevel) STUB_ZERO;
+void TouchScrollViewer::GetVisibleRect(RECT* pRectVisibleRegion) STUB_VOID;
+void TouchScrollViewer::GetPredictedVisibleRect(RECT* pRectVisibleRegion) STUB_VOID;
+bool TouchScrollViewer::GetMouseWithinHorizontalScrollRegion() STUB_ZERO;
+HRESULT TouchScrollViewer::SetScrollControlHost(Element* peHost) STUB_ZERO;
+void TouchScrollViewer::GetTranslatedTileRects(RECT* prgrcTranslatedTiles, UINT* prguiIds, UINT uiBufferSize) STUB_VOID;
+bool TouchScrollViewer::IsTileMember(UINT uiTileID, Element* pe) STUB_ZERO;
+bool TouchScrollViewer::IsCrossfadeInProgress() STUB_ZERO;
+HRESULT TouchScrollViewer::OverrideZoomThreshold(float upperThresholdDelta, float lowerThresholdDelta, int flags) STUB_ZERO;
+float TouchScrollViewer::GetContentCrossfadeOpacity() STUB_ZERO;
+IClassInfo* TouchScrollViewer::GetClassInfoPtr() STUB_ZERO;
+IClassInfo* TouchScrollViewer::GetClassInfoW() STUB_ZERO;
+IDirectManipulationManager* TouchScrollViewer::GetManipulationManager() STUB_ZERO;
+IDirectManipulationViewport* TouchScrollViewer::GetManipulationViewport(bool) STUB_ZERO;
+IDirectManipulationCompositor* TouchScrollViewer::GetManipulationCompositor() STUB_ZERO;
+void TouchScrollViewer::NewChildElementsAdded() STUB_VOID;
+HRESULT TouchScrollViewer::TelemetrySetDescription(const WCHAR* pszDescription) STUB_ZERO;
 
 UID TouchEditBase::Enter() STUB_ZERO;
 UID TouchEditBase::Paste() STUB_ZERO;

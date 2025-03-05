@@ -22,7 +22,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API SelectionItemProxy : IProxy
+	class UILIB_API SelectionItemProxy : ProviderProxy
 	{
 	protected:
 		SelectionItemProxy(void);

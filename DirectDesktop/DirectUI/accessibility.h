@@ -2,43 +2,41 @@
 
 namespace DirectUI
 {
-
-	class UILIB_API DuiAccessible
-		: public IAccessible
+	class UILIB_API DuiAccessible :
+		public IAccessible
 		, public IEnumVARIANT
 		, public IOleWindow
 		, public IAccIdentity
 		, public IServiceProvider
 	{
 	public:
+		HRESULT Create(Element*, DuiAccessible**);
 		DuiAccessible();
-		DuiAccessible(const DuiAccessible&) = delete;
-		DuiAccessible& operator = (const DuiAccessible&) = delete;
+
+	private:
+		DuiAccessible(DuiAccessible&);
+		DuiAccessible& operator=(DuiAccessible&);
+
+	public:
+		virtual HRESULT Disconnect();
+		void Initialize(Element* pe);
 
 		virtual ~DuiAccessible();
-		
-		void Initialize(Element* pe);
-		static HRESULT WINAPI Create(Element*, DuiAccessible**);
-		static Element* WINAPI GetAccessibleParent(Element*);
-		static HRESULT WINAPI AccNavigate(Element*, long, Element**);
-	
-		virtual HRESULT Disconnect(void);
 
-		// IUnknown
-		STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override;
+		//~ Begin IUnknown Interface
+		STDMETHODIMP QueryInterface(REFIID riid, void** ppvObj) override;
 		STDMETHODIMP_(ULONG) AddRef() override;
 		STDMETHODIMP_(ULONG) Release() override;
-		
-		// IDispatch
+		//~ End IUnknown Interface
+
+		//~ Begin IDispatch Interface
 		STDMETHODIMP GetTypeInfoCount(UINT* pctinfo) override;
-		STDMETHODIMP GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo ) override;
-		STDMETHODIMP GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId) override;	
+		STDMETHODIMP GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo) override;
+		STDMETHODIMP GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId) override;
 		STDMETHODIMP Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override;
-		
-		// IAccIdentity
-		STDMETHODIMP GetIdentityString(DWORD dwIDChild, BYTE** ppIDString, DWORD* pdwIDStringLen) override;
-		
-		// IAccessible
+		//~ End IDispatch Interface
+
+		//~ Begin IAccessible Interface
 		STDMETHODIMP get_accParent(IDispatch** ppdispParent) override;
 		STDMETHODIMP get_accChildCount(long* pcountChildren) override;
 		STDMETHODIMP get_accChild(VARIANT varChild, IDispatch** ppdispChild) override;
@@ -53,33 +51,47 @@ namespace DirectUI
 		STDMETHODIMP get_accFocus(VARIANT* pvarChild) override;
 		STDMETHODIMP get_accSelection(VARIANT* pvarChildren) override;
 		STDMETHODIMP get_accDefaultAction(VARIANT varChild, BSTR* pszDefaultAction) override;
-		
-		virtual HRESULT WINAPI accSelect(long flagsSelect, VARIANT varID);
-		virtual HRESULT WINAPI accLocation(long*pxLeft, long*pyTop, long*pcxWidth, long*pcyHeight, VARIANT varID);
-		virtual HRESULT WINAPI accNavigate(long navDir, VARIANT varStart, VARIANT*pvarEnd);
-		virtual HRESULT WINAPI accHitTest(long xLeft, long yTop, VARIANT*pvarID);
-		virtual HRESULT WINAPI accDoDefaultAction(VARIANT varID);
-		
-		virtual HRESULT WINAPI put_accName(VARIANT varID, BSTR pszValue);
-		virtual HRESULT WINAPI put_accValue(VARIANT varID, BSTR pszValue);		
-		
-		// IEnumVARIANT
-		virtual HRESULT WINAPI Clone(IEnumVARIANT**ppEnum);
-		virtual HRESULT WINAPI Next(unsigned long celt, VARIANT*rgVar, unsigned long*pCeltFetched);
-		virtual HRESULT WINAPI Reset();
-		virtual HRESULT WINAPI Skip(unsigned long celt);
-		
-		// IOleWindow
-		virtual HRESULT WINAPI GetWindow(HWND*phwnd);
-		virtual HRESULT WINAPI ContextSensitiveHelp(BOOL fEnterMode);
+		STDMETHODIMP accSelect(long flagsSelect, VARIANT varChild) override;
+		STDMETHODIMP accLocation(long* pxLeft, long* pyTop, long* pcxWidth, long* pcyHeight, VARIANT varChild) override;
+		STDMETHODIMP accNavigate(long navDir, VARIANT varStart, VARIANT* pvarEndUpAt) override;
+		STDMETHODIMP accHitTest(long xLeft, long yTop, VARIANT* pvarChild) override;
+		STDMETHODIMP accDoDefaultAction(VARIANT varChild) override;
+		STDMETHODIMP put_accName(VARIANT varChild, BSTR szName) override;
+		STDMETHODIMP put_accValue(VARIANT varChild, BSTR szValue) override;
+		//~ End IAccessible Interface
 
-		// IServiceProvider
-		virtual HRESULT WINAPI QueryService(REFGUID guidService, REFIID riid, void**ppv);
-		
-	protected: 
-		long GetAccName(VARIANT, int, unsigned short**);
-		long GetAccNameFromContent(unsigned short**);
-		long GetDispatchFromElement(Element*, IDispatch**);
+		//~ Begin IEnumVARIANT Interface
+		STDMETHODIMP Next(ULONG celt, VARIANT* rgVar, ULONG* pCeltFetched) override;
+		STDMETHODIMP Skip(ULONG celt) override;
+		STDMETHODIMP Reset() override;
+		STDMETHODIMP Clone(IEnumVARIANT** ppenum) override;
+		//~ End IEnumVARIANT Interface
+
+		//~ Begin IOleWindow Interface
+		STDMETHODIMP GetWindow(HWND* phwnd) override;
+		STDMETHODIMP ContextSensitiveHelp(BOOL fEnterMode) override;
+		//~ End IOleWindow Interface
+
+		//~ Begin IAccIdentity Interface
+		STDMETHODIMP GetIdentityString(DWORD dwIDChild, BYTE** ppIDString, DWORD* pdwIDStringLen) override;
+		//~ End IAccIdentity Interface
+
+		//~ Begin IServiceProvider Interface
+		STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppvObject) override;
+		//~ End IServiceProvider Interface
+
+		static HRESULT WINAPI AccNavigate(Element* pe, LONG navDir, Element** ppe);
+		static Element* WINAPI GetAccessibleParent(Element* pe);
+
+	protected:
+		HRESULT GetDispatchFromElement(Element* pe, IDispatch** ppDispatch);
+		HRESULT GetAccName(VARIANT varChild, BOOL fAllowSubstitution, BSTR* pbstrName);
+		HRESULT GetAccNameFromContent(BSTR* pbstrName);
+
+		Element* _pe;
+
+	private:
+		LONG _cRefs;
 	};
 
 	class UILIB_API HWNDHostAccessible : public DuiAccessible
@@ -90,17 +102,17 @@ namespace DirectUI
 
 		long Initialize(Element*, IAccessible*);
 		static HRESULT WINAPI Create(Element*, IAccessible*, DuiAccessible**);
-	
+
 		//IAccIdentity
 		virtual HRESULT WINAPI GetIdentityString(unsigned long, unsigned char**, unsigned long*);
-	
+
 		virtual HRESULT WINAPI Clone(IEnumVARIANT**);
 		virtual HRESULT WINAPI ContextSensitiveHelp(int);
 		virtual HRESULT Disconnect();
 		virtual HRESULT WINAPI GetWindow(HWND*);
 		virtual HRESULT WINAPI Next(unsigned long, VARIANT*, unsigned long*);
-		virtual HRESULT WINAPI QueryInterface(const IID &, void**);
-		virtual HRESULT WINAPI QueryService(const IID &, const IID &, void**);
+		virtual HRESULT WINAPI QueryInterface(const IID&, void**);
+		virtual HRESULT WINAPI QueryService(const IID&, const IID&, void**);
 		virtual HRESULT WINAPI Reset();
 		virtual HRESULT WINAPI Skip(unsigned long);
 		virtual HRESULT WINAPI accDoDefaultAction(VARIANT);
@@ -108,7 +120,7 @@ namespace DirectUI
 		virtual HRESULT WINAPI accLocation(long*, long*, long*, long*, VARIANT);
 		virtual HRESULT WINAPI accNavigate(long, VARIANT, VARIANT*);
 		virtual HRESULT WINAPI accSelect(long, VARIANT);
-		
+
 		// IAccessible
 		virtual HRESULT WINAPI get_accChild(VARIANT, IDispatch**);
 		virtual HRESULT WINAPI get_accChildCount(long*);
@@ -128,7 +140,7 @@ namespace DirectUI
 		virtual HRESULT WINAPI put_accValue(VARIANT, BSTR);
 	};
 
-	class UILIB_API HWNDHostClientAccessible: public HWNDHostAccessible
+	class UILIB_API HWNDHostClientAccessible : public HWNDHostAccessible
 	{
 	public:
 		HWNDHostClientAccessible();
@@ -142,19 +154,17 @@ namespace DirectUI
 		virtual HRESULT WINAPI get_accParent(IDispatch**);
 		virtual HRESULT WINAPI get_accRole(VARIANT, VARIANT*);
 	};
-	 
+
 	class UILIB_API HWNDElementAccessible : DuiAccessible
 	{
 	public:
 		HWNDElementAccessible();
 		virtual ~HWNDElementAccessible();
 
-		long Initialize(class HWNDElement*);
-		static HRESULT WINAPI Create(class HWNDElement*, class DuiAccessible**);
+		long Initialize(HWNDElement*);
+		static HRESULT WINAPI Create(HWNDElement*, DuiAccessible**);
 
 		virtual HRESULT Disconnect();
 		virtual HRESULT WINAPI get_accParent(IDispatch**);
 	};
-
-  
 }

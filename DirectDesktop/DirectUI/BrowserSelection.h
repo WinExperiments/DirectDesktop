@@ -2,7 +2,7 @@
 
 namespace DirectUI
 {
-	class UILIB_API BrowserSelectionProxy : public IProxy
+	class UILIB_API BrowserSelectionProxy : public SelectionProxy
 	{
 	public:
 		BrowserSelectionProxy(BrowserSelectionProxy const &);

@@ -1,4 +1,5 @@
 #pragma once
+#include "SelectionItem.h"
 
 namespace DirectUI
 {
@@ -31,7 +32,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API NavigatorSelectionItemProxy : public IProxy
+	class UILIB_API NavigatorSelectionItemProxy : public SelectionItemProxy
 	{
 	public:
 		NavigatorSelectionItemProxy(NavigatorSelectionItemProxy const &);

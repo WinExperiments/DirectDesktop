@@ -2,7 +2,6 @@
 
 namespace DirectUI
 {
-	//32位结构体大小 0x94
 	class UILIB_API HWNDElement : public ElementWithHWND
 	{
 	public:
@@ -148,21 +147,21 @@ namespace DirectUI
 
 	};
 
-	//此类存在问题，看虚表3有个，但是导出只有2个，怪异……
-	class UILIB_API HWNDElementProxy : public IProxy
+	class UILIB_API DECLSPEC_NOVTABLE HWNDElementProxy : public ElementProxy
 	{
 	public:
-		HWNDElementProxy(HWNDElementProxy const &);
-		HWNDElementProxy(void);
-		HWNDElementProxy & operator=(HWNDElementProxy const &);
+		static HWNDElementProxy* WINAPI Create(HWNDElement* pe);
+		
+		virtual void Init(HWNDElement* pe);
+		
+		HRESULT DoMethod(MethodId methodId, va_list args) override;
 
-		static HWNDElementProxy * __stdcall Create(HWNDElement *);
-		virtual long DoMethod(int, char *);
-		virtual void Init(HWNDElement *);
+		HWNDElementProxy(const HWNDElementProxy&) = default;
 
 	protected:
-		long ElementFromPoint(double, double, IRawElementProviderFragment * *);
-		long GetFocus(IRawElementProviderFragment * *);
-
+		HWNDElementProxy();
+		
+		HRESULT ElementFromPoint(double x, double y, IRawElementProviderFragment** ppprv);
+		HRESULT GetFocus(IRawElementProviderFragment** ppprv);
 	};
 }

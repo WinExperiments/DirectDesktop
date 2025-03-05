@@ -100,10 +100,10 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 for (int items = 0; items < validItems; items++) {
                     switch (hiddenIcons) {
                     case 0:
-                        pm[items].elem->SetVisible(false);
+                        pm[items]->SetVisible(false);
                         break;
                     case 1:
-                        if (pm[items].page == currentPageID) pm[items].elem->SetVisible(true);
+                        if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(true);
                         break;
                     }
                 }
@@ -124,48 +124,60 @@ void DesktopRightClick(Element* elem, Event* iev) {
     }
 }
 
-void ItemRightClick(Element* elem, Event* iev) {
-    if (iev->uidType == Button::Context)
+void RightClickCore(LPCWSTR folderPath) {
+    LPITEMIDLIST pidl = NULL;
+    SHParseDisplayName(folderPath, NULL, &pidl, 0, NULL);
+
+    IShellFolder* ppFolder = NULL;
+    LPITEMIDLIST pidlChild = NULL;
+    HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
+
+    LPCONTEXTMENU pICv1 = NULL;
+    ppFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST*)&pidlChild, IID_IContextMenu, NULL, (void**)&pICv1);
+    if (pICv1)
     {
+        HMENU hm = CreatePopupMenu();
+        pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+
+        UINT uFlags = TPM_RIGHTBUTTON;
+        if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+            uFlags |= TPM_RIGHTALIGN;
+        else
+            uFlags |= TPM_LEFTALIGN;
+
+        // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
+        uFlags |= TPM_RETURNCMD;
+
+        POINT pt;
+        GetCursorPos(&pt);
+        int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
+        CMINVOKECOMMANDINFO ici;
+        ZeroMemory(&ici, sizeof(ici));
+        ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
+        ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
+        ici.nShow = SW_SHOWNORMAL;
+
+        pICv1->InvokeCommand(&ici);
+    }
+    CoTaskMemFree(pidl);
+    ppFolder->Release();
+}
+
+void ItemRightClick(Element* elem, Event* iev) {
+    if (iev->uidType == Button::Context) {
         for (int items = 0; items < pm.size(); items++) {
-            if (pm[items].elem == elem) {
-                LPCWSTR folderPath = pm[items].filename.c_str();
-                LPITEMIDLIST pidl = NULL;
-                SHParseDisplayName(folderPath, NULL, &pidl, 0, NULL);
+            if (pm[items] == elem) {
+                RightClickCore(pm[items]->GetFilename().c_str());
+            }
+        }
+    }
+}
 
-                IShellFolder* ppFolder = NULL;
-                LPITEMIDLIST pidlChild = NULL;
-                HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
-
-                LPCONTEXTMENU pICv1 = NULL;
-                ppFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST*)&pidlChild, IID_IContextMenu, NULL, (void**)&pICv1);
-                if (pICv1)
-                {
-                    HMENU hm = CreatePopupMenu();
-                    pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
-
-                    UINT uFlags = TPM_RIGHTBUTTON;
-                    if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
-                        uFlags |= TPM_RIGHTALIGN;
-                    else
-                        uFlags |= TPM_LEFTALIGN;
-
-                    // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
-                    uFlags |= TPM_RETURNCMD;
-
-                    POINT pt;
-                    GetCursorPos(&pt);
-                    int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
-                    CMINVOKECOMMANDINFO ici;
-                    ZeroMemory(&ici, sizeof(ici));
-                    ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-                    ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
-                    ici.nShow = SW_SHOWNORMAL;
-
-                    pICv1->InvokeCommand(&ici);
-                }
-                CoTaskMemFree(pidl);
-                ppFolder->Release();
+void SubItemRightClick(Element* elem, Event* iev) {
+    if (iev->uidType == Button::Context) {
+        for (int items = 0; items < subpm.size(); items++) {
+            if (subpm[items] == elem) {
+                RightClickCore(subpm[items]->GetFilename().c_str());
             }
         }
     }

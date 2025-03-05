@@ -8,6 +8,7 @@
 using namespace std;
 using namespace DirectUI;
 
+
 struct DesktopItem {
     int index{};
     uint16_t size{};
@@ -21,25 +22,25 @@ struct DesktopItem {
 
 int logging;
 
-wstring hideExt(const wstring& filename, bool isEnabled, vector<parameters>* shortpm, int* index) {
+wstring hideExt(const wstring& filename, bool isEnabled, vector<LVItem*>* shortpm, int* index) {
     if (isEnabled) {
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = true;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = true;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = true;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
-        if (index != nullptr) (*shortpm)[(*index)++].isShortcut = false;
+        if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(false);
         if (lastdot == wstring::npos) return filename;
         return filename.substr(0, lastdot);
     }
@@ -47,20 +48,20 @@ wstring hideExt(const wstring& filename, bool isEnabled, vector<parameters>* sho
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = true;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = true;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = false;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(false);
             return filename;
         }
         else {
-            if (index != nullptr) (*shortpm)[(*index)++].isShortcut = true;
+            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
     }
@@ -110,14 +111,13 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
 }
 
 static int checkSpotlight{};
-void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* fileCount) {
+void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* fileCount) {
     if (clsid == L"{645FF040-5081-101B-9F08-00AA002F954E}") {
         if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == -1) {
             WCHAR clsidEx[64];
             StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
-            pm->push_back({ NULL });
-            files->push_back(displayName);
-            filepaths->push_back(clsidEx);
+            (*pm)[(*hiddenIndex)]->SetSimpleFilename(displayName);
+            (*pm)[(*hiddenIndex)]->SetFilename(clsidEx);
             (*dirIndex)++;
             (*hiddenIndex)++;
             (*shortIndex)++;
@@ -134,9 +134,8 @@ void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstrin
         if (checkSpotlight == 1) {
             WCHAR clsidEx[64];
             StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
-            pm->push_back({ NULL });
-            files->push_back(displayName);
-            filepaths->push_back(clsidEx);
+            (*pm)[(*hiddenIndex)]->SetSimpleFilename(displayName);
+            (*pm)[(*hiddenIndex)]->SetFilename(clsidEx);
             (*dirIndex)++;
             (*hiddenIndex)++;
             (*shortIndex)++;
@@ -146,9 +145,8 @@ void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstrin
     if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == 0) {
         WCHAR clsidEx[64];
         StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
-        pm->push_back({ NULL });
-        files->push_back(displayName);
-        filepaths->push_back(clsidEx);
+        (*pm)[(*hiddenIndex)]->SetSimpleFilename(displayName);
+        (*pm)[(*hiddenIndex)]->SetFilename(clsidEx);
         (*dirIndex)++;
         (*hiddenIndex)++;
         (*shortIndex)++;
@@ -161,7 +159,7 @@ void FindShellIcon(vector<parameters>* pm, vector<wstring>* files, vector<wstrin
     }
 }
 
-void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files, vector<wstring>* filepaths, bool bReset, unsigned short limit) {
+void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, unsigned short limit) {
     if (!PathFileExistsW(path) && path != L"InternalCodeForNamespace") return;
     static int dirIndex{}, hiddenIndex{}, shortIndex{}, fileCount{};
     int runs = 0;
@@ -196,12 +194,12 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
         LoadStringW(WinStorageDLL, 9217, Network, 260);
         wchar_t* LearnAbout = new wchar_t[260];
         LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
-        FindShellIcon(pm, files, filepaths, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, files, filepaths, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, files, filepaths, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, files, filepaths, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, files, filepaths, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, files, filepaths, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
         delete[] ThisPC;
         delete[] RecycleBin;
         delete[] UserFiles;
@@ -234,20 +232,17 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
         if (hr == NOERROR) {
             WIN32_FIND_DATAW fd;
             hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
-            pm->push_back({ NULL });
-            if (fd.dwFileAttributes & 16) (*pm)[dirIndex++].isDirectory = true;
-            else (*pm)[dirIndex++].isDirectory = false;
-            if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++].isHidden = true;
-            else (*pm)[hiddenIndex++].isHidden = false;
+            if (fd.dwFileAttributes & 16) (*pm)[dirIndex++]->SetDirState(true);
+            else (*pm)[dirIndex++]->SetDirState(false);
+            if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++]->SetHiddenState(true);
+            else (*pm)[hiddenIndex++]->SetHiddenState(false);
             /*if ((*pm)[dirIndex - 1].isDirectory == true) {
                 files->push_back((wstring)fd.cFileName);
-                (*pm)[shortIndex++].isShortcut = false;
+                (*pm)[shortIndex++]->SetShortcutState(false);
             }
-            else*/ files->push_back(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
-            filepaths->push_back(path + (wstring)L"\\" + wstring(fd.cFileName));
+            else*/ (*pm)[hiddenIndex - 1]->SetSimpleFilename(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
+            (*pm)[hiddenIndex - 1]->SetFilename(path + (wstring)L"\\" + wstring(fd.cFileName));
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
-                files->pop_back();
-                filepaths->pop_back();
                 pm->pop_back();
                 dirIndex--;
                 shortIndex--;
@@ -256,8 +251,6 @@ void EnumerateFolder(LPWSTR path, vector<parameters>* pm, vector<wstring>* files
             }
             if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
                 if (fd.dwFileAttributes & 4) {
-                    files->pop_back();
-                    filepaths->pop_back();
                     pm->pop_back();
                     dirIndex--;
                     shortIndex--;
@@ -478,14 +471,13 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
             }
         }
         delete[] nameBuffer;
-
         offset += name_len + 4;
 
         if (!getSpotlightIcon) {
             desktop_items.push_back(item);
-            if (logging == IDYES && pm[x].filename.c_str() != nullptr) {
+            if (logging == IDYES) {
                 WCHAR details[320];
-                StringCchPrintfW(details, 320, L"New item found, Item name: %s\nItem name to be shown on desktop: %s", pm[x].filename.c_str(), pm[x].simplefilename.c_str());
+                StringCchPrintfW(details, 320, L"New item found, Item name: %s\nItem name to be shown on desktop: %s", pm[x]->GetFilename().c_str(), pm[x]->GetSimpleFilename().c_str());
                 MainLogger.WriteLine(details);
             }
         }
@@ -513,7 +505,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Parsed position table.");
 
     // This is such a bad way to sort...
-    vector<parameters> pmBuf;
+    vector<LVItem*> pmBuf;
     vector<Element*> pmShortcutBuf;
     vector<Element*> pmIconBuf;
     vector<Element*> pmIconShadowBuf;
@@ -531,7 +523,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     vector<DesktopItem> new_desktop_items;
     for (int index = 0; index < number_of_items; index++) {
         for (int index2 = 0; index2 < pm.size(); index2++) {
-            if (desktop_items[index].name == pm[index2].simplefilename) {
+            if (desktop_items[index].name == pm[index2]->GetSimpleFilename()) {
                 new_desktop_items.push_back(desktop_items[index]);
                 break;
             }
@@ -541,7 +533,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     int fileCount{};
     for (int index = 0; index < pm.size(); index++) {
         for (int index2 = 0; index2 < new_desktop_items.size(); index2++) {
-            if (new_desktop_items[index2].name == pm[index].simplefilename) {
+            if (new_desktop_items[index2].name == pm[index]->GetSimpleFilename()) {
                 new_desktop_items[index2].name = L"?";
                 pmBuf[index2] = pm[index];
                 pmShortcutBuf[index2] = shortpm[index];
@@ -572,12 +564,12 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
         short tempXPos{}, tempYPos{}, bitsX = 128, bitsY = 128, bitsXAccumulator{}, bitsYAccumulator{};
         if (logging == IDYES) {
             WCHAR details[320];
-            StringCchPrintfW(details, 320, L"\nItem prepared for arrangement (%d of %d)\nItem name: %s\nX (encoded): %d, Y (encoded): %d", index + 1, fileCount, pm[index].filename.c_str(), desktop_items[index].column, desktop_items[index].row);
+            StringCchPrintfW(details, 320, L"\nItem prepared for arrangement (%d of %d)\nItem name: %s\nX (encoded): %d, Y (encoded): %d", index + 1, fileCount, pm[index]->GetFilename().c_str(), desktop_items[index].column, desktop_items[index].row);
             MainLogger.WriteLine(details);
         }
         while (true) {
             if (c == 0) {
-                pm[index].xPos = tempXPos;
+                pm[index]->SetInternalXPos(tempXPos);
                 break;
             }
             if (tempXPos == 0) {
@@ -596,10 +588,10 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
         }
         while (true) {
             if (r == 0) {
-                pm[index].yPos = tempYPos;
+                pm[index]->SetInternalYPos(tempYPos);
                 if (logging == IDYES) {
                     WCHAR details[320];
-                    StringCchPrintfW(details, 320, L"\nItem arranged (%d of %d)\nItem name: %s\nX: %d, Y: %d", index + 1, fileCount, pm[index].filename.c_str(), pm[index].xPos, pm[index].yPos);
+                    StringCchPrintfW(details, 320, L"\nItem arranged (%d of %d)\nItem name: %s\nX: %d, Y: %d", index + 1, fileCount, pm[index]->GetFilename().c_str(), pm[index]->GetInternalXPos(), pm[index]->GetInternalYPos());
                     MainLogger.WriteLine(details);
                 }
                 break;

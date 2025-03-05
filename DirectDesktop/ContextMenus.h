@@ -18,3 +18,4 @@ extern NativeHWNDHost* wnd;
 
 void DesktopRightClick(Element* elem, Event* iev);
 void ItemRightClick(Element* elem, Event* iev);
+void SubItemRightClick(Element* elem, Event* iev);

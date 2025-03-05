@@ -19,7 +19,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API TableItemProxy : public IProxy
+	class UILIB_API TableItemProxy : public ProviderProxy
 	{
 	public:
 		TableItemProxy(TableItemProxy const &);

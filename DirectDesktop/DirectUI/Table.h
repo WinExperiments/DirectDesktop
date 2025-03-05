@@ -19,7 +19,7 @@ namespace DirectUI
 		virtual long __stdcall get_RowOrColumnMajor(RowOrColumnMajor *);
 	};
 
-	class UILIB_API TableProxy : public IProxy
+	class UILIB_API TableProxy : public ProviderProxy
 	{
 	public:
 		TableProxy(TableProxy const &);

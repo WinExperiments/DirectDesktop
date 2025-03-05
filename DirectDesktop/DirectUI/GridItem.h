@@ -21,7 +21,7 @@ namespace DirectUI
 		virtual long __stdcall get_RowSpan(int *);
 	};
 
-	class UILIB_API GridItemProxy : public IProxy
+	class UILIB_API GridItemProxy : public ProviderProxy
 	{
 	public:
 		GridItemProxy(GridItemProxy const &);

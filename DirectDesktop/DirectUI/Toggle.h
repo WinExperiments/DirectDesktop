@@ -17,7 +17,7 @@ namespace DirectUI
 		virtual long __stdcall get_ToggleState(ToggleState *);
 	};
 
-	class UILIB_API ToggleProxy : IProxy
+	class UILIB_API ToggleProxy : public ProviderProxy
 	{
 	public:
 		ToggleProxy(ToggleProxy const &);

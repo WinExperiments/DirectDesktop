@@ -263,7 +263,7 @@ DUSER_API BOOL WINAPI BuildAnimation(UINT, BOOL, GANI_DESC*, REFIID, void**);
 DUSER_API BOOL WINAPI BuildDropTarget(HGADGET, HWND);
 DUSER_API BOOL WINAPI BuildInterpolation(UINT, BOOL, REFIID, void**);
 DUSER_API BOOL WINAPI CacheDWriteRenderTarget(IUnknown*);
-DUSER_API BOOL WINAPI ChangeCurrentAnimationScenario(bool, UINT);
+DUSER_API BOOL WINAPI ChangeCurrentAnimationScenario(bool, REFGUID);
 DUSER_API BOOL WINAPI ClearPushedOpacitiesFromGadgetTree(HGADGET);
 DUSER_API BOOL WINAPI ClearTopmostVisual(HGADGET);
 DUSER_API HACTION WINAPI CreateAction(const GMA_ACTION* pma);

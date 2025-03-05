@@ -25,7 +25,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API ScrollProxy : public IProxy
+	class UILIB_API ScrollProxy : public ProviderProxy
 	{
 	public:
 		ScrollProxy(ScrollProxy const &);

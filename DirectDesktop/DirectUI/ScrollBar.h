@@ -60,7 +60,7 @@ namespace DirectUI
 		static IClassInfo* s_pClassInfo;
 	};
 
-	class UILIB_API ScrollBarRangeValueProxy : public IProxy
+	class UILIB_API ScrollBarRangeValueProxy : public RangeValueProxy
 	{
 	public:
 		ScrollBarRangeValueProxy(ScrollBarRangeValueProxy const&);

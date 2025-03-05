@@ -33,6 +33,7 @@
 #include "SimpleTimer.h"
 
 #include "Primitives.h"
+#include "DuiProxy.h"
 #include "UiaSchema.h"
 #include "Element.h"
 #include "PatternProvider.h"
@@ -113,6 +114,7 @@
 #include "Selection.h"
 #include "Selector.h"
 #include "SelectorNoDefault.h"
+#include "ItemList.h"
 #include "SelectorSelectionItem.h"
 #include "SelectorSelection.h"
 #include "StyledScrollViewer.h"

@@ -236,7 +236,7 @@ namespace DirectUI
 		//~ End IValueProvider Interface
 	};
 
-	class UILIB_API ValueProxy : IProxy
+	class UILIB_API ValueProxy : ProviderProxy
 	{
 	public:
 		ValueProxy(ValueProxy const&);

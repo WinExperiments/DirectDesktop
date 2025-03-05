@@ -20,12 +20,12 @@ namespace DirectUI
 		Element * GetSelection(void);
 		long Initialize(Element *, unsigned long *);
 
-		virtual Element * GetAdjacent(Element *, int, NavReference const *, unsigned long);
+		Element* GetAdjacent(Element* peFrom, int iNavDir, const NavReference* pnr, DWORD dwFlags) override;
 		virtual IClassInfo * GetClassInfoW(void);
 		virtual void OnEvent(Event *);
 		virtual void OnInput(struct InputEvent *);
 		virtual void OnKeyFocusMoved(Element *, Element *);
-		virtual void OnPropertyChanged(PropertyInfo const *, int, Value *, Value *);
+		void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
 		
 		//1
 		virtual long SetSelection(Element *);

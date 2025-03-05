@@ -36,7 +36,7 @@ namespace DirectUI
 
 	};
 
-	class UILIB_API ExpandCollapseProxy : public IProxy
+	class UILIB_API ExpandCollapseProxy : public ProviderProxy
 	{
 	public:
 		ExpandCollapseProxy(ExpandCollapseProxy const &);

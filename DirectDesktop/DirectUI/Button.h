@@ -5,48 +5,49 @@ namespace DirectUI
 	class UILIB_API Button : public Element
 	{
 	public:
-		Button(const Button&);
-		Button();
-		virtual ~Button();
-		Button & operator=(const Button&);
+		static HRESULT WINAPI Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+		static HRESULT WINAPI Create(UINT nActive, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
 
-		long Initialize(unsigned int, Element*, unsigned long*);
-		static HRESULT WINAPI Create(unsigned int, Element*, unsigned long*, Element**);
-		static HRESULT WINAPI Create(Element*, unsigned long*, Element**);
+		void OnInput(InputEvent* pie) override;
 
 		static UID WINAPI Click();
 		static UID WINAPI Context();
-		//Element类函数重写
-		//0
-		virtual void OnPropertyChanged(const PropertyInfo*, int, Value*, Value*);
-		//1
-		virtual void OnInput(InputEvent*);
 
-		//2
-		virtual IClassInfo* GetClassInfoW();
-
-		//3
-		virtual long DefaultAction();
-
-		bool GetCaptured();
-		static IClassInfo* WINAPI GetClassInfoPtr();
-		bool GetPressed();
-		//Button 新增虚函数
-		//0
-		virtual bool OnLostDialogFocus(class DialogElement*);
-		//1
-		virtual bool OnReceivedDialogFocus(class DialogElement*);
-
-		static long WINAPI Register();
-		static const PropertyInfo* WINAPI CapturedProp();
 		static const PropertyInfo* WINAPI PressedProp();
-		static void WINAPI SetClassInfoPtr(IClassInfo*);
-		
-		long SetCaptured(bool);
-		long SetPressed(bool);
+		static const PropertyInfo* WINAPI CapturedProp();
 
+		bool GetPressed();
+		bool GetCaptured();
+		HRESULT SetPressed(bool v);
+		HRESULT SetCaptured(bool v);
+
+		static IClassInfo* WINAPI GetClassInfoPtr();
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
 
 	private:
 		static IClassInfo* s_pClassInfo;
+
+	public:
+		IClassInfo* GetClassInfoW() override;
+
+		static HRESULT WINAPI Register();
+
+		void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+
+		virtual bool OnLostDialogFocus(IDialogElement* pDE);
+		virtual bool OnReceivedDialogFocus(IDialogElement* pDE);
+
+		HRESULT DefaultAction() override;
+
+		Button();
+		Button(const Button&) = default;
+
+		// ReSharper disable once CppHidingFunction
+		HRESULT Initialize(UINT nActive, Element* pParent, DWORD* pdwDeferCookie);
+
+		~Button() override;
+
+	private:
+		int _bRightButtonPressed;
 	};
 }
