@@ -3,7 +3,7 @@
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="borderlayout()" layoutpos="client">
 			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
-				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
+				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" animation="position|s|fast">
 
 				</Element>
 				<TouchButton layout="filllayout()" id="atom(prevpageMain)" layoutpos="left" class="pageselector">
@@ -313,10 +313,10 @@
 				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 			<if class="singleclicked">
-				<Button cursor="hand"/>
+				<LVItem cursor="hand"/>
 			</if>
 			<if class="doubleclicked">
-				<Button cursor="arrow"/>
+				<LVItem cursor="arrow"/>
 			</if>
 			<if class="groupthumbnail">
 				<Element background="resbmp(101,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -510,10 +510,10 @@
 				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 			<if class="singleclicked">
-				<Button cursor="hand"/>
+				<LVItem cursor="hand"/>
 			</if>
 			<if class="doubleclicked">
-				<Button cursor="arrow"/>
+				<LVItem cursor="arrow"/>
 			</if>
 			<if class="groupthumbnail">
 				<Element background="resbmp(201,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>

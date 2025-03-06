@@ -162,15 +162,6 @@ struct yValue {
     int y{};
 };
 
-const wchar_t* CharToWChar(const char* input)
-{
-    size_t charCount = strlen(input) + 1;
-    wchar_t* result = new wchar_t[charCount];
-    size_t convertedChars = 0;
-    mbstowcs_s(&convertedChars, result, charCount, input, _TRUNCATE);
-    return result;
-}
-
 double px[80]{};
 double py[80]{};
 int origX{}, origY{}, globaliconsz, globalshiconsz, globalgpiconsz;
@@ -324,6 +315,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             SetWindowPos(hWorkerW, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             SetWindowPos(hSHELLDLL_DefView, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+            UIContainer->SetWidth(dimensions.right - dimensions.left);
+            UIContainer->SetHeight(dimensions.bottom - dimensions.top);
             RearrangeIcons(true, false);
         }
         break;
@@ -342,7 +335,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_CLOSE: {
-        //ToggleDesktopIcons(!hiddenIcons, false);
         HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
         HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
         SetClassLongPtrW(hWndProgman, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
@@ -515,49 +507,55 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 14: {
-        //int padding = 3, paddingInner = 2;
-        //if (globaliconsz > 96) {
-        //    padding = 18;
-        //    paddingInner = 12;
-        //}
-        //else if (globaliconsz > 48) {
-        //    padding = 12;
-        //    paddingInner = 8;
-        //}
-        //else if (globaliconsz > 32) {
-        //    padding = 6;
-        //    paddingInner = 4;
-        //}
-        //for (int icon = 0; icon < pm.size(); icon++) {
-        //    if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
-        //        int x = padding * flScaleFactor, y = padding * flScaleFactor;
-        //        iconpm[icon]->DestroyAll(true);
-        //        iconpm[icon]->SetClass(L"groupthumbnail");
-        //        vector<LVItem*> dummypm;
-        //        vector<wstring> dummy, filenames;
-        //        EnumerateFolder((LPWSTR)pm[icon]->GetFilename().c_str(), &dummypm, 1, 4);
-        //        for (int thumbs = 0; thumbs < filenames.size(); thumbs++) {
-        //            HBITMAP thumbIcon = GetShellItemImage(filenames[thumbs].c_str(), globalgpiconsz * flScaleFactor, globalgpiconsz * flScaleFactor);
-        //            if (isColorized) {
-        //                IterateBitmap(thumbIcon, StandardBitmapPixelHandler, 1, 0, 1);
-        //            }
-        //            Value* vThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
-        //            Element* GroupedIcon;
-        //            parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
-        //            iconpm[icon]->Add((Element**)&GroupedIcon, 1);
-        //            GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz* flScaleFactor);
-        //            GroupedIcon->SetX(x), GroupedIcon->SetY(y);
-        //            x += ((globalgpiconsz + paddingInner) * flScaleFactor);
-        //            if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
-        //                x = padding * flScaleFactor;
-        //                y += ((globalgpiconsz + paddingInner) * flScaleFactor);
-        //            }
-        //            GroupedIcon->SetValue(Element::ContentProp, 1, vThumbIcon);
-        //            DeleteObject(thumbIcon);
-        //            vThumbIcon->Release();
-        //        }
-        //    }
-        //}
+        int padding = 3, paddingInner = 2;
+        if (globaliconsz > 96) {
+            padding = 18;
+            paddingInner = 12;
+        }
+        else if (globaliconsz > 48) {
+            padding = 12;
+            paddingInner = 8;
+        }
+        else if (globaliconsz > 32) {
+            padding = 6;
+            paddingInner = 4;
+        }
+        for (int icon = 0; icon < pm.size(); icon++) {
+            if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
+                iconpm[icon]->DestroyAll(true);
+                iconpm[icon]->SetClass(L"groupthumbnail");
+            }
+        }
+        for (int icon = 0; icon < pm.size(); icon++) {
+            if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
+                int x = padding * flScaleFactor, y = padding * flScaleFactor;
+                vector<wstring> strs;
+                unsigned short count = 0;
+                wstring folderPath = pm[icon]->GetFilename();
+                EnumerateFolder((LPWSTR)folderPath.c_str(), nullptr, false, true, &count, 4);
+                EnumerateFolderForThumbnails((LPWSTR)folderPath.c_str(), &strs, 4);
+                for (int thumbs = 0; thumbs < count; thumbs++) {
+                    HBITMAP thumbIcon = GetShellItemImage(strs[thumbs].c_str(), globalgpiconsz * flScaleFactor, globalgpiconsz * flScaleFactor);
+                    if (isColorized) {
+                        IterateBitmap(thumbIcon, StandardBitmapPixelHandler, 1, 0, 1);
+                    }
+                    Value* vThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
+                    Element* GroupedIcon;
+                    parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
+                    iconpm[icon]->Add((Element**)&GroupedIcon, 1);
+                    GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz* flScaleFactor);
+                    GroupedIcon->SetX(x), GroupedIcon->SetY(y);
+                    x += ((globalgpiconsz + paddingInner) * flScaleFactor);
+                    if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
+                        x = padding * flScaleFactor;
+                        y += ((globalgpiconsz + paddingInner) * flScaleFactor);
+                    }
+                    GroupedIcon->SetValue(Element::ContentProp, 1, vThumbIcon);
+                    DeleteObject(thumbIcon);
+                    vThumbIcon->Release();
+                }
+            }
+        }
         break;
     }
     case WM_USER + 15: {
@@ -734,6 +732,9 @@ unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
     return 0;
 }
 void GoToPrevPage(Element* elem, Event* iev) {
+    static const int savedanim = UIContainer->GetAnimation();
+    static RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
     if (iev->uidType == TouchButton::Click) {
         currentPageID--;
         for (int items = 0; items < validItems; items++) {
@@ -747,11 +748,20 @@ void GoToPrevPage(Element* elem, Event* iev) {
             DWORD dd;
             HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
         }
+        else {
+            UIContainer->SetAnimation(NULL);
+            UIContainer->SetX(-(dimensions.right - dimensions.left));
+            UIContainer->SetAnimation(savedanim);
+            UIContainer->SetX(0);
+        }
         nextpageMain->SetVisible(true);
         if (currentPageID == 1) prevpageMain->SetVisible(false);
     }
 }
 void GoToNextPage(Element* elem, Event* iev) {
+    static const int savedanim = UIContainer->GetAnimation();
+    static RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
     if (iev->uidType == TouchButton::Click) {
         currentPageID++;
         for (int items = 0; items < validItems; items++) {
@@ -764,6 +774,12 @@ void GoToNextPage(Element* elem, Event* iev) {
             if (currentPageID == maxPageID) TogglePage(nextpage, 0.9, 0.2, 0, 0.6);
             DWORD dd;
             HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
+        }
+        else {
+            UIContainer->SetAnimation(NULL);
+            UIContainer->SetX(dimensions.right - dimensions.left);
+            UIContainer->SetAnimation(savedanim);
+            UIContainer->SetX(0);
         }
         prevpageMain->SetVisible(true);
         if (currentPageID == maxPageID) nextpageMain->SetVisible(false);
@@ -787,7 +803,7 @@ vector<HBITMAP> GetSubdirectoryIcons(int limit = subpm.size(), int width = globa
 }
 
 unsigned long ApplyThumbnailIcons(LPVOID lpParam) {
-    SendMessageW(wnd->GetHWND(), WM_USER + 14, NULL, NULL);
+    PostMessageW(wnd->GetHWND(), WM_USER + 14, NULL, NULL);
     return 0;
 }
 
@@ -802,7 +818,11 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<Element*> pmIcon, vector<Elemen
             HBITMAP dummyii = IconToBitmap(dummyi);
             IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005);
             HBITMAP bmp{};
-            if (pm[icon]->GetDirState() == false || treatdirasgroup == false || pmIcon != iconpm) bmp = icons[icon];
+            if (icon < pm.size()) {
+                if (pm[icon]->GetDirState() == false || treatdirasgroup == false || pmIcon != iconpm) bmp = icons[icon];
+                else bmp = dummyii;
+            }
+            else if (treatdirasgroup == false || pmIcon != iconpm) bmp = icons[icon];
             else bmp = dummyii;
             if (bmp != dummyii) {
                 HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor);
@@ -841,8 +861,8 @@ void SelectSubItem(Element* elem, Event* iev) {
         execInfo.nShow = SW_SHOWNORMAL;
         for (int items = 0; items < subpm.size(); items++) {
             if (subpm[items] == elem) {
-                LPCWSTR temp = subpm[items]->GetFilename().c_str();
-                execInfo.lpFile = temp;
+                wstring temp = subpm[items]->GetFilename();
+                execInfo.lpFile = temp.c_str();
                 ShellExecuteExW(&execInfo);
             }
         }
@@ -851,106 +871,98 @@ void SelectSubItem(Element* elem, Event* iev) {
 
 // TODO: Fix this to match LVItem after it's working
 void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
-    //SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
-    //fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
-    //Element* groupdirectory{};
-    //parser->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
-    //fullscreeninner->Add((Element**)&groupdirectory, 1);
-    //ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID(L"groupdirlist"));
-    //SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID(L"SubUIContainer"));
-    //vector<wstring> subfiles, ssss;
-    //EnumerateFolder((LPWSTR)filename, &subpm, true);
-    //unsigned int count = subfiles.size();
-    //CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
-    //if (count <= 128 && count > 0) {
-    //    int x = 0, y = 0;
-    //    frame.resize(count);
-    //    subpm.resize(count);
-    //    subiconpm.resize(count);
-    //    subshortpm.resize(count);
-    //    subshadowpm.resize(count);
-    //    subfilepm.resize(count);
-    //    Value* v;
-    //    RECT dimensions;
-    //    dimensions = *(groupdirectory->GetPadding(&v));
-    //    int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
-    //    int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
-    //    DWORD* animThread = new DWORD[count];
-    //    DWORD* animThread2 = new DWORD[count];
-    //    HANDLE* animThreadHandle = new HANDLE[count];
-    //    HANDLE* animThreadHandle2 = new HANDLE[count];
-    //    for (int i = 0; i < count; i++) {
-    //        LVItem* outerElemGrouped;
-    //        parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
-    //        SubUIContainer->Add((Element**)&outerElemGrouped, 1);
-    //        iconElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElem"));
-    //        shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"shortcutElem"));
-    //        iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElemShadow"));
-    //        textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID(L"textElem"));
-    //        subpm[i] = outerElemGrouped;
-    //        subpm[i]->SetFilename(ssss[i]), subpm[i]->SetSimpleFilename(subfiles[i]);
-    //        subiconpm[i] = iconElem;
-    //        subshortpm[i] = shortcutElem;
-    //        subshadowpm[i] = iconElemShadow;
-    //        subfilepm[i] = textElem;
-    //        if (subpm[i]->GetHiddenState() == true) {
-    //            iconElem->SetAlpha(128);
-    //            iconElemShadow->SetVisible(false);
-    //            textElem->SetAlpha(128);
-    //        }
-    //        assignFn(outerElemGrouped, SelectSubItem);
-    //        assignFn(outerElemGrouped, SubItemRightClick);
-    //        outerElemGrouped->SetClass(L"singleclicked");
-    //    }
-    //    ApplyIcons(subpm, subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons(), true);
-    //    for (int j = 0; j < count; j++) {
-    //        subpm[j]->SetInternalXPos(x), subpm[j]->SetInternalYPos(y);
-    //        yValue* yV = new yValue{ j };
-    //        yValue* yV2 = new yValue{ j };
-    //        x += outerSizeX;
-    //        if (x > 800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) {
-    //            x = 0;
-    //            y += outerSizeY;
-    //        }
-    //        animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
-    //        animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[j]));
-    //    }
-    //    SubUIContainer->SetHeight(y);
-    //    subfiles.clear();
-    //    delete[] animThread;
-    //    delete[] animThread2;
-    //    delete[] animThreadHandle;
-    //    delete[] animThreadHandle2;
-    //    v->Release();
-    //}
-    //else {
-    //    if (count > 128) {
-    //        SubUIContainer->SetContentString(L"This folder is too large.");
-    //    }
-    //    else SubUIContainer->SetContentString(L"This folder is empty.");
-    //}
-    //dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
-    //tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
-    //RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirname"));
-    //dirname->SetContentString(simplefilename.c_str());
-    //dirname->SetAlpha(255);
-    //RichText* dirdetails = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
-    //WCHAR itemCount[64];
-    //if (count == 1) StringCchPrintfW(itemCount, 64, L"contains 1 item");
-    //else StringCchPrintfW(itemCount, 64, L"contains %d items", count);
-    //dirdetails->SetContentString(itemCount);
-    //dirdetails->SetAlpha(160);
-    //Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID(L"tasks"));
-    //checkifelemexists = true;
-    //DWORD animThread3;
-    //DWORD animThread4;
-    //HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
-    //HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
-    //TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"Customize"));
-    //TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"OpenInExplorer"));
-    //Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
-    //assignFn(OpenInExplorer, OpenGroupInExplorer);
-    //bufferOpenInExplorer = (wstring)filename;
+    SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
+    fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
+    Element* groupdirectory{};
+    parser->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
+    fullscreeninner->Add((Element**)&groupdirectory, 1);
+    ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID(L"groupdirlist"));
+    SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID(L"SubUIContainer"));
+    unsigned short count = 0;
+    EnumerateFolder((LPWSTR)filename, nullptr, false, true, &count);
+    CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
+    if (count <= 128 && count > 0) {
+        for (int i = 0; i < count; i++) {
+            LVItem* outerElemGrouped;
+            parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+            SubUIContainer->Add((Element**)&outerElemGrouped, 1);
+            iconElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElem"));
+            shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"shortcutElem"));
+            iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElemShadow"));
+            textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID(L"textElem"));
+            subpm.push_back(outerElemGrouped);
+            subiconpm.push_back(iconElem);
+            subshortpm.push_back(shortcutElem);
+            subshadowpm.push_back(iconElemShadow);
+            subfilepm.push_back(textElem);
+        }
+        EnumerateFolder((LPWSTR)filename, &subpm, true, false);
+        int x = 0, y = 0;
+        Value* v;
+        RECT dimensions;
+        dimensions = *(groupdirectory->GetPadding(&v));
+        int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
+        int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 21) * flScaleFactor;
+        DWORD* animThread = new DWORD[count];
+        DWORD* animThread2 = new DWORD[count];
+        HANDLE* animThreadHandle = new HANDLE[count];
+        HANDLE* animThreadHandle2 = new HANDLE[count];
+        ApplyIcons(subpm, subiconpm, subshadowpm, subshortpm, GetSubdirectoryIcons(), true);
+        for (int j = 0; j < count; j++) {
+            if (subpm[j]->GetHiddenState() == true) {
+                subiconpm[j]->SetAlpha(128);
+                subshadowpm[j]->SetVisible(false);
+                subfilepm[j]->SetAlpha(128);
+            }
+            assignFn(subpm[j], SelectSubItem);
+            assignFn(subpm[j], SubItemRightClick);
+            subpm[j]->SetClass(L"singleclicked");
+            subpm[j]->SetX(x), subpm[j]->SetY(y);
+            yValue* yV = new yValue{ j };
+            yValue* yV2 = new yValue{ j };
+            x += outerSizeX;
+            if (x > 800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) {
+                x = 0;
+                y += outerSizeY;
+            }
+            animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
+            animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[j]));
+        }
+        SubUIContainer->SetHeight(y + outerSizeY);
+        delete[] animThread;
+        delete[] animThread2;
+        delete[] animThreadHandle;
+        delete[] animThreadHandle2;
+        v->Release();
+    }
+    else {
+        if (count > 128) {
+            SubUIContainer->SetContentString(L"This folder is too large.");
+        }
+        else SubUIContainer->SetContentString(L"This folder is empty.");
+    }
+    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
+    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
+    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirname"));
+    dirname->SetContentString(simplefilename.c_str());
+    dirname->SetAlpha(255);
+    RichText* dirdetails = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
+    WCHAR itemCount[64];
+    if (count == 1) StringCchPrintfW(itemCount, 64, L"contains 1 item");
+    else StringCchPrintfW(itemCount, 64, L"contains %d items", count);
+    dirdetails->SetContentString(itemCount);
+    dirdetails->SetAlpha(160);
+    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID(L"tasks"));
+    checkifelemexists = true;
+    DWORD animThread3;
+    DWORD animThread4;
+    HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
+    HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
+    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"Customize"));
+    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"OpenInExplorer"));
+    Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
+    assignFn(OpenInExplorer, OpenGroupInExplorer);
+    bufferOpenInExplorer = (wstring)filename;
 }
 
 void ShowPage1(Element* elem, Event* iev) {
@@ -1082,8 +1094,8 @@ void SelectItem(Element* elem, Event* iev) {
         if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items] == elem) {
-                    LPCWSTR temp = pm[items]->GetFilename().c_str();
-                    execInfo.lpFile = temp;
+                    wstring temp = pm[items]->GetFilename();
+                    execInfo.lpFile = temp.c_str();
                     if (pm[items]->GetDirState() == true && treatdirasgroup == true) {
                         ShowDirAsGroup(execInfo.lpFile, pm[items]->GetSimpleFilename());
                     }
@@ -1262,7 +1274,6 @@ void InitLayout() {
     fileshadowpm.clear();
     cbpm.clear();
     GetFontHeight();
-    vector<wstring> files, filePaths;
     LPWSTR path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
     wchar_t* secondaryPath = new wchar_t[260];
     wchar_t* cBuffer = new wchar_t[260];
@@ -1276,32 +1287,6 @@ void InitLayout() {
     head.push_back(*reinterpret_cast<uint32_t*>(&value[offset + 8]));
     uint32_t count = head[4];
 
-    for (int i = 0; i < count; i++) {
-            LVItem* outerElem;
-            parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
-            UIContainer->Add((Element**)&outerElem, 1);
-            iconElem = (Element*)outerElem->FindDescendent(StrToID(L"iconElem"));
-            shortcutElem = (Element*)outerElem->FindDescendent(StrToID(L"shortcutElem"));
-            iconElemShadow = (Element*)outerElem->FindDescendent(StrToID(L"iconElemShadow"));
-            textElem = (RichText*)outerElem->FindDescendent(StrToID(L"textElem"));
-            textElemShadow = (RichText*)outerElem->FindDescendent(StrToID(L"textElemShadow"));
-            checkboxElem = (Button*)outerElem->FindDescendent(StrToID(L"checkboxElem"));
-            pm.push_back(outerElem);
-            iconpm.push_back(iconElem);
-            shortpm.push_back(shortcutElem);
-            shadowpm.push_back(iconElemShadow);
-            filepm.push_back(textElem);
-            fileshadowpm.push_back(textElemShadow);
-            cbpm.push_back(checkboxElem);
-    }
-    EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, true);
-    DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
-    StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
-    EnumerateFolder(secondaryPath, &pm, false);
-    EnumerateFolder(path, &pm, false);
-    d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
-    StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
-    EnumerateFolder(secondaryPath, &pm, false);
     Button* emptyspace;
     parser->CreateElement(L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
     UIContainer->Add((Element**)&emptyspace, 1);
@@ -1309,6 +1294,32 @@ void InitLayout() {
     assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
     assignExtendedFn(emptyspace, MarqueeSelector);
     assignFn(emptyspace, DesktopRightClick);
+    for (int i = 0; i < count; i++) {
+        LVItem* outerElem;
+        parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
+        UIContainer->Add((Element**)&outerElem, 1);
+        iconElem = (Element*)outerElem->FindDescendent(StrToID(L"iconElem"));
+        shortcutElem = (Element*)outerElem->FindDescendent(StrToID(L"shortcutElem"));
+        iconElemShadow = (Element*)outerElem->FindDescendent(StrToID(L"iconElemShadow"));
+        textElem = (RichText*)outerElem->FindDescendent(StrToID(L"textElem"));
+        textElemShadow = (RichText*)outerElem->FindDescendent(StrToID(L"textElemShadow"));
+        checkboxElem = (Button*)outerElem->FindDescendent(StrToID(L"checkboxElem"));
+        pm.push_back(outerElem);
+        iconpm.push_back(iconElem);
+        shortpm.push_back(shortcutElem);
+        shadowpm.push_back(iconElemShadow);
+        filepm.push_back(textElem);
+        fileshadowpm.push_back(textElemShadow);
+        cbpm.push_back(checkboxElem);
+    }
+    EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, true, false);
+    DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
+    StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
+    EnumerateFolder(secondaryPath, &pm, false, false);
+    EnumerateFolder(path, &pm, false, false);
+    d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
+    StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
+    EnumerateFolder(secondaryPath, &pm, false, false);
     CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
     frame.resize(count);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 3 complete: Created arrays according to your desktop items.");
@@ -1332,7 +1343,6 @@ void InitLayout() {
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 3 complete: Filled the arrays with relevant desktop icon data.");
     RearrangeIcons(false, true);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 3 complete: Arranged the icons according to your icon placements.");
-    files.clear();
     delete[] cBuffer;
     delete[] secondaryPath;
 }
@@ -1384,10 +1394,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, false);
         }
     }
-    //if (!hSHELLDLL_DefView) {
-        if (logging == IDYES) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
-        bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true);
-    //}
+    if (logging == IDYES && !hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
+    bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true);
     NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
@@ -1447,6 +1455,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     assignFn(prevpageMain, GoToPrevPage);
     assignFn(nextpageMain, GoToNextPage);
 
+    UIContainer->SetWidth(dimensions.right - dimensions.left);
+    UIContainer->SetHeight(dimensions.bottom - dimensions.top);
     showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
@@ -1460,11 +1470,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetTheme();
 
     wnd->Host(pMain);
-    //bool testB = ToggleDesktopIcons(false, false);
-    //if (logging == IDYES) {
-    //    if (testB) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL, L"SysListView32 has been hidden.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-    //    else TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Error", NULL, L"Could not hide SysListView32.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
-    //}
     wnd->ShowWindow(SW_SHOW);
     if (logging == IDYES) {
         TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", L"Logging complete", L"To close DirectDesktop, press the close button.\nThis will automatically view the log.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);

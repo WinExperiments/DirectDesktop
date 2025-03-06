@@ -38,8 +38,6 @@ public:
     unsigned short GetPage();
     void SetPage(unsigned short pageID);
 private:
-    unsigned short _internalX{};
-    unsigned short _internalY{};
     wstring _filename{};
     wstring _simplefilename{};
     bool _isDirectory = false;

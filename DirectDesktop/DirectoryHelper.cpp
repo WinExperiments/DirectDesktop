@@ -74,7 +74,7 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     if (lResult == ERROR_SUCCESS) {
         DWORD* dwValue = (DWORD*)malloc(dwSize);
         lResult = RegGetValueW(hKeyName, path, valueToFind, RRF_RT_ANY, NULL, dwValue, &dwSize);
-        result = *dwValue;
+        if (dwValue != nullptr) result = *dwValue;
     }
     return result;
 }
@@ -159,7 +159,7 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
     }
 }
 
-void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, unsigned short limit) {
+void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountItems, unsigned short* countedItems, unsigned short limit) {
     if (!PathFileExistsW(path) && path != L"InternalCodeForNamespace") return;
     static int dirIndex{}, hiddenIndex{}, shortIndex{}, fileCount{};
     int runs = 0;
@@ -232,27 +232,31 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, unsigned sho
         if (hr == NOERROR) {
             WIN32_FIND_DATAW fd;
             hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
-            if (fd.dwFileAttributes & 16) (*pm)[dirIndex++]->SetDirState(true);
-            else (*pm)[dirIndex++]->SetDirState(false);
-            if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++]->SetHiddenState(true);
-            else (*pm)[hiddenIndex++]->SetHiddenState(false);
-            /*if ((*pm)[dirIndex - 1].isDirectory == true) {
-                files->push_back((wstring)fd.cFileName);
-                (*pm)[shortIndex++]->SetShortcutState(false);
+            if (!bCountItems) {
+                if (fd.dwFileAttributes & 16) (*pm)[dirIndex++]->SetDirState(true);
+                else (*pm)[dirIndex++]->SetDirState(false);
+                if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++]->SetHiddenState(true);
+                else (*pm)[hiddenIndex++]->SetHiddenState(false);
+                /*if ((*pm)[dirIndex - 1].isDirectory == true) {
+                    files->push_back((wstring)fd.cFileName);
+                    (*pm)[shortIndex++]->SetShortcutState(false);
+                }
+                else*/ (*pm)[hiddenIndex - 1]->SetSimpleFilename(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
+                (*pm)[hiddenIndex - 1]->SetFilename(path + (wstring)L"\\" + wstring(fd.cFileName));
             }
-            else*/ (*pm)[hiddenIndex - 1]->SetSimpleFilename(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
-            (*pm)[hiddenIndex - 1]->SetFilename(path + (wstring)L"\\" + wstring(fd.cFileName));
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
-                pm->pop_back();
+                if (!bCountItems) pm->pop_back();
                 dirIndex--;
+                hiddenIndex--;
                 shortIndex--;
                 pMalloc->Free(pidl);
                 continue;
             }
             if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
                 if (fd.dwFileAttributes & 4) {
-                    pm->pop_back();
+                    if (!bCountItems) pm->pop_back();
                     dirIndex--;
+                    hiddenIndex--;
                     shortIndex--;
                     pMalloc->Free(pidl);
                     continue;
@@ -266,6 +270,60 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, unsigned sho
             //    StringCchPrintfW(filePath, 260, L"%s\\%s", path, fd.cFileName);
             //    TaskDialog(NULL, NULL, L"Item Found", totalItems, filePath, TDCBF_OK_BUTTON, NULL, NULL);
             //}
+        }
+        else break;
+        runs++;
+    }
+
+    if (pEnumIDL != nullptr) pEnumIDL->Release();
+    psfFolder->Release();
+    pMalloc->Release();
+    if (bCountItems) *countedItems = runs;
+}
+
+void EnumerateFolderForThumbnails(LPWSTR path, vector<wstring>* strs, unsigned short limit) {
+    if (!PathFileExistsW(path)) return;
+    int runs = 0;
+    int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
+    int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
+    HRESULT hr;
+
+    LPMALLOC pMalloc = NULL;
+    hr = SHGetMalloc(&pMalloc);
+
+    LPSHELLFOLDER psfDesktop = NULL;
+    hr = SHGetDesktopFolder(&psfDesktop);
+
+    LPITEMIDLIST pidl = NULL;
+    hr = psfDesktop->ParseDisplayName(NULL, NULL, path, NULL, &pidl, NULL);
+
+    LPSHELLFOLDER psfFolder = NULL;
+    hr = psfDesktop->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&psfFolder);
+    psfDesktop->Release();
+    pMalloc->Free(pidl);
+
+    LPENUMIDLIST pEnumIDL = NULL;
+    hr = psfFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
+    while (runs < limit) {
+        if (pEnumIDL == nullptr) break;
+        hr = pEnumIDL->Next(1, &pidl, NULL);
+        if (hr == NOERROR) {
+            WIN32_FIND_DATAW fd;
+            hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
+            strs->push_back(path + (wstring)L"\\" + wstring(fd.cFileName));
+            if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
+                strs->pop_back();
+                pMalloc->Free(pidl);
+                continue;
+            }
+            if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
+                if (fd.dwFileAttributes & 4) {
+                    strs->pop_back();
+                    pMalloc->Free(pidl);
+                    continue;
+                }
+            }
+            pMalloc->Free(pidl);
         }
         else break;
         runs++;
@@ -288,7 +346,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     }
     return 1;
 }
-int messageId = 1280;
+
 BOOL CALLBACK EnumWindowsProc2(HWND hwnd, LPARAM lParam) {
     WCHAR className[64];
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
@@ -338,42 +396,6 @@ bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWN
     else if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL,
         L"No WorkerW found.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
     return 1;
-}
-
-bool ToggleDesktopIcons(bool visibility, bool wholeHost) {
-    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-    HWND hWndDesktop = NULL;
-    if (hWndProgman) {
-        hWndDesktop = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
-        if (hWndDesktop && !wholeHost) {
-            hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
-            if (hWndDesktop && logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside Program Manager", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-        }
-    }
-    if (!hWndDesktop) {
-        HWND hWorkerW = GetWorkerW();
-        if (hWorkerW) {
-            hWndDesktop = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
-            if (hWndDesktop && !wholeHost) {
-                hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
-                if (hWndDesktop && logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside WorkerW", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-            }
-        }
-    }
-    if (!hWndDesktop) {
-        HWND hWorkerW = FindWindowExW(hWndProgman, NULL, L"WorkerW", NULL);
-        if (hWorkerW) hWndDesktop = FindWindowExW(hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
-        if (hWndDesktop && !wholeHost) {
-            hWndDesktop = FindWindowExW(hWndDesktop, NULL, L"SysListView32", L"FolderView");
-            if (hWndDesktop && logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Information", NULL, L"Found SysListView32 inside WorkerW inside Program Manager", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
-        }
-    }
-    if (hWndDesktop) {
-        ShowWindow(hWndDesktop, visibility ? SW_SHOW : SW_HIDE);
-        return true;
-    }
-    else if (logging == IDYES) TaskDialog(hWndDesktop, GetModuleHandleW(NULL), L"Error", NULL, L"No SysListView32 found", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
-    return false;
 }
 
 // A portion of this function (till parsing position tables) was sourced from

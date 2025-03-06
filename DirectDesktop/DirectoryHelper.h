@@ -8,21 +8,6 @@
 using namespace std;
 extern Logger MainLogger;
 
-struct parameters {
-    DirectUI::Element* elem{};
-    int x{};
-    int y{};
-    wstring filename;
-    wstring simplefilename;
-    bool isDirectory = false;
-    bool isHidden = false;
-    bool mem_isSelected = false;
-    bool isShortcut = false;
-    unsigned short xPos = 999;
-    unsigned short yPos = 999;
-    unsigned short page{};
-};
-
 extern int logging, validItems;
 extern vector<LVItem*> pm, subpm;
 extern vector<DirectUI::Element*> shortpm;
@@ -36,9 +21,9 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue);
 wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
 BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
-void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, unsigned short limit = 65535);
+void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountItems, unsigned short* countedItems = nullptr, unsigned short limit = 65535);
+void EnumerateFolderForThumbnails(LPWSTR path, vector<wstring>* strs, unsigned short limit);
 void GetPos(bool getSpotlightIcon = false, int* setSpotlightIcon = nullptr);
-bool ToggleDesktopIcons(bool visibility, bool wholeHost);
 HWND GetWorkerW();
 HWND GetWorkerW2(int* x, int* y);
 bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView);
