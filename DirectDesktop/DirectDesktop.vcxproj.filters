@@ -810,6 +810,48 @@
     <Image Include="ImageResources\3002.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\165.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\166.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\167.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\168.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\169.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\170.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\171.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\265.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\266.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\267.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\268.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\269.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\270.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\271.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectUI\DirectUI.def">

@@ -111,21 +111,17 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
 }
 
 static int checkSpotlight{};
-void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* fileCount) {
+void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* count2) {
     if (clsid == L"{645FF040-5081-101B-9F08-00AA002F954E}") {
         if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == -1) {
             WCHAR clsidEx[64];
             StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
-            (*pm)[(*hiddenIndex)]->SetSimpleFilename(displayName);
-            (*pm)[(*hiddenIndex)]->SetFilename(clsidEx);
+            (*pm)[(*count2)]->SetSimpleFilename(displayName);
+            (*pm)[(*count2)]->SetFilename(clsidEx);
             (*dirIndex)++;
             (*hiddenIndex)++;
             (*shortIndex)++;
-            //if (logging == IDYES) {
-            //    WCHAR totalItems[64];
-            //    StringCchPrintfW(totalItems, 64, L"New item found (%d total)", ++(*fileCount));
-            //    TaskDialog(NULL, NULL, L"Item Found", totalItems, clsidEx, TDCBF_OK_BUTTON, NULL, NULL);
-            //}
+            (*count2)++;
             return;
         }
     }
@@ -139,6 +135,7 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
             (*dirIndex)++;
             (*hiddenIndex)++;
             (*shortIndex)++;
+            (*count2)++;
         }
         return;
     }
@@ -150,20 +147,21 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
         (*dirIndex)++;
         (*hiddenIndex)++;
         (*shortIndex)++;
-        //if (logging == IDYES) {
-        //    WCHAR totalItems[64];
-        //    StringCchPrintfW(totalItems, 64, L"New item found (%d total)", ++(*fileCount));
-        //    TaskDialog(NULL, NULL, L"Item Found", totalItems, clsidEx, TDCBF_OK_BUTTON, NULL, NULL);
-        //}
+        (*count2)++;
         return;
     }
 }
 
-void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountItems, unsigned short* countedItems, unsigned short limit) {
-    if (!PathFileExistsW(path) && path != L"InternalCodeForNamespace") return;
-    static int dirIndex{}, hiddenIndex{}, shortIndex{}, fileCount{};
+void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountItems, unsigned short* countedItems, int* count2, unsigned short limit) {
+    if (!PathFileExistsW(path) && path != L"InternalCodeForNamespace") {
+        WCHAR details[320];
+        StringCchPrintfW(details, 320, L"Error: Can't find %s.", path);
+        MainLogger.WriteLine(details);
+        return;
+    }
+    static int dirIndex{}, hiddenIndex{}, shortIndex{};
     int runs = 0;
-    if (bReset) dirIndex = 0, hiddenIndex = 0, shortIndex = 0, fileCount = 0;
+    if (bReset) dirIndex = 0, hiddenIndex = 0, shortIndex = 0;
     int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
     int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
@@ -194,18 +192,19 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
         LoadStringW(WinStorageDLL, 9217, Network, 260);
         wchar_t* LearnAbout = new wchar_t[260];
         LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
-        FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
-        FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, &dirIndex, &hiddenIndex, &shortIndex, &fileCount);
+        FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, &dirIndex, &hiddenIndex, &shortIndex, count2);
+        FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, &dirIndex, &hiddenIndex, &shortIndex, count2);
+        FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), &dirIndex, &hiddenIndex, &shortIndex, count2);
+        FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, &dirIndex, &hiddenIndex, &shortIndex, count2);
+        FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, &dirIndex, &hiddenIndex, &shortIndex, count2);
+        FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, &dirIndex, &hiddenIndex, &shortIndex, count2);
         delete[] ThisPC;
         delete[] RecycleBin;
         delete[] UserFiles;
         delete[] ControlPanel;
         delete[] Network;
         delete[] LearnAbout;
+        if (logging == IDYES) MainLogger.WriteLine(L"Information: Finished finding shell icons.");
         return;
     }
     HRESULT hr;
@@ -221,7 +220,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
 
     LPSHELLFOLDER psfFolder = NULL;
     hr = psfDesktop->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&psfFolder);
-    psfDesktop->Release();
+    if(psfDesktop != nullptr) psfDesktop->Release();
     pMalloc->Free(pidl);
 
     LPENUMIDLIST pEnumIDL = NULL;
@@ -233,19 +232,25 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
             WIN32_FIND_DATAW fd;
             hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
             if (!bCountItems) {
-                if (fd.dwFileAttributes & 16) (*pm)[dirIndex++]->SetDirState(true);
-                else (*pm)[dirIndex++]->SetDirState(false);
-                if (fd.dwFileAttributes & 2) (*pm)[hiddenIndex++]->SetHiddenState(true);
-                else (*pm)[hiddenIndex++]->SetHiddenState(false);
-                /*if ((*pm)[dirIndex - 1].isDirectory == true) {
-                    files->push_back((wstring)fd.cFileName);
-                    (*pm)[shortIndex++]->SetShortcutState(false);
+                if (count2 != nullptr) {
+                    if (fd.dwFileAttributes & 16) (*pm)[*(count2)]->SetDirState(true);
+                    else (*pm)[*(count2)]->SetDirState(false);
+                    if (fd.dwFileAttributes & 2) (*pm)[*(count2)]->SetHiddenState(true);
+                    else (*pm)[*(count2)]->SetHiddenState(false);
+                    /*if ((*pm)[dirIndex - 1].isDirectory == true) {
+                        files->push_back((wstring)fd.cFileName);
+                        (*pm)[shortIndex++]->SetShortcutState(false);
+                    }
+                    else*/
+                    wstring foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex);
+                    wstring foundfilename = path + (wstring)L"\\" + wstring(fd.cFileName);
+                    (*pm)[*(count2)]->SetSimpleFilename(foundsimplefilename);
+                    (*pm)[*(count2)]->SetFilename(foundfilename);
                 }
-                else*/ (*pm)[hiddenIndex - 1]->SetSimpleFilename(hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex));
-                (*pm)[hiddenIndex - 1]->SetFilename(path + (wstring)L"\\" + wstring(fd.cFileName));
+                dirIndex++;
+                hiddenIndex++;
             }
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
-                if (!bCountItems) pm->pop_back();
                 dirIndex--;
                 hiddenIndex--;
                 shortIndex--;
@@ -254,7 +259,6 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
             }
             if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
                 if (fd.dwFileAttributes & 4) {
-                    if (!bCountItems) pm->pop_back();
                     dirIndex--;
                     hiddenIndex--;
                     shortIndex--;
@@ -263,21 +267,20 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                 }
             }
             pMalloc->Free(pidl);
-            //if (logging == IDYES) {
-            //    WCHAR totalItems[64];
-            //    WCHAR filePath[260];
-            //    StringCchPrintfW(totalItems, 64, L"New item found (%d total)", ++fileCount);
-            //    StringCchPrintfW(filePath, 260, L"%s\\%s", path, fd.cFileName);
-            //    TaskDialog(NULL, NULL, L"Item Found", totalItems, filePath, TDCBF_OK_BUTTON, NULL, NULL);
-            //}
         }
         else break;
         runs++;
+        if (count2 != nullptr) (*count2)++;
     }
 
     if (pEnumIDL != nullptr) pEnumIDL->Release();
-    psfFolder->Release();
-    pMalloc->Release();
+    if (psfFolder != nullptr) psfFolder->Release();
+    if (pMalloc != nullptr) pMalloc->Release();
+    if (logging == IDYES) {
+        WCHAR details[320];
+        StringCchPrintfW(details, 320, L"Information: Finished searching in %s.", path);
+        MainLogger.WriteLine(details);
+    }
     if (bCountItems) *countedItems = runs;
 }
 
@@ -299,7 +302,7 @@ void EnumerateFolderForThumbnails(LPWSTR path, vector<wstring>* strs, unsigned s
 
     LPSHELLFOLDER psfFolder = NULL;
     hr = psfDesktop->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&psfFolder);
-    psfDesktop->Release();
+    if (psfDesktop != nullptr) psfDesktop->Release();
     pMalloc->Free(pidl);
 
     LPENUMIDLIST pEnumIDL = NULL;
@@ -330,8 +333,8 @@ void EnumerateFolderForThumbnails(LPWSTR path, vector<wstring>* strs, unsigned s
     }
 
     if (pEnumIDL != nullptr) pEnumIDL->Release();
-    psfFolder->Release();
-    pMalloc->Release();
+    if (psfFolder != nullptr) psfFolder->Release();
+    if (pMalloc != nullptr) pMalloc->Release();
 }
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
@@ -554,8 +557,9 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Resized the temporary arrays.");
     int fileCount{};
     for (int index = 0; index < pm.size(); index++) {
+        wstring itemToFind = pm[index]->GetSimpleFilename();
         for (int index2 = 0; index2 < new_desktop_items.size(); index2++) {
-            if (new_desktop_items[index2].name == pm[index]->GetSimpleFilename()) {
+            if (new_desktop_items[index2].name == itemToFind) {
                 new_desktop_items[index2].name = L"?";
                 pmBuf[index2] = pm[index];
                 pmShortcutBuf[index2] = shortpm[index];

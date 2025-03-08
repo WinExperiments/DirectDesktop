@@ -34,7 +34,7 @@
 						<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
 							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
 								<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-								<RichText content="Close" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+								<RichText content="Exit" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 							</Element>
 						</TouchButton>
 					</Button>
@@ -43,6 +43,7 @@
 		</Element>
 	</HWNDElement>
 	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
+	<Element resid="simpleviewoverlay" class="roundoverlay"/>
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
@@ -164,6 +165,15 @@
 						<Button content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
+			</if>
+			<if class="roundoverlay">
+				<Element background="resbmp(165,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<ifgreaterequal dpi="120"> <Element background="resbmp(166,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="144"> <Element background="resbmp(167,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="192"> <Element background="resbmp(168,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="240"> <Element background="resbmp(169,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="288"> <Element background="resbmp(170,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="384"> <Element background="resbmp(171,7,-1,0,0,1,1)"/> </ifgreaterequal>
 			</if>
 			<if class="popupbg">
 				<Button background="resbmp(164,7,-1,0,0,1,1)"/>
@@ -361,6 +371,15 @@
 						<Button content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
+			</if>
+			<if class="roundoverlay">
+				<Element background="resbmp(265,7,-1,0,0,1,1)" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<ifgreaterequal dpi="120"> <Element background="resbmp(266,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="144"> <Element background="resbmp(267,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="192"> <Element background="resbmp(268,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="240"> <Element background="resbmp(269,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="288"> <Element background="resbmp(270,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="384"> <Element background="resbmp(271,7,-1,0,0,1,1)"/> </ifgreaterequal>
 			</if>
 			<if class="popupbg">
 				<Button background="resbmp(264,7,-1,0,0,1,1)"/>

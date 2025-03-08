@@ -345,6 +345,13 @@
     <Image Include="ImageResources\162.png" />
     <Image Include="ImageResources\163.png" />
     <Image Include="ImageResources\164.bmp" />
+    <Image Include="ImageResources\165.bmp" />
+    <Image Include="ImageResources\166.bmp" />
+    <Image Include="ImageResources\167.bmp" />
+    <Image Include="ImageResources\168.bmp" />
+    <Image Include="ImageResources\169.bmp" />
+    <Image Include="ImageResources\170.bmp" />
+    <Image Include="ImageResources\171.bmp" />
     <Image Include="ImageResources\201.bmp" />
     <Image Include="ImageResources\202.bmp" />
     <Image Include="ImageResources\203.bmp" />
@@ -409,6 +416,13 @@
     <Image Include="ImageResources\262.png" />
     <Image Include="ImageResources\263.png" />
     <Image Include="ImageResources\264.bmp" />
+    <Image Include="ImageResources\265.bmp" />
+    <Image Include="ImageResources\266.bmp" />
+    <Image Include="ImageResources\267.bmp" />
+    <Image Include="ImageResources\268.bmp" />
+    <Image Include="ImageResources\269.bmp" />
+    <Image Include="ImageResources\270.bmp" />
+    <Image Include="ImageResources\271.bmp" />
     <Image Include="ImageResources\3001.bmp" />
     <Image Include="ImageResources\3002.bmp" />
     <Image Include="small.ico" />

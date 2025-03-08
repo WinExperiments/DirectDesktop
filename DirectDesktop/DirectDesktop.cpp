@@ -66,7 +66,7 @@ Logger MainLogger;
 
 int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
-vector<int> frame;
+//vector<int> frame;
 
 int dpi = 96, dpiOld = 1;
 float flScaleFactor = 1.0;
@@ -206,19 +206,22 @@ HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     IShellItem* pShellItem{};
     HRESULT hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
 
-    IShellItemImageFactory* pImageFactory{};
-    hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
-    pShellItem->Release();
-
-    SIZE size = { width * flScaleFactor, height * flScaleFactor };
     HBITMAP hBitmap{};
-    hr = pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap);
-    pImageFactory->Release();
+    if (pShellItem != nullptr) {
+        IShellItemImageFactory* pImageFactory{};
+        hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
+        pShellItem->Release();
 
-    if (SUCCEEDED(hr)) {
-        return hBitmap;
+        SIZE size = { width * flScaleFactor, height * flScaleFactor };
+        hr = pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap);
+        pImageFactory->Release();
+    }
+    else {
+        HICON fallback = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, width * flScaleFactor, height * flScaleFactor, LR_SHARED);
+        hBitmap = IconToBitmap(fallback);
     }
 
+    return hBitmap;
 }
 
 void GetFontHeight() {
@@ -295,7 +298,22 @@ void ShowSimpleView() {
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
     SimpleViewBottom->SetLayoutPos(3);
     fullscreenpopup->SetBackgroundStdColor(7);
+    Element* simpleviewoverlay{};
+    parser->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
+    centered->Add((Element**)&simpleviewoverlay, 1);
     BlurBackground(GetWorkerW(), false);
+}
+
+unsigned long EndExplorer(LPVOID lpParam) {
+    this_thread::sleep_for(chrono::milliseconds(250));
+    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    DWORD pid{};
+    GetWindowThreadProcessId(hWndProgman, &pid);
+    HANDLE hExplorer;
+    hExplorer = OpenProcess(PROCESS_TERMINATE, false, pid);
+    TerminateProcess(hExplorer, 2);
+    CloseHandle(hExplorer);
+    return 0;
 }
 
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -335,12 +353,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_CLOSE: {
-        HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
-        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-        SetClassLongPtrW(hWndProgman, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
-        SetClassLongPtrW(hWorkerW, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
-        SetClassLongPtrW(hSHELLDLL_DefView, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
-        if (lParam == 69) exit(0);
         if (lParam == 420) {
             wchar_t* desktoplog = new wchar_t[260];
             wchar_t* cBuffer = new wchar_t[260];
@@ -348,6 +360,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
             ShellExecuteW(NULL, L"open", L"notepad.exe", desktoplog, NULL, SW_SHOW);
         }
+        DWORD dwTermination{};
+        HANDLE termThread = CreateThread(0, 0, EndExplorer, NULL, 0, &dwTermination);
+        this_thread::sleep_for(chrono::milliseconds(500));
         break;
     }
     case WM_COMMAND: {
@@ -524,6 +539,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
                 iconpm[icon]->DestroyAll(true);
                 iconpm[icon]->SetClass(L"groupthumbnail");
+                shadowpm[icon]->SetAlpha(0);
             }
         }
         for (int icon = 0; icon < pm.size(); icon++) {
@@ -532,7 +548,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                 vector<wstring> strs;
                 unsigned short count = 0;
                 wstring folderPath = pm[icon]->GetFilename();
-                EnumerateFolder((LPWSTR)folderPath.c_str(), nullptr, false, true, &count, 4);
+                EnumerateFolder((LPWSTR)folderPath.c_str(), nullptr, false, true, &count, nullptr, 4);
                 EnumerateFolderForThumbnails((LPWSTR)folderPath.c_str(), &strs, 4);
                 for (int thumbs = 0; thumbs < count; thumbs++) {
                     HBITMAP thumbIcon = GetShellItemImage(strs[thumbs].c_str(), globalgpiconsz * flScaleFactor, globalgpiconsz * flScaleFactor);
@@ -543,7 +559,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                     Element* GroupedIcon;
                     parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
                     iconpm[icon]->Add((Element**)&GroupedIcon, 1);
-                    GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz* flScaleFactor);
+                    GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz * flScaleFactor);
                     GroupedIcon->SetX(x), GroupedIcon->SetY(y);
                     x += ((globalgpiconsz + paddingInner) * flScaleFactor);
                     if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
@@ -586,7 +602,7 @@ unsigned long fastin(LPVOID lpParam) {
     //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 4, yV->y, NULL);
     //for (int m = 1; m <= 24; m++) {
-        frame[yV->y] = 24;
+        //frame[yV->y] = 24;
         SendMessageW(wnd->GetHWND(), WM_USER + 3, yV->y, NULL);
         //this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 400)));
     //}
@@ -597,7 +613,7 @@ unsigned long fastin(LPVOID lpParam) {
 unsigned long subfastin(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
     SendMessageW(wnd->GetHWND(), WM_USER + 10, yV->y, NULL);
-    frame[yV->y] = 24;
+    //frame[yV->y] = 24;
     SendMessageW(wnd->GetHWND(), WM_USER + 9, yV->y, NULL);
     free(yV);
     return 0;
@@ -680,7 +696,7 @@ void HidePopupCore() {
     SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
     fullscreenpopup->SetAlpha(0);
     fullscreenAnimation2();
-    frame.clear();
+    //frame.clear();
     subpm.clear();
     subiconpm.clear();
     subshortpm.clear();
@@ -870,7 +886,7 @@ void SelectSubItem(Element* elem, Event* iev) {
 }
 
 // TODO: Fix this to match LVItem after it's working
-void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
+void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
     Element* groupdirectory{};
@@ -879,6 +895,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID(L"groupdirlist"));
     SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID(L"SubUIContainer"));
     unsigned short count = 0;
+    int count2{};
     EnumerateFolder((LPWSTR)filename, nullptr, false, true, &count);
     CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
     if (count <= 128 && count > 0) {
@@ -896,7 +913,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             subshadowpm.push_back(iconElemShadow);
             subfilepm.push_back(textElem);
         }
-        EnumerateFolder((LPWSTR)filename, &subpm, true, false);
+        EnumerateFolder((LPWSTR)filename, &subpm, true, false, nullptr, &count2);
         int x = 0, y = 0;
         Value* v;
         RECT dimensions;
@@ -928,7 +945,9 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
             animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
             animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[j]));
         }
-        SubUIContainer->SetHeight(y + outerSizeY);
+        x += outerSizeX;
+        if (x > 800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) y += outerSizeY;
+        SubUIContainer->SetHeight(y);
         delete[] animThread;
         delete[] animThread2;
         delete[] animThreadHandle;
@@ -944,7 +963,7 @@ void ShowDirAsGroup(LPCWSTR filename, wstring simplefilename) {
     dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
     tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
     RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirname"));
-    dirname->SetContentString(simplefilename.c_str());
+    dirname->SetContentString(simplefilename);
     dirname->SetAlpha(255);
     RichText* dirdetails = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
     WCHAR itemCount[64];
@@ -1097,7 +1116,8 @@ void SelectItem(Element* elem, Event* iev) {
                     wstring temp = pm[items]->GetFilename();
                     execInfo.lpFile = temp.c_str();
                     if (pm[items]->GetDirState() == true && treatdirasgroup == true) {
-                        ShowDirAsGroup(execInfo.lpFile, pm[items]->GetSimpleFilename());
+                        wstring temp2 = pm[items]->GetSimpleFilename();
+                        ShowDirAsGroup(execInfo.lpFile, temp2.c_str());
                     }
                     else ShellExecuteExW(&execInfo);
                 }
@@ -1265,7 +1285,7 @@ void RearrangeIcons(bool animation, bool reloadicons) {
 
 void InitLayout() {
     UIContainer->DestroyAll(true);
-    frame.clear();
+    //frame.clear();
     pm.clear();
     iconpm.clear();
     shortpm.clear();
@@ -1274,6 +1294,7 @@ void InitLayout() {
     fileshadowpm.clear();
     cbpm.clear();
     GetFontHeight();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 6 complete: Prepared DirectDesktop to receive desktop data.");
     LPWSTR path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
     wchar_t* secondaryPath = new wchar_t[260];
     wchar_t* cBuffer = new wchar_t[260];
@@ -1286,6 +1307,8 @@ void InitLayout() {
     }
     head.push_back(*reinterpret_cast<uint32_t*>(&value[offset + 8]));
     uint32_t count = head[4];
+    int count2{};
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 6 complete: Obtained desktop item count.");
 
     Button* emptyspace;
     parser->CreateElement(L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
@@ -1312,17 +1335,22 @@ void InitLayout() {
         fileshadowpm.push_back(textElemShadow);
         cbpm.push_back(checkboxElem);
     }
-    EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, true, false);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
+    if (count2 < count) EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, true, false, nullptr, &count2);
     DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
-    EnumerateFolder(secondaryPath, &pm, false, false);
-    EnumerateFolder(path, &pm, false, false);
+    if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
+    if (count2 < count) EnumerateFolder(secondaryPath, &pm, false, false, nullptr, &count2);
+    if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
+    if (count2 < count) EnumerateFolder(path, &pm, false, false, nullptr, &count2);
+    if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
     d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
-    EnumerateFolder(secondaryPath, &pm, false, false);
-    CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
-    frame.resize(count);
-    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 3 complete: Created arrays according to your desktop items.");
+    if (count2 < count) EnumerateFolder(secondaryPath, &pm, false, false, nullptr, &count2);
+    if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
+    //CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
+    //frame.resize(count);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 4 of 6 complete: Created arrays according to your desktop items.");
     for (int i = 0; i < count; i++) {
         if (pm[i]->GetHiddenState() == true) {
             iconpm[i]->SetAlpha(128);
@@ -1340,11 +1368,17 @@ void InitLayout() {
         }
         else pm[i]->SetClass(L"singleclicked");
     }
-    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 3 complete: Filled the arrays with relevant desktop icon data.");
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 5 of 6 complete: Filled the arrays with relevant desktop icon data.");
     RearrangeIcons(false, true);
-    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 3 complete: Arranged the icons according to your icon placements.");
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 6 of 6 complete: Arranged the icons according to your icon placements.");
     delete[] cBuffer;
     delete[] secondaryPath;
+}
+
+unsigned long FinishedLogging(LPVOID lpParam) {
+    TaskDialog(NULL, NULL, L"Information", L"Logging complete", L"To close DirectDesktop, press the close button.\nThis will automatically view the log.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
+    SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
+    return 0;
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -1402,7 +1436,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
-    WndProc = (WNDPROC)SetWindowLongPtr(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
+    WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
     if (WindowsBuild > 26016) {
         SetWindowLongPtrW(hWorkerW, GWL_STYLE, 0x96000000L);
         SetWindowLongPtrW(hWorkerW, GWL_EXSTYLE, 0x20000880L);
@@ -1410,8 +1444,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HWND dummyHWnd;
     dummyHWnd = SetParent(wnd->GetHWND(), hSHELLDLL_DefView);
     HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
-    SetClassLongPtrW(hWorkerW, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
-    SetClassLongPtrW(hSHELLDLL_DefView, GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
     SetClassLongPtrW(wnd->GetHWND(), GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
     if (logging == IDYES) {
         if (dummyHWnd) MainLogger.WriteLine(L"Information: DirectDesktop is now a part of Explorer.");
@@ -1471,12 +1503,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     wnd->Host(pMain);
     wnd->ShowWindow(SW_SHOW);
+    MARGINS m = { -1, -1, -1, -1 };
+    DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
     if (logging == IDYES) {
-        TaskDialog(NULL, GetModuleHandleW(NULL), L"Information", L"Logging complete", L"To close DirectDesktop, press the close button.\nThis will automatically view the log.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
-        SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
+        DWORD dd;
+        HANDLE loggingThread = CreateThread(0, 0, FinishedLogging, NULL, 0, &dd);
     }
-    //MARGINS m = { -1, -1, -1, -1 };
-    //DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
     //if (logging == IDYES) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
         //L"DirectDesktop is now transparent.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
     StartMessagePump();
