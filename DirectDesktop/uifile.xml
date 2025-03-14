@@ -17,7 +17,7 @@
 			</Element>
 		</Element>
 	</HWNDElement>
-	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0" sheet="default">
+	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" sheet="default">
 		<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
 			<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 		</Button>
@@ -73,8 +73,8 @@
 				<TouchButton id="atom(Customize)" content="Customize group" class="popupbutton"/>
 				<TouchButton id="atom(OpenInExplorer)" content="Open in File Explorer" class="popupbutton"/>
 			</Element>
-			<Element layoutpos="client" layout="verticalflowlayout(0,0,0,0)">
-				<RichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,0)" width="400rp">
+				<RichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 				<RichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 			</Element>
 		</Element>

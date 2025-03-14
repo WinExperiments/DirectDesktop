@@ -309,7 +309,8 @@ void ShowSimpleView() {
     Element* simpleviewoverlay{};
     parser->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
     centered->Add((Element**)&simpleviewoverlay, 1);
-    BlurBackground(GetWorkerW(), false);
+    wnd->ShowWindow(SW_HIDE);
+    BlurBackground(subviewwnd->GetHWND(), false);
 }
 
 unsigned long EndExplorer(LPVOID lpParam) {
@@ -339,6 +340,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (wParam == SPI_SETWORKAREA) {
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
             SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+            SetWindowPos(subviewwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             SetWindowPos(hWorkerW, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             SetWindowPos(hSHELLDLL_DefView, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             UIContainer->SetWidth(dimensions.right - dimensions.left);
@@ -523,7 +525,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 12: {
-        if (checkifelemexists == true) dirnameanimator->SetWidth((160 * (1 - py[dframe - 1])) * flScaleFactor);
+        if (checkifelemexists == true) dirnameanimator->SetWidth((120 * (1 - py[dframe - 1])) * flScaleFactor);
         break;
     }
     case WM_USER + 13: {
@@ -647,7 +649,7 @@ unsigned long animate6(LPVOID lpParam) {
 
 unsigned long grouptitlebaranimation(LPVOID lpParam) {
     this_thread::sleep_for(chrono::milliseconds(750));
-    for (int m = 1; m <= 48; m++) {
+    for (int m = 1; m <= 32; m++) {
         dframe = m;
         SendMessageW(wnd->GetHWND(), WM_USER + 12, NULL, NULL);
         this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 600)));
@@ -655,7 +657,7 @@ unsigned long grouptitlebaranimation(LPVOID lpParam) {
     return 0;
 }
 unsigned long grouptasksanimation(LPVOID lpParam) {
-    for (int m = 1; m <= 48; m++) {
+    for (int m = 1; m <= 32; m++) {
         tframe = m;
         SendMessageW(wnd->GetHWND(), WM_USER + 13, NULL, NULL);
         this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 450)));
@@ -680,7 +682,7 @@ void fullscreenAnimation(int width, int height) {
     //fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
     //bitmap->Release();
     //this_thread::sleep_for(chrono::milliseconds(80));
-    pSubview->SetAlpha(255);
+    pSubview->SetAccessible(true);
     subviewwnd->ShowWindow(SW_SHOW);
     parser->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
@@ -689,22 +691,23 @@ void fullscreenAnimation(int width, int height) {
     fullscreeninner->SetMinSize(width, height);
     fullscreenpopupbase->SetVisible(true);
     fullscreeninner->SetVisible(true);
-    BlurBackground(GetWorkerW(), true);
+    BlurBackground(subviewwnd->GetHWND(), true);
 }
 void fullscreenAnimation2() {
     DWORD animThread;
     HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
 }
 void ShowPopupCore() {
-    pSubview->SetAlpha(255);
+    pSubview->SetAccessible(true);
     subviewwnd->ShowWindow(SW_SHOW);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
 }
 void HidePopupCore() {
     editmode = false;
     SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
-    pSubview->SetAlpha(0);
+    pSubview->SetAccessible(false);
     subviewwnd->ShowWindow(SW_HIDE);
+    wnd->ShowWindow(SW_SHOW);
     fullscreenAnimation2();
     //frame.clear();
     subpm.clear();
@@ -716,7 +719,7 @@ void HidePopupCore() {
     SimpleViewBottom->SetLayoutPos(-3);
     nextpage->SetWidth(0);
     prevpage->SetWidth(0);
-    BlurBackground(GetWorkerW(), false);
+    BlurBackground(subviewwnd->GetHWND(), false);
 }
 
 wstring bufferOpenInExplorer;
@@ -906,7 +909,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     unsigned short count = 0;
     int count2{};
     EnumerateFolder((LPWSTR)filename, nullptr, false, true, &count);
-    CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
+    CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
     if (count <= 128 && count > 0) {
         for (int i = 0; i < count; i++) {
             LVItem* outerElemGrouped;
@@ -1032,6 +1035,7 @@ void ShowPage2(Element* elem, Event* iev) {
 void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
         subviewwnd->ShowWindow(SW_HIDE);
+        wnd->ShowWindow(SW_SHOW);
         centered->DestroyAll(true);
         ShowPopupCore();
         SimpleViewTop->SetLayoutPos(-3);
@@ -1049,7 +1053,7 @@ void ShowSettings(Element* elem, Event* iev) {
         assignFn(PageTab1, ShowPage1);
         assignFn(PageTab2, ShowPage2);
         ShowPage1(elem, iev);
-        CubicBezier(48, px, py, 0.1, 0.9, 0.2, 1.0);
+        CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
         dirnameanimator = (Element*)settingsview->FindDescendent(StrToID(L"dirnameanimator"));
         RichText* name = (RichText*)settingsview->FindDescendent(StrToID(L"name"));
         name->SetAlpha(255);
@@ -1200,13 +1204,13 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
 
 void testEventListener3(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
-        switch (pSubview->GetAlpha()) {
-        case 0:
+        switch (pSubview->GetAccessible()) {
+        case false:
             if (elem != fullscreenpopupbase) {
                 ShowPopupCore();
             }
             break;
-        case 255:
+        case true:
             if (centered->GetMouseWithin() == false && elem->GetMouseFocused() == true) {
                 HidePopupCore();
             }
@@ -1447,7 +1451,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ShowWindow(hSysListView32, SW_HIDE);
     }
     NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
-    NativeHWNDHost::Create(L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &subviewwnd);
+    NativeHWNDHost::Create(L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, 0, &subviewwnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
@@ -1529,7 +1533,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Window has been created and shown.");
     MARGINS m = { -1, -1, -1, -1 };
     DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
-    BlurBackground(hWndProgman, true);
+    DwmExtendFrameIntoClientArea(subviewwnd->GetHWND(), &m);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Window has been made transparent.\n\nLogging is now complete.");
     if (logging == IDYES) {
         DWORD dd;
