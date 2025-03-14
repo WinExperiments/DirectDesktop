@@ -14,33 +14,34 @@
 				</TouchButton>
 				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
-				<Element id="atom(fullscreenpopup)" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0">
-					<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
-						<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
-					</Button>
-					//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
-					<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
-					<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
-					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)"> // minsize="size(0,128rp)"
-						<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
-					</Button>
-					<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-						<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-								<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-								<RichText content="Settings" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-							</Element>
-						</TouchButton>
-						<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-							<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-								<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-								<RichText content="Exit" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-							</Element>
-						</TouchButton>
-					</Button>
-				</Element>
 			</Element>
 		</Element>
+	</HWNDElement>
+	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="argb(0,0,0,0)" margin="rect(0,0,0,0)" alpha="0" sheet="default">
+		<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
+			<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
+		</Button>
+		//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
+		<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
+		<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
+		<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+			// minsize="size(0,128rp)"
+			<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
+		</Button>
+		<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+			<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
+				<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+					<RichText content="Settings" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+				</Element>
+			</TouchButton>
+			<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
+				<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+					<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+					<RichText content="Exit" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+				</Element>
+			</TouchButton>
+		</Button>
 	</HWNDElement>
 	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
 	<Element resid="simpleviewoverlay" class="roundoverlay"/>
@@ -314,7 +315,7 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton background="argb(0,0,0,0)" width="8rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
+				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
 				<if mousewithin="true">
 					<TouchButton alpha="255" width="160rp"/>
 				</if>
@@ -520,7 +521,7 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton background="argb(0,0,0,0)" width="8rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
+				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
 				<if mousewithin="true">
 					<TouchButton alpha="255" width="160rp"/>
 				</if>

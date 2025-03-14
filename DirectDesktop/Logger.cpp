@@ -3,6 +3,12 @@
 #include "framework.h"
 using namespace std;
 
+bool isNonStandard(const wstring& str) {
+	for (wchar_t ch : str) {
+		if (ch > 127) return true;
+	}
+	return false;
+}
 
 void Logger::StartLogger(const wchar_t* filename) {
 	logfile.open(filename, wfstream::binary | wfstream::out | wfstream::trunc | wfstream::app);
@@ -14,7 +20,10 @@ void Logger::StartLogger(const wchar_t* filename) {
 }
 
 void Logger::WriteLine(wstring line) {
-	if (logfile.good())logfile << line << endl;
+	if (logfile.good()) {
+		if (isNonStandard(line)) logfile << L"Warning: Redacted output due to non-standard characters." << endl;
+		else logfile << line << endl;
+	}
 }
 
 void Logger::WriteLine(wstring line, int exitCode) {

@@ -30,11 +30,11 @@
 using namespace DirectUI;
 using namespace std;
 
-NativeHWNDHost* wnd;
-HWNDElement* parent;
+NativeHWNDHost* wnd, *subviewwnd;
+HWNDElement* parent, *subviewparent;
 DUIXmlParser* parser;
-Element* pMain;
-unsigned long key = 0;
+Element* pMain, *pSubview;
+unsigned long key = 0, key2 = 0;
 
 Element* sampleText;
 Element* mainContainer;
@@ -44,7 +44,7 @@ Element* iconElemShadow;
 RichText* textElem;
 RichText* textElemShadow;
 Button* checkboxElem;
-Element* fullscreenpopup, *fullscreeninner;
+Element* fullscreeninner;
 Button* fullscreenpopupbase, *centered;
 Button* emptyspace;
 Element* selector, *selector2;
@@ -67,6 +67,13 @@ Logger MainLogger;
 int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
 //vector<int> frame;
+
+wstring RemoveQuotes(const wstring& input) {
+    if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"') {
+        return input.substr(1, input.size() - 2);
+    }
+    return input;
+}
 
 int dpi = 96, dpiOld = 1;
 float flScaleFactor = 1.0;
@@ -131,24 +138,24 @@ struct EventListener2 : public IElementListener {
     }
 };
 
-Element* regElem(const wchar_t* elemName) {
-    Element* result = (Element*)pMain->FindDescendent(StrToID(elemName));
+Element* regElem(const wchar_t* elemName, Element* peParent) {
+    Element* result = (Element*)peParent->FindDescendent(StrToID(elemName));
     return result;
 }
-RichText* regRichText(const wchar_t* elemName) {
-    RichText* result = (RichText*)pMain->FindDescendent(StrToID(elemName));
+RichText* regRichText(const wchar_t* elemName, Element* peParent) {
+    RichText* result = (RichText*)peParent->FindDescendent(StrToID(elemName));
     return result;
 }
-Button* regBtn(const wchar_t* btnName) {
-    Button* result = (Button*)pMain->FindDescendent(StrToID(btnName));
+Button* regBtn(const wchar_t* btnName, Element* peParent) {
+    Button* result = (Button*)peParent->FindDescendent(StrToID(btnName));
     return result;
 }
-TouchButton* regTouchBtn(const wchar_t* btnName) {
-    TouchButton* result = (TouchButton*)pMain->FindDescendent(StrToID(btnName));
+TouchButton* regTouchBtn(const wchar_t* btnName, Element* peParent) {
+    TouchButton* result = (TouchButton*)peParent->FindDescendent(StrToID(btnName));
     return result;
 }
-Edit* regEdit(const wchar_t* editName) {
-    Edit* result = (Edit*)pMain->FindDescendent(StrToID(editName));
+Edit* regEdit(const wchar_t* editName, Element* peParent) {
+    Edit* result = (Edit*)peParent->FindDescendent(StrToID(editName));
     return result;
 }
 void assignFn(Element* btnName, void(*fnName)(Element* elem, Event* iev)) {
@@ -181,6 +188,7 @@ void SetTheme() {
     Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
     parser->GetSheet(sheetName, &sheetStorage);
     pMain->SetValue(Element::SheetProp, 1, sheetStorage);
+    pSubview->SetValue(Element::SheetProp, 1, sheetStorage);
     sheetStorage->Release();
 }
 
@@ -260,28 +268,28 @@ void ShowSimpleView() {
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    if (!hiddenIcons) {
-        Value* bitmap;
-        HBITMAP hbmCapture{};
-        HDC hdcWindow = GetDC(wnd->GetHWND());
-        HDC hdcMem = CreateCompatibleDC(hdcWindow);
-        hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
-        HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-        BitBlt(hdcMem, 0, 0, dimensions.right, dimensions.bottom, hdcWindow, 0, 0, SRCCOPY);
-        SelectObject(hdcMem, hbmOld);
-        DeleteDC(hdcMem);
-        ReleaseDC(wnd->GetHWND(), hdcWindow);
-        bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
-        fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
-        centered->SetBackgroundStdColor(7);
-        fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
-        bitmap->Release();
-        DeleteObject(hbmCapture);
-    }
-    else {
+    //if (!hiddenIcons) {
+    //    Value* bitmap;
+    //    HBITMAP hbmCapture{};
+    //    HDC hdcWindow = GetDC(wnd->GetHWND());
+    //    HDC hdcMem = CreateCompatibleDC(hdcWindow);
+    //    hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
+    //    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
+    //    BitBlt(hdcMem, 0, 0, dimensions.right, dimensions.bottom, hdcWindow, 0, 0, SRCCOPY);
+    //    SelectObject(hdcMem, hbmOld);
+    //    DeleteDC(hdcMem);
+    //    ReleaseDC(wnd->GetHWND(), hdcWindow);
+    //    bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
+    //    fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
+    //    centered->SetBackgroundStdColor(7);
+    //    fullscreeninner->SetValue(Element::BackgroundProp, 1, bitmap);
+    //    bitmap->Release();
+    //    DeleteObject(hbmCapture);
+    //}
+    //else {
         fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
         fullscreeninner->SetBackgroundStdColor(7);
-    }
+    //}
     if (maxPageID != 1) {
         WCHAR currentPage[64];
         StringCchPrintfW(currentPage, 64, L"Page %d / %d", currentPageID, maxPageID);
@@ -297,7 +305,7 @@ void ShowSimpleView() {
     SimpleViewTop->SetLayoutPos(1);
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
     SimpleViewBottom->SetLayoutPos(3);
-    fullscreenpopup->SetBackgroundStdColor(7);
+    pSubview->SetBackgroundStdColor(7);
     Element* simpleviewoverlay{};
     parser->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
     centered->Add((Element**)&simpleviewoverlay, 1);
@@ -392,6 +400,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         iconpm[wParam]->SetHeight(round(globaliconsz * flScaleFactor));
         iconpm[wParam]->SetX(iconPaddingX);
         iconpm[wParam]->SetY(round(iconPaddingY * 0.575));
+        if (pm[wParam]->GetSimpleFilename() == L"") pm[wParam]->SetSimpleFilename(L"Failed to find item");
         HBITMAP capturedBitmap;
         capturedBitmap = CreateTextBitmap(pm[wParam]->GetSimpleFilename().c_str(), innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, DT_END_ELLIPSIS);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
@@ -458,7 +467,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 7: {
         checkifelemexists = false;
-        fullscreenpopup->SetLayoutPos(-3);
+        subviewwnd->ShowWindow(SW_HIDE);
         centered->DestroyAll(true);
         //if (issubviewopen) {
         //    ShowSimpleView();
@@ -547,7 +556,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                 int x = padding * flScaleFactor, y = padding * flScaleFactor;
                 vector<wstring> strs;
                 unsigned short count = 0;
-                wstring folderPath = pm[icon]->GetFilename();
+                wstring folderPath = RemoveQuotes(pm[icon]->GetFilename());
                 EnumerateFolder((LPWSTR)folderPath.c_str(), nullptr, false, true, &count, nullptr, 4);
                 EnumerateFolderForThumbnails((LPWSTR)folderPath.c_str(), &strs, 4);
                 for (int thumbs = 0; thumbs < count; thumbs++) {
@@ -657,22 +666,22 @@ unsigned long grouptasksanimation(LPVOID lpParam) {
 void fullscreenAnimation(int width, int height) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    HDC hdcWindow = GetDC(wnd->GetHWND());
-    HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.08, dimensions.bottom * 0.08);
-    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-    SetStretchBltMode(hdcMem, HALFTONE);
-    StretchBlt(hdcMem, 0, 0, dimensions.right * 0.08, dimensions.bottom * 0.08, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
-    SelectObject(hdcMem, hbmOld);
-    DeleteDC(hdcMem);
-    ReleaseDC(wnd->GetHWND(), hdcWindow);
-    IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 2 * flScaleFactor, 1);
-    Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, true);
-    fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
-    bitmap->Release();
+    //HDC hdcWindow = GetDC(wnd->GetHWND());
+    //HDC hdcMem = CreateCompatibleDC(hdcWindow);
+    //HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.08, dimensions.bottom * 0.08);
+    //HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
+    //SetStretchBltMode(hdcMem, HALFTONE);
+    //StretchBlt(hdcMem, 0, 0, dimensions.right * 0.08, dimensions.bottom * 0.08, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
+    //SelectObject(hdcMem, hbmOld);
+    //DeleteDC(hdcMem);
+    //ReleaseDC(wnd->GetHWND(), hdcWindow);
+    //IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 2 * flScaleFactor, 1);
+    //Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, true);
+    //fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
+    //bitmap->Release();
     //this_thread::sleep_for(chrono::milliseconds(80));
-    fullscreenpopup->SetLayoutPos(4);
-    fullscreenpopup->SetAlpha(255);
+    pSubview->SetAlpha(255);
+    subviewwnd->ShowWindow(SW_SHOW);
     parser->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
     centered->SetMinSize(width, height);
@@ -687,14 +696,15 @@ void fullscreenAnimation2() {
     HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
 }
 void ShowPopupCore() {
-    fullscreenpopup->SetLayoutPos(4);
-    fullscreenpopup->SetAlpha(255);
+    pSubview->SetAlpha(255);
+    subviewwnd->ShowWindow(SW_SHOW);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
 }
 void HidePopupCore() {
     editmode = false;
     SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
-    fullscreenpopup->SetAlpha(0);
+    pSubview->SetAlpha(0);
+    subviewwnd->ShowWindow(SW_HIDE);
     fullscreenAnimation2();
     //frame.clear();
     subpm.clear();
@@ -806,14 +816,14 @@ vector<HBITMAP> GetDesktopIcons() {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < pm.size(); i++) {
         if (pm[i]->GetDirState() == true && treatdirasgroup == true) bmResult.push_back(NULL);
-        else bmResult.push_back(GetShellItemImage(pm[i]->GetFilename().c_str(), globaliconsz, globaliconsz));
+        else bmResult.push_back(GetShellItemImage(RemoveQuotes(pm[i]->GetFilename()).c_str(), globaliconsz, globaliconsz));
     }
     return bmResult;
 }
 vector<HBITMAP> GetSubdirectoryIcons(int limit = subpm.size(), int width = globaliconsz, int height = globaliconsz) {
     vector<HBITMAP> bmResult;
     for (int i = 0; i < limit; i++) {
-        bmResult.push_back(GetShellItemImage(subpm[i]->GetFilename().c_str(), width, height));
+        bmResult.push_back(GetShellItemImage(RemoveQuotes(subpm[i]->GetFilename()).c_str(), width, height));
     }
     return bmResult;
 }
@@ -885,7 +895,6 @@ void SelectSubItem(Element* elem, Event* iev) {
     }
 }
 
-// TODO: Fix this to match LVItem after it's working
 void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
@@ -1022,7 +1031,7 @@ void ShowPage2(Element* elem, Event* iev) {
 }
 void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
-        fullscreenpopup->SetLayoutPos(-3);
+        subviewwnd->ShowWindow(SW_HIDE);
         centered->DestroyAll(true);
         ShowPopupCore();
         SimpleViewTop->SetLayoutPos(-3);
@@ -1113,7 +1122,7 @@ void SelectItem(Element* elem, Event* iev) {
         if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items] == elem) {
-                    wstring temp = pm[items]->GetFilename();
+                    wstring temp = RemoveQuotes(pm[items]->GetFilename());
                     execInfo.lpFile = temp.c_str();
                     if (pm[items]->GetDirState() == true && treatdirasgroup == true) {
                         wstring temp2 = pm[items]->GetSimpleFilename();
@@ -1191,7 +1200,7 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
 
 void testEventListener3(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
-        switch (fullscreenpopup->GetAlpha()) {
+        switch (pSubview->GetAlpha()) {
         case 0:
             if (elem != fullscreenpopupbase) {
                 ShowPopupCore();
@@ -1421,7 +1430,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
     if (hWndProgman) {
         hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
-        if (WindowsBuild > 26016 && logging == IDYES) MainLogger.WriteLine(L"Information: Version is 24H2, skipping WorkerW creation!!!");
+        if (logging == IDYES && hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: Found a SHELLDLL_DefView window.");
+        if (WindowsBuild >= 26002 && logging == IDYES) MainLogger.WriteLine(L"Information: Version is 24H2, skipping WorkerW creation!!!");
         SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
         this_thread::sleep_for(chrono::milliseconds(250));
         if (hSHELLDLL_DefView) {
@@ -1430,14 +1440,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     if (logging == IDYES && !hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
     bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, true);
+    if (logging == IDYES && hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: Found a SHELLDLL_DefView window.");
+    HWND hSysListView32 = FindWindowExW(hSHELLDLL_DefView, NULL, L"SysListView32", L"FolderView");
+    if (hSysListView32) {
+        if (logging == IDYES) MainLogger.WriteLine(L"Information: Found SysListView32 window to hide.");
+        ShowWindow(hSysListView32, SW_HIDE);
+    }
     NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
+    NativeHWNDHost::Create(L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &subviewwnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
+    HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, NULL, &key2, (Element**)&subviewparent);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
-    if (WindowsBuild > 26016) {
+    if (WindowsBuild >= 26002) {
         SetWindowLongPtrW(hWorkerW, GWL_STYLE, 0x96000000L);
         SetWindowLongPtrW(hWorkerW, GWL_EXSTYLE, 0x20000880L);
     }
@@ -1446,36 +1464,38 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
     SetClassLongPtrW(wnd->GetHWND(), GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
     if (logging == IDYES) {
-        if (dummyHWnd) MainLogger.WriteLine(L"Information: DirectDesktop is now a part of Explorer.");
+        if (dummyHWnd != nullptr) MainLogger.WriteLine(L"Information: DirectDesktop is now a part of Explorer.");
         else MainLogger.WriteLine(L"Error: DirectDesktop is still hosted in its own window.");
     }
 
     parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
     pMain->SetVisible(true);
     pMain->EndDefer(key);
+    parser->CreateElement(L"fullscreenpopup", subviewparent, NULL, NULL, &pSubview);
+    pSubview->SetVisible(true);
+    pSubview->EndDefer(key2);
 
     InitialUpdateScale();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated scaling.");
     UpdateModeInfo();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated color mode information.");
 
-    sampleText = regElem(L"sampleText");
-    mainContainer = regElem(L"mainContainer");
-    UIContainer = regElem(L"UIContainer");
-    fullscreenpopup = regElem(L"fullscreenpopup");
-    fullscreenpopupbase = regBtn(L"fullscreenpopupbase");
-    centered = regBtn(L"centered");
-    selector = regElem(L"selector");
-    selector2 = regElem(L"selector2");
-    SimpleViewTop = regBtn(L"SimpleViewTop");
-    SimpleViewBottom = regBtn(L"SimpleViewBottom");
-    SimpleViewSettings = regTouchBtn(L"SimpleViewSettings");
-    SimpleViewClose = regTouchBtn(L"SimpleViewClose");
-    prevpage = regTouchBtn(L"prevpage");
-    nextpage = regTouchBtn(L"nextpage");
-    prevpageMain = regTouchBtn(L"prevpageMain");
-    nextpageMain = regTouchBtn(L"nextpageMain");
-    pageinfo = regRichText(L"pageinfo");
+    sampleText = regElem(L"sampleText", pMain);
+    mainContainer = regElem(L"mainContainer", pMain);
+    UIContainer = regElem(L"UIContainer", pMain);
+    fullscreenpopupbase = regBtn(L"fullscreenpopupbase", pSubview);
+    centered = regBtn(L"centered", pSubview);
+    selector = regElem(L"selector", pMain);
+    selector2 = regElem(L"selector2", pMain);
+    SimpleViewTop = regBtn(L"SimpleViewTop", pSubview);
+    SimpleViewBottom = regBtn(L"SimpleViewBottom", pSubview);
+    SimpleViewSettings = regTouchBtn(L"SimpleViewSettings", pSubview);
+    SimpleViewClose = regTouchBtn(L"SimpleViewClose", pSubview);
+    prevpage = regTouchBtn(L"prevpage", pSubview);
+    nextpage = regTouchBtn(L"nextpage", pSubview);
+    prevpageMain = regTouchBtn(L"prevpageMain", pMain);
+    nextpageMain = regTouchBtn(L"nextpageMain", pMain);
+    pageinfo = regRichText(L"pageinfo", pSubview);
 
     assignFn(fullscreenpopupbase, testEventListener3);
     assignFn(SimpleViewTop, testEventListener3);
@@ -1499,12 +1519,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else if (globaliconsz > 48) globalgpiconsz = 32;
     else if (globaliconsz > 32) globalgpiconsz = 16;
     InitLayout();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
     SetTheme();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Set the theme successfully.");
 
     wnd->Host(pMain);
+    subviewwnd->Host(pSubview);
     wnd->ShowWindow(SW_SHOW);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Window has been created and shown.");
     MARGINS m = { -1, -1, -1, -1 };
     DwmExtendFrameIntoClientArea(wnd->GetHWND(), &m);
+    BlurBackground(hWndProgman, true);
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Window has been made transparent.\n\nLogging is now complete.");
     if (logging == IDYES) {
         DWORD dd;
         HANDLE loggingThread = CreateThread(0, 0, FinishedLogging, NULL, 0, &dd);

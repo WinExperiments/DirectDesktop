@@ -3,12 +3,18 @@
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
 
+std::wstring RemoveQuotes2(const std::wstring& input) {
+    if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"') {
+        return input.substr(1, input.size() - 2);
+    }
+    return input;
+}
+
 int validItems;
 void DesktopRightClick(Element* elem, Event* iev) {
     if (iev->uidType == Button::Context) {
 
         IShellView* pShellView = NULL;
-        IContextMenu3* pContextMenu = NULL;
         IShellFolder* pShellFolder = NULL;
 
         HRESULT hr = SHGetDesktopFolder(&pShellFolder);
@@ -40,14 +46,24 @@ void DesktopRightClick(Element* elem, Event* iev) {
             AppendMenuW(hsm, MF_STRING, 1006, L"Show desktop icons");
             mii.fState = hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
             SetMenuItemInfoW(hsm, 1006, 0, &mii);
-            pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            RemoveMenu(hm, 1, MF_BYPOSITION);
-            InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2003, L"Open Edit Mode");
+            InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, L"View");
             InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2002, L"Refresh");
-            InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, L"View");
+            InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2003, L"Open Edit Mode");
+            InsertMenuW(hm, 3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
+            pICv1->QueryContextMenu(hm, 4, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+
+            int itemCount = GetMenuItemCount(hm);
+            for (int i = 0; i < itemCount; i++) {
+                MENUITEMINFO mii = { 0 };
+                mii.cbSize = sizeof(MENUITEMINFO);
+                mii.fMask = MIIM_FTYPE;
+                if (GetMenuItemInfoW(hm, i, TRUE, &mii)) {
+                    if (mii.fType == MFT_SEPARATOR) {
+                        for (int j = 0; j < 5; j++) RemoveMenu(hm, i, MF_BYPOSITION);
+                        break;
+                    }
+                }
+            }
 
             UINT uFlags = TPM_RIGHTBUTTON;
             if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
@@ -167,7 +183,7 @@ void ItemRightClick(Element* elem, Event* iev) {
     if (iev->uidType == Button::Context) {
         for (int items = 0; items < pm.size(); items++) {
             if (pm[items] == elem) {
-                RightClickCore(pm[items]->GetFilename().c_str());
+                RightClickCore(RemoveQuotes2(pm[items]->GetFilename()).c_str());
             }
         }
     }
@@ -177,7 +193,7 @@ void SubItemRightClick(Element* elem, Event* iev) {
     if (iev->uidType == Button::Context) {
         for (int items = 0; items < subpm.size(); items++) {
             if (subpm[items] == elem) {
-                RightClickCore(subpm[items]->GetFilename().c_str());
+                RightClickCore(RemoveQuotes2(subpm[items]->GetFilename()).c_str());
             }
         }
     }

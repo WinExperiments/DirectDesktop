@@ -228,6 +228,8 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
     while (runs < limit) {
         if (pEnumIDL == nullptr) break;
         hr = pEnumIDL->Next(1, &pidl, NULL);
+        wstring foundsimplefilename{};
+        wstring foundfilename{};
         if (hr == NOERROR) {
             WIN32_FIND_DATAW fd;
             hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
@@ -242,8 +244,8 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                         (*pm)[shortIndex++]->SetShortcutState(false);
                     }
                     else*/
-                    wstring foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex);
-                    wstring foundfilename = path + (wstring)L"\\" + wstring(fd.cFileName);
+                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex);
+                    foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
                     (*pm)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                     (*pm)[*(count2)]->SetFilename(foundfilename);
                 }
@@ -270,17 +272,24 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
         }
         else break;
         runs++;
-        if (count2 != nullptr) (*count2)++;
+        if (count2 != nullptr) {
+            (*count2)++;
+            if (logging == IDYES) {
+                WCHAR details[320];
+                StringCchPrintfW(details, 320, L"\nNew item added, Item name: %s\nItem name to be shown on desktop: %s", foundfilename.c_str(), foundsimplefilename.c_str());
+                MainLogger.WriteLine(details);
+            }
+        }
     }
 
     if (pEnumIDL != nullptr) pEnumIDL->Release();
     if (psfFolder != nullptr) psfFolder->Release();
     if (pMalloc != nullptr) pMalloc->Release();
-    if (logging == IDYES) {
-        WCHAR details[320];
-        StringCchPrintfW(details, 320, L"Information: Finished searching in %s.", path);
-        MainLogger.WriteLine(details);
-    }
+    //if (logging == IDYES) {
+    //    WCHAR details[320];
+    //    StringCchPrintfW(details, 320, L"Information: Finished searching in %s.", path);
+    //    MainLogger.WriteLine(details);
+    //}
     if (bCountItems) *countedItems = runs;
 }
 
@@ -386,18 +395,23 @@ HWND GetWorkerW2(int *x, int *y) {
 
 bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView) {
     int x = 0, y = 0;
-    if (*WindowsBuild < 26016) *hWorkerW = GetWorkerW2(&x, &y); else *hWorkerW = FindWindowExW(*hWndProgman, NULL, L"WorkerW", NULL);
+    HWND hWndResult{};
+    if (*WindowsBuild < 26002) *hWorkerW = GetWorkerW2(&x, &y); else *hWorkerW = FindWindowExW(*hWndProgman, NULL, L"WorkerW", NULL);
     if (hWorkerW) {
         if (findSHELLDLL_DefView) *hSHELLDLL_DefView = FindWindowExW(*hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
-        if (logging == IDYES) MainLogger.WriteLine(L"Information: Found WorkerW.");
-        if (*WindowsBuild > 26016) {
-            SetParent(*hSHELLDLL_DefView, *hWorkerW);
+        if (logging == IDYES) {
+            if (*hSHELLDLL_DefView != nullptr) MainLogger.WriteLine(L"Information: Found WorkerW.");
+            else MainLogger.WriteLine(L"Error: No WorkerW found.");
+        }
+        if (*WindowsBuild >= 26002) {
+            if (*hSHELLDLL_DefView != nullptr) hWndResult = SetParent(*hSHELLDLL_DefView, *hWorkerW);
             //SetParent(*hWorkerW, NULL);
-            if (logging == IDYES) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 WorkerW.");
+            if (logging == IDYES) {
+                if (hWndResult != nullptr) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 WorkerW.");
+                else MainLogger.WriteLine(L"Error: Could not add DirectDesktop inside the new 24H2 WorkerW.");
+            }
         }
     }
-    else if (logging == IDYES) TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL,
-        L"No WorkerW found.", TDCBF_OK_BUTTON, TD_ERROR_ICON, NULL);
     return 1;
 }
 
