@@ -1,7 +1,7 @@
 <duixml>
-	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default">
+	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default" background="rgb(0,0,0)">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
-		<Element layout="borderlayout()" layoutpos="client">
+		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
 			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" animation="position|s|fast">
 
@@ -120,7 +120,6 @@
 				<Button id="atom(TreatDirAsGroup)" class="togglebutton"/>
 			</Element>
 		</Element>
-		<RichText layoutpos="bottom" class="toggletext" content="After closing this window, refresh to apply your changes." foreground="gray"/>
 	</Element>
 	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
@@ -129,7 +128,12 @@
 				<Button id="atom(EnableAccent)" class="togglebutton"/>
 			</Element>
 		</Element>
-		<RichText layoutpos="bottom" class="toggletext" content="After closing this window, refresh to apply your changes." foreground="gray"/>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="resstr(30554, library(shell32.dll))" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<Button id="atom(IconThumbnails)" class="togglebutton"/>
+			</Element>
+		</Element>
 	</Element>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
 	<stylesheets>

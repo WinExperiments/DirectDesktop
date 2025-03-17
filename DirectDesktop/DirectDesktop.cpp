@@ -208,6 +208,7 @@ bool hiddenIcons;
 bool editmode = 0;
 void fullscreenAnimation(int width, int height);
 void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
+unsigned long CreateIndividualThumbnail(LPVOID lpParam);
 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
 
@@ -309,7 +310,7 @@ void ShowSimpleView() {
     Element* simpleviewoverlay{};
     parser->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
     centered->Add((Element**)&simpleviewoverlay, 1);
-    wnd->ShowWindow(SW_HIDE);
+    mainContainer->SetVisible(false);
     BlurBackground(subviewwnd->GetHWND(), false);
 }
 
@@ -336,7 +337,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     switch (uMsg) {
     case WM_SETTINGCHANGE: {
         UpdateModeInfo();
-        SetTheme();
         if (wParam == SPI_SETWORKAREA) {
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
             SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
@@ -347,10 +347,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             UIContainer->SetHeight(dimensions.bottom - dimensions.top);
             RearrangeIcons(true, false);
         }
+        if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0) {
+            SetTheme();
+            if (isColorized) RearrangeIcons(false, true);
+        }
         break;
     }
     case WM_DISPLAYCHANGE: {
         SendMessageW(wnd->GetHWND(), WM_SETTINGCHANGE, SPI_SETWORKAREA, NULL);
+        break;
     }
     case WM_DPICHANGED: {
         UpdateScale();
@@ -386,7 +391,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 2: {
         //subpm[wParam].elem->SetAlpha(255);
-        subpm[wParam]->SetVisible(true);
+        if (checkifelemexists == true) subpm[wParam]->SetVisible(true);
         break;
     }
     case WM_USER + 3: {
@@ -482,6 +487,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         centered->Add((Element**)&fullscreeninner, 1);
         centered->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
         fullscreeninner->SetMinSize(800 * flScaleFactor, 480 * flScaleFactor);
+        break;
     }
     case WM_USER + 9: {
         subpm[wParam]->SetWidth(innerSizeX);
@@ -533,6 +539,32 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 14: {
+        vector<DWORD> smThumbnailThread;
+        vector<HANDLE> smThumbnailThreadHandle;
+        smThumbnailThread.resize(pm.size());
+        smThumbnailThreadHandle.resize(pm.size());
+        for (int icon = 0; icon < pm.size(); icon++) {
+            iconpm[icon]->DestroyAll(true);
+            iconpm[icon]->SetClass(L"");
+            shadowpm[icon]->SetVisible(true);
+            if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
+                iconpm[icon]->SetClass(L"groupthumbnail");
+                shadowpm[icon]->SetVisible(false);
+            }
+        }
+        for (int icon2 = 0; icon2 < pm.size(); icon2++) {
+            yValue* yV = new yValue{ icon2 };
+            smThumbnailThreadHandle[icon2] = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, &(smThumbnailThread[icon2]));
+        }
+        smThumbnailThread.clear();
+        smThumbnailThreadHandle.clear();
+        break;
+    }
+    case WM_USER + 15: {
+        ShowSimpleView();
+        break;
+    }
+    case WM_USER + 16: {
         int padding = 3, paddingInner = 2;
         if (globaliconsz > 96) {
             padding = 18;
@@ -546,47 +578,35 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             padding = 6;
             paddingInner = 4;
         }
-        for (int icon = 0; icon < pm.size(); icon++) {
-            if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
-                iconpm[icon]->DestroyAll(true);
-                iconpm[icon]->SetClass(L"groupthumbnail");
-                shadowpm[icon]->SetAlpha(0);
-            }
-        }
-        for (int icon = 0; icon < pm.size(); icon++) {
-            if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
-                int x = padding * flScaleFactor, y = padding * flScaleFactor;
-                vector<wstring> strs;
-                unsigned short count = 0;
-                wstring folderPath = RemoveQuotes(pm[icon]->GetFilename());
-                EnumerateFolder((LPWSTR)folderPath.c_str(), nullptr, false, true, &count, nullptr, 4);
-                EnumerateFolderForThumbnails((LPWSTR)folderPath.c_str(), &strs, 4);
-                for (int thumbs = 0; thumbs < count; thumbs++) {
-                    HBITMAP thumbIcon = GetShellItemImage(strs[thumbs].c_str(), globalgpiconsz * flScaleFactor, globalgpiconsz * flScaleFactor);
-                    if (isColorized) {
-                        IterateBitmap(thumbIcon, StandardBitmapPixelHandler, 1, 0, 1);
-                    }
-                    Value* vThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
-                    Element* GroupedIcon;
-                    parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
-                    iconpm[icon]->Add((Element**)&GroupedIcon, 1);
-                    GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz * flScaleFactor);
-                    GroupedIcon->SetX(x), GroupedIcon->SetY(y);
-                    x += ((globalgpiconsz + paddingInner) * flScaleFactor);
-                    if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
-                        x = padding * flScaleFactor;
-                        y += ((globalgpiconsz + paddingInner) * flScaleFactor);
-                    }
-                    GroupedIcon->SetValue(Element::ContentProp, 1, vThumbIcon);
-                    DeleteObject(thumbIcon);
-                    vThumbIcon->Release();
+        if (pm[wParam]->GetDirState() == true && treatdirasgroup == true) {
+            int x = padding * flScaleFactor, y = padding * flScaleFactor;
+            vector<ThumbIcons> strs;
+            unsigned short count = 0;
+            wstring folderPath = RemoveQuotes(pm[wParam]->GetFilename());
+            EnumerateFolder((LPWSTR)folderPath.c_str(), nullptr, false, true, &count, nullptr, 4);
+            EnumerateFolderForThumbnails((LPWSTR)folderPath.c_str(), &strs, 4);
+            for (int thumbs = 0; thumbs < count; thumbs++) {
+                HBITMAP thumbIcon = GetShellItemImage((strs[thumbs].GetFilename()).c_str(), globalgpiconsz * flScaleFactor, globalgpiconsz * flScaleFactor);
+                if (isColorized && strs[thumbs].GetColorLock() == false) {
+                    IterateBitmap(thumbIcon, StandardBitmapPixelHandler, 1, 0, 1);
                 }
+                Value* vThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
+                Element* GroupedIcon;
+                parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
+                iconpm[wParam]->Add((Element**)&GroupedIcon, 1);
+                GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz * flScaleFactor);
+                GroupedIcon->SetX(x), GroupedIcon->SetY(y);
+                if (strs[thumbs].GetHiddenState()) GroupedIcon->SetAlpha(128);
+                x += ((globalgpiconsz + paddingInner) * flScaleFactor);
+                if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
+                    x = padding * flScaleFactor;
+                    y += ((globalgpiconsz + paddingInner) * flScaleFactor);
+                }
+                GroupedIcon->SetValue(Element::ContentProp, 1, vThumbIcon);
+                DeleteObject(thumbIcon);
+                vThumbIcon->Release();
             }
         }
-        break;
-    }
-    case WM_USER + 15: {
-        ShowSimpleView();
         break;
     }
     }
@@ -702,12 +722,12 @@ void ShowPopupCore() {
     subviewwnd->ShowWindow(SW_SHOW);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor);
 }
-void HidePopupCore() {
+void HidePopupCore(bool WinDInvoked) {
     editmode = false;
-    SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
+    if (!WinDInvoked) SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
     pSubview->SetAccessible(false);
     subviewwnd->ShowWindow(SW_HIDE);
-    wnd->ShowWindow(SW_SHOW);
+    mainContainer->SetVisible(true);
     fullscreenAnimation2();
     //frame.clear();
     subpm.clear();
@@ -755,8 +775,6 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
     pageinfo->SetContentString(currentPage);
 }
 unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
-    HidePopupCore();
-    this_thread::sleep_for(chrono::milliseconds(100));
     SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, NULL);
     return 0;
 }
@@ -832,7 +850,15 @@ vector<HBITMAP> GetSubdirectoryIcons(int limit = subpm.size(), int width = globa
 }
 
 unsigned long ApplyThumbnailIcons(LPVOID lpParam) {
-    PostMessageW(wnd->GetHWND(), WM_USER + 14, NULL, NULL);
+
+    SendMessageW(wnd->GetHWND(), WM_USER + 14, NULL, NULL);
+    return 0;
+}
+
+unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
+    yValue* yV = (yValue*)lpParam;
+    PostMessageW(wnd->GetHWND(), WM_USER + 16, yV->y, NULL);
+    free(yV);
     return 0;
 }
 
@@ -863,7 +889,7 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<Element*> pmIcon, vector<Elemen
             }
             HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
             if (isColorized) {
-                IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
+                if (pmLVItem[icon]->GetColorLock() == false) IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
                 IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
             }
             IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
@@ -927,6 +953,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
         }
         EnumerateFolder((LPWSTR)filename, &subpm, true, false, nullptr, &count2);
         int x = 0, y = 0;
+        int maxX{}, xRuns{};
         Value* v;
         RECT dimensions;
         dimensions = *(groupdirectory->GetPadding(&v));
@@ -950,15 +977,18 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             yValue* yV = new yValue{ j };
             yValue* yV2 = new yValue{ j };
             x += outerSizeX;
+            xRuns++;
             if (x > 800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) {
+                maxX = xRuns;
+                xRuns = 0;
                 x = 0;
                 y += outerSizeY;
             }
             animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
             animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV2, 0, &(animThread2[j]));
         }
-        x += outerSizeX;
-        if (x > 800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) y += outerSizeY;
+        x -= outerSizeX;
+        if (maxX != 0 && xRuns % maxX != 0) y += outerSizeY;
         SubUIContainer->SetHeight(y);
         delete[] animThread;
         delete[] animThread2;
@@ -1028,14 +1058,17 @@ void ShowPage2(Element* elem, Event* iev) {
         parser->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
         SubUIContainer->Add((Element**)&SettingsPage2, 1);
         Button* EnableAccent = (Button*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
+        Button* IconThumbnails = (Button*)SettingsPage2->FindDescendent(StrToID(L"IconThumbnails"));
         EnableAccent->SetSelected(isColorized);
+        IconThumbnails->SetSelected(GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly"));
         assignFn(EnableAccent, ToggleAccentIcons);
+        assignFn(IconThumbnails, ToggleThumbnails);
     }
 }
 void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
         subviewwnd->ShowWindow(SW_HIDE);
-        wnd->ShowWindow(SW_SHOW);
+        mainContainer->SetVisible(true);
         centered->DestroyAll(true);
         ShowPopupCore();
         SimpleViewTop->SetLayoutPos(-3);
@@ -1212,7 +1245,7 @@ void testEventListener3(Element* elem, Event* iev) {
             break;
         case true:
             if (centered->GetMouseWithin() == false && elem->GetMouseFocused() == true) {
-                HidePopupCore();
+                HidePopupCore(false);
             }
             break;
         }
@@ -1394,6 +1427,18 @@ unsigned long FinishedLogging(LPVOID lpParam) {
     return 0;
 }
 
+HHOOK KeyHook = nullptr;
+
+LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode == HC_ACTION) {
+        KBDLLHOOKSTRUCT* pKeyInfo = (KBDLLHOOKSTRUCT*)lParam;
+        if ((pKeyInfo->vkCode == 'D' || pKeyInfo->vkCode == 'M') && GetAsyncKeyState(VK_LWIN) & 0x8000) {
+            HidePopupCore(true);
+        }
+    }
+    return CallNextHookEx(KeyHook, nCode, wParam, lParam);
+}
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
@@ -1450,6 +1495,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Found SysListView32 window to hide.");
         ShowWindow(hSysListView32, SW_HIDE);
     }
+    KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, GetModuleHandleW(NULL), 0);
     NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
     NativeHWNDHost::Create(L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, 0, &subviewwnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
@@ -1526,7 +1572,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
     SetTheme();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Set the theme successfully.");
-
+    
     wnd->Host(pMain);
     subviewwnd->Host(pSubview);
     wnd->ShowWindow(SW_SHOW);
@@ -1539,11 +1585,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         DWORD dd;
         HANDLE loggingThread = CreateThread(0, 0, FinishedLogging, NULL, 0, &dd);
     }
+    logging = IDNO;
     //if (logging == IDYES) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
         //L"DirectDesktop is now transparent.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
     StartMessagePump();
     UnInitProcessPriv(0);
     CoUninitialize();
+    if (KeyHook) {
+        UnhookWindowsHookEx(KeyHook);
+        KeyHook = nullptr;
+    }
 
     return 0;
 }

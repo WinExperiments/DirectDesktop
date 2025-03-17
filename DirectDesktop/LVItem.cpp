@@ -54,6 +54,9 @@ bool LVItem::GetMemorySelected() {
 bool LVItem::GetShortcutState() {
     return _isShortcut;
 }
+bool LVItem::GetColorLock() {
+    return _colorLock;
+}
 void LVItem::SetDirState(bool dirState) {
     _isDirectory = dirState;
 }
@@ -65,6 +68,9 @@ void LVItem::SetMemorySelected(bool mem_isSelectedState) {
 }
 void LVItem::SetShortcutState(bool shortcutState) {
     _isShortcut = shortcutState;
+}
+void LVItem::SetColorLock(bool colorLockState) {
+    _colorLock = colorLockState;
 }
 unsigned short LVItem::GetPage() {
     return _page;

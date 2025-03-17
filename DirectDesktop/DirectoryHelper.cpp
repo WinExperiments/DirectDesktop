@@ -21,6 +21,24 @@ struct DesktopItem {
 };
 
 int logging;
+wstring ThumbIcons::GetFilename() {
+    return _filename;
+}
+void ThumbIcons::SetFilename(const wstring& wsFilename) {
+    _filename = wsFilename;
+}
+bool ThumbIcons::GetHiddenState() {
+    return _isHidden;
+}
+bool ThumbIcons::GetColorLock() {
+    return _colorLock;
+}
+void ThumbIcons::SetHiddenState(bool hiddenState) {
+    _isHidden = hiddenState;
+}
+void ThumbIcons::SetColorLock(bool colorLockState) {
+    _colorLock = colorLockState;
+}
 
 wstring hideExt(const wstring& filename, bool isEnabled, vector<LVItem*>* shortpm, int* index) {
     if (isEnabled) {
@@ -64,6 +82,23 @@ wstring hideExt(const wstring& filename, bool isEnabled, vector<LVItem*>* shortp
             if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
+    }
+}
+vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".ai", L".avi", L".avif", L".bmp", L".flv" L".gif", L".heic", L".heif", L".ico",
+    L".jfif", L".jpe", L".jpeg", L".jpg", L".mp4", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf"};
+
+int extIterator;
+void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result) {
+    if (bReset) extIterator = 0;
+    size_t lastdot = filename.find(ext);
+    if (extIterator == imageExts.size() - 1) {
+        *result = false;
+        return;
+    }
+    if (lastdot == wstring::npos) isImage(filename, false, imageExts[++extIterator], result);
+    else {
+        *result = true;
+        return;
     }
 }
 
@@ -165,6 +200,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
     int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
     int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
+    int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
     if (path == L"InternalCodeForNamespace") {
         HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
         HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
@@ -246,6 +282,11 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                     else*/
                     foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex);
                     foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
+                    if (isThumbnailHidden == 0) {
+                        bool image;
+                        isImage(foundfilename, true, imageExts[0], &image);
+                        (*pm)[*(count2)]->SetColorLock(image);
+                    }
                     (*pm)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                     (*pm)[*(count2)]->SetFilename(foundfilename);
                 }
@@ -293,11 +334,12 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
     if (bCountItems) *countedItems = runs;
 }
 
-void EnumerateFolderForThumbnails(LPWSTR path, vector<wstring>* strs, unsigned short limit) {
+void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit) {
     if (!PathFileExistsW(path)) return;
     int runs = 0;
     int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
     int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
+    int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
     HRESULT hr;
 
     LPMALLOC pMalloc = NULL;
@@ -322,15 +364,22 @@ void EnumerateFolderForThumbnails(LPWSTR path, vector<wstring>* strs, unsigned s
         if (hr == NOERROR) {
             WIN32_FIND_DATAW fd;
             hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
-            strs->push_back(path + (wstring)L"\\" + wstring(fd.cFileName));
+            strs->resize(runs + 1);
+            wstring foundfilename = path + (wstring)L"\\" + wstring(fd.cFileName);
+            (*strs)[runs].SetFilename(foundfilename);
+            if (fd.dwFileAttributes & 2) (*strs)[runs].SetHiddenState(true);
+            else (*strs)[runs].SetHiddenState(false);
+            if (isThumbnailHidden == 0) {
+                bool image;
+                isImage(foundfilename, true, imageExts[0], &image);
+                (*strs)[runs].SetColorLock(image);
+            }
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
-                strs->pop_back();
                 pMalloc->Free(pidl);
                 continue;
             }
             if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
                 if (fd.dwFileAttributes & 4) {
-                    strs->pop_back();
                     pMalloc->Free(pidl);
                     continue;
                 }

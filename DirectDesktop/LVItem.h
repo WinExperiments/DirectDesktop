@@ -31,10 +31,12 @@ public:
     bool GetHiddenState();
     bool GetMemorySelected();
     bool GetShortcutState();
+    bool GetColorLock();
     void SetDirState(bool dirState);
     void SetHiddenState(bool hiddenState);
     void SetMemorySelected(bool mem_isSelectedState);
     void SetShortcutState(bool shortcutState);
+    void SetColorLock(bool colorLockState);
     unsigned short GetPage();
     void SetPage(unsigned short pageID);
 private:
@@ -44,6 +46,7 @@ private:
     bool _isHidden = false;
     bool _mem_isSelected = false;
     bool _isShortcut = false;
+    bool _colorLock = false;
     unsigned short _xPos = 999;
     unsigned short _yPos = 999;
     unsigned short _page{};
