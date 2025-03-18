@@ -52,7 +52,7 @@ Element* dirnameanimator;
 Element* tasksanimator;
 Button* SimpleViewTop, *SimpleViewBottom;
 TouchButton* SimpleViewSettings, *SimpleViewClose;
-TouchButton* PageTab1, *PageTab2;
+TouchButton* PageTab1, *PageTab2, *PageTab3;
 RichText* SubUIContainer;
 TouchButton* nextpage, *prevpage;
 TouchButton* prevpageMain, * nextpageMain;
@@ -1052,8 +1052,9 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
 
 void ShowPage1(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
-        PageTab2->SetSelected(false);
         PageTab1->SetSelected(true);
+        PageTab2->SetSelected(false);
+        PageTab3->SetSelected(false);
         SubUIContainer->DestroyAll(true);
         Element* SettingsPage1;
         parser->CreateElement(L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
@@ -1092,6 +1093,7 @@ void ShowPage2(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
         PageTab1->SetSelected(false);
         PageTab2->SetSelected(true);
+        PageTab3->SetSelected(false);
         SubUIContainer->DestroyAll(true);
         Element* SettingsPage2;
         parser->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
@@ -1112,6 +1114,23 @@ void ShowPage2(Element* elem, Event* iev) {
         assignFn(IconThumbnails, ToggleSetting);
     }
 }
+void ShowPage3(Element* elem, Event* iev) {
+    if (iev->uidType == TouchButton::Click) {
+        PageTab1->SetSelected(false);
+        PageTab2->SetSelected(false);
+        PageTab3->SetSelected(true);
+        SubUIContainer->DestroyAll(true);
+        Element* SettingsPage3;
+        parser->CreateElement(L"SettingsPage3", NULL, NULL, NULL, (Element**)&SettingsPage3);
+        SubUIContainer->Add((Element**)&SettingsPage3, 1);
+        DDToggleButton* EnableLogging = (DDToggleButton*)SettingsPage3->FindDescendent(StrToID(L"EnableLogging"));
+        RegKeyValue rkvTemp{};
+        rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"Logging";
+        EnableLogging->SetSelected(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+        EnableLogging->SetRegKeyValue(rkvTemp);
+        assignFn(EnableLogging, ToggleSetting);
+    }
+}
 void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == TouchButton::Click) {
         subviewwnd->ShowWindow(SW_HIDE);
@@ -1130,8 +1149,10 @@ void ShowSettings(Element* elem, Event* iev) {
         SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID(L"SubUIContainer"));
         PageTab1 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab1"));
         PageTab2 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab2"));
+        PageTab3 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab3"));
         assignFn(PageTab1, ShowPage1);
         assignFn(PageTab2, ShowPage2);
+        assignFn(PageTab3, ShowPage3);
         ShowPage1(elem, iev);
         CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
         dirnameanimator = (Element*)settingsview->FindDescendent(StrToID(L"dirnameanimator"));
@@ -1514,8 +1535,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
     int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-    TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", NULL,
-        L"Enable logging?", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
+    bool checklog{};
+    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", 0, true, &checklog);
+    if (checklog) {
+        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Enable logging?",
+            L"You can later turn logging on/off from Settings > Debug.", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
+        SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", logging, false, nullptr);
+    }
+    else logging = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging");
     if (logging == IDYES) {
         wchar_t* docsfolder = new wchar_t[260];
         wchar_t* cBuffer = new wchar_t[260];
@@ -1612,8 +1639,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup", 0, true);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons", 0, true);
+    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup", 0, true, nullptr);
+    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons", 0, true, nullptr);
     treatdirasgroup = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup");
     isColorized = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons");
     if (globaliconsz > 96) globalshiconsz = 64; else if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;

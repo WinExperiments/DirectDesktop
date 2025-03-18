@@ -113,7 +113,7 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     }
     return result;
 }
-void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue, bool find) {
+void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue, bool find, bool* isNewValue) {
     int result{};
     DWORD dwSize{};
     HKEY hKey;
@@ -123,13 +123,20 @@ void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, D
         lResult = RegCreateKeyExW(hKeyName, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
         if (lResult == ERROR_SUCCESS) {
             lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+            if (isNewValue != nullptr) *isNewValue = true;
         }
     }
     else if (lResult == ERROR_SUCCESS) {
         DWORD* dwValueInternal = (DWORD*)malloc(dwSize);
         lResult = RegGetValueW(hKeyName, path, valueToSet, RRF_RT_ANY, NULL, dwValueInternal, &dwSize);
-        if (lResult == ERROR_SUCCESS && find == false) lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
-        else if (lResult != ERROR_SUCCESS) lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+        if (lResult == ERROR_SUCCESS && find == false) {
+            lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+            if (isNewValue != nullptr) *isNewValue = false;
+        }
+        else if (lResult != ERROR_SUCCESS) {
+            lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+            if (isNewValue != nullptr) *isNewValue = true;
+        }
     }
     RegCloseKey(hKey);
 }

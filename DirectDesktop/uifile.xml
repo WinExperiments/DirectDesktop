@@ -90,6 +90,7 @@
 		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,8rp,0,8rp)" layout="flowlayout()">
 			<TouchButton id="atom(PageTab1)" content="General" class="pilltab" selected="true"/>
 			<TouchButton id="atom(PageTab2)" content="Personalize" class="pilltab"/>
+			<TouchButton id="atom(PageTab3)" content="Debug" class="pilltab"/>
 		</Element>
 		<ScrollViewer id="atom(settingslist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
 			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
@@ -132,6 +133,14 @@
 			<RichText content="resstr(30554, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(IconThumbnails)" class="togglebutton"/>
+			</Element>
+		</Element>
+	</Element>
+	<Element resid="SettingsPage3" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+		<Element class="togglecontainer" layout="borderlayout()">
+			<RichText content="Logging" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<DDToggleButton id="atom(EnableLogging)" class="togglebutton"/>
 			</Element>
 		</Element>
 	</Element>

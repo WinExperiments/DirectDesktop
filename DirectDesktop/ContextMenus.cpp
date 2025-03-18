@@ -88,28 +88,28 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 globaliconsz = 144;
                 globalshiconsz = 64;
                 globalgpiconsz = 48;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144, false);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144, false, nullptr);
                 RearrangeIcons(true, true);
                 break;
             case 1002:
                 globaliconsz = 96;
                 globalshiconsz = 48;
                 globalgpiconsz = 32;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96, false);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96, false, nullptr);
                 RearrangeIcons(true, true);
                 break;
             case 1003:
                 globaliconsz = 48;
                 globalshiconsz = 32;
                 globalgpiconsz = 16;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48, false);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48, false, nullptr);
                 RearrangeIcons(true, true);
                 break;
             case 1004:
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32, false);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32, false, nullptr);
                 RearrangeIcons(true, true);
                 break;
             case 1006:
@@ -124,7 +124,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
                     }
                 }
                 hiddenIcons = !hiddenIcons;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons, false);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons, false, nullptr);
                 break;
             default:
                 CMINVOKECOMMANDINFO ici;

@@ -54,7 +54,8 @@ void ToggleSetting(Element* elem, Event* iev) {
         RegKeyValue rkv = ((DDButtonBase*)elem)->GetRegKeyValue();
         BYTE regSetter = elem->GetSelected();
         if (rkv._valueToFind == L"Hidden") regSetter = (!elem->GetSelected() + 1);
-        if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false);
+        if (rkv._valueToFind == L"Logging") regSetter = (!elem->GetSelected() + 6);
+        if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
         SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, NULL, NULL);
         SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, NULL);
         if (rkv._valueToFind == L"Hidden") {
