@@ -99,25 +99,25 @@
 		<Element class="togglecontainer" layout="borderlayout()">
 			<RichText content="resstr(30522, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<Button id="atom(ItemCheckboxes)" class="togglebutton"/>
+				<DDToggleButton id="atom(ItemCheckboxes)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<RichText content="resstr(24155, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<Button id="atom(ShowHiddenFiles)" class="togglebutton"/>
+				<DDToggleButton id="atom(ShowHiddenFiles)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<RichText content="resstr(30503, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<Button id="atom(FilenameExts)" class="togglebutton"/>
+				<DDToggleButton id="atom(FilenameExts)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<RichText content="Open folders inside the desktop" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<Button id="atom(TreatDirAsGroup)" class="togglebutton"/>
+				<DDToggleButton id="atom(TreatDirAsGroup)" class="togglebutton"/>
 			</Element>
 		</Element>
 	</Element>
@@ -125,13 +125,13 @@
 		<Element class="togglecontainer" layout="borderlayout()">
 			<RichText content="Show accent color on icons" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<Button id="atom(EnableAccent)" class="togglebutton"/>
+				<DDToggleButton id="atom(EnableAccent)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<RichText content="resstr(30554, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<Button id="atom(IconThumbnails)" class="togglebutton"/>
+				<DDToggleButton id="atom(IconThumbnails)" class="togglebutton"/>
 			</Element>
 		</Element>
 	</Element>
@@ -247,74 +247,74 @@
 				<Element layoutpos="right"/>
 			</if>
 			<if class="togglebutton">
-				<Button width="40rp" height="20rp" background="sgraphic(108,7,-1,0,0,1,1)" contentalign="middlecenter"/>
-				<ifgreaterequal dpi="120"> <Button background="sgraphic(109,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="144"> <Button background="sgraphic(110,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="192"> <Button background="sgraphic(111,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="240"> <Button background="sgraphic(112,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="288"> <Button background="sgraphic(113,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="384"> <Button background="sgraphic(114,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<DDToggleButton width="40rp" height="20rp" background="sgraphic(108,7,-1,0,0,1,1)" contentalign="middlecenter"/>
+				<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(109,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(110,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(111,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(112,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(113,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(114,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				<if mousefocused="true">
-					<Button background="sgraphic(115,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(116,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(117,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(118,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(119,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(120,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(121,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(115,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(116,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(117,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(118,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(119,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(120,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(121,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				</if>
 				<if Pressed="true">
-					<Button background="sgraphic(122,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(123,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(124,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(125,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(126,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(127,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(128,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(122,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(123,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(124,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(125,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(126,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(127,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(128,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				</if>
 				<if Enabled="false">
-					<Button background="sgraphic(129,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(130,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(131,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(132,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(133,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(134,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(135,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(129,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(130,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(131,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(132,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(133,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(134,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(135,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				</if>
 				<if selected="true">
-					<Button background="sgraphic(136,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(137,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(138,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(139,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(140,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(141,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(142,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(136,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(137,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(138,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(139,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(140,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(141,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(142,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					<if mousefocused="true">
-						<Button background="sgraphic(143,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <Button background="sgraphic(144,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <Button background="sgraphic(145,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <Button background="sgraphic(146,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <Button background="sgraphic(147,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <Button background="sgraphic(148,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <Button background="sgraphic(149,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton background="sgraphic(143,7,-1,0,0,1,1)"/>
+						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(144,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(145,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(146,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(147,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(148,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(149,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 					<if Pressed="true">
-						<Button background="sgraphic(150,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <Button background="sgraphic(151,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <Button background="sgraphic(152,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <Button background="sgraphic(153,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <Button background="sgraphic(154,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <Button background="sgraphic(155,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <Button background="sgraphic(156,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton background="sgraphic(150,7,-1,0,0,1,1)"/>
+						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(151,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(152,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(153,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(154,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(155,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(156,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 					<if Enabled="false">
-						<Button background="sgraphic(157,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <Button background="sgraphic(158,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <Button background="sgraphic(159,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <Button background="sgraphic(160,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <Button background="sgraphic(161,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <Button background="sgraphic(162,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <Button background="sgraphic(163,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton background="sgraphic(157,7,-1,0,0,1,1)"/>
+						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(158,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(159,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(160,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(161,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(162,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(163,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 				</if>
 			</if>
@@ -453,74 +453,74 @@
 				<Element layoutpos="right"/>
 			</if>
 			<if class="togglebutton">
-				<Button width="40rp" height="20rp" background="sgraphic(208,7,-1,0,0,1,1)" contentalign="middlecenter"/>
-				<ifgreaterequal dpi="120"> <Button background="sgraphic(209,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="144"> <Button background="sgraphic(210,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="192"> <Button background="sgraphic(211,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="240"> <Button background="sgraphic(212,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="288"> <Button background="sgraphic(213,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="384"> <Button background="sgraphic(214,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<DDToggleButton width="40rp" height="20rp" background="sgraphic(208,7,-1,0,0,1,1)" contentalign="middlecenter"/>
+				<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(209,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(210,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(211,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(212,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(213,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(214,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				<if mousefocused="true">
-					<Button background="sgraphic(215,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(216,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(217,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(218,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(219,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(220,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(221,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(215,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(216,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(217,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(218,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(219,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(220,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(221,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				</if>
 				<if Pressed="true">
-					<Button background="sgraphic(222,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(223,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(224,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(225,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(226,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(227,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(228,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(222,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(223,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(224,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(225,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(226,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(227,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(228,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				</if>
 				<if Enabled="false">
-					<Button background="sgraphic(229,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(230,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(231,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(232,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(233,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(234,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(235,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(229,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(230,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(231,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(232,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(233,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(234,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(235,7,-1,0,0,1,1)"/> </ifgreaterequal>
 				</if>
 				<if selected="true">
-					<Button background="sgraphic(236,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <Button background="sgraphic(237,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <Button background="sgraphic(238,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <Button background="sgraphic(239,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <Button background="sgraphic(240,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <Button background="sgraphic(241,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <Button background="sgraphic(242,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton background="sgraphic(236,7,-1,0,0,1,1)"/>
+					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(237,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(238,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(239,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(240,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(241,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(242,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					<if mousefocused="true">
-						<Button background="sgraphic(243,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <Button background="sgraphic(244,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <Button background="sgraphic(245,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <Button background="sgraphic(246,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <Button background="sgraphic(247,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <Button background="sgraphic(248,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <Button background="sgraphic(249,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton background="sgraphic(243,7,-1,0,0,1,1)"/>
+						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(244,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(245,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(246,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(247,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(248,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(249,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 					<if Pressed="true">
-						<Button background="sgraphic(250,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <Button background="sgraphic(251,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <Button background="sgraphic(252,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <Button background="sgraphic(253,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <Button background="sgraphic(254,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <Button background="sgraphic(255,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <Button background="sgraphic(256,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton background="sgraphic(250,7,-1,0,0,1,1)"/>
+						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(251,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(252,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(253,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(254,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(255,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(256,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 					<if Enabled="false">
-						<Button background="sgraphic(257,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <Button background="sgraphic(258,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <Button background="sgraphic(259,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <Button background="sgraphic(260,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <Button background="sgraphic(261,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <Button background="sgraphic(262,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <Button background="sgraphic(263,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton background="sgraphic(257,7,-1,0,0,1,1)"/>
+						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(258,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(259,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(260,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(261,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(262,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(263,7,-1,0,0,1,1)"/> </ifgreaterequal>
 					</if>
 				</if>
 			</if>

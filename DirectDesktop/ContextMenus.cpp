@@ -56,9 +56,9 @@ void DesktopRightClick(Element* elem, Event* iev) {
             for (int i = 0; i < itemCount; i++) {
                 MENUITEMINFO mii = { 0 };
                 mii.cbSize = sizeof(MENUITEMINFO);
-                mii.fMask = MIIM_FTYPE;
+                mii.fMask = MIIM_ID;
                 if (GetMenuItemInfoW(hm, i, TRUE, &mii)) {
-                    if (mii.fType == MFT_SEPARATOR) {
+                    if (mii.wID == 2004) {
                         for (int j = 0; j < 5; j++) RemoveMenu(hm, i, MF_BYPOSITION);
                         break;
                     }
@@ -79,7 +79,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
             int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
             switch (menuItemId) {
             case 2002:
-                InitLayout();
+                InitLayout(false, false);
                 break;
             case 2003:
                 ShowSimpleView();
@@ -88,28 +88,28 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 globaliconsz = 144;
                 globalshiconsz = 64;
                 globalgpiconsz = 48;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144, false);
                 RearrangeIcons(true, true);
                 break;
             case 1002:
                 globaliconsz = 96;
                 globalshiconsz = 48;
                 globalgpiconsz = 32;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96, false);
                 RearrangeIcons(true, true);
                 break;
             case 1003:
                 globaliconsz = 48;
                 globalshiconsz = 32;
                 globalgpiconsz = 16;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48, false);
                 RearrangeIcons(true, true);
                 break;
             case 1004:
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32, false);
                 RearrangeIcons(true, true);
                 break;
             case 1006:
@@ -124,7 +124,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
                     }
                 }
                 hiddenIcons = !hiddenIcons;
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons, false);
                 break;
             default:
                 CMINVOKECOMMANDINFO ici;

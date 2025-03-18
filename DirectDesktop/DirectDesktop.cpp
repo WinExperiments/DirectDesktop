@@ -192,7 +192,7 @@ void SetTheme() {
     sheetStorage->Release();
 }
 
-WNDPROC WndProc;
+WNDPROC WndProc, WndProc2;
 HANDLE hMutex;
 constexpr LPCWSTR szWindowClass = L"DIRECTDESKTOP";
 vector<LVItem*> pm, subpm;
@@ -206,6 +206,7 @@ bool checkifelemexists = 0;
 bool issubviewopen = 0;
 bool hiddenIcons;
 bool editmode = 0;
+bool pendingaction = 0;
 void fullscreenAnimation(int width, int height);
 void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
 unsigned long CreateIndividualThumbnail(LPVOID lpParam);
@@ -326,6 +327,21 @@ unsigned long EndExplorer(LPVOID lpParam) {
     return 0;
 }
 
+void AdjustWindowSizes(bool firsttime) {
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
+    POINT topLeftMon = GetTopLeftMonitor();
+    UINT swpFlags = SWP_NOZORDER;
+    if (firsttime) swpFlags |= SWP_NOMOVE | SWP_NOSIZE;
+    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+    SetWindowPos(wnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+    SetWindowPos(subviewwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+    SetWindowPos(hWorkerW, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
+    SetWindowPos(hSHELLDLL_DefView, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
+    UIContainer->SetWidth(dimensions.right - dimensions.left);
+    UIContainer->SetHeight(dimensions.bottom - dimensions.top);
+}
+
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
@@ -338,13 +354,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_SETTINGCHANGE: {
         UpdateModeInfo();
         if (wParam == SPI_SETWORKAREA) {
-            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-            SetWindowPos(wnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
-            SetWindowPos(subviewwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
-            SetWindowPos(hWorkerW, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
-            SetWindowPos(hSHELLDLL_DefView, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
-            UIContainer->SetWidth(dimensions.right - dimensions.left);
-            UIContainer->SetHeight(dimensions.bottom - dimensions.top);
+            AdjustWindowSizes(false);
             RearrangeIcons(true, false);
         }
         if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0) {
@@ -353,13 +363,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         }
         break;
     }
-    case WM_DISPLAYCHANGE: {
-        SendMessageW(wnd->GetHWND(), WM_SETTINGCHANGE, SPI_SETWORKAREA, NULL);
-        break;
-    }
     case WM_DPICHANGED: {
         UpdateScale();
-        InitLayout();
+        InitLayout(false, false);
         break;
     }
     case WM_WINDOWPOSCHANGING: {
@@ -424,7 +430,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 4: {
-        shadowpm[wParam]->SetAlpha(255);
+        if (pm[wParam]->GetHiddenState() == false) shadowpm[wParam]->SetAlpha(255);
         shadowpm[wParam]->SetWidth((globaliconsz + 16) * flScaleFactor);
         shadowpm[wParam]->SetHeight((globaliconsz + 16) * flScaleFactor);
         shadowpm[wParam]->SetX(iconPaddingX - 8 * flScaleFactor);
@@ -475,6 +481,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 7: {
         checkifelemexists = false;
         subviewwnd->ShowWindow(SW_HIDE);
+        if (pendingaction) Sleep(700);
         centered->DestroyAll(true);
         //if (issubviewopen) {
         //    ShowSimpleView();
@@ -528,6 +535,13 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 11: {
+        pendingaction = true;
+        Element* peTemp = reinterpret_cast<Element*>(wParam);
+        peTemp->SetEnabled(!peTemp->GetEnabled());
+        if (lParam == 1 && ((DDButtonBase*)peTemp)->GetAssociatedFn() != nullptr) {
+            ((DDButtonBase*)peTemp)->ExecAssociatedFn(((DDButtonBase*)peTemp)->GetAssociatedFn(), false, true);
+            pendingaction = false;
+        }
         break;
     }
     case WM_USER + 12: {
@@ -611,6 +625,16 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     }
     return CallWindowProc(WndProc, hWnd, uMsg, wParam, lParam);
+}
+
+LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+    case WM_DISPLAYCHANGE: {
+        AdjustWindowSizes(true);
+        RearrangeIcons(true, false);
+    }
+    }
+    return CallWindowProc(WndProc2, hWnd, uMsg, wParam, lParam);
 }
 
 unsigned long animate(LPVOID lpParam) {
@@ -967,7 +991,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
         for (int j = 0; j < count; j++) {
             if (subpm[j]->GetHiddenState() == true) {
                 subiconpm[j]->SetAlpha(128);
-                subshadowpm[j]->SetVisible(false);
+                subshadowpm[j]->SetAlpha(0);
                 subfilepm[j]->SetAlpha(128);
             }
             assignFn(subpm[j], SelectSubItem);
@@ -1034,19 +1058,34 @@ void ShowPage1(Element* elem, Event* iev) {
         Element* SettingsPage1;
         parser->CreateElement(L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
         SubUIContainer->Add((Element**)&SettingsPage1, 1);
-        Button* ItemCheckboxes = (Button*)SettingsPage1->FindDescendent(StrToID(L"ItemCheckboxes"));
-        Button* ShowHiddenFiles = (Button*)SettingsPage1->FindDescendent(StrToID(L"ShowHiddenFiles"));
-        Button* FilenameExts = (Button*)SettingsPage1->FindDescendent(StrToID(L"FilenameExts"));
-        Button* TreatDirAsGroup = (Button*)SettingsPage1->FindDescendent(StrToID(L"TreatDirAsGroup"));
+        DDToggleButton* ItemCheckboxes = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"ItemCheckboxes"));
+        DDToggleButton* ShowHiddenFiles = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"ShowHiddenFiles"));
+        DDToggleButton* FilenameExts = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"FilenameExts"));
+        DDToggleButton* TreatDirAsGroup = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"TreatDirAsGroup"));
+        RegKeyValue rkvTemp{};
+        rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
+        rkvTemp._valueToFind = L"AutoCheckSelect";
         ItemCheckboxes->SetSelected(showcheckboxes);
-        if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden") == 1) ShowHiddenFiles->SetSelected(true);
+        ItemCheckboxes->SetAssociatedBool(&showcheckboxes);
+        ItemCheckboxes->SetRegKeyValue(rkvTemp);
+        rkvTemp._valueToFind = L"Hidden";
+        if (GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind) == 1) ShowHiddenFiles->SetSelected(true);
         else ShowHiddenFiles->SetSelected(false);
-        FilenameExts->SetSelected(GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt"));
+        ShowHiddenFiles->SetAssociatedFn(InitLayout);
+        ShowHiddenFiles->SetRegKeyValue(rkvTemp);
+        rkvTemp._valueToFind = L"HideFileExt";
+        FilenameExts->SetSelected(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+        FilenameExts->SetAssociatedFn(InitLayout);
+        FilenameExts->SetRegKeyValue(rkvTemp);
+        rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"TreatDirAsGroup";
         TreatDirAsGroup->SetSelected(treatdirasgroup);
-        assignFn(ItemCheckboxes, ToggleCheckbox);
-        assignFn(ShowHiddenFiles, ToggleShowHidden);
-        assignFn(FilenameExts, ToggleFilenameExts);
-        assignFn(TreatDirAsGroup, ToggleGroupMode);
+        TreatDirAsGroup->SetAssociatedBool(&treatdirasgroup);
+        TreatDirAsGroup->SetAssociatedFn(RearrangeIcons);
+        TreatDirAsGroup->SetRegKeyValue(rkvTemp);
+        assignFn(ItemCheckboxes, ToggleSetting);
+        assignFn(ShowHiddenFiles, ToggleSetting);
+        assignFn(FilenameExts, ToggleSetting);
+        assignFn(TreatDirAsGroup, ToggleSetting);
     }
 }
 void ShowPage2(Element* elem, Event* iev) {
@@ -1057,12 +1096,20 @@ void ShowPage2(Element* elem, Event* iev) {
         Element* SettingsPage2;
         parser->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
         SubUIContainer->Add((Element**)&SettingsPage2, 1);
-        Button* EnableAccent = (Button*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
-        Button* IconThumbnails = (Button*)SettingsPage2->FindDescendent(StrToID(L"IconThumbnails"));
+        DDToggleButton* EnableAccent = (DDToggleButton*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
+        DDToggleButton* IconThumbnails = (DDToggleButton*)SettingsPage2->FindDescendent(StrToID(L"IconThumbnails"));
+        RegKeyValue rkvTemp{};
+        rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"AccentColorIcons";
         EnableAccent->SetSelected(isColorized);
-        IconThumbnails->SetSelected(GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly"));
-        assignFn(EnableAccent, ToggleAccentIcons);
-        assignFn(IconThumbnails, ToggleThumbnails);
+        EnableAccent->SetAssociatedBool(&isColorized);
+        EnableAccent->SetAssociatedFn(RearrangeIcons);
+        EnableAccent->SetRegKeyValue(rkvTemp);
+        rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
+        IconThumbnails->SetSelected(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+        IconThumbnails->SetAssociatedFn(RearrangeIcons);
+        IconThumbnails->SetRegKeyValue(rkvTemp);
+        assignFn(EnableAccent, ToggleSetting);
+        assignFn(IconThumbnails, ToggleSetting);
     }
 }
 void ShowSettings(Element* elem, Event* iev) {
@@ -1329,7 +1376,7 @@ void RearrangeIcons(bool animation, bool reloadicons) {
     positions.clear();
 }
 
-void InitLayout() {
+void InitLayout(bool bUnused1, bool bUnused2) {
     UIContainer->DestroyAll(true);
     //frame.clear();
     pm.clear();
@@ -1400,7 +1447,7 @@ void InitLayout() {
     for (int i = 0; i < count; i++) {
         if (pm[i]->GetHiddenState() == true) {
             iconpm[i]->SetAlpha(128);
-            shadowpm[i]->SetVisible(false);
+            shadowpm[i]->SetAlpha(0);
             filepm[i]->SetAlpha(192);
             fileshadowpm[i]->SetAlpha(128);
         }
@@ -1454,12 +1501,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else {
         TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Align your icons!",
             L"Your icons are not aligned to grid.\nThis configuration is not supported at the moment.", TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, NULL);
-        exit(0);
+        return 1;
     }
     InitProcessPriv(14, NULL, true, true, true);
     InitThread(TSM_IMMERSIVE);
     RegisterAllControls();
     LVItem::Register();
+    DDToggleButton::Register();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
     RECT dimensions;
@@ -1478,6 +1526,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
     int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
     if (hWndProgman) {
+        if (logging == IDYES) MainLogger.WriteLine(L"Information: Found the Program Manager window.");
         hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
         if (logging == IDYES && hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: Found a SHELLDLL_DefView window.");
         if (WindowsBuild >= 26002 && logging == IDYES) MainLogger.WriteLine(L"Information: Version is 24H2, skipping WorkerW creation!!!");
@@ -1505,6 +1554,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
+    WndProc2 = (WNDPROC)SetWindowLongPtrW(subviewwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)TopLevelWindowProc);
     if (WindowsBuild >= 26002) {
         SetWindowLongPtrW(hWorkerW, GWL_STYLE, 0x96000000L);
         SetWindowLongPtrW(hWorkerW, GWL_EXSTYLE, 0x20000880L);
@@ -1557,18 +1607,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     assignFn(prevpageMain, GoToPrevPage);
     assignFn(nextpageMain, GoToNextPage);
 
-    UIContainer->SetWidth(dimensions.right - dimensions.left);
-    UIContainer->SetHeight(dimensions.bottom - dimensions.top);
+    AdjustWindowSizes(true);
     showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
+    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup", 0, true);
+    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons", 0, true);
+    treatdirasgroup = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup");
+    isColorized = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons");
     if (globaliconsz > 96) globalshiconsz = 64; else if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
     globalgpiconsz = 12;
     if (globaliconsz > 96) globalgpiconsz = 48;
     else if (globaliconsz > 48) globalgpiconsz = 32;
     else if (globaliconsz > 32) globalgpiconsz = 16;
-    InitLayout();
+    InitLayout(false, false);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
     SetTheme();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Set the theme successfully.");

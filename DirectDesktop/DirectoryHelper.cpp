@@ -113,12 +113,23 @@ int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
     }
     return result;
 }
-void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue) {
+void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue, bool find) {
     int result{};
+    DWORD dwSize{};
     HKEY hKey;
-    LONG lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
-    if (lResult == ERROR_SUCCESS) {
-        lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+    LONG lResult = RegGetValueW(hKeyName, path, valueToSet, RRF_RT_ANY, NULL, NULL, &dwSize);
+    lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
+    if (lResult == ERROR_FILE_NOT_FOUND) {
+        lResult = RegCreateKeyExW(hKeyName, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+        if (lResult == ERROR_SUCCESS) {
+            lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+        }
+    }
+    else if (lResult == ERROR_SUCCESS) {
+        DWORD* dwValueInternal = (DWORD*)malloc(dwSize);
+        lResult = RegGetValueW(hKeyName, path, valueToSet, RRF_RT_ANY, NULL, dwValueInternal, &dwSize);
+        if (lResult == ERROR_SUCCESS && find == false) lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
+        else if (lResult != ERROR_SUCCESS) lResult = RegSetValueExW(hKey, valueToSet, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
     }
     RegCloseKey(hKey);
 }
@@ -422,7 +433,7 @@ BOOL CALLBACK EnumWindowsProc2(HWND hwnd, LPARAM lParam) {
             GetWindowRect(hwnd, &dimensions);
             int right = GetSystemMetrics(SM_CXSCREEN);
             int bottom = GetSystemMetrics(SM_CYSCREEN);
-            if (dimensions.right == right && dimensions.bottom == bottom) {
+            if (dimensions.right >= right && dimensions.bottom >= bottom) {
                 *(HWND*)lParam = hwnd;
                 return 0;
             }

@@ -369,7 +369,7 @@
     <ClInclude Include="Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LVItem.h">
+    <ClInclude Include="DDControls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -401,7 +401,7 @@
     <ClCompile Include="Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LVItem.cpp">
+    <ClCompile Include="DDControls.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

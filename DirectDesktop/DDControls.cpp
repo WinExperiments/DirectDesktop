@@ -1,7 +1,8 @@
-#include "LVItem.h"
+#include "DDControls.h"
 using namespace std;
 
 DirectUI::IClassInfo* LVItem::s_pClassInfo;
+DirectUI::IClassInfo* DDToggleButton::s_pClassInfo;
 
 DirectUI::IClassInfo* LVItem::GetClassInfoPtr() {
     return s_pClassInfo;
@@ -77,4 +78,42 @@ unsigned short LVItem::GetPage() {
 }
 void LVItem::SetPage(unsigned short pageID) {
     _page = pageID;
+}
+
+RegKeyValue DDButtonBase::GetRegKeyValue() {
+    return _rkv;
+}
+void(*DDButtonBase::GetAssociatedFn())(bool, bool) {
+    return _assocFn;
+}
+bool* DDButtonBase::GetAssociatedBool() {
+    return _assocBool;
+}
+void DDButtonBase::SetRegKeyValue(RegKeyValue rkvNew) {
+    _rkv = rkvNew;
+}
+void DDButtonBase::SetAssociatedFn(void(*pfn)(bool, bool)) {
+    _assocFn = pfn;
+}
+void DDButtonBase::SetAssociatedBool(bool* pb) {
+    _assocBool = pb;
+}
+void DDButtonBase::ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2) {
+    pfn(fnb1, fnb2);
+}
+
+DirectUI::IClassInfo* DDToggleButton::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDToggleButton::SetClassInfoPtr(DirectUI::IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+DirectUI::IClassInfo* DDToggleButton::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    return DirectUI::CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+}
+HRESULT DDToggleButton::Register() {
+    return DirectUI::ClassInfo<DDToggleButton, DirectUI::Button, DirectUI::StandardCreator<DDToggleButton>>::Register(L"DDToggleButton", nullptr, 0);
 }

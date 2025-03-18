@@ -7,7 +7,7 @@
 
 using namespace DirectUI;
 
-extern void InitLayout();
+extern void InitLayout(bool bUnused1, bool bUnused2);
 extern void ShowSimpleView();
 extern void RearrangeIcons(bool animation, bool reloadicons);
 extern bool hiddenIcons;
