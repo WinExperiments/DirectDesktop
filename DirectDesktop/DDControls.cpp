@@ -1,23 +1,28 @@
 #include "DDControls.h"
 using namespace std;
+using namespace DirectUI;
 
-DirectUI::IClassInfo* LVItem::s_pClassInfo;
-DirectUI::IClassInfo* DDToggleButton::s_pClassInfo;
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 
-DirectUI::IClassInfo* LVItem::GetClassInfoPtr() {
+IClassInfo* LVItem::s_pClassInfo;
+IClassInfo* DDScalableElement::s_pClassInfo;
+IClassInfo* DDToggleButton::s_pClassInfo;
+
+IClassInfo* LVItem::GetClassInfoPtr() {
     return s_pClassInfo;
 }
-void LVItem::SetClassInfoPtr(DirectUI::IClassInfo* pClass) {
+void LVItem::SetClassInfoPtr(IClassInfo* pClass) {
     s_pClassInfo = pClass;
 }
-DirectUI::IClassInfo* LVItem::GetClassInfoW() {
+IClassInfo* LVItem::GetClassInfoW() {
     return s_pClassInfo;
 }
 HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
-    return DirectUI::CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    return CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
 }
 HRESULT LVItem::Register() {
-    return DirectUI::ClassInfo<LVItem, DirectUI::Button, DirectUI::StandardCreator<LVItem>>::Register(L"LVItem", nullptr, 0);
+    return ClassInfo<LVItem, Button, StandardCreator<LVItem>>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
 }
 unsigned short LVItem::GetInternalXPos() {
     return _xPos;
@@ -80,40 +85,200 @@ void LVItem::SetPage(unsigned short pageID) {
     _page = pageID;
 }
 
-RegKeyValue DDButtonBase::GetRegKeyValue() {
+static const int vvimpFirstScaledImageProp[] = { 1, -1 };
+static PropertyInfoData dataimpFirstScaledImageProp;
+static const PropertyInfo impFirstScaledImageProp =
+{
+    L"FirstScaledImage",
+    0x2 | 0x4,
+    0x1,
+    vvimpFirstScaledImageProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpFirstScaledImageProp
+};
+
+static const int vvimpScaledImageIntervalsProp[] = { 1, -1 };
+static PropertyInfoData dataimpScaledImageIntervalsProp;
+static const PropertyInfo impScaledImageIntervalsProp =
+{
+    L"ScaledImageIntervals",
+    0x2 | 0x4,
+    0x1,
+    vvimpScaledImageIntervalsProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpScaledImageIntervalsProp
+};
+
+static const int vvimpDrawTypeProp[] = { 1, -1 };
+static PropertyInfoData dataimpDrawTypeProp;
+static const PropertyInfo impDrawTypeProp =
+{
+    L"DrawType",
+    0x2 | 0x4,
+    0x1,
+    vvimpDrawTypeProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpDrawTypeProp
+};
+
+unsigned long DelayedDraw(LPVOID lpParam) {
+    Sleep(50);
+    ((DDScalableElement*)lpParam)->InitDrawImage();
+    return 0;
+}
+vector<DDScalableElement*> DDScalableElement::_arrCreatedElements;
+DDScalableElement::DDScalableElement() {
+    _arrCreatedElements.push_back(this);
+}
+DDScalableElement::~DDScalableElement() {
+    auto toRemove = find(_arrCreatedElements.begin(), _arrCreatedElements.end(), this);
+    if (toRemove != _arrCreatedElements.end()) {
+        _arrCreatedElements.erase(toRemove);
+    }
+}
+IClassInfo* DDScalableElement::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDScalableElement::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDScalableElement::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDScalableElement::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDScalableElement, int>(0, pParent, pdwDeferCookie, ppElement);
+    DWORD dw;
+    HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+    return hr;
+}
+HRESULT DDScalableElement::Register() {
+    static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+    {
+        &impFirstScaledImageProp,
+        &impScaledImageIntervalsProp,
+        &impDrawTypeProp
+    };
+    return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+const PropertyInfo* WINAPI DDScalableElement::FirstScaledImageProp() {
+    return &impFirstScaledImageProp;
+}
+int DDScalableElement::GetFirstScaledImage() {
+    Value* pv = GetValue(FirstScaledImageProp, 2, nullptr);
+    int v = pv->GetInt();
+    pv->Release();
+    return v;
+}
+void DDScalableElement::SetFirstScaledImage(int iFirstImage) {
+    Value* pv = Value::CreateInt(iFirstImage);
+    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+    if (SUCCEEDED(hr)) {
+        hr = SetValue(FirstScaledImageProp, 1, pv);
+        pv->Release();
+    }
+}
+const PropertyInfo* WINAPI DDScalableElement::ScaledImageIntervalsProp() {
+    return &impScaledImageIntervalsProp;
+}
+int DDScalableElement::GetScaledImageIntervals() {
+    Value* pv = GetValue(ScaledImageIntervalsProp, 2, nullptr);
+    int v = pv->GetInt();
+    if (v == -1) v = 1;
+    pv->Release();
+    return v;
+}
+void DDScalableElement::SetScaledImageIntervals(int iScaleIntervals) {
+    Value* pv = Value::CreateInt(iScaleIntervals);
+    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+    if (SUCCEEDED(hr)) {
+        hr = SetValue(ScaledImageIntervalsProp, 1, pv);
+        pv->Release();
+    }
+}
+const PropertyInfo* WINAPI DDScalableElement::DrawTypeProp() {
+    return &impDrawTypeProp;
+}
+int DDScalableElement::GetDrawType() {
+    Value* pv = GetValue(DrawTypeProp, 2, nullptr);
+    int v = pv->GetInt();
+    if (v == -1) v = 1;
+    pv->Release();
+    return v;
+}
+void DDScalableElement::SetDrawType(int iDrawType) {
+    Value* pv = Value::CreateInt(iDrawType);
+    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+    if (SUCCEEDED(hr)) {
+        hr = SetValue(DrawTypeProp, 1, pv);
+        pv->Release();
+    }
+}
+void DDScalableElement::InitDrawImage() {
+    SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+}
+void DDScalableElement::RedrawImages() {
+    for (DDScalableElement* pe : _arrCreatedElements) {
+        if (pe->GetFirstScaledImage() == -1) break;
+        int scaleInterval = GetCurrentScaleInterval();
+        int scaleIntervalImage = pe->GetScaledImageIntervals();
+        if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+        int imageID = pe->GetFirstScaledImage() + scaleInterval;
+        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        switch (pe->GetDrawType()) {
+        case 0: {
+            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, false, false, false);
+            pe->SetValue(Element::BackgroundProp, 1, vImage);
+            vImage->Release();
+            break;
+        }
+        case 1: {
+            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, false, false, false);
+            pe->SetValue(Element::ContentProp, 1, vImage);
+            vImage->Release();
+            break;
+        }
+        }
+        if (newImage) DeleteObject(newImage);
+    }
+}
+
+RegKeyValue DDScalableButton::GetRegKeyValue() {
     return _rkv;
 }
-void(*DDButtonBase::GetAssociatedFn())(bool, bool) {
+void(*DDScalableButton::GetAssociatedFn())(bool, bool) {
     return _assocFn;
 }
-bool* DDButtonBase::GetAssociatedBool() {
+bool* DDScalableButton::GetAssociatedBool() {
     return _assocBool;
 }
-void DDButtonBase::SetRegKeyValue(RegKeyValue rkvNew) {
+void DDScalableButton::SetRegKeyValue(RegKeyValue rkvNew) {
     _rkv = rkvNew;
 }
-void DDButtonBase::SetAssociatedFn(void(*pfn)(bool, bool)) {
+void DDScalableButton::SetAssociatedFn(void(*pfn)(bool, bool)) {
     _assocFn = pfn;
 }
-void DDButtonBase::SetAssociatedBool(bool* pb) {
+void DDScalableButton::SetAssociatedBool(bool* pb) {
     _assocBool = pb;
 }
-void DDButtonBase::ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2) {
+void DDScalableButton::ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2) {
     pfn(fnb1, fnb2);
 }
 
-DirectUI::IClassInfo* DDToggleButton::GetClassInfoPtr() {
+IClassInfo* DDToggleButton::GetClassInfoPtr() {
     return s_pClassInfo;
 }
-void DDToggleButton::SetClassInfoPtr(DirectUI::IClassInfo* pClass) {
+void DDToggleButton::SetClassInfoPtr(IClassInfo* pClass) {
     s_pClassInfo = pClass;
 }
-DirectUI::IClassInfo* DDToggleButton::GetClassInfoW() {
+IClassInfo* DDToggleButton::GetClassInfoW() {
     return s_pClassInfo;
 }
 HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
-    return DirectUI::CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    return CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
 }
 HRESULT DDToggleButton::Register() {
-    return DirectUI::ClassInfo<DDToggleButton, DirectUI::Button, DirectUI::StandardCreator<DDToggleButton>>::Register(L"DDToggleButton", nullptr, 0);
+    return ClassInfo<DDToggleButton, Button, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", nullptr, 0);
 }

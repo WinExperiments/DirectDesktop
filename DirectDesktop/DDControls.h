@@ -1,10 +1,16 @@
 #pragma once
 #include <string>
+#include <vector>
 #include "DirectUI/DirectUI.h"
 
 using namespace std;
+using namespace DirectUI;
 
-class LVItem final : public DirectUI::Button {
+extern int dpi;
+extern NativeHWNDHost* subviewwnd;
+extern int GetCurrentScaleInterval();
+
+class LVItem final : public Button {
 public:
     LVItem() {
 
@@ -12,9 +18,9 @@ public:
     virtual ~LVItem() {
 
     }
-    static DirectUI::IClassInfo* GetClassInfoPtr();
-    static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
-    DirectUI::IClassInfo* GetClassInfoW() override;
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
     static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
     static HRESULT Register();
     unsigned short GetInternalXPos();
@@ -38,7 +44,7 @@ public:
     unsigned short GetPage();
     void SetPage(unsigned short pageID);
 private:
-    static DirectUI::IClassInfo* s_pClassInfo;
+    static IClassInfo* s_pClassInfo;
     wstring _filename{};
     wstring _simplefilename{};
     bool _isDirectory = false;
@@ -58,12 +64,38 @@ struct RegKeyValue {
     DWORD _dwValue;
 };
 
-class DDButtonBase : public DirectUI::Button {
+class DDScalableElement : public Element {
 public:
-    DDButtonBase() {
+    DDScalableElement();
+    ~DDScalableElement();
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    static const PropertyInfo* WINAPI FirstScaledImageProp();
+    static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+    static const PropertyInfo* WINAPI DrawTypeProp();
+    int GetFirstScaledImage();
+    int GetScaledImageIntervals();
+    int GetDrawType();
+    void SetFirstScaledImage(int iFirstImage);
+    void SetScaledImageIntervals(int iScaleIntervals);
+    void SetDrawType(int iDrawType);
+    void InitDrawImage();
+    static void RedrawImages();
+protected:
+    static vector<DDScalableElement*> _arrCreatedElements;
+private:
+    static IClassInfo* s_pClassInfo;
+};
+
+class DDScalableButton : public Button {
+public:
+    DDScalableButton() {
 
     }
-    virtual ~DDButtonBase() {
+    virtual ~DDScalableButton() {
 
     }
     RegKeyValue GetRegKeyValue();
@@ -79,7 +111,7 @@ protected:
     bool* _assocBool = nullptr;
 };
 
-class DDToggleButton final : public DDButtonBase {
+class DDToggleButton final : public DDScalableButton {
 public:
     DDToggleButton() {
 
@@ -87,11 +119,11 @@ public:
     virtual ~DDToggleButton() {
 
     }
-    static DirectUI::IClassInfo* GetClassInfoPtr();
-    static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
-    DirectUI::IClassInfo* GetClassInfoW() override;
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
     static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
     static HRESULT Register();
 private:
-    static DirectUI::IClassInfo* s_pClassInfo;
+    static IClassInfo* s_pClassInfo;
 };

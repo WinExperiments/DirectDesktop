@@ -29,7 +29,8 @@ POINT GetTopLeftMonitor() {
     POINT ptFinal{};
     EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
     sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b) {
-        return a.left < b.left;
+        if (localeType != 1) return a.left < b.left;
+        else return a.left > b.left;
     });
     ptFinal.x = monitors[0].left;
     sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b) {
@@ -37,6 +38,16 @@ POINT GetTopLeftMonitor() {
     });
     ptFinal.y = monitors[0].top;
     return ptFinal;
+}
+int GetRightMonitor() {
+    vector<RECT> monitors{};
+    int iFinal{};
+    EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
+    sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b) {
+        return a.right > b.right;
+        });
+    iFinal = monitors[0].right;
+    return iFinal;
 }
 
 unsigned long TempDisableToggle(LPVOID lpParam) {
@@ -49,9 +60,9 @@ unsigned long TempDisableToggle(LPVOID lpParam) {
 void ToggleSetting(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
         elem->SetSelected(!elem->GetSelected());
-        bool* associatedBool = ((DDButtonBase*)elem)->GetAssociatedBool();
+        bool* associatedBool = ((DDScalableButton*)elem)->GetAssociatedBool();
         if (associatedBool != nullptr) *associatedBool = !(*associatedBool);
-        RegKeyValue rkv = ((DDButtonBase*)elem)->GetRegKeyValue();
+        RegKeyValue rkv = ((DDScalableButton*)elem)->GetRegKeyValue();
         BYTE regSetter = elem->GetSelected();
         if (rkv._valueToFind == L"Hidden") regSetter = (!elem->GetSelected() + 1);
         if (rkv._valueToFind == L"Logging") regSetter = (!elem->GetSelected() + 6);
@@ -63,7 +74,7 @@ void ToggleSetting(Element* elem, Event* iev) {
             HANDLE DisableToggleHandle = CreateThread(0, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
             return;
         }
-        if (((DDButtonBase*)elem)->GetAssociatedFn() != nullptr)
-            ((DDButtonBase*)elem)->ExecAssociatedFn(((DDButtonBase*)elem)->GetAssociatedFn(), false, true);
+        if (((DDScalableButton*)elem)->GetAssociatedFn() != nullptr)
+            ((DDScalableButton*)elem)->ExecAssociatedFn(((DDScalableButton*)elem)->GetAssociatedFn(), false, true);
     }
 }

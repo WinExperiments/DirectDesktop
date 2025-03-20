@@ -38,13 +38,13 @@ unsigned long key = 0, key2 = 0;
 
 Element* sampleText;
 Element* mainContainer;
-Element* iconElem;
+DDScalableElement* iconElem;
 Element* shortcutElem;
 Element* iconElemShadow;
 RichText* textElem;
 RichText* textElemShadow;
 Button* checkboxElem;
-Element* fullscreeninner;
+DDScalableElement* fullscreeninner;
 Button* fullscreenpopupbase, *centered;
 Button* emptyspace;
 Element* selector, *selector2;
@@ -66,7 +66,16 @@ Logger MainLogger;
 
 int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
+int localeType{};
 //vector<int> frame;
+
+wstring LoadStrFromRes(UINT id) {
+    WCHAR* loadedStrBuffer = new WCHAR[512]{};
+    LoadStringW((HINSTANCE)GetModuleHandleW(NULL), id, loadedStrBuffer, 512);
+    wstring loadedStr = loadedStrBuffer;
+    delete[] loadedStrBuffer;
+    return loadedStr;
+}
 
 wstring RemoveQuotes(const wstring& input) {
     if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"') {
@@ -86,11 +95,22 @@ void InitialUpdateScale() {
 }
 
 void UpdateScale() {
-    static HWND hWnd = wnd->GetHWND();
+    HWND hWnd = subviewwnd->GetHWND();
     dpiOld = dpi;
     dpi = GetDpiForWindow(hWnd);
     isDpiPreviouslyChanged = true;
     flScaleFactor = dpi / 96.0;
+    DDScalableElement::RedrawImages();
+}
+
+int GetCurrentScaleInterval() {
+    if (dpi >= 384) return 6;
+    if (dpi >= 288) return 5;
+    if (dpi >= 240) return 4;
+    if (dpi >= 192) return 3;
+    if (dpi >= 144) return 2;
+    if (dpi >= 120) return 1;
+    return 0;
 }
 
 struct EventListener : public IElementListener {
@@ -197,7 +217,7 @@ HANDLE hMutex;
 constexpr LPCWSTR szWindowClass = L"DIRECTDESKTOP";
 vector<LVItem*> pm, subpm;
 vector<Element*> shortpm, subshortpm;
-vector<Element*> iconpm, subiconpm;
+vector<DDScalableElement*> iconpm, subiconpm;
 vector<Element*> shadowpm, subshadowpm;
 vector<RichText*> filepm, subfilepm;
 vector<RichText*> fileshadowpm;
@@ -246,7 +266,7 @@ void GetFontHeight() {
 float CalcTextLines(const wchar_t* str, int width) {
     HDC hdcBuffer = CreateCompatibleDC(NULL);
     LOGFONTW lf{};
-    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+    SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, dpi);
     HFONT hFont = CreateFontIndirectW(&lf);
     HFONT hOldFont = (HFONT)SelectObject(hdcBuffer, hFont);
     RECT rc = { 0, 0, width - 4, textm.tmHeight };
@@ -294,23 +314,27 @@ void ShowSimpleView() {
     //}
     if (maxPageID != 1) {
         WCHAR currentPage[64];
-        StringCchPrintfW(currentPage, 64, L"Page %d / %d", currentPageID, maxPageID);
+        StringCchPrintfW(currentPage, 64, LoadStrFromRes(4026).c_str(), currentPageID, maxPageID);
         pageinfo->SetContentString(currentPage);
     }
     else pageinfo->SetContentString(L" ");
     if (currentPageID != maxPageID) {
-        TogglePage(nextpage, 0.9, 0.2, 0.1, 0.6);
+        float xLoc = (localeType == 1) ? 0 : 0.9;
+        TogglePage(nextpage, xLoc, 0.2, 0.1, 0.6);
     }
     if (currentPageID != 1) {
-        TogglePage(prevpage, 0, 0.2, 0.1, 0.6);
+        float xLoc = (localeType == 1) ? 0.9 : 0;
+        TogglePage(prevpage, xLoc, 0.2, 0.1, 0.6);
     }
     SimpleViewTop->SetLayoutPos(1);
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
     SimpleViewBottom->SetLayoutPos(3);
     pSubview->SetBackgroundStdColor(7);
-    Element* simpleviewoverlay{};
+    DDScalableElement* simpleviewoverlay{};
     parser->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
+    //TaskDialog(NULL, NULL, L"test", to_wstring(simpleviewoverlay->GetFirstScaledImage()).c_str(), to_wstring(simpleviewoverlay->GetScaledImageIntervals()).c_str(), NULL, NULL, NULL);
     centered->Add((Element**)&simpleviewoverlay, 1);
+    //TaskDialog(NULL, NULL, L"test", to_wstring(simpleviewoverlay->GetFirstScaledImage()).c_str(), to_wstring(simpleviewoverlay->GetScaledImageIntervals()).c_str(), NULL, NULL, NULL);
     mainContainer->SetVisible(false);
     BlurBackground(subviewwnd->GetHWND(), false);
 }
@@ -332,8 +356,12 @@ void AdjustWindowSizes(bool firsttime) {
     GetClientRect(wnd->GetHWND(), &dimensions);
     POINT topLeftMon = GetTopLeftMonitor();
     UINT swpFlags = SWP_NOZORDER;
-    if (firsttime) swpFlags |= SWP_NOMOVE | SWP_NOSIZE;
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+    if (firsttime) swpFlags |= SWP_NOMOVE | SWP_NOSIZE;
+    if (localeType == 1) {
+        int rightMon = GetRightMonitor();
+        topLeftMon.x = dimensions.right + dimensions.left - rightMon;
+    }
     SetWindowPos(wnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
     SetWindowPos(subviewwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
     SetWindowPos(hWorkerW, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
@@ -359,13 +387,10 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         }
         if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0) {
             SetTheme();
+            DDScalableElement::RedrawImages();
+            SendMessageW(wnd->GetHWND(), WM_USER + 14, NULL, 1);
             if (isColorized) RearrangeIcons(false, true);
         }
-        break;
-    }
-    case WM_DPICHANGED: {
-        UpdateScale();
-        InitLayout(false, false);
         break;
     }
     case WM_WINDOWPOSCHANGING: {
@@ -438,7 +463,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         shortpm[wParam]->SetAlpha(255);
         shortpm[wParam]->SetWidth(globalshiconsz * flScaleFactor);
         shortpm[wParam]->SetHeight(globalshiconsz * flScaleFactor);
-        shortpm[wParam] ->SetX(iconPaddingX);
+        shortpm[wParam]->SetX(iconPaddingX);
         shortpm[wParam]->SetY((iconPaddingY * 0.575) + (globaliconsz - globalshiconsz) * flScaleFactor);
         break;
     }
@@ -446,6 +471,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         POINT ppt;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
+        if (localeType == 1) ppt.x = dimensions.right - ppt.x;
         if (ppt.x >= origX) {
             selector->SetWidth(ppt.x - origX);
             selector->SetX(origX);
@@ -538,33 +564,46 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         pendingaction = true;
         Element* peTemp = reinterpret_cast<Element*>(wParam);
         peTemp->SetEnabled(!peTemp->GetEnabled());
-        if (lParam == 1 && ((DDButtonBase*)peTemp)->GetAssociatedFn() != nullptr) {
-            ((DDButtonBase*)peTemp)->ExecAssociatedFn(((DDButtonBase*)peTemp)->GetAssociatedFn(), false, true);
+        if (lParam == 1 && ((DDScalableButton*)peTemp)->GetAssociatedFn() != nullptr) {
+            ((DDScalableButton*)peTemp)->ExecAssociatedFn(((DDScalableButton*)peTemp)->GetAssociatedFn(), false, true);
             pendingaction = false;
         }
         break;
     }
     case WM_USER + 12: {
-        if (checkifelemexists == true) dirnameanimator->SetWidth((120 * (1 - py[dframe - 1])) * flScaleFactor);
+        if (checkifelemexists == true) dirnameanimator->SetWidth((100 * (1 - py[dframe - 1])) * flScaleFactor);
         break;
     }
     case WM_USER + 13: {
-        if (checkifelemexists == true) tasksanimator->SetWidth((80 * (1 - py[tframe - 1])) * flScaleFactor);
+        if (checkifelemexists == true) tasksanimator->SetWidth((60 * (1 - py[tframe - 1])) * flScaleFactor);
         break;
     }
     case WM_USER + 14: {
+        if (lParam == 1) {
+            for (int icon = 0; icon < pm.size(); icon++) {
+                if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
+                    iconpm[icon]->InitDrawImage();
+                }
+            }
+            break;
+        }
         vector<DWORD> smThumbnailThread;
         vector<HANDLE> smThumbnailThreadHandle;
         smThumbnailThread.resize(pm.size());
         smThumbnailThreadHandle.resize(pm.size());
+        static Value* v{};
+        UpdateCache* uc{};
+        if (iconpm[0] != nullptr) v = iconpm[0]->GetValue(Element::BackgroundProp, 1, uc);
         for (int icon = 0; icon < pm.size(); icon++) {
             iconpm[icon]->DestroyAll(true);
             iconpm[icon]->SetClass(L"");
+            iconpm[icon]->SetValue(Element::BackgroundProp, 1, v);
             shadowpm[icon]->SetVisible(true);
             if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
                 iconpm[icon]->SetClass(L"groupthumbnail");
                 shadowpm[icon]->SetVisible(false);
             }
+            iconpm[icon]->InitDrawImage();
         }
         for (int icon2 = 0; icon2 < pm.size(); icon2++) {
             yValue* yV = new yValue{ icon2 };
@@ -609,7 +648,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                 parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
                 iconpm[wParam]->Add((Element**)&GroupedIcon, 1);
                 GroupedIcon->SetWidth(globalgpiconsz * flScaleFactor), GroupedIcon->SetHeight(globalgpiconsz * flScaleFactor);
-                GroupedIcon->SetX(x), GroupedIcon->SetY(y);
+                int xRender = (localeType == 1) ? (globaliconsz - globalgpiconsz) * flScaleFactor - x : x;
+                GroupedIcon->SetX(xRender), GroupedIcon->SetY(y);
                 if (strs[thumbs].GetHiddenState()) GroupedIcon->SetAlpha(128);
                 x += ((globalgpiconsz + paddingInner) * flScaleFactor);
                 if (x > (globaliconsz - globalgpiconsz) * flScaleFactor) {
@@ -629,9 +669,39 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
+    case WM_DPICHANGED: {
+        UpdateScale();
+        InitLayout(false, false);
+        break;
+    }
     case WM_DISPLAYCHANGE: {
         AdjustWindowSizes(true);
-        RearrangeIcons(true, false);
+        RearrangeIcons(false, false);
+        break;
+    }
+    case WM_USER + 1: {
+        if (((DDScalableElement*)wParam)->GetFirstScaledImage() == -1) break;
+        int scaleInterval = GetCurrentScaleInterval();
+        int scaleIntervalImage = ((DDScalableElement*)wParam)->GetScaledImageIntervals();
+        if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+        int imageID = ((DDScalableElement*)wParam)->GetFirstScaledImage() + scaleInterval;
+        HBITMAP newImage = (HBITMAP)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        switch (((DDScalableElement*)wParam)->GetDrawType()) {
+        case 0: {
+            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, false, false, false);
+            ((DDScalableElement*)wParam)->SetValue(Element::BackgroundProp, 1, vImage);
+            vImage->Release();
+            break;
+        }
+        case 1: {
+            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, false, false, false);
+            ((DDScalableElement*)wParam)->SetValue(Element::ContentProp, 1, vImage);
+            vImage->Release();
+            break;
+        }
+        }
+        if (newImage) DeleteObject(newImage);
+        break;
     }
     }
     return CallWindowProc(WndProc2, hWnd, uMsg, wParam, lParam);
@@ -795,7 +865,7 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
     pageElem->SetWidth(dimensions.right * offsetR);
     pageElem->SetHeight(dimensions.bottom * offsetB);
     WCHAR currentPage[64];
-    StringCchPrintfW(currentPage, 64, L"Page %d / %d", currentPageID, maxPageID);
+    StringCchPrintfW(currentPage, 64, LoadStrFromRes(4026).c_str(), currentPageID, maxPageID);
     pageinfo->SetContentString(currentPage);
 }
 unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
@@ -814,14 +884,17 @@ void GoToPrevPage(Element* elem, Event* iev) {
         }
         if (editmode) {
             fullscreeninner->SetBackgroundStdColor(7);
-            TogglePage(nextpage, 0.9, 0.2, 0.1, 0.6);
-            if (currentPageID == 1) TogglePage(prevpage, 0, 0.2, 0, 0.6);
+            float xLoc = (localeType == 1) ? 0 : 0.9;
+            float xLoc2 = (localeType == 1) ? 0.9 : 0;
+            TogglePage(nextpage, xLoc, 0.2, 0.1, 0.6);
+            if (currentPageID == 1) TogglePage(prevpage, xLoc2, 0.2, 0, 0.6);
             DWORD dd;
             HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
         }
         else {
             UIContainer->SetAnimation(NULL);
-            UIContainer->SetX(-(dimensions.right - dimensions.left));
+            short animSrc = (localeType == 1) ? 1 : -1;
+            UIContainer->SetX((dimensions.right - dimensions.left) * animSrc);
             UIContainer->SetAnimation(savedanim);
             UIContainer->SetX(0);
         }
@@ -841,14 +914,17 @@ void GoToNextPage(Element* elem, Event* iev) {
         }
         if (editmode) {
             fullscreeninner->SetBackgroundStdColor(7);
-            TogglePage(prevpage, 0, 0.2, 0.1, 0.6);
-            if (currentPageID == maxPageID) TogglePage(nextpage, 0.9, 0.2, 0, 0.6);
+            float xLoc = (localeType == 1) ? 0 : 0.9;
+            float xLoc2 = (localeType == 1) ? 0.9 : 0;
+            TogglePage(prevpage, xLoc, 0.2, 0.1, 0.6);
+            if (currentPageID == maxPageID) TogglePage(nextpage, xLoc2, 0.2, 0, 0.6);
             DWORD dd;
             HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
         }
         else {
             UIContainer->SetAnimation(NULL);
-            UIContainer->SetX(dimensions.right - dimensions.left);
+            short animSrc = (localeType == 1) ? -1 : 1;
+            UIContainer->SetX((dimensions.right - dimensions.left) * animSrc);
             UIContainer->SetAnimation(savedanim);
             UIContainer->SetX(0);
         }
@@ -886,7 +962,7 @@ unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
     return 0;
 }
 
-void ApplyIcons(vector<LVItem*> pmLVItem, vector<Element*> pmIcon, vector<Element*> pmIconShadow, vector<Element*> pmShortcut, vector<HBITMAP> iconstofetch, bool subdirectory) {
+void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, vector<Element*> pmIconShadow, vector<Element*> pmShortcut, vector<HBITMAP> iconstofetch, bool subdirectory) {
     HINSTANCE testInst = LoadLibraryW(L"imageres.dll");
     vector<HBITMAP> icons = iconstofetch;
     for (int icon = 0; icon < pmIcon.size(); icon++) {
@@ -965,7 +1041,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             LVItem* outerElemGrouped;
             parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
             SubUIContainer->Add((Element**)&outerElemGrouped, 1);
-            iconElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElem"));
+            iconElem = (DDScalableElement*)outerElemGrouped->FindDescendent(StrToID(L"iconElem"));
             shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"shortcutElem"));
             iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElemShadow"));
             textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID(L"textElem"));
@@ -997,7 +1073,8 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             assignFn(subpm[j], SelectSubItem);
             assignFn(subpm[j], SubItemRightClick);
             subpm[j]->SetClass(L"singleclicked");
-            subpm[j]->SetX(x), subpm[j]->SetY(y);
+            int xRender = (localeType == 1) ? (800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) - x : x;
+            subpm[j]->SetX(xRender), subpm[j]->SetY(y);
             yValue* yV = new yValue{ j };
             yValue* yV2 = new yValue{ j };
             x += outerSizeX;
@@ -1014,6 +1091,11 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
         x -= outerSizeX;
         if (maxX != 0 && xRuns % maxX != 0) y += outerSizeY;
         SubUIContainer->SetHeight(y);
+        Element* dirtitle = (Element*)groupdirectory->FindDescendent(StrToID(L"dirtitle"));
+        for (int j = 0; j < count; j++) {
+            if (localeType == 1 && y > (480 * flScaleFactor - (dirtitle->GetHeight() + dimensions.top + dimensions.bottom)))
+                subpm[j]->SetX(subpm[j]->GetX() - GetSystemMetricsForDpi(SM_CXVSCROLL, dpi));
+        }
         delete[] animThread;
         delete[] animThread2;
         delete[] animThreadHandle;
@@ -1022,9 +1104,9 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     }
     else {
         if (count > 128) {
-            SubUIContainer->SetContentString(L"This folder is too large.");
+            SubUIContainer->SetContentString(LoadStrFromRes(4030).c_str());
         }
-        else SubUIContainer->SetContentString(L"This folder is empty.");
+        else SubUIContainer->SetContentString(LoadStrFromRes(4029).c_str());
     }
     dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
     tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
@@ -1033,8 +1115,8 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     dirname->SetAlpha(255);
     RichText* dirdetails = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
     WCHAR itemCount[64];
-    if (count == 1) StringCchPrintfW(itemCount, 64, L"contains 1 item");
-    else StringCchPrintfW(itemCount, 64, L"contains %d items", count);
+    if (count == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
+    else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), count);
     dirdetails->SetContentString(itemCount);
     dirdetails->SetAlpha(160);
     Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID(L"tasks"));
@@ -1193,10 +1275,6 @@ void SelectItem(Element* elem, Event* iev) {
             HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, NULL, 0, &doubleClickThread);
             elemStorage = elem;
         }
-        SHELLEXECUTEINFOW execInfo = {};
-        execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-        execInfo.lpVerb = L"open";
-        execInfo.nShow = SW_SHOWNORMAL;
         for (int items = 0; items < validItems; items++) {
             if (pm[items]->GetMemorySelected() != pm[items]->GetSelected()) {
                 float spacingInternal = CalcTextLines(pm[items]->GetSimpleFilename().c_str(), pm[items]->GetWidth());
@@ -1228,6 +1306,10 @@ void SelectItem(Element* elem, Event* iev) {
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items] == elem) {
                     wstring temp = RemoveQuotes(pm[items]->GetFilename());
+                    SHELLEXECUTEINFOW execInfo = {};
+                    execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+                    execInfo.lpVerb = L"open";
+                    execInfo.nShow = SW_SHOWNORMAL;
                     execInfo.lpFile = temp.c_str();
                     if (pm[items]->GetDirState() == true && treatdirasgroup == true) {
                         wstring temp2 = pm[items]->GetSimpleFilename();
@@ -1241,12 +1323,14 @@ void SelectItem(Element* elem, Event* iev) {
 }
 
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    checkboxElem = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));   
+    checkboxElem = (Button*)elem->FindDescendent(StrToID(L"checkboxElem")); 
+    static const int xRTL = checkboxElem->GetWidth() + checkboxElem->GetX();
     if (pProp == Element::MouseFocusedProp() && showcheckboxes == 1) {
         for (int items = 0; items < validItems; items++) {
             if (cbpm[items]->GetSelected() == false) cbpm[items]->SetVisible(false);
         }
         checkboxElem->SetVisible(true);
+        if (localeType == 1) checkboxElem->SetX(GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor - xRTL);
     }
 }
 void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
@@ -1279,7 +1363,10 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
         POINT ppt;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
-        origX = ppt.x;
+        RECT dimensions{};
+        GetClientRect(wnd->GetHWND(), &dimensions);
+        if (localeType == 1) origX = dimensions.right - ppt.x;
+        else origX = ppt.x;
         origY = ppt.y;
         selector->SetX(origX);
         selector->SetY(origY);
@@ -1351,7 +1438,8 @@ void RearrangeIcons(bool animation, bool reloadicons) {
     for (int j = 0; j < validItems; j++) {
         if (!animation) pm[j]->SetAnimation(NULL); else pm[j]->SetAnimation(savedanim);
         if (pm[j]->GetInternalXPos() < largestXPos && pm[j]->GetInternalYPos() < largestYPos && positions[pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos] == false) {
-            pm[j]->SetX(pm[j]->GetInternalXPos() * outerSizeX + x);
+            int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX + x) - outerSizeX : pm[j]->GetInternalXPos() * outerSizeX + x;
+            pm[j]->SetX(xRender);
             pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
             pm[j]->SetPage(maxPageID);
             positions[pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos] = true;
@@ -1378,7 +1466,8 @@ void RearrangeIcons(bool animation, bool reloadicons) {
             pm[j]->SetPage(maxPageID);
             positions[y] = true;
         }
-        pm[j]->SetX(pm[j]->GetInternalXPos() * outerSizeX + x);
+        int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX + x) - outerSizeX : pm[j]->GetInternalXPos() * outerSizeX + x;
+        pm[j]->SetX(xRender);
         pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
     }
     if (currentPageID > maxPageID) currentPageID = maxPageID;
@@ -1435,7 +1524,7 @@ void InitLayout(bool bUnused1, bool bUnused2) {
         LVItem* outerElem;
         parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
         UIContainer->Add((Element**)&outerElem, 1);
-        iconElem = (Element*)outerElem->FindDescendent(StrToID(L"iconElem"));
+        iconElem = (DDScalableElement*)outerElem->FindDescendent(StrToID(L"iconElem"));
         shortcutElem = (Element*)outerElem->FindDescendent(StrToID(L"shortcutElem"));
         iconElemShadow = (Element*)outerElem->FindDescendent(StrToID(L"iconElemShadow"));
         textElem = (RichText*)outerElem->FindDescendent(StrToID(L"textElem"));
@@ -1490,7 +1579,7 @@ void InitLayout(bool bUnused1, bool bUnused2) {
 }
 
 unsigned long FinishedLogging(LPVOID lpParam) {
-    TaskDialog(NULL, NULL, L"Information", L"Logging complete", L"To close DirectDesktop, press the close button.\nThis will automatically view the log.", TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
+    TaskDialog(NULL, NULL, LoadStrFromRes(4024).c_str(), LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
     SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
     return 0;
 }
@@ -1514,23 +1603,29 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     hMutex = CreateMutex(NULL, TRUE, szWindowClass);
     if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError()) {
-        TaskDialog(NULL, GetModuleHandleW(NULL), L"Error", NULL,
-            L"DirectDesktop is already running", TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
+        TaskDialog(NULL, GetModuleHandleW(NULL), LoadStrFromRes(4025).c_str(), NULL,
+            LoadStrFromRes(4021).c_str(), TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
         return 1;
     }
     if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"FFlags") & 0x4);
     else {
-        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Align your icons!",
-            L"Your icons are not aligned to grid.\nThis configuration is not supported at the moment.", TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, NULL);
+        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", LoadStrFromRes(4022).c_str(),
+            LoadStrFromRes(4023).c_str(), TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, NULL);
         return 1;
     }
     InitProcessPriv(14, NULL, true, true, true);
     InitThread(TSM_IMMERSIVE);
     RegisterAllControls();
     LVItem::Register();
+    DDScalableElement::Register();
     DDToggleButton::Register();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
+    WCHAR localeName[256]{};
+    ULONG numLanguages{};
+    ULONG bufferSize = sizeof(localeName) / sizeof(WCHAR);
+    GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &numLanguages, localeName, &bufferSize);
+    GetLocaleInfoEx(localeName, LOCALE_IREADINGLAYOUT | LOCALE_RETURN_NUMBER, (LPWSTR)&localeType, sizeof(localeType) / sizeof(WCHAR));
     RECT dimensions;
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
     int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
@@ -1538,8 +1633,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     bool checklog{};
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", 0, true, &checklog);
     if (checklog) {
-        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", L"Enable logging?",
-            L"You can later turn logging on/off from Settings > Debug.", TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
+        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", LoadStrFromRes(4017).c_str(),
+            LoadStrFromRes(4018).c_str(), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
         SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", logging, false, nullptr);
     }
     else logging = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging");
@@ -1606,6 +1701,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated scaling.");
     UpdateModeInfo();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated color mode information.");
+    SetTheme();
+    if (logging == IDYES) MainLogger.WriteLine(L"Information: Set the theme successfully.");
 
     sampleText = regElem(L"sampleText", pMain);
     mainContainer = regElem(L"mainContainer", pMain);
@@ -1643,15 +1740,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons", 0, true, nullptr);
     treatdirasgroup = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup");
     isColorized = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons");
-    if (globaliconsz > 96) globalshiconsz = 64; else if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
+    if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
     globalgpiconsz = 12;
     if (globaliconsz > 96) globalgpiconsz = 48;
     else if (globaliconsz > 48) globalgpiconsz = 32;
     else if (globaliconsz > 32) globalgpiconsz = 16;
     InitLayout(false, false);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
-    SetTheme();
-    if (logging == IDYES) MainLogger.WriteLine(L"Information: Set the theme successfully.");
     
     wnd->Host(pMain);
     subviewwnd->Host(pSubview);

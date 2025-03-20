@@ -19,7 +19,7 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
 
     memset(pBitmapData, 0, width * height * 4);
     LOGFONTW lf{};
-    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+    SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, dpi);
     HFONT hFont = CreateFontIndirectW(&lf);
     HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
 

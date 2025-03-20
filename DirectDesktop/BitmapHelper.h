@@ -10,3 +10,4 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
 void BlurBackground(HWND hwnd, bool blur);
 
 extern TEXTMETRICW textm;
+extern int dpi;

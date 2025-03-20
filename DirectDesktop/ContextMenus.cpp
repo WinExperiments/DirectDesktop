@@ -2,6 +2,7 @@
 #include <ShlGuid.h>
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
+#include "resource.h"
 
 std::wstring RemoveQuotes2(const std::wstring& input) {
     if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"') {
@@ -29,10 +30,10 @@ void DesktopRightClick(Element* elem, Event* iev) {
             MENUITEMINFOW mii{};
             mii.cbSize = sizeof(MENUITEMINFOW);
             mii.fMask = MIIM_STATE;
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, L"Extra large icons");
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, L"Large icons");
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, L"Medium icons");
-            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1004, L"Small icons");
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4004).c_str());
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4005).c_str());
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4006).c_str());
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1004, LoadStrFromRes(4007).c_str());
             for (int menuitem = 1001; menuitem <= 1004; menuitem++) {
                 mii.fState = MFS_UNCHECKED;
                 SetMenuItemInfoW(hsm, menuitem, 0, &mii);
@@ -43,12 +44,12 @@ void DesktopRightClick(Element* elem, Event* iev) {
             else if (globaliconsz <= 96) SetMenuItemInfoW(hsm, 1002, 0, &mii);
             else SetMenuItemInfoW(hsm, 1001, 0, &mii);
             AppendMenuW(hsm, MF_SEPARATOR, 1005, L"_");
-            AppendMenuW(hsm, MF_STRING, 1006, L"Show desktop icons");
+            AppendMenuW(hsm, MF_STRING, 1006, LoadStrFromRes(4008).c_str());
             mii.fState = hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
             SetMenuItemInfoW(hsm, 1006, 0, &mii);
-            InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, L"View");
-            InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2002, L"Refresh");
-            InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2003, L"Open Edit Mode");
+            InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, LoadStrFromRes(4001).c_str());
+            InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
+            InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
             InsertMenuW(hm, 3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
             pICv1->QueryContextMenu(hm, 4, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
@@ -66,6 +67,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
             }
 
             UINT uFlags = TPM_RIGHTBUTTON;
+            if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
             if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
                 uFlags |= TPM_RIGHTALIGN;
             else
@@ -86,7 +88,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 break;
             case 1001:
                 globaliconsz = 144;
-                globalshiconsz = 64;
+                globalshiconsz = 48;
                 globalgpiconsz = 48;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144, false, nullptr);
                 RearrangeIcons(true, true);
@@ -156,6 +158,7 @@ void RightClickCore(LPCWSTR folderPath) {
         pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
         UINT uFlags = TPM_RIGHTBUTTON;
+        if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
         if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
             uFlags |= TPM_RIGHTALIGN;
         else

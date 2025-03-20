@@ -7,6 +7,7 @@ using namespace DirectUI;
 extern bool showcheckboxes;
 extern bool treatdirasgroup;
 extern bool isColorized;
+extern int localeType;
 
 extern Element* UIContainer;
 extern NativeHWNDHost* wnd;
@@ -15,3 +16,4 @@ extern void InitLayout(bool bUnused1, bool bUnused2);
 
 void ToggleSetting(Element* elem, Event* iev);
 POINT GetTopLeftMonitor();
+int GetRightMonitor();

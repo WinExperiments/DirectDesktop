@@ -613,7 +613,7 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     // This is such a bad way to sort...
     vector<LVItem*> pmBuf;
     vector<Element*> pmShortcutBuf;
-    vector<Element*> pmIconBuf;
+    vector<DDScalableElement*> pmIconBuf;
     vector<Element*> pmIconShadowBuf;
     vector<RichText*> pmFileBuf;
     vector<RichText*> pmFileShadowBuf;

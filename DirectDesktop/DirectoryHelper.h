@@ -11,7 +11,7 @@ extern Logger MainLogger;
 extern int logging, validItems;
 extern vector<LVItem*> pm, subpm;
 extern vector<DirectUI::Element*> shortpm;
-extern vector<DirectUI::Element*> iconpm;
+extern vector<DDScalableElement*> iconpm;
 extern vector<DirectUI::Element*> shadowpm;
 extern vector<DirectUI::RichText*> filepm;
 extern vector<DirectUI::RichText*> fileshadowpm;
