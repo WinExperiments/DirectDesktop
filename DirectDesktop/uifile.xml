@@ -1,5 +1,5 @@
 <duixml>
-	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default" background="rgb(0,0,0)" dpi="120">
+	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default" background="rgb(0,0,0)">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
 			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
@@ -19,7 +19,7 @@
 	</HWNDElement>
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="default">
 		<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
-			<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
+			<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast"/>
 		</Button>
 		//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
 		<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
@@ -29,29 +29,29 @@
 			<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
 		</Button>
 		<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-			<TouchButton id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
+			<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
 				<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
 					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 					<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 				</Element>
-			</TouchButton>
-			<TouchButton id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
+			</Button>
+			<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
 				<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
 					<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 					<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
 				</Element>
-			</TouchButton>
+			</Button>
 		</Button>
 	</HWNDElement>
 	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
-	<DDScalableElement resid="simpleviewoverlay" class="roundoverlay" DrawType="0"/>
+	<DDScalableElement resid="simpleviewoverlay" class="roundoverlay" DrawType="1"/>
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
 	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" animation="position|s|fast">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
-		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="0"/>
+		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" alpha ="0" animation="alpha|s|mediumslow|delayshort" contentalign="bottomleft"/>
 		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
@@ -60,22 +60,22 @@
 	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
-		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="0"/>
+		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</LVItem>
-	<DDScalableElement resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="0"/>
+	<DDScalableButton resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1"/>
 	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)" font="iconfont">
-				<TouchButton id="atom(Customize)" content="resstr(4027)" class="popupbutton"/>
-				<TouchButton id="atom(OpenInExplorer)" content="resstr(4028)" class="popupbutton"/>
+			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
+				<DDScalableButton id="atom(Customize)" content="resstr(4027)" class="popupbutton"/>
+				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(4028)" class="popupbutton"/>
 			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,0)" width="400rp">
-				<RichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
-				<RichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 			</Element>
 		</Element>
 		<ScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
@@ -85,12 +85,12 @@
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<RichText id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+			<DDScalableElement id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 		</Element>
 		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,8rp,0,8rp)" layout="flowlayout()">
-			<TouchButton id="atom(PageTab1)" content="resstr(4011)" class="pilltab" selected="true"/>
-			<TouchButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
-			<TouchButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
+			<DDScalableButton id="atom(PageTab1)" content="resstr(4011)" class="pilltab"/>
+			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
+			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
 		</Element>
 		<ScrollViewer id="atom(settingslist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
 			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
@@ -98,25 +98,25 @@
 	</Element>
 	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(30522, library(shell32.dll))" class="toggletext"/>
+			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(ItemCheckboxes)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(24155, library(shell32.dll))" class="toggletext"/>
+			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(ShowHiddenFiles)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(30503, library(shell32.dll))" class="toggletext"/>
+			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(FilenameExts)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(4014)" class="toggletext"/>
+			<DDScalableElement content="resstr(4014)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(TreatDirAsGroup)" class="togglebutton"/>
 			</Element>
@@ -124,24 +124,30 @@
 	</Element>
 	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(4015)" class="toggletext"/>
+			<DDScalableElement content="resstr(4015)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(EnableAccent)" class="togglebutton"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(30554, library(shell32.dll))" class="toggletext"/>
+			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(IconThumbnails)" class="togglebutton"/>
 			</Element>
 		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<DDScalableButton id="atom(DesktopIconSettings)" content="resstr(112, library(desk.cpl))" layoutpos="left" class="popupbutton" visible="true"/>
+		</Element>
 	</Element>
 	<Element resid="SettingsPage3" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
-			<RichText content="resstr(4016)" class="toggletext"/>
+			<DDScalableElement content="resstr(4016)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(EnableLogging)" class="togglebutton"/>
 			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<DDScalableButton id="atom(ViewLastLog)" content="resstr(4033)" layoutpos="left" class="popupbutton" visible="true"/>
 		</Element>
 	</Element>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
@@ -187,18 +193,19 @@
 				<Button background="resbmp(164,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="popupwindow">
-				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<DDScalableButton FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
+				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="0"/>
 				<RichText foreground="black"/>
 			</if>
 			<if class="popupbutton">
-				<TouchButton foreground="20007" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)"/>
+				<DDScalableButton foreground="20007" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="1"/>
 				<if mousefocused="true">
-					<TouchButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 				<if Pressed="true">
-					<TouchButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 			</if>
 			<if class="ScrollViewer">
@@ -208,110 +215,54 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>				
-				<TouchButton background="argb(0,0,0,0)" foreground="black"/>
+				<Button background="argb(0,0,0,0)" foreground="black"/>
 				<if mousefocused="true">
-					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 				</if>
 				<if Pressed="true">
-					<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 				</if>
 			</if>
 			<if class="pilltab">
-				<TouchButton background="themeable(dtb(PillTab::Tab,1,1), argb(0, 0, 0, 0))" height="32rp" minsize="size(64rp,0)" padding="rect(10rp,0,10rp,0)" margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 1rp))" accessible="True" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)" font="messagefont;115%"/>
+				<DDScalableButton FirstScaledImage="172" ScaledImageIntervals="7" DrawType="1" EnableAccent="1" NeedsFontResize="1" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
+					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(0,0,0)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<TouchButton background="themeable(dtb(PillTab::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
+					<DDScalableButton FirstScaledImage="179" foreground="rgb(0,0,0)"/>
 				</if>
 				<if selected="true">
-					<TouchButton background="themeable(dtb(PillTab::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
+					<DDScalableButton FirstScaledImage="186" foreground="rgb(255,255,255)"/>
 				</if>
-				<ifgreaterequal dpi="192">
-					<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,1), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)"/>
-					<if mousefocused="true">
-						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
-					</if>
-					<if selected="true">
-						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
-					</if>
-				</ifgreaterequal>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
 			</if>
 			<if class="toggletext">
-				<RichText layoutpos="left" padding="rect(0,0,8rp,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)"/>
+				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="1" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right"/>
 			</if>
 			<if class="togglebutton">
-				<DDToggleButton width="40rp" height="20rp" background="sgraphic(108,7,-1,0,0,1,1)" contentalign="middlecenter"/>
-				<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(109,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(110,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(111,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(112,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(113,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(114,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<DDToggleButton width="40rp" height="20rp" FirstScaledImage="108" ScaledImageIntervals="7" DrawType="2" EnableAccent="1" contentalign="middlecenter"/>
 				<if mousefocused="true">
-					<DDToggleButton background="sgraphic(115,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(116,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(117,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(118,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(119,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(120,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(121,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="115"/>
 				</if>
 				<if Pressed="true">
-					<DDToggleButton background="sgraphic(122,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(123,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(124,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(125,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(126,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(127,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(128,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="122"/>
 				</if>
 				<if Enabled="false">
-					<DDToggleButton background="sgraphic(129,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(130,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(131,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(132,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(133,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(134,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(135,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="129"/>
 				</if>
 				<if selected="true">
-					<DDToggleButton background="sgraphic(136,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(137,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(138,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(139,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(140,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(141,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(142,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="136"/>
 					<if mousefocused="true">
-						<DDToggleButton background="sgraphic(143,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(144,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(145,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(146,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(147,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(148,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(149,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton FirstScaledImage="143"/>
 					</if>
 					<if Pressed="true">
-						<DDToggleButton background="sgraphic(150,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(151,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(152,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(153,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(154,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(155,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(156,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton FirstScaledImage="150"/>
 					</if>
 					<if Enabled="false">
-						<DDToggleButton background="sgraphic(157,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(158,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(159,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(160,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(161,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(162,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(163,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton FirstScaledImage="157"/>
 					</if>
 				</if>
 			</if>
@@ -375,18 +326,19 @@
 				<Button background="resbmp(264,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="popupwindow">
-				<DDScalableElement FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<DDScalableButton FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
+				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="0"/> 
 				<RichText foreground="white"/>
 			</if>
 			<if class="popupbutton">
-				<TouchButton foreground="20002" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)"/>
+				<DDScalableButton foreground="20002" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="1"/>
 				<if mousefocused="true">
-					<TouchButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Pressed="true">
-					<TouchButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 			</if>
 			<if class="ScrollViewer">
@@ -396,110 +348,54 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
-				<TouchButton background="argb(0,0,0,0)" foreground="white"/>
+				<Button background="argb(0,0,0,0)" foreground="white"/>
 				<if mousefocused="true">
-					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 				</if>
 				<if Pressed="true">
-					<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 				</if>
 			</if>
 			<if class="pilltab">
-				<TouchButton background="themeable(dtb(PillTab::Tab,1,1), argb(0, 0, 0, 0))" height="32rp" minsize="size(64rp,0)" padding="rect(10rp,0,10rp,0)" margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 1rp))" accessible="True" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)" font="messagefont;115%"/>
+				<DDScalableButton FirstScaledImage="272" ScaledImageIntervals="7" DrawType="1" EnableAccent="1" NeedsFontResize="1" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
+					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<TouchButton background="themeable(dtb(PillTab::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
+					<DDScalableButton FirstScaledImage="279" foreground="rgb(255,255,255)"/>
 				</if>
 				<if selected="true">
-					<TouchButton background="themeable(dtb(PillTab::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
+					<DDScalableButton FirstScaledImage="286" foreground="rgb(0,0,0)"/>
 				</if>
-				<ifgreaterequal dpi="192">
-					<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,1), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,1,3803), Buttontext)"/>
-					<if mousefocused="true">
-						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,2), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUISecondary::Button,1,2,3803), Buttontext)"/>
-					</if>
-					<if selected="true">
-						<TouchButton background="themeable(dtb(PillTabHighDPI::Tab,1,3), argb(0, 0, 0, 0))" foreground="themeable(gtc(DirectUI::Button,1,1,3803), Buttontext)" borderthickness="themeable(rect(0, 0, 0, 0), rect(1rp, 1rp, 1rp, 0))"/>
-					</if>
-				</ifgreaterequal>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
 			</if>
 			<if class="toggletext">
-				<RichText layoutpos="left" padding="rect(0,0,8rp,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)"/>
+				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="1" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right"/>
 			</if>
 			<if class="togglebutton">
-				<DDToggleButton width="40rp" height="20rp" background="sgraphic(208,7,-1,0,0,1,1)" contentalign="middlecenter"/>
-				<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(209,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(210,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(211,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(212,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(213,7,-1,0,0,1,1)"/> </ifgreaterequal>
-				<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(214,7,-1,0,0,1,1)"/> </ifgreaterequal>
+				<DDToggleButton width="40rp" height="20rp" FirstScaledImage="208" ScaledImageIntervals="7" DrawType="2" EnableAccent="1" contentalign="middlecenter"/>
 				<if mousefocused="true">
-					<DDToggleButton background="sgraphic(215,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(216,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(217,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(218,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(219,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(220,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(221,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="215"/>
 				</if>
 				<if Pressed="true">
-					<DDToggleButton background="sgraphic(222,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(223,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(224,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(225,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(226,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(227,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(228,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="222"/>
 				</if>
 				<if Enabled="false">
-					<DDToggleButton background="sgraphic(229,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(230,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(231,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(232,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(233,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(234,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(235,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="229"/>
 				</if>
 				<if selected="true">
-					<DDToggleButton background="sgraphic(236,7,-1,0,0,1,1)"/>
-					<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(237,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(238,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(239,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(240,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(241,7,-1,0,0,1,1)"/> </ifgreaterequal>
-					<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(242,7,-1,0,0,1,1)"/> </ifgreaterequal>
+					<DDToggleButton FirstScaledImage="236"/>
 					<if mousefocused="true">
-						<DDToggleButton background="sgraphic(243,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(244,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(245,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(246,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(247,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(248,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(249,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton FirstScaledImage="243"/>
 					</if>
 					<if Pressed="true">
-						<DDToggleButton background="sgraphic(250,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(251,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(252,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(253,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(254,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(255,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(256,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton FirstScaledImage="250"/>
 					</if>
 					<if Enabled="false">
-						<DDToggleButton background="sgraphic(257,7,-1,0,0,1,1)"/>
-						<ifgreaterequal dpi="120"> <DDToggleButton background="sgraphic(258,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="144"> <DDToggleButton background="sgraphic(259,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="192"> <DDToggleButton background="sgraphic(260,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="240"> <DDToggleButton background="sgraphic(261,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="288"> <DDToggleButton background="sgraphic(262,7,-1,0,0,1,1)"/> </ifgreaterequal>
-						<ifgreaterequal dpi="384"> <DDToggleButton background="sgraphic(263,7,-1,0,0,1,1)"/> </ifgreaterequal>
+						<DDToggleButton FirstScaledImage="257"/>
 					</if>
 				</if>
 			</if>

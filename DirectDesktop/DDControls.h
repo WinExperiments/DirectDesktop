@@ -6,9 +6,11 @@
 using namespace std;
 using namespace DirectUI;
 
-extern int dpi;
+extern int dpi, dpiLaunch;
 extern NativeHWNDHost* subviewwnd;
 extern int GetCurrentScaleInterval();
+extern struct EventListener2;
+extern void assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2));
 
 class LVItem final : public Button {
 public:
@@ -76,28 +78,59 @@ public:
     static const PropertyInfo* WINAPI FirstScaledImageProp();
     static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
     static const PropertyInfo* WINAPI DrawTypeProp();
+    static const PropertyInfo* WINAPI EnableAccentProp();
+    static const PropertyInfo* WINAPI NeedsFontResizeProp();
     int GetFirstScaledImage();
     int GetScaledImageIntervals();
     int GetDrawType();
+    int GetEnableAccent();
+    int GetNeedsFontResize();
     void SetFirstScaledImage(int iFirstImage);
     void SetScaledImageIntervals(int iScaleIntervals);
     void SetDrawType(int iDrawType);
+    void SetEnableAccent(int iEnableAccent);
+    void SetNeedsFontResize(int iNeedsFontResize);
     void InitDrawImage();
     static void RedrawImages();
+    void InitDrawFont();
+    static void RedrawFonts();
 protected:
     static vector<DDScalableElement*> _arrCreatedElements;
+    int GetPropCommon(const PropertyProcT pPropertyProc);
+    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
 private:
     static IClassInfo* s_pClassInfo;
 };
 
 class DDScalableButton : public Button {
 public:
-    DDScalableButton() {
+    DDScalableButton();
+    ~DDScalableButton();
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    static const PropertyInfo* WINAPI FirstScaledImageProp();
+    static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+    static const PropertyInfo* WINAPI DrawTypeProp();
+    static const PropertyInfo* WINAPI EnableAccentProp();
+    static const PropertyInfo* WINAPI NeedsFontResizeProp();
+    int GetFirstScaledImage();
+    int GetScaledImageIntervals();
+    int GetDrawType();
+    int GetEnableAccent();
+    int GetNeedsFontResize();
+    void SetFirstScaledImage(int iFirstImage);
+    void SetScaledImageIntervals(int iScaleIntervals);
+    void SetDrawType(int iDrawType);
+    void SetEnableAccent(int iEnableAccent);
+    void SetNeedsFontResize(int iNeedsFontResize);
+    void InitDrawImage();
+    static void RedrawImages();
+    void InitDrawFont();
+    static void RedrawFonts();
 
-    }
-    virtual ~DDScalableButton() {
-
-    }
     RegKeyValue GetRegKeyValue();
     void(*GetAssociatedFn())(bool, bool);
     bool* GetAssociatedBool();
@@ -106,9 +139,14 @@ public:
     void SetAssociatedBool(bool* pb);
     void ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2);
 protected:
+    static vector<DDScalableButton*> _arrCreatedButtons;
     RegKeyValue _rkv{};
     void(*_assocFn)(bool, bool) = nullptr;
     bool* _assocBool = nullptr;
+    int GetPropCommon(const PropertyProcT pPropertyProc);
+    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+private:
+    static IClassInfo* s_pClassInfo;
 };
 
 class DDToggleButton final : public DDScalableButton {

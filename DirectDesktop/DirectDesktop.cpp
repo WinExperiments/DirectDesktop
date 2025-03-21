@@ -11,6 +11,7 @@
 #include <cmath>
 #include <vector>
 #include <list>
+#include <regex>
 #include <WinUser.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
@@ -44,30 +45,29 @@ Element* iconElemShadow;
 RichText* textElem;
 RichText* textElemShadow;
 Button* checkboxElem;
-DDScalableElement* fullscreeninner;
+DDScalableButton* fullscreeninner;
 Button* fullscreenpopupbase, *centered;
 Button* emptyspace;
 Element* selector, *selector2;
 Element* dirnameanimator;
 Element* tasksanimator;
 Button* SimpleViewTop, *SimpleViewBottom;
-TouchButton* SimpleViewSettings, *SimpleViewClose;
-TouchButton* PageTab1, *PageTab2, *PageTab3;
+Button* SimpleViewSettings, *SimpleViewClose;
+DDScalableButton* PageTab1, *PageTab2, *PageTab3;
 RichText* SubUIContainer;
 TouchButton* nextpage, *prevpage;
-TouchButton* prevpageMain, * nextpageMain;
+TouchButton* prevpageMain, *nextpageMain;
 RichText* pageinfo;
 
 HRESULT err;
 HWND hWorkerW = NULL;
 HWND hSHELLDLL_DefView = NULL;
-HWND hWndTaskbar = FindWindow(L"Shell_TrayWnd", NULL);
+HWND hWndTaskbar = FindWindowW(L"Shell_TrayWnd", NULL);
 Logger MainLogger;
 
 int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
 int localeType{};
-//vector<int> frame;
 
 wstring LoadStrFromRes(UINT id) {
     WCHAR* loadedStrBuffer = new WCHAR[512]{};
@@ -84,7 +84,7 @@ wstring RemoveQuotes(const wstring& input) {
     return input;
 }
 
-int dpi = 96, dpiOld = 1;
+int dpi = 96, dpiOld = 1, dpiLaunch{};
 float flScaleFactor = 1.0;
 bool isDpiPreviouslyChanged;
 void InitialUpdateScale() {
@@ -92,6 +92,7 @@ void InitialUpdateScale() {
     dpi = GetDeviceCaps(screen, LOGPIXELSX);
     ReleaseDC(0, screen);
     flScaleFactor = dpi / 96.0;
+    dpiLaunch = dpi;
 }
 
 void UpdateScale() {
@@ -101,6 +102,9 @@ void UpdateScale() {
     isDpiPreviouslyChanged = true;
     flScaleFactor = dpi / 96.0;
     DDScalableElement::RedrawImages();
+    DDScalableButton::RedrawImages();
+    DDScalableElement::RedrawFonts();
+    DDScalableButton::RedrawFonts();
 }
 
 int GetCurrentScaleInterval() {
@@ -310,7 +314,7 @@ void ShowSimpleView() {
     //}
     //else {
         fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7);
-        fullscreeninner->SetBackgroundStdColor(7);
+        SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     //}
     if (maxPageID != 1) {
         WCHAR currentPage[64];
@@ -329,12 +333,11 @@ void ShowSimpleView() {
     SimpleViewTop->SetLayoutPos(1);
     SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
     SimpleViewBottom->SetLayoutPos(3);
-    pSubview->SetBackgroundStdColor(7);
     DDScalableElement* simpleviewoverlay{};
     parser->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
-    //TaskDialog(NULL, NULL, L"test", to_wstring(simpleviewoverlay->GetFirstScaledImage()).c_str(), to_wstring(simpleviewoverlay->GetScaledImageIntervals()).c_str(), NULL, NULL, NULL);
     centered->Add((Element**)&simpleviewoverlay, 1);
-    //TaskDialog(NULL, NULL, L"test", to_wstring(simpleviewoverlay->GetFirstScaledImage()).c_str(), to_wstring(simpleviewoverlay->GetScaledImageIntervals()).c_str(), NULL, NULL, NULL);
+    fullscreeninner->SetFirstScaledImage(-1);
+    fullscreeninner->SetBackgroundStdColor(7);
     mainContainer->SetVisible(false);
     BlurBackground(subviewwnd->GetHWND(), false);
 }
@@ -388,6 +391,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0) {
             SetTheme();
             DDScalableElement::RedrawImages();
+            DDScalableButton::RedrawImages();
             SendMessageW(wnd->GetHWND(), WM_USER + 14, NULL, 1);
             if (isColorized) RearrangeIcons(false, true);
         }
@@ -405,6 +409,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
             StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
             ShellExecuteW(NULL, L"open", L"notepad.exe", desktoplog, NULL, SW_SHOW);
+            delete[] desktoplog;
+            delete[] cBuffer;
         }
         DWORD dwTermination{};
         HANDLE termThread = CreateThread(0, 0, EndExplorer, NULL, 0, &dwTermination);
@@ -430,8 +436,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         lines_basedOnEllipsis = floor(CalcTextLines(pm[wParam]->GetSimpleFilename().c_str(), innerSizeX)) * textm.tmHeight;
         pm[wParam]->SetWidth(innerSizeX);
         pm[wParam]->SetHeight(innerSizeY + lines_basedOnEllipsis + 7 * flScaleFactor);
-        //pm[wParam]->SetX(pm[wParam]->GetInternalXPos());
-        //pm[wParam]->SetY(pm[wParam]->GetInternalYPos());
         filepm[wParam]->SetHeight(lines_basedOnEllipsis + 4 * flScaleFactor);
         fileshadowpm[wParam]->SetHeight(lines_basedOnEllipsis + 5 * flScaleFactor);
         iconpm[wParam]->SetWidth(round(globaliconsz * flScaleFactor));
@@ -525,8 +529,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 9: {
         subpm[wParam]->SetWidth(innerSizeX);
         subpm[wParam]->SetHeight(innerSizeY + textm.tmHeight + 23 * flScaleFactor);
-        //subpm[wParam]->SetX(subpm[wParam]->GetInternalXPos()); // round((720 - 2 * subpm[wParam].x) * 0.15 * (1 - bezierProgress) + subpm[wParam].x));
-        //subpm[wParam]->SetY(subpm[wParam]->GetInternalYPos()); // round((360 - 2 * subpm[wParam].y) * 0.15 * (1 - bezierProgress) + subpm[wParam].y));
         int textlines = 1;
         if (textm.tmHeight <= 18 * flScaleFactor) textlines = 2;
         subfilepm[wParam]->SetHeight(textm.tmHeight * textlines + 4 * flScaleFactor);
@@ -671,12 +673,13 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     switch (uMsg) {
     case WM_DPICHANGED: {
         UpdateScale();
+        InitLayout(true, false);
         InitLayout(false, false);
         break;
     }
     case WM_DISPLAYCHANGE: {
         AdjustWindowSizes(true);
-        RearrangeIcons(false, false);
+        RearrangeIcons(true, false);
         break;
     }
     case WM_USER + 1: {
@@ -686,22 +689,48 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
         int imageID = ((DDScalableElement*)wParam)->GetFirstScaledImage() + scaleInterval;
         HBITMAP newImage = (HBITMAP)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        if (newImage == nullptr) {
+            newImage = LoadPNGAsBitmap(imageID);
+            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1);
+        }
+        if (((DDScalableElement*)wParam)->GetEnableAccent() == 1) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1);
         switch (((DDScalableElement*)wParam)->GetDrawType()) {
-        case 0: {
-            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, false, false, false);
-            ((DDScalableElement*)wParam)->SetValue(Element::BackgroundProp, 1, vImage);
-            vImage->Release();
+        case 1: {
+            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
+            if (vImage) {
+                ((DDScalableElement*)wParam)->SetValue(Element::BackgroundProp, 1, vImage);
+                vImage->Release();
+            }
             break;
         }
-        case 1: {
-            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, false, false, false);
-            ((DDScalableElement*)wParam)->SetValue(Element::ContentProp, 1, vImage);
-            vImage->Release();
+        case 2: {
+            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
+            if (vImage) {
+                ((DDScalableElement*)wParam)->SetValue(Element::ContentProp, 1, vImage);
+                vImage->Release();
+            }
             break;
         }
         }
         if (newImage) DeleteObject(newImage);
         break;
+    }
+    case WM_USER + 2: {
+        Value* v;
+        if (((DDScalableElement*)wParam)->GetNeedsFontResize() > 0) {
+            if (((DDScalableElement*)wParam)->GetFont(&v) == nullptr) break;
+            wstring fontOld = ((DDScalableElement*)wParam)->GetFont(&v);
+            wregex fontRegex(L".*font;.*\%");
+            bool isSysmetricFont = regex_match(fontOld, fontRegex);
+            if (isSysmetricFont) {
+                size_t modifier = fontOld.find(L";");
+                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, wcslen(fontOld.c_str()) - 1);
+                int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + L"\%";
+                ((DDScalableElement*)wParam)->SetFont(fontNew.c_str());
+            }
+        }
     }
     }
     return CallWindowProc(WndProc2, hWnd, uMsg, wParam, lParam);
@@ -709,7 +738,6 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 unsigned long animate(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
-    //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 1, yV->y, NULL);
     free(yV);
     return 0;
@@ -724,13 +752,8 @@ unsigned long subanimate(LPVOID lpParam) {
 
 unsigned long fastin(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
-    //this_thread::sleep_for(chrono::milliseconds(static_cast<int>(pm[yV->y].y * 0.5)));
     SendMessageW(wnd->GetHWND(), WM_USER + 4, yV->y, NULL);
-    //for (int m = 1; m <= 24; m++) {
-        //frame[yV->y] = 24;
         SendMessageW(wnd->GetHWND(), WM_USER + 3, yV->y, NULL);
-        //this_thread::sleep_for(chrono::milliseconds((int)((px[m] - px[m - 1]) * 400)));
-    //}
     free(yV);
     return 0;
 }
@@ -738,7 +761,6 @@ unsigned long fastin(LPVOID lpParam) {
 unsigned long subfastin(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
     SendMessageW(wnd->GetHWND(), WM_USER + 10, yV->y, NULL);
-    //frame[yV->y] = 24;
     SendMessageW(wnd->GetHWND(), WM_USER + 9, yV->y, NULL);
     free(yV);
     return 0;
@@ -756,7 +778,10 @@ unsigned long animate5(LPVOID lpParam) {
 }
 
 unsigned long animate6(LPVOID lpParam) {
-    //this_thread::sleep_for(chrono::milliseconds(100));
+    this_thread::sleep_for(chrono::milliseconds(200));
+    pSubview->SetAccessible(false);
+    subviewwnd->ShowWindow(SW_HIDE);
+    BlurBackground(subviewwnd->GetHWND(), false);
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
     return 0;
 }
@@ -782,26 +807,13 @@ unsigned long grouptasksanimation(LPVOID lpParam) {
 void fullscreenAnimation(int width, int height) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    //HDC hdcWindow = GetDC(wnd->GetHWND());
-    //HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    //HBITMAP hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right * 0.08, dimensions.bottom * 0.08);
-    //HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-    //SetStretchBltMode(hdcMem, HALFTONE);
-    //StretchBlt(hdcMem, 0, 0, dimensions.right * 0.08, dimensions.bottom * 0.08, hdcWindow, 0, 0, dimensions.right, dimensions.bottom, SRCCOPY);
-    //SelectObject(hdcMem, hbmOld);
-    //DeleteDC(hdcMem);
-    //ReleaseDC(wnd->GetHWND(), hdcWindow);
-    //IterateBitmap(hbmCapture, StandardBitmapPixelHandler, 2, 2 * flScaleFactor, 1);
-    //Value* bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 4, 0xffffffff, false, false, true);
-    //fullscreenpopup->SetValue(Element::BackgroundProp, 1, bitmap);
-    //bitmap->Release();
-    //this_thread::sleep_for(chrono::milliseconds(80));
     pSubview->SetAccessible(true);
     subviewwnd->ShowWindow(SW_SHOW);
     parser->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
     centered->SetMinSize(width, height);
     centered->SetBackgroundColor(0);
+    centered->SetAlpha(255);
     fullscreeninner->SetMinSize(width, height);
     fullscreenpopupbase->SetVisible(true);
     fullscreeninner->SetVisible(true);
@@ -819,11 +831,9 @@ void ShowPopupCore() {
 void HidePopupCore(bool WinDInvoked) {
     editmode = false;
     if (!WinDInvoked) SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
-    pSubview->SetAccessible(false);
-    subviewwnd->ShowWindow(SW_HIDE);
+    centered->SetAlpha(0);
     mainContainer->SetVisible(true);
     fullscreenAnimation2();
-    //frame.clear();
     subpm.clear();
     subiconpm.clear();
     subshortpm.clear();
@@ -833,7 +843,6 @@ void HidePopupCore(bool WinDInvoked) {
     SimpleViewBottom->SetLayoutPos(-3);
     nextpage->SetWidth(0);
     prevpage->SetWidth(0);
-    BlurBackground(subviewwnd->GetHWND(), false);
 }
 
 wstring bufferOpenInExplorer;
@@ -957,7 +966,7 @@ unsigned long ApplyThumbnailIcons(LPVOID lpParam) {
 
 unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
     yValue* yV = (yValue*)lpParam;
-    PostMessageW(wnd->GetHWND(), WM_USER + 16, yV->y, NULL);
+    SendMessageW(wnd->GetHWND(), WM_USER + 16, yV->y, NULL);
     free(yV);
     return 0;
 }
@@ -1110,10 +1119,10 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     }
     dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
     tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
-    RichText* dirname = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirname"));
+    DDScalableElement* dirname = (DDScalableElement*)groupdirectory->FindDescendent(StrToID(L"dirname"));
     dirname->SetContentString(simplefilename);
     dirname->SetAlpha(255);
-    RichText* dirdetails = (RichText*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
+    DDScalableElement* dirdetails = (DDScalableElement*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
     WCHAR itemCount[64];
     if (count == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
     else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), count);
@@ -1125,15 +1134,29 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     DWORD animThread4;
     HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
-    TouchButton* Customize = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"Customize"));
-    TouchButton* OpenInExplorer = (TouchButton*)groupdirectory->FindDescendent(StrToID(L"OpenInExplorer"));
+    DDScalableButton* Customize = (DDScalableButton*)groupdirectory->FindDescendent(StrToID(L"Customize"));
+    DDScalableButton* OpenInExplorer = (DDScalableButton*)groupdirectory->FindDescendent(StrToID(L"OpenInExplorer"));
     Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
     assignFn(OpenInExplorer, OpenGroupInExplorer);
     bufferOpenInExplorer = (wstring)filename;
 }
 
+void OpenDeskCpl(Element* elem, Event* iev) {
+    if (iev->uidType == Button::Click) ShellExecuteW(NULL, L"open", L"control.exe", L"desk.cpl,Web,0", NULL, SW_SHOW);
+}
+void OpenLog(Element* elem, Event* iev) {
+    if (iev->uidType == Button::Click) {
+        wchar_t* desktoplog = new wchar_t[260];
+        wchar_t* cBuffer = new wchar_t[260];
+        DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
+        StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
+        ShellExecuteW(NULL, L"open", L"notepad.exe", desktoplog, NULL, SW_SHOW);
+        delete[] desktoplog;
+        delete[] cBuffer;
+    }
+}
 void ShowPage1(Element* elem, Event* iev) {
-    if (iev->uidType == TouchButton::Click) {
+    if (iev->uidType == Button::Click) {
         PageTab1->SetSelected(true);
         PageTab2->SetSelected(false);
         PageTab3->SetSelected(false);
@@ -1172,7 +1195,7 @@ void ShowPage1(Element* elem, Event* iev) {
     }
 }
 void ShowPage2(Element* elem, Event* iev) {
-    if (iev->uidType == TouchButton::Click) {
+    if (iev->uidType == Button::Click) {
         PageTab1->SetSelected(false);
         PageTab2->SetSelected(true);
         PageTab3->SetSelected(false);
@@ -1182,6 +1205,7 @@ void ShowPage2(Element* elem, Event* iev) {
         SubUIContainer->Add((Element**)&SettingsPage2, 1);
         DDToggleButton* EnableAccent = (DDToggleButton*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
         DDToggleButton* IconThumbnails = (DDToggleButton*)SettingsPage2->FindDescendent(StrToID(L"IconThumbnails"));
+        DDScalableButton* DesktopIconSettings = (DDScalableButton*)SettingsPage2->FindDescendent(StrToID(L"DesktopIconSettings"));
         RegKeyValue rkvTemp{};
         rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"AccentColorIcons";
         EnableAccent->SetSelected(isColorized);
@@ -1194,10 +1218,11 @@ void ShowPage2(Element* elem, Event* iev) {
         IconThumbnails->SetRegKeyValue(rkvTemp);
         assignFn(EnableAccent, ToggleSetting);
         assignFn(IconThumbnails, ToggleSetting);
+        assignFn(DesktopIconSettings, OpenDeskCpl);
     }
 }
 void ShowPage3(Element* elem, Event* iev) {
-    if (iev->uidType == TouchButton::Click) {
+    if (iev->uidType == Button::Click) {
         PageTab1->SetSelected(false);
         PageTab2->SetSelected(false);
         PageTab3->SetSelected(true);
@@ -1206,15 +1231,17 @@ void ShowPage3(Element* elem, Event* iev) {
         parser->CreateElement(L"SettingsPage3", NULL, NULL, NULL, (Element**)&SettingsPage3);
         SubUIContainer->Add((Element**)&SettingsPage3, 1);
         DDToggleButton* EnableLogging = (DDToggleButton*)SettingsPage3->FindDescendent(StrToID(L"EnableLogging"));
+        DDScalableButton* ViewLastLog = (DDScalableButton*)SettingsPage3->FindDescendent(StrToID(L"ViewLastLog"));
         RegKeyValue rkvTemp{};
         rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"Logging";
         EnableLogging->SetSelected(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
         EnableLogging->SetRegKeyValue(rkvTemp);
         assignFn(EnableLogging, ToggleSetting);
+        assignFn(ViewLastLog, OpenLog);
     }
 }
 void ShowSettings(Element* elem, Event* iev) {
-    if (iev->uidType == TouchButton::Click) {
+    if (iev->uidType == Button::Click) {
         subviewwnd->ShowWindow(SW_HIDE);
         mainContainer->SetVisible(true);
         centered->DestroyAll(true);
@@ -1229,16 +1256,16 @@ void ShowSettings(Element* elem, Event* iev) {
         fullscreeninner->Add((Element**)&settingsview, 1);
         ScrollViewer* settingslist = (ScrollViewer*)settingsview->FindDescendent(StrToID(L"settingslist"));
         SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID(L"SubUIContainer"));
-        PageTab1 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab1"));
-        PageTab2 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab2"));
-        PageTab3 = (TouchButton*)settingsview->FindDescendent(StrToID(L"PageTab3"));
+        PageTab1 = (DDScalableButton*)settingsview->FindDescendent(StrToID(L"PageTab1"));
+        PageTab2 = (DDScalableButton*)settingsview->FindDescendent(StrToID(L"PageTab2"));
+        PageTab3 = (DDScalableButton*)settingsview->FindDescendent(StrToID(L"PageTab3"));
         assignFn(PageTab1, ShowPage1);
         assignFn(PageTab2, ShowPage2);
         assignFn(PageTab3, ShowPage3);
         ShowPage1(elem, iev);
         CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
         dirnameanimator = (Element*)settingsview->FindDescendent(StrToID(L"dirnameanimator"));
-        RichText* name = (RichText*)settingsview->FindDescendent(StrToID(L"name"));
+        DDScalableElement* name = (DDScalableElement*)settingsview->FindDescendent(StrToID(L"name"));
         name->SetAlpha(255);
         checkifelemexists = true;
         DWORD animThread3;
@@ -1246,7 +1273,7 @@ void ShowSettings(Element* elem, Event* iev) {
     }
 }
 void ExitWindow(Element* elem, Event* iev) {
-    if (iev->uidType == TouchButton::Click) {
+    if (iev->uidType == Button::Click) {
         SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
         SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, NULL);
     }
@@ -1486,9 +1513,9 @@ void RearrangeIcons(bool animation, bool reloadicons) {
     positions.clear();
 }
 
-void InitLayout(bool bUnused1, bool bUnused2) {
+void InitLayout(bool cloaked, bool bUnused2) {
     UIContainer->DestroyAll(true);
-    //frame.clear();
+    UIContainer->SetVisible(!cloaked);
     pm.clear();
     iconpm.clear();
     shortpm.clear();
@@ -1551,8 +1578,6 @@ void InitLayout(bool bUnused1, bool bUnused2) {
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
     if (count2 < count) EnumerateFolder(secondaryPath, &pm, false, false, nullptr, &count2);
     if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
-    //CubicBezier(24, px, py, 0.1, 0.9, 0.2, 1.0);
-    //frame.resize(count);
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 4 of 6 complete: Created arrays according to your desktop items.");
     for (int i = 0; i < count; i++) {
         if (pm[i]->GetHiddenState() == true) {
@@ -1579,8 +1604,9 @@ void InitLayout(bool bUnused1, bool bUnused2) {
 }
 
 unsigned long FinishedLogging(LPVOID lpParam) {
-    TaskDialog(NULL, NULL, LoadStrFromRes(4024).c_str(), LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, NULL);
-    SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
+    int logresponse{};
+    TaskDialog(NULL, NULL, LoadStrFromRes(4024).c_str(), LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), TDCBF_OK_BUTTON | TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, &logresponse);
+    if (logresponse == IDCLOSE) SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
     return 0;
 }
 
@@ -1591,6 +1617,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         KBDLLHOOKSTRUCT* pKeyInfo = (KBDLLHOOKSTRUCT*)lParam;
         if ((pKeyInfo->vkCode == 'D' || pKeyInfo->vkCode == 'M') && GetAsyncKeyState(VK_LWIN) & 0x8000) {
             HidePopupCore(true);
+            SetWindowPos(hWndTaskbar, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         }
     }
     return CallNextHookEx(KeyHook, nCode, wParam, lParam);
@@ -1618,6 +1645,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     RegisterAllControls();
     LVItem::Register();
     DDScalableElement::Register();
+    DDScalableButton::Register();
     DDToggleButton::Register();
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
@@ -1713,8 +1741,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     selector2 = regElem(L"selector2", pMain);
     SimpleViewTop = regBtn(L"SimpleViewTop", pSubview);
     SimpleViewBottom = regBtn(L"SimpleViewBottom", pSubview);
-    SimpleViewSettings = regTouchBtn(L"SimpleViewSettings", pSubview);
-    SimpleViewClose = regTouchBtn(L"SimpleViewClose", pSubview);
+    SimpleViewSettings = regBtn(L"SimpleViewSettings", pSubview);
+    SimpleViewClose = regBtn(L"SimpleViewClose", pSubview);
     prevpage = regTouchBtn(L"prevpage", pSubview);
     nextpage = regTouchBtn(L"nextpage", pSubview);
     prevpageMain = regTouchBtn(L"prevpageMain", pMain);
@@ -1761,8 +1789,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         HANDLE loggingThread = CreateThread(0, 0, FinishedLogging, NULL, 0, &dd);
     }
     logging = IDNO;
-    //if (logging == IDYES) TaskDialog(wnd->GetHWND(), GetModuleHandleW(NULL), L"Information", NULL,
-        //L"DirectDesktop is now transparent.", TDCBF_OK_BUTTON, TD_INFORMATION_ICON, NULL);
     StartMessagePump();
     UnInitProcessPriv(0);
     CoUninitialize();

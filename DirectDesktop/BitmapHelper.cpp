@@ -1,5 +1,112 @@
 #include "BitmapHelper.h"
 #include "BlurCore.h"
+#include <wincodec.h>
+#pragma comment (lib, "WindowsCodecs.lib")
+
+// https://faithlife.codes/blog/2008/09/displaying_a_splash_screen_with_c_part_i/
+IStream* CreateStreamOnResource(LPCTSTR lpName, LPCTSTR lpType) {
+    IStream* ipStream = nullptr;
+
+    HRSRC hrsrc = FindResourceW(NULL, lpName, lpType);
+    if (hrsrc == nullptr) return ipStream;
+
+    DWORD dwResourceSize = SizeofResource(NULL, hrsrc);
+    HGLOBAL hglbImage = LoadResource(NULL, hrsrc);
+    if (hglbImage == nullptr) return ipStream;
+
+    LPVOID pvSourceResourceData = LockResource(hglbImage);
+    if (pvSourceResourceData == nullptr) return ipStream;
+
+    HGLOBAL hgblResourceData = GlobalAlloc(GMEM_MOVEABLE, dwResourceSize);
+    if (hgblResourceData == nullptr) return ipStream;
+
+    LPVOID pvResourceData = GlobalLock(hgblResourceData);
+    if (pvResourceData == nullptr) {
+        GlobalFree(hgblResourceData);
+        return ipStream;
+    }
+
+    CopyMemory(pvResourceData, pvSourceResourceData, dwResourceSize);
+    GlobalUnlock(hgblResourceData);
+
+    if (SUCCEEDED(CreateStreamOnHGlobal(hgblResourceData, TRUE, &ipStream))) return ipStream;
+}
+IWICBitmapSource* LoadBitmapFromStream(IStream* ipImageStream) {
+    IWICBitmapSource* ipBitmap = nullptr;
+
+    IWICBitmapDecoder* ipDecoder = nullptr;
+    if (FAILED(CoCreateInstance(CLSID_WICPngDecoder, NULL, CLSCTX_INPROC_SERVER, __uuidof(ipDecoder), reinterpret_cast<void**>(&ipDecoder)))) return ipBitmap;
+
+    if (FAILED(ipDecoder->Initialize(ipImageStream, WICDecodeMetadataCacheOnLoad))) {
+        ipDecoder->Release();
+        return ipBitmap;
+    }
+
+    UINT nFrameCount = 0;
+    if (FAILED(ipDecoder->GetFrameCount(&nFrameCount)) || nFrameCount != 1) {
+        ipDecoder->Release();
+        return ipBitmap;
+    }
+
+    IWICBitmapFrameDecode* ipFrame = nullptr;
+    if (FAILED(ipDecoder->GetFrame(0, &ipFrame))) {
+        ipDecoder->Release();
+        return ipBitmap;
+    }
+
+    WICConvertBitmapSource(GUID_WICPixelFormat32bppPBGRA, ipFrame, &ipBitmap);
+    ipFrame->Release();
+    ipDecoder->Release();
+    return ipBitmap;
+}
+HBITMAP CreateHBITMAP(IWICBitmapSource* ipBitmap) {
+    HBITMAP hbmp = nullptr;
+
+    UINT width = 0;
+    UINT height = 0;
+    if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0) return hbmp;
+
+    BITMAPINFO bminfo;
+    ZeroMemory(&bminfo, sizeof(bminfo));
+    bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bminfo.bmiHeader.biWidth = width;
+    bminfo.bmiHeader.biHeight = -((LONG)height);
+    bminfo.bmiHeader.biPlanes = 1;
+    bminfo.bmiHeader.biBitCount = 32;
+    bminfo.bmiHeader.biCompression = BI_RGB;
+
+    void* pvImageBits = nullptr;
+    HDC hdcScreen = GetDC(NULL);
+    hbmp = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0);
+    ReleaseDC(NULL, hdcScreen);
+    if (hbmp == nullptr) return hbmp;
+
+    const UINT cbStride = width * 4;
+    const UINT cbImage = cbStride * height;
+    if (FAILED(ipBitmap->CopyPixels(NULL, cbStride, cbImage, static_cast<BYTE*>(pvImageBits)))) {
+        DeleteObject(hbmp);
+        hbmp = nullptr;
+    }
+    return hbmp;
+}
+HBITMAP LoadPNGAsBitmap(int imageID) {
+    HBITMAP convertedPNG = nullptr;
+
+    IStream* ipImageStream{};
+    ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(imageID), _T("PNG"));
+    if (ipImageStream == nullptr) return convertedPNG;
+
+    IWICBitmapSource* ipBitmap = LoadBitmapFromStream(ipImageStream);
+    if (ipBitmap == nullptr) {
+        ipImageStream->Release();
+        return convertedPNG;
+    }
+
+    convertedPNG = CreateHBITMAP(ipBitmap);
+    ipBitmap->Release();
+    ipImageStream->Release();
+    return convertedPNG;
+}
 
 TEXTMETRICW textm;
 HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType) {

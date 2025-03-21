@@ -1,4 +1,8 @@
 #include "DDControls.h"
+#include "BitmapHelper.h"
+#include "StyleModifier.h"
+#include <regex>
+
 using namespace std;
 using namespace DirectUI;
 
@@ -7,6 +11,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 IClassInfo* LVItem::s_pClassInfo;
 IClassInfo* DDScalableElement::s_pClassInfo;
+IClassInfo* DDScalableButton::s_pClassInfo;
 IClassInfo* DDToggleButton::s_pClassInfo;
 
 IClassInfo* LVItem::GetClassInfoPtr() {
@@ -97,7 +102,6 @@ static const PropertyInfo impFirstScaledImageProp =
     Value::GetIntMinusOne,
     &dataimpFirstScaledImageProp
 };
-
 static const int vvimpScaledImageIntervalsProp[] = { 1, -1 };
 static PropertyInfoData dataimpScaledImageIntervalsProp;
 static const PropertyInfo impScaledImageIntervalsProp =
@@ -110,7 +114,6 @@ static const PropertyInfo impScaledImageIntervalsProp =
     Value::GetIntMinusOne,
     &dataimpScaledImageIntervalsProp
 };
-
 static const int vvimpDrawTypeProp[] = { 1, -1 };
 static PropertyInfoData dataimpDrawTypeProp;
 static const PropertyInfo impDrawTypeProp =
@@ -123,10 +126,41 @@ static const PropertyInfo impDrawTypeProp =
     Value::GetIntMinusOne,
     &dataimpDrawTypeProp
 };
+static const int vvimpEnableAccentProp[] = { 1, -1 };
+static PropertyInfoData dataimpEnableAccentProp;
+static const PropertyInfo impEnableAccentProp =
+{
+    L"EnableAccent",
+    0x2 | 0x4,
+    0x1,
+    vvimpEnableAccentProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpEnableAccentProp
+};
+static const int vvimpNeedsFontResizeProp[] = { 1, -1 };
+static PropertyInfoData dataimpNeedsFontResizeProp;
+static const PropertyInfo impNeedsFontResizeProp =
+{
+    L"NeedsFontResize",
+    0x2 | 0x4,
+    0x1,
+    vvimpNeedsFontResizeProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpNeedsFontResizeProp
+};
 
+void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    if (pProp == Element::MouseFocusedProp() || pProp == Button::PressedProp() || pProp == Element::EnabledProp() || pProp == Element::SelectedProp()) {
+        ((DDScalableElement*)elem)->InitDrawImage();
+    }
+}
 unsigned long DelayedDraw(LPVOID lpParam) {
     Sleep(50);
+    assignExtendedFn((DDScalableElement*)lpParam, UpdateImageOnPropChange);
     ((DDScalableElement*)lpParam)->InitDrawImage();
+    ((DDScalableElement*)lpParam)->InitDrawFont();
     return 0;
 }
 vector<DDScalableElement*> DDScalableElement::_arrCreatedElements;
@@ -159,62 +193,72 @@ HRESULT DDScalableElement::Register() {
     {
         &impFirstScaledImageProp,
         &impScaledImageIntervalsProp,
-        &impDrawTypeProp
+        &impDrawTypeProp,
+        &impEnableAccentProp,
+        &impNeedsFontResizeProp
     };
     return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+int DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc) {
+    Value* pv = GetValue(pPropertyProc, 2, nullptr);
+    int v = pv->GetInt();
+    pv->Release();
+    return v;
+}
+void DDScalableElement::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt) {
+    Value* pv = Value::CreateInt(iCreateInt);
+    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+    if (SUCCEEDED(hr)) {
+        hr = SetValue(pPropertyProc, 1, pv);
+        pv->Release();
+    }
 }
 const PropertyInfo* WINAPI DDScalableElement::FirstScaledImageProp() {
     return &impFirstScaledImageProp;
 }
 int DDScalableElement::GetFirstScaledImage() {
-    Value* pv = GetValue(FirstScaledImageProp, 2, nullptr);
-    int v = pv->GetInt();
-    pv->Release();
-    return v;
+    return this->GetPropCommon(FirstScaledImageProp);
 }
 void DDScalableElement::SetFirstScaledImage(int iFirstImage) {
-    Value* pv = Value::CreateInt(iFirstImage);
-    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
-    if (SUCCEEDED(hr)) {
-        hr = SetValue(FirstScaledImageProp, 1, pv);
-        pv->Release();
-    }
+    this->SetPropCommon(FirstScaledImageProp, iFirstImage);
 }
 const PropertyInfo* WINAPI DDScalableElement::ScaledImageIntervalsProp() {
     return &impScaledImageIntervalsProp;
 }
 int DDScalableElement::GetScaledImageIntervals() {
-    Value* pv = GetValue(ScaledImageIntervalsProp, 2, nullptr);
-    int v = pv->GetInt();
-    if (v == -1) v = 1;
-    pv->Release();
+    int v = this->GetPropCommon(ScaledImageIntervalsProp);
+    if (v < 1) v = 1;
     return v;
 }
 void DDScalableElement::SetScaledImageIntervals(int iScaleIntervals) {
-    Value* pv = Value::CreateInt(iScaleIntervals);
-    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
-    if (SUCCEEDED(hr)) {
-        hr = SetValue(ScaledImageIntervalsProp, 1, pv);
-        pv->Release();
-    }
+    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals);
 }
 const PropertyInfo* WINAPI DDScalableElement::DrawTypeProp() {
     return &impDrawTypeProp;
 }
 int DDScalableElement::GetDrawType() {
-    Value* pv = GetValue(DrawTypeProp, 2, nullptr);
-    int v = pv->GetInt();
-    if (v == -1) v = 1;
-    pv->Release();
-    return v;
+    return this->GetPropCommon(DrawTypeProp);
 }
 void DDScalableElement::SetDrawType(int iDrawType) {
-    Value* pv = Value::CreateInt(iDrawType);
-    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
-    if (SUCCEEDED(hr)) {
-        hr = SetValue(DrawTypeProp, 1, pv);
-        pv->Release();
-    }
+    this->SetPropCommon(DrawTypeProp, iDrawType);
+}
+const PropertyInfo* WINAPI DDScalableElement::EnableAccentProp() {
+    return &impEnableAccentProp;
+}
+int DDScalableElement::GetEnableAccent() {
+    return this->GetPropCommon(EnableAccentProp);
+}
+void DDScalableElement::SetEnableAccent(int iEnableAccent) {
+    this->SetPropCommon(EnableAccentProp, iEnableAccent);
+}
+const PropertyInfo* WINAPI DDScalableElement::NeedsFontResizeProp() {
+    return &impNeedsFontResizeProp;
+}
+int DDScalableElement::GetNeedsFontResize() {
+    return this->GetPropCommon(NeedsFontResizeProp);
+}
+void DDScalableElement::SetNeedsFontResize(int iNeedsFontResize) {
+    this->SetPropCommon(NeedsFontResizeProp, iNeedsFontResize);
 }
 void DDScalableElement::InitDrawImage() {
     SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
@@ -227,15 +271,177 @@ void DDScalableElement::RedrawImages() {
         if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
         int imageID = pe->GetFirstScaledImage() + scaleInterval;
         HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        if (newImage == nullptr) {
+            newImage = LoadPNGAsBitmap(imageID);
+            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1);
+        }
+        if (pe->GetEnableAccent() == 1) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1);
         switch (pe->GetDrawType()) {
-        case 0: {
-            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, false, false, false);
+        case 1: {
+            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
+            if (vImage) {
+                pe->SetValue(Element::BackgroundProp, 1, vImage);
+                vImage->Release();
+            }
+            break;
+        }
+        case 2: {
+            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
+            if (vImage) {
+                pe->SetValue(Element::ContentProp, 1, vImage);
+                vImage->Release();
+            }
+            break;
+        }
+        }
+        if (newImage) DeleteObject(newImage);
+    }
+}
+void DDScalableElement::InitDrawFont() {
+    SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+}
+void DDScalableElement::RedrawFonts() {
+    Value* v;
+    for (DDScalableElement* pe : _arrCreatedElements) {
+        if (pe->GetNeedsFontResize() == true) {
+            if (pe->GetFont(&v) == nullptr) break;
+            wstring fontOld = pe->GetFont(&v);
+            wregex fontRegex(L".*font;.*\%");
+            bool isSysmetricFont = regex_match(fontOld, fontRegex);
+            if (isSysmetricFont) {
+                size_t modifier = fontOld.find(L";");
+                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, wcslen(fontOld.c_str()) - 1);
+                int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + L"\%";
+                pe->SetFont(fontNew.c_str());
+            }
+        }
+    }
+}
+
+vector<DDScalableButton*> DDScalableButton::_arrCreatedButtons;
+DDScalableButton::DDScalableButton() {
+    _arrCreatedButtons.push_back(this);
+}
+DDScalableButton::~DDScalableButton() {
+    auto toRemove = find(_arrCreatedButtons.begin(), _arrCreatedButtons.end(), this);
+    if (toRemove != _arrCreatedButtons.end()) {
+        _arrCreatedButtons.erase(toRemove);
+    }
+}
+IClassInfo* DDScalableButton::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDScalableButton::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDScalableButton::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDScalableButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDScalableButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    DWORD dw;
+    HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+    return hr;
+}
+HRESULT DDScalableButton::Register() {
+    static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+    {
+        &impFirstScaledImageProp,
+        &impScaledImageIntervalsProp,
+        &impDrawTypeProp,
+        &impEnableAccentProp,
+        &impNeedsFontResizeProp
+    };
+    return ClassInfo<DDScalableButton, Button, StandardCreator<DDScalableButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+int DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc) {
+    Value* pv = GetValue(pPropertyProc, 2, nullptr);
+    int v = pv->GetInt();
+    pv->Release();
+    return v;
+}
+void DDScalableButton::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt) {
+    Value* pv = Value::CreateInt(iCreateInt);
+    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+    if (SUCCEEDED(hr)) {
+        hr = SetValue(pPropertyProc, 1, pv);
+        pv->Release();
+    }
+}
+const PropertyInfo* WINAPI DDScalableButton::FirstScaledImageProp() {
+    return &impFirstScaledImageProp;
+}
+int DDScalableButton::GetFirstScaledImage() {
+    return this->GetPropCommon(FirstScaledImageProp);
+}
+void DDScalableButton::SetFirstScaledImage(int iFirstImage) {
+    this->SetPropCommon(FirstScaledImageProp, iFirstImage);
+}
+const PropertyInfo* WINAPI DDScalableButton::ScaledImageIntervalsProp() {
+    return &impScaledImageIntervalsProp;
+}
+int DDScalableButton::GetScaledImageIntervals() {
+    int v = this->GetPropCommon(ScaledImageIntervalsProp);
+    if (v < 1) v = 1;
+    return v;
+}
+void DDScalableButton::SetScaledImageIntervals(int iScaleIntervals) {
+    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals);
+}
+const PropertyInfo* WINAPI DDScalableButton::DrawTypeProp() {
+    return &impDrawTypeProp;
+}
+int DDScalableButton::GetDrawType() {
+    return this->GetPropCommon(DrawTypeProp);
+}
+void DDScalableButton::SetDrawType(int iDrawType) {
+    this->SetPropCommon(DrawTypeProp, iDrawType);
+}
+const PropertyInfo* WINAPI DDScalableButton::EnableAccentProp() {
+    return &impEnableAccentProp;
+}
+int DDScalableButton::GetEnableAccent() {
+    return this->GetPropCommon(EnableAccentProp);
+}
+void DDScalableButton::SetEnableAccent(int iEnableAccent) {
+    this->SetPropCommon(EnableAccentProp, iEnableAccent);
+}
+const PropertyInfo* WINAPI DDScalableButton::NeedsFontResizeProp() {
+    return &impNeedsFontResizeProp;
+}
+int DDScalableButton::GetNeedsFontResize() {
+    return this->GetPropCommon(NeedsFontResizeProp);
+}
+void DDScalableButton::SetNeedsFontResize(int iNeedsFontResize) {
+    this->SetPropCommon(NeedsFontResizeProp, iNeedsFontResize);
+}
+void DDScalableButton::InitDrawImage() {
+    SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+}
+void DDScalableButton::RedrawImages() {
+    for (DDScalableButton* pe : _arrCreatedButtons) {
+        if (pe->GetFirstScaledImage() == -1) break;
+        int scaleInterval = GetCurrentScaleInterval();
+        int scaleIntervalImage = pe->GetScaledImageIntervals();
+        if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+        int imageID = pe->GetFirstScaledImage() + scaleInterval;
+        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        if (newImage == nullptr) {
+            newImage = LoadPNGAsBitmap(imageID);
+            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1);
+        }
+        if (pe->GetEnableAccent() == 1) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1);
+        switch (pe->GetDrawType()) {
+        case 1: {
+            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
             pe->SetValue(Element::BackgroundProp, 1, vImage);
             vImage->Release();
             break;
         }
-        case 1: {
-            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, false, false, false);
+        case 2: {
+            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
             pe->SetValue(Element::ContentProp, 1, vImage);
             vImage->Release();
             break;
@@ -244,7 +450,28 @@ void DDScalableElement::RedrawImages() {
         if (newImage) DeleteObject(newImage);
     }
 }
-
+void DDScalableButton::InitDrawFont() {
+    SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+}
+void DDScalableButton::RedrawFonts() {
+    Value* v;
+    for (DDScalableButton* pe : _arrCreatedButtons) {
+        if (pe->GetNeedsFontResize() == true) {
+            if (pe->GetFont(&v) == nullptr) break;
+            wstring fontOld = pe->GetFont(&v);
+            wregex fontRegex(L".*font;.*\%");
+            bool isSysmetricFont = regex_match(fontOld, fontRegex);
+            if (isSysmetricFont) {
+                size_t modifier = fontOld.find(L";");
+                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, wcslen(fontOld.c_str()) - 1);
+                int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + L"\%";
+                pe->SetFont(fontNew.c_str());
+            }
+        }
+    }
+}
 RegKeyValue DDScalableButton::GetRegKeyValue() {
     return _rkv;
 }
@@ -277,8 +504,11 @@ IClassInfo* DDToggleButton::GetClassInfoW() {
     return s_pClassInfo;
 }
 HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
-    return CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    HRESULT hr = CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    DWORD dw;
+    HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+    return hr;
 }
 HRESULT DDToggleButton::Register() {
-    return ClassInfo<DDToggleButton, Button, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", nullptr, 0);
+    return ClassInfo<DDToggleButton, DDScalableButton, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", nullptr, 0);
 }
