@@ -865,7 +865,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                 int finaldestX = destX - mainElementX + internalselectedLVItems[items]->GetX();
                 int finaldestY = destY - mainElementY + internalselectedLVItems[items]->GetY();
                 if (localeType == 1) {
-                    if (finaldestX > dimensions.right - outerSizeX) finaldestX = dimensions.right - outerSizeX - desktoppadding;
+                    if (finaldestX < 0) {
+                        xRender = 0;
+                        finaldestX = (desktoppadding + round(xRender / static_cast<float>(outerSizeX)) * outerSizeX - paddingmitigation);
+                    }
+                    if (finaldestX > dimensions.right - outerSizeX) finaldestX = dimensions.right - outerSizeX;
                 }
                 else {
                     if (finaldestX < 0) finaldestX = desktoppadding;
@@ -1608,32 +1612,6 @@ void SelectItem(Element* elem, Event* iev) {
             elemStorage = elem;
         }
         for (int items = 0; items < validItems; items++) {
-            if (pm[items]->GetMemorySelected() != pm[items]->GetSelected()) {
-                if (!touchmode) {
-                    float spacingInternal = CalcTextLines(pm[items]->GetSimpleFilename().c_str(), pm[items]->GetWidth());
-                    int extraBottomSpacing = (pm[items]->GetSelected() == true) ? ceil(spacingInternal) * textm.tmHeight : floor(spacingInternal) * textm.tmHeight;
-                    textElem = (RichText*)pm[items]->FindDescendent(StrToID(L"textElem"));
-                    textElemShadow = (RichText*)pm[items]->FindDescendent(StrToID(L"textElemShadow"));
-                    if (spacingInternal == 1.5) {
-                        if (pm[items]->GetSelected() == true) pm[items]->SetHeight(pm[items]->GetHeight() + extraBottomSpacing * 0.5);
-                        else pm[items]->SetHeight(pm[items]->GetHeight() - extraBottomSpacing);
-                    }
-                    textElem->SetHeight(extraBottomSpacing + 4 * flScaleFactor);
-                    textElemShadow->SetHeight(extraBottomSpacing + 5 * flScaleFactor);
-                    HBITMAP capturedBitmap = CreateTextBitmap(pm[items]->GetSimpleFilename().c_str(), pm[items]->GetWidth() - 4 * flScaleFactor, extraBottomSpacing, DT_CENTER | DT_END_ELLIPSIS, false);
-                    IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-                    HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
-                    IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 2);
-                    Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
-                    Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
-                    textElem->SetValue(Element::ContentProp, 1, bitmap);
-                    textElemShadow->SetValue(Element::ContentProp, 1, bitmapSh);
-                    bitmap->Release();
-                    bitmapSh->Release();
-                    DeleteObject(capturedBitmap);
-                    DeleteObject(shadowBitmap);
-                }
-            }
             pm[items]->SetMemorySelected(pm[items]->GetSelected());
         }
         if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false) {
@@ -1654,6 +1632,32 @@ void SelectItem(Element* elem, Event* iev) {
                 }
             }
         }
+    }
+}
+void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    if (!touchmode && pProp == Element::SelectedProp()) {
+        float spacingInternal = CalcTextLines(((LVItem*)elem)->GetSimpleFilename().c_str(), ((LVItem*)elem)->GetWidth());
+        int extraBottomSpacing = (((LVItem*)elem)->GetSelected() == true) ? ceil(spacingInternal) * textm.tmHeight : floor(spacingInternal) * textm.tmHeight;
+        textElem = (RichText*)((LVItem*)elem)->FindDescendent(StrToID(L"textElem"));
+        textElemShadow = (RichText*)((LVItem*)elem)->FindDescendent(StrToID(L"textElemShadow"));
+        if (spacingInternal == 1.5) {
+            if (((LVItem*)elem)->GetSelected() == true) ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() + extraBottomSpacing * 0.5);
+            else ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() - extraBottomSpacing);
+        }
+        textElem->SetHeight(extraBottomSpacing + 4 * flScaleFactor);
+        textElemShadow->SetHeight(extraBottomSpacing + 5 * flScaleFactor);
+        HBITMAP capturedBitmap = CreateTextBitmap(((LVItem*)elem)->GetSimpleFilename().c_str(), ((LVItem*)elem)->GetWidth() - 4 * flScaleFactor, extraBottomSpacing, DT_CENTER | DT_END_ELLIPSIS, false);
+        IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
+        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
+        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 2);
+        Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
+        Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
+        textElem->SetValue(Element::ContentProp, 1, bitmap);
+        textElemShadow->SetValue(Element::ContentProp, 1, bitmapSh);
+        bitmap->Release();
+        bitmapSh->Release();
+        DeleteObject(capturedBitmap);
+        DeleteObject(shadowBitmap);
     }
 }
 
@@ -1792,7 +1796,8 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
             HDC hdcMem = CreateCompatibleDC(hdcWindow);
             hbmCapture = CreateCompatibleBitmap(hdcWindow, elem->GetWidth(), elem->GetHeight());
             HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-            BitBlt(hdcMem, 0, 0, elem->GetWidth(), elem->GetHeight(), hdcWindow, elem->GetX(), elem->GetY(), SRCCOPY);
+            int iconX = (localeType == 1) ? dimensions.right - elem->GetX() - elem->GetWidth() : elem->GetX();
+            BitBlt(hdcMem, 0, 0, elem->GetWidth(), elem->GetHeight(), hdcWindow, iconX, elem->GetY(), SRCCOPY);
             SelectObject(hdcMem, hbmOld);
             DeleteDC(hdcMem);
             ReleaseDC(wnd->GetHWND(), hdcWindow);
@@ -1997,6 +2002,7 @@ void InitLayout(bool cloaked, bool bUnused2) {
         }
         assignFn(pm[i], SelectItem);
         assignFn(pm[i], ItemRightClick);
+        assignExtendedFn(pm[i], SelectItemListener);
         assignExtendedFn(pm[i], ShowCheckboxIfNeeded);
         assignExtendedFn(pm[i], ItemDragListener);
         assignExtendedFn(cbpm[i], CheckboxHandler);
