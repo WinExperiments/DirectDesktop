@@ -28,6 +28,7 @@ IsUIAutomationProviderEnabled
 BlurBitmap
 BrushFromEnumI
 ColorFromEnumI
+ARGBColorFromEnumI
 DisableAnimations
 DrawShadowTextEx
 DUIDrawShadowText
@@ -51,3 +52,5 @@ NotifyAccessibilityEvent
 PreprocessBuffer
 ProcessAlphaBitmapI
 PurgeThemeHandles
+RegisterPVLBehaviorFactory
+DUIStopPVLAnimation

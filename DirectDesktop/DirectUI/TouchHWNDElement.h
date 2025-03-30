@@ -9,18 +9,20 @@ namespace DirectUI
 		IHMState_AnimatingToShow = 0,
 		IHMState_Shown = 1,
 		IHMState_AnimatingToHide = 2,
-		IHMState_Hidden = 3
+		IHMState_Hidden = 3,
 	};
 
 	enum TouchHWNDElementFlags
 	{
-		THEF_None = 0,
-		THEF_AllowBackgroundTooltip = 1,
-		THEF_TreatRightButtonAsLeft = 2,
-		THEF_ConstrainTooltipToWorkspace = 4,
-		THEF_NoAutoFocusRectVisibility = 8,
-		THEF_DisableTooltips = 16
+		THEF_None = 0x0,
+		THEF_AllowBackgroundTooltip = 0x1,
+		THEF_TreatRightButtonAsLeft = 0x2,
+		THEF_ConstrainTooltipToWorkspace = 0x4,
+		THEF_NoAutoFocusRectVisibility = 0x8,
+		THEF_DisableTooltips = 0x10,
 	};
+
+	DEFINE_ENUM_FLAG_OPERATORS(TouchHWNDElementFlags);
 
 	// NOTE: 56 exports for DirectUI::TouchHWNDElement
 	class TouchHWNDElement : public HWNDElement
@@ -129,6 +131,7 @@ namespace DirectUI
 		void _FireScaleChangeEvent();
 		void _UpdateImmersiveScaleFactorAndMaybeFireScaleChangeEvent();
 		void _OnListenerDetach(Element* pe);
+
 		CSafeElementListenerPtr<Element> _speWithTooltip;
 		ITouchTooltip* _pTooltip;
 		POINT _ptLastMousePosition;
@@ -165,7 +168,7 @@ namespace DirectUI
 		protected:
 			static const IID* const s_rgpIID[];
 			~TooltipEventSink();
-			HRESULT SetTouchHWNDElement(TouchHWNDElement*);
+			HRESULT SetTouchHWNDElement(TouchHWNDElement* peTouchHWNDElement);
 
 		private:
 			CSafeElementListenerPtr<TouchHWNDElement> _speTouchHWNDElement;
@@ -177,9 +180,9 @@ namespace DirectUI
 		class ElementWithTooltipListener : public CSafeElementListenerCB
 		{
 		public:
-			void SetTouchHWNDElement(TouchHWNDElement*);
+			void SetTouchHWNDElement(TouchHWNDElement* peTouchHWNDElement);
 
-			void OnListenerDetach(Element*) override;
+			void OnListenerDetach(Element* peFrom) override;
 
 		private:
 			TouchHWNDElement* _peTouchHWNDElement;

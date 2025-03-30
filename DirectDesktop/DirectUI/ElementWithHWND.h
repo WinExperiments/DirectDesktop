@@ -5,20 +5,19 @@ namespace DirectUI
 	class UILIB_API ElementWithHWND : public Element
 	{
 	public:
-		ElementWithHWND(const ElementWithHWND &);
-		ElementWithHWND();
-		ElementWithHWND& operator=(const ElementWithHWND &);
+		static HRESULT WINAPI Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
 
-		virtual ~ElementWithHWND();
+		virtual HWND GetHWND() = 0;
 
-		static long WINAPI Create(Element*, unsigned long*, Element**);
 		static IClassInfo* WINAPI GetClassInfoPtr();
-		static long WINAPI Register();
-		static void WINAPI SetClassInfoPtr(IClassInfo*);
-
-		virtual IClassInfo* GetClassInfoW();
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
 
 	private:
-		static IClassInfo*s_pClassInfo;
+		static IClassInfo* s_pClassInfo;
+
+	public:
+		IClassInfo* GetClassInfoW() override;
+
+		static HRESULT WINAPI Register();
 	};
 }

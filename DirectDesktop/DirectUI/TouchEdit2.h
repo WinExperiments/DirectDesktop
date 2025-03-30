@@ -88,14 +88,14 @@ namespace DirectUI
 		UILIB_API void DisableSelectionHandlesOnEmptyContent();
 
 	private:
-		void OnListenerAttach(Element* peFrom) override;
+		void OnListenerAttach(Element* peFrom) override {}
 		UILIB_API void OnListenerDetach(Element* peFrom) override;
 
-		bool OnListenedPropertyChanging(Element* peFrom, const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		bool OnListenedPropertyChanging(Element* peFrom, const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override { return true; }
 		UILIB_API void OnListenedPropertyChanged(Element* peFrom, const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
 
-		void OnListenedInput(Element* peFrom, InputEvent* pInput) override;
-		void OnListenedEvent(Element* peFrom, Event* pEvent) override;
+		void OnListenedInput(Element* peFrom, InputEvent* pInput) override {}
+		void OnListenedEvent(Element* peFrom, Event* pEvent) override {}
 
 		HRESULT _CreateDirectChildren();
 		HRESULT _CreateTextElements();

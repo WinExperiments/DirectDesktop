@@ -9,7 +9,7 @@ typedef enum IMMERSIVE_COLOR_TYPE
     IMCLR_SystemAccentLight2 = 2,
     IMCLR_SystemAccent = 4,
     IMCLR_SystemAccentDark1 = 5,
-    IMCLR_MultitaskingMTVVirtualDesktopDragDrop = 189
+    IMCLR_StartDesktopTilesText = 11,
 } IMMERSIVE_COLOR_TYPE;
 typedef struct IMMERSIVE_COLOR_PREFERENCE
 {

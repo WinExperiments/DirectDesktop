@@ -2,6 +2,7 @@
 #include "strsafe.h"
 #include <shlobj.h>
 #include <shlwapi.h>
+#include <exdisp.h>
 #pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "shlwapi.lib")
 
@@ -85,7 +86,7 @@ wstring hideExt(const wstring& filename, bool isEnabled, vector<LVItem*>* shortp
     }
 }
 vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".ai", L".avi", L".avif", L".bmp", L".flv" L".gif", L".heic", L".heif", L".ico",
-    L".jfif", L".jpe", L".jpeg", L".jpg", L".mp4", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf"};
+    L".jfif", L".jpe", L".jpeg", L".jpg", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf"};
 
 int extIterator;
 void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result) {

@@ -1063,14 +1063,12 @@ namespace DirectUI
 	{
 		int iNavDir;
 		bool fSetFocus;
-		KeyboardNavigateEvent();
 	};
-	
+
 	struct AnimateScrollEvent : Event
 	{
 		int dDistance;
 		bool fVertical;
-		AnimateScrollEvent();
 	};
 
 	struct RectangleChange

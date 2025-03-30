@@ -5,24 +5,33 @@ namespace DirectUI
 	class UILIB_API Repeater : public Macro
 	{
 	public:
-		Repeater(Repeater const &);
-		Repeater(void);
-		virtual ~Repeater(void);
-		Repeater & operator=(Repeater const &);
+		static HRESULT WINAPI Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
 
-		static long __stdcall Create(Element *, unsigned long *, Element * *);
-		static IClassInfo * __stdcall GetClassInfoPtr(void);
-		static long __stdcall Register(void);
-		static void __stdcall SetClassInfoPtr(IClassInfo *);
+		// ReSharper disable once CppHidingFunction
+		HRESULT Initialize(Element* pParent, DWORD* pdwDeferCookie);
 
-		long Initialize(Element *, unsigned long *);
-		void SetDataEngine(IDataEngine *);
+		static IClassInfo* WINAPI GetClassInfoPtr();
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
 
-		virtual IClassInfo * GetClassInfoW(void);
-	protected:
-		virtual long BuildElement(void);
 	private:
-		static IClassInfo * s_pClassInfo;
+		static IClassInfo* s_pClassInfo;
 
+	public:
+		IClassInfo* GetClassInfoW() override;
+
+		static HRESULT WINAPI Register();
+		void SetDataEngine(IDataEngine* pie);
+		void SetGraphicType(BYTE dDefaultGraphicType);
+
+	protected:
+		IDataEngine* _piDataEngine;
+
+		HRESULT BuildElement() override;
+
+	private:
+		void SetDataEntry(IDataEntry* pide)
+		{
+			// Not exported
+		}
 	};
 }

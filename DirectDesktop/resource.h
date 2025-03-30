@@ -10,6 +10,7 @@
 #define IDS_STRING104                   104
 #define IDM_EXIT                        105
 #define IDI_DUIAPPTEMPLATE              107
+#define IDI_DIRECTDESKTOP               107
 #define IDI_SMALL                       108
 #define IDC_DUIAPPTEMPLATE              109
 #define IDC_DIRECTDESKTOP               109
@@ -64,6 +65,7 @@
 #define IDS_STRING4031                  4031
 #define IDS_STRING4032                  4032
 #define IDS_STRING4033                  4033
+#define IDS_STRING4034                  4034
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

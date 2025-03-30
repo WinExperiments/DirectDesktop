@@ -5,106 +5,92 @@ namespace DirectUI
 	class UILIB_API HWNDElement : public ElementWithHWND
 	{
 	public:
-		HWNDElement(const HWNDElement &);
-		HWNDElement();
-		virtual ~HWNDElement();
-		HWNDElement& operator=(const HWNDElement &);
+		static HRESULT WINAPI Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
 
-		//0
-		virtual void OnPropertyChanged(const PropertyInfo*, int, Value*, Value*);
-		//1
-		virtual void OnGroupChanged(int, bool);
-		//2
-		virtual void OnInput(InputEvent*);
-		//3
-		virtual void OnDestroy();
-		//4
-		virtual void OnEvent(Event*);
-		//5
-		virtual void UpdateTooltip(Element*);
-
-		//6
-		virtual void ActivateTooltip(Element*, DWORD);
-		//7
-		virtual void RemoveTooltip(Element*);
-
-		//8
-		virtual IClassInfo* GetClassInfoW();
-		//9
-		virtual long GetAccessibleImpl(IAccessible**);
-
-
-		//HWNDElement 新增函数
-		//10
-		virtual HWND GetHWND();
-
-		//11
-		virtual void OnThemeChanged(ThemeChangedEvent*);
+		void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		void OnGroupChanged(int fGroups, bool bLowPri) override;
+		void OnDestroy() override;
+		void OnEvent(Event* pEvent) override;
+		virtual void OnThemeChanged(ThemeChangedEvent* pev);
 		virtual void OnImmersiveColorSchemeChanged();
-
-		//12
-		virtual void OnNoChildWithShortcutFound(KeyboardEvent*);
-
-		//13
-		virtual void OnGetDlgCode(LPMSG, LRESULT*);
-		//14
+		void OnInput(InputEvent* pie) override;
+		virtual void OnNoChildWithShortcutFound(KeyboardEvent* pke);
+		virtual void OnGetDlgCode(MSG* msg, LRESULT* plResult);
 		virtual void OnWmThemeChanged(WPARAM wParam, LPARAM lParam);
 		virtual void OnWmSettingChanged(WPARAM wParam, LPARAM lParam);
-		//15
 		virtual void OnCompositionChanged();
-
-		//16
 		virtual bool CanSetFocus();
 		virtual bool IsMSAAEnabled();
+		void UpdateTooltip(Element* pe) override;
+		void ActivateTooltip(Element* pe, DWORD dwFlags) override;
+		void RemoveTooltip(Element* pe) override;
 
-		static UID WINAPI CompositionChange();
-		static HRESULT WINAPI Create(HWND, bool, unsigned int, Element*, unsigned long*, Element**pOut);
-		//17
-		virtual long CreateStyleParser(DUIXmlParser**);
 		void DelayActivateTooltip();
-		Element* ElementFromPoint(LPPOINT);
-		static bool WINAPI FindShortcut(unsigned short, Element*, Element**, int*, int*, int);
-		void FlushWorkingSet();
-		static IClassInfo* WINAPI GetClassInfoPtr();
+		virtual HRESULT CreateStyleParser(DUIXmlParser** ppParser);
+		Element* ElementFromPoint(POINT* ppt);
 
-		static HWNDElement* WINAPI GetFocusedHWNDElement();
+		static LRESULT CALLBACK StaticWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+		void FlushWorkingSet();
+
+		HWND GetHWND() override;
+		virtual void GetWindowClassNameAndStyle(const WCHAR** ppchClassName, UINT* puiClassStyle);
 
 		static Element* WINAPI GetKeyFocusedElement();
-		unsigned short GetUIState();
-		bool GetWrapKeyboardNavigate();
-		long Initialize(HWND, bool, unsigned int, Element*, unsigned long*);
-		bool IsFirstElement(Element*);
-		bool IsLastElement(Element*);
+		static HWNDElement* WINAPI GetFocusedHWNDElement();
+		static bool WINAPI FindShortcut(WCHAR ch, Element* pe, Element** ppeFound, BOOL* pfMultiple, BOOL* pfUseNext, BOOL fSysKey);
 
+		bool IsFirstElement(Element* peTarget);
+		bool IsLastElement(Element* peTarget);
+		void SetFocus(bool fFirstElement);
+		void ToggleUIState(bool fUpdateAccel, bool fUpdateFocus);
+		void ShowUIState(bool fUpdateAccel, bool fUpdateFocus);
+		WORD GetUIState();
+		bool ShowAccel();
+		bool ShowFocus();
+		void SetParentSizeControl(bool bParentSizeControl);
+		void SetScreenCenter(bool bScreenCenter);
+		bool ShouldUseDesktopPerMonitorScaling(); // TODO Check when was this added
 
-		static long WINAPI Register();
-		static void WINAPI SetClassInfoPtr(IClassInfo*);
-
-		void SetFocus(bool);
-		void SetParentSizeControl(bool);
-		void SetScreenCenter(bool);
-		long SetWrapKeyboardNavigate(bool);
-		bool ShowAccel(void);
-		bool ShowFocus(void);
-		void ShowUIState(bool, bool);
 		static UID WINAPI ThemeChange();
+		static UID WINAPI CompositionChange();
+		static UID WINAPI ImmersiveColorSchemeChange(); // TODO Check when was this added
+		static UID WINAPI WindowDpiChanged(); // TODO Check when was this added
 
-		void ToggleUIState(bool, bool);
 		static const PropertyInfo* WINAPI WrapKeyboardNavigateProp();
+		bool GetWrapKeyboardNavigate();
+		HRESULT SetWrapKeyboardNavigate(bool v);
 
-		static LRESULT WINAPI StaticWndProc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
-		//18
-		virtual LRESULT WndProc(HWND, UINT uMsg, WPARAM wParam, LPARAM lParam);
-		virtual void GetWindowClassNameAndStyle(const unsigned short**, UINT*);
-
-	protected:
-		virtual void _OnUIStateChanged(WORD, WORD);
-		static bool WINAPI FindShortcutRecursive(unsigned short, Element*, Element**, int*, int*, int);
+		static IClassInfo* WINAPI GetClassInfoPtr();
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
 
 	private:
 		static IClassInfo* s_pClassInfo;
 
+	public:
+		IClassInfo* GetClassInfoW() override;
+
+		static HRESULT WINAPI Register();
+
+		HRESULT GetAccessibleImpl(IAccessible**) override;
+
+		HWNDElement();
+		HWNDElement(const HWNDElement&) = default;
+
+		~HWNDElement() override;
+
+		// ReSharper disable once CppHiddenFunction
+		HRESULT Initialize(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie);
+
 	protected:
+		static bool WINAPI FindShortcutRecursive(WCHAR ch, Element* pe, Element** ppeFound, BOOL* pfMultiple, BOOL* pfUseNext, BOOL fSysKey);
+		void UpdateStyleSheets();
+		virtual void _OnUIStateChanged(WORD wUIStateOld, WORD wUIStateNew);
+		void _HandleImmersiveColorSchemeChange();
+		int _GetPerMonitorScaleFactorForDesktopWindow(HWND hwnd);
+		void _FireWindowDpiChangeEvent();
+
 		HWND _hWnd;
 		HWND _hWndTooltip;
 		HPALETTE _hPal;
@@ -116,6 +102,9 @@ namespace DirectUI
 		bool _bMouseTrackTooltip;
 		bool _bTooltipVisible;
 		DWORD _dwTooltipHiddenTime;
+
+	private:
+		int _UpdateDesktopScaleFactor();
 	};
 
 	class UILIB_API HWNDElementProvider
@@ -123,44 +112,41 @@ namespace DirectUI
 		, public IRawElementProviderFragmentRoot
 	{
 	public:
-		HWNDElementProvider(void);
-		virtual ~HWNDElementProvider(void);
+		PfnCreateProxy GetProxyCreator() override;
 
-		HWNDElementProvider& operator=(const HWNDElementProvider&) = delete;
+		static HRESULT WINAPI Create(HWNDElement* pe, InvokeHelper* pih, HWNDElementProvider** ppprv);
 
-		static long __stdcall Create(HWNDElement *, InvokeHelper *, HWNDElementProvider * *);
+		HWNDElementProvider();
 
-		virtual unsigned long __stdcall AddRef(void);
-		virtual long __stdcall QueryInterface(struct _GUID const &, void * *);
-		virtual unsigned long __stdcall Release(void);
+		STDMETHODIMP_(ULONG) AddRef() override;
+		STDMETHODIMP_(ULONG) Release() override;
+		STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override;
 
-		virtual PfnCreateProxy GetProxyCreator(void);
-
-		//IRawElementProviderFragmentRoot
-		//1
-		virtual long __stdcall ElementProviderFromPoint(double, double, IRawElementProviderFragment * *);
-		//2
-		virtual long __stdcall GetFocus(IRawElementProviderFragment * *);
+		//~ Begin IRawElementProviderFragmentRoot Interface
+		STDMETHODIMP ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** ppprv) override;
+		STDMETHODIMP GetFocus(IRawElementProviderFragment** ppprv) override;
+		//~ End IRawElementProviderFragmentRoot Interface
 
 	protected:
-		virtual long Init(HWNDElement *, InvokeHelper *);
-
+		virtual HRESULT Init(HWNDElement* pe, InvokeHelper* pih);
 	};
 
 	class UILIB_API DECLSPEC_NOVTABLE HWNDElementProxy : public ElementProxy
 	{
 	public:
 		static HWNDElementProxy* WINAPI Create(HWNDElement* pe);
-		
+
 		virtual void Init(HWNDElement* pe);
-		
+
+		//~ Begin DirectUI::ElementProxy Interface
 		HRESULT DoMethod(MethodId methodId, va_list args) override;
+		//~ End DirectUI::ElementProxy Interface
 
 		HWNDElementProxy(const HWNDElementProxy&) = default;
 
 	protected:
 		HWNDElementProxy();
-		
+
 		HRESULT ElementFromPoint(double x, double y, IRawElementProviderFragment** ppprv);
 		HRESULT GetFocus(IRawElementProviderFragment** ppprv);
 	};

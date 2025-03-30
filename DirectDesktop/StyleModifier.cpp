@@ -8,6 +8,7 @@
 COLORREF ImmersiveColor;
 bool theme;
 const wchar_t* sheetName;
+rgb_t WhiteText;
 
 HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
     HDC hDC = GetDC(NULL);
@@ -32,20 +33,14 @@ void UpdateModeInfo() {
     theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
     ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
     sheetName = theme ? L"default" : L"defaultdark";
+    WhiteText.r = GetRValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
+    WhiteText.g = GetGValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
+    WhiteText.b = GetBValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
 }
-
-rgb_t ImmersiveToRGB(COLORREF immersivecolor) {
-    rgb_t result;
-    result.r = (int)(immersivecolor % 16777216);
-    result.g = (int)((immersivecolor / 256) % 65536);
-    result.b = (int)((immersivecolor / 65536) % 256);
-    return result;
-}
-
 
 void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
 {
-    UpdateAccentColor();
+    UpdateAccentColor(ImmersiveColor);
     rgb_t rgbVal = { r, g, b };
 
     hsl_t hslVal = rgb2hsl(rgbVal);
@@ -92,7 +87,7 @@ void DesaturateWhiten(int& r, int& g, int& b, int& a)
     hsl_t hslVal = rgb2hsl(rgbVal);
 
     a = hslVal.l;
-    r = 255.0;
-    g = 255.0;
-    b = 255.0;
+    r = touchmode ? WhiteText.r : 255.0;
+    g = touchmode ? WhiteText.g : 255.0;
+    b = touchmode ? WhiteText.b : 255.0;
 }

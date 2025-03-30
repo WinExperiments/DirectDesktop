@@ -109,7 +109,7 @@ HBITMAP LoadPNGAsBitmap(int imageID) {
 }
 
 TEXTMETRICW textm;
-HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType) {
+HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch) {
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = width;
@@ -127,13 +127,14 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
     memset(pBitmapData, 0, width * height * 4);
     LOGFONTW lf{};
     SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, dpi);
+    if (touch) lf.lfHeight *= 1.25;
     HFONT hFont = CreateFontIndirectW(&lf);
     HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
 
     SetBkMode(hdcMem, TRANSPARENT);
     SetTextColor(hdcMem, RGB(255, 255, 255));
     RECT rc = {2, 0, width - 2, height};
-    DrawTextW(hdcMem, text, -1, &rc, DT_CENTER | ellipsisType | DT_LVICON);
+    DrawTextW(hdcMem, text, -1, &rc, ellipsisType | DT_LVICON);
     DWORD* pixels = (DWORD*)pBitmapData;
     for (int i = 0; i < width * height; i++) {
         BYTE* pPixel = (BYTE*)&pixels[i];

@@ -211,6 +211,85 @@ namespace DirectUI
 		}
 		return hr;
 	}
+
+	template <typename T, typename A1T, typename A2T>
+	HRESULT CreateAndInit(A1T arg1, A2T arg2, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+	{
+		*ppElement = nullptr;
+		T* pT = HNew<T>();
+		HRESULT hr = pT ? S_OK : E_OUTOFMEMORY;
+		if (SUCCEEDED(hr))
+		{
+			hr = pT->Initialize(arg1, arg2, pParent, pdwDeferCookie);
+			if (SUCCEEDED(hr))
+			{
+				*ppElement = pT;
+			}
+			else
+			{
+				pT->Destroy(false);
+			}
+		}
+		return hr;
+	}
+
+	template <typename T, typename A1T, typename A2T, typename A3T>
+	HRESULT CreateAndInit(A1T arg1, A2T arg2, A3T arg3, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+	{
+		*ppElement = nullptr;
+		T* pT = HNew<T>();
+		HRESULT hr = pT ? S_OK : E_OUTOFMEMORY;
+		if (SUCCEEDED(hr))
+		{
+			hr = pT->Initialize(arg1, arg2, arg3, pParent, pdwDeferCookie);
+			if (SUCCEEDED(hr))
+			{
+				*ppElement = pT;
+			}
+			else
+			{
+				pT->Destroy(false);
+			}
+		}
+		return hr;
+	}
+}
+
+template <typename T>
+BOOL IsSubclassOf(DirectUI::Element* pe)
+{
+	return pe->GetClassInfoW()->IsSubclassOf(T::GetClassInfoPtr()); // @Note: bool -> BOOL, no != 0
+}
+
+template <typename T>
+T* element_cast(DirectUI::Element* pe)
+{
+	T* p = nullptr;
+	if (pe && IsSubclassOf<T>(pe))
+	{
+		p = (T*)pe;
+	}
+	return p;
+}
+
+template <typename T>
+HRESULT ElementCast(DirectUI::Element* pe, T** ppT)
+{
+	*ppT = element_cast<T>(pe);
+	return *ppT ? S_OK : E_FAIL;
+}
+
+template <typename T>
+T* element_interface_cast(DirectUI::Element* pe)
+{
+	T* p = nullptr;
+	return pe && SUCCEEDED(pe->QueryInterface(__uuidof(*p), (void**)&p)) ? p : nullptr;
+}
+
+template <typename T>
+BOOL IsClassOf(DirectUI::Element* pe)
+{
+	return pe->GetClassInfoW() == T::GetClassInfoPtr();
 }
 
 #undef DUI_SET_CLASS_INFO

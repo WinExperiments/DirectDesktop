@@ -3,6 +3,7 @@
 
 extern COLORREF ImmersiveColor;
 extern bool theme;
+extern bool touchmode;
 extern const wchar_t* sheetName;
 
 void UpdateScale();

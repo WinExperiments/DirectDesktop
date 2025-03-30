@@ -126,23 +126,24 @@ namespace DirectUI
 		virtual IDataEntry* GetEntry(UINT) = 0;
 	};
 
+	struct Cond;
+	struct Decl;
+	struct DepRecs;
+
 	class UILIB_API StyleSheet
 	{
 	public:
-		StyleSheet(const StyleSheet&);
-		StyleSheet();
-		StyleSheet& operator=(const StyleSheet&);
+		static HRESULT WINAPI Create(StyleSheet** ppSheet);
 
-		static long __stdcall Create(StyleSheet**);
-
-		virtual void T1() = 0;
-		virtual void T2() = 0;
-		virtual void T3() = 0;
-		virtual void T4() = 0;
-		virtual void T5() = 0;
-		virtual void T6() = 0;
-		virtual void T7() = 0;
-		virtual void T8() = 0;
+		virtual void Destroy() = 0;
+		virtual HRESULT AddRule(const WCHAR* pszSheetResid, IClassInfo* pci, Cond* pConds, Decl* pDecls) = 0;
+		virtual void MakeImmutable() = 0;
+		virtual Value* GetSheetValue(Element* pe, const PropertyInfo* ppi) = 0;
+		virtual void GetSheetDependencies(Element* pe, const PropertyInfo* ppi, DepRecs* pdr, DeferCycle* pdc, HRESULT* phr) = 0;
+		virtual void GetSheetScope(Element* pe, DepRecs* pdr, DeferCycle* pdc, HRESULT* phr) = 0;
+		virtual const WCHAR* GetSheetResid() = 0;
+		virtual HRESULT SetSheetResid(const WCHAR* pszResid) = 0;
+		virtual HRESULT SetBaseSheet(Value* pvSheet, UINT sheetId) = 0;
 	};
 }
 
@@ -211,6 +212,25 @@ IDuiBehavior : IUnknown
 	virtual HRESULT STDMETHODCALLTYPE OnDisplayNodeCallback(DirectUI::Element* peFrom, EventMsg* pGMsg) = 0;
 };
 
+class IDuiBehaviorImpl : public IDuiBehavior
+{
+	STDMETHODIMP Init(DirectUI::Value* pvArgs) override;
+	STDMETHODIMP OnAttach(DirectUI::Element* pe) override;
+	STDMETHODIMP OnDetach(DirectUI::Element* pe) override;
+	STDMETHODIMP OnHosted(DirectUI::Element* peFrom, DirectUI::Element* pe) override;
+	STDMETHODIMP OnUnHosted(DirectUI::Element* peFrom, DirectUI::Element* peOldHost) override;
+	STDMETHODIMP OnPropertyChanging(DirectUI::Element* peFrom, const DirectUI::PropertyInfo* ppi, int iIndex, DirectUI::Value* pvOld, DirectUI::Value* pvNew, BOOL* pfAllowProcess) override;
+	STDMETHODIMP OnPropertyChanged(DirectUI::Element* peFrom, const DirectUI::PropertyInfo* ppi, int iIndex, DirectUI::Value* pvOld, DirectUI::Value* pvNew) override;
+	STDMETHODIMP OnInput(DirectUI::Element* peFrom, DirectUI::InputEvent* pInput) override;
+	STDMETHODIMP OnKeyFocusMoved(DirectUI::Element* peFrom, DirectUI::Element* peOld, DirectUI::Element* peNew) override;
+	STDMETHODIMP OnEvent(DirectUI::Element* peFrom, DirectUI::Event* pEvent) override;
+	STDMETHODIMP OnDoLayout(DirectUI::Element* peFrom, int dWidth, int dHeight) override;
+	STDMETHODIMP OnUpdateDesiredSize(DirectUI::Element* peFrom, int dConstW, int dConstH, DirectUI::Surface* psrf, SIZE* pszDesired) override;
+	STDMETHODIMP OnPaint(DirectUI::Element* peFrom, HDC hdc, const RECT* prcGadgetPxl, const RECT* prcInvalidPxl) override;
+	STDMETHODIMP OnGetAdjacent(DirectUI::Element* peFrom, int iNavDir, const DirectUI::NavReference* pnr, DWORD dwFlags, DirectUI::Element** ppeTo) override;
+	STDMETHODIMP OnDisplayNodeCallback(DirectUI::Element* peFrom, EventMsg* pGMsg) override;
+};
+
 MIDL_INTERFACE("2D97ED04-C05F-4302-9462-8A9EC79F1464")
 ITouchTooltipEventSink : IUnknown
 {
@@ -255,6 +275,6 @@ IDuiParserCache : IUnknown
 	virtual HRESULT STDMETHODCALLTYPE Store(ULONG key, DirectUI::IClassInfo* pClassInfo) = 0;
 	virtual HRESULT STDMETHODCALLTYPE Store(ULONG key, DirectUI::Value* pValue) = 0;
 	virtual HRESULT STDMETHODCALLTYPE CreateLayout(ULONG key, DirectUI::Value** ppValue) = 0;
-	virtual HRESULT STDMETHODCALLTYPE AddLayout(ULONG key, HRESULT (*)(int, int*, DirectUI::Value**), int cargs, int* pargs) = 0; // TODO: Figure out this typedef shit
+	virtual HRESULT STDMETHODCALLTYPE AddLayout(ULONG key, HRESULT (*)(int, int*, DirectUI::Value**), int cargs, int* pargs) = 0; // TODO: Figure out the typedef of this function
 	virtual HRESULT STDMETHODCALLTYPE ClearStoredClasses() = 0;
 };

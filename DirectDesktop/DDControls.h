@@ -7,57 +7,11 @@ using namespace std;
 using namespace DirectUI;
 
 extern int dpi, dpiLaunch;
+extern float flScaleFactor;
 extern NativeHWNDHost* subviewwnd;
 extern int GetCurrentScaleInterval();
 extern struct EventListener2;
 extern void assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2));
-
-class LVItem final : public Button {
-public:
-    LVItem() {
-
-    }
-    virtual ~LVItem() {
-
-    }
-    static IClassInfo* GetClassInfoPtr();
-    static void SetClassInfoPtr(IClassInfo* pClass);
-    IClassInfo* GetClassInfoW() override;
-    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
-    static HRESULT Register();
-    unsigned short GetInternalXPos();
-    unsigned short GetInternalYPos();
-    void SetInternalXPos(unsigned short iXPos);
-    void SetInternalYPos(unsigned short iYPos);
-    wstring GetFilename();
-    wstring GetSimpleFilename();
-    void SetFilename(const wstring& wsFilename);
-    void SetSimpleFilename(const wstring& wsSimpleFilename);
-    bool GetDirState();
-    bool GetHiddenState();
-    bool GetMemorySelected();
-    bool GetShortcutState();
-    bool GetColorLock();
-    void SetDirState(bool dirState);
-    void SetHiddenState(bool hiddenState);
-    void SetMemorySelected(bool mem_isSelectedState);
-    void SetShortcutState(bool shortcutState);
-    void SetColorLock(bool colorLockState);
-    unsigned short GetPage();
-    void SetPage(unsigned short pageID);
-private:
-    static IClassInfo* s_pClassInfo;
-    wstring _filename{};
-    wstring _simplefilename{};
-    bool _isDirectory = false;
-    bool _isHidden = false;
-    bool _mem_isSelected = false;
-    bool _isShortcut = false;
-    bool _colorLock = false;
-    unsigned short _xPos = 999;
-    unsigned short _yPos = 999;
-    unsigned short _page{};
-};
 
 struct RegKeyValue {
     HKEY _hKeyName;
@@ -147,6 +101,56 @@ protected:
     void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
 private:
     static IClassInfo* s_pClassInfo;
+};
+
+class LVItem final : public Button {
+public:
+    LVItem() {
+
+    }
+    virtual ~LVItem() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    unsigned short GetInternalXPos();
+    unsigned short GetInternalYPos();
+    void SetInternalXPos(unsigned short iXPos);
+    void SetInternalYPos(unsigned short iYPos);
+    wstring GetFilename();
+    wstring GetSimpleFilename();
+    void SetFilename(const wstring& wsFilename);
+    void SetSimpleFilename(const wstring& wsSimpleFilename);
+    bool GetDirState();
+    bool GetHiddenState();
+    bool GetMemorySelected();
+    bool GetShortcutState();
+    bool GetColorLock();
+    bool GetDragState();
+    void SetDirState(bool dirState);
+    void SetHiddenState(bool hiddenState);
+    void SetMemorySelected(bool mem_isSelectedState);
+    void SetShortcutState(bool shortcutState);
+    void SetColorLock(bool colorLockState);
+    void SetDragState(bool dragstate);
+    unsigned short GetPage();
+    void SetPage(unsigned short pageID);
+private:
+    static IClassInfo* s_pClassInfo;
+    wstring _filename{};
+    wstring _simplefilename{};
+    bool _isDirectory = false;
+    bool _isHidden = false;
+    bool _mem_isSelected = false;
+    bool _isShortcut = false;
+    bool _colorLock = false;
+    bool _dragged = false;
+    unsigned short _xPos = 999;
+    unsigned short _yPos = 999;
+    unsigned short _page{};
 };
 
 class DDToggleButton final : public DDScalableButton {

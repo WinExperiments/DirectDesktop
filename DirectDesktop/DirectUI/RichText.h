@@ -85,9 +85,9 @@ namespace DirectUI
 		const WCHAR* GetTypographyRuns(Value** ppv);
 		const WCHAR* GetLocale(Value** ppv);
 
-		int GetBaseline();
-		int GetLineSpacing();
-		int GetOverhangOffset();
+		int GetBaseline() { return GetPixelHelper(this, BaselineProp()); }
+		int GetLineSpacing() { return GetPixelHelper(this, LineSpacingProp()); }
+		int GetOverhangOffset() { return GetPixelHelper(this, OverhangOffsetProp()); }
 		bool GetAliasedRendering();
 		bool GetDisableAccTextExtend();
 		bool GetMapRunsToClusters();

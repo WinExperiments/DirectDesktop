@@ -56,7 +56,10 @@ namespace DirectUI
 		static constexpr bool Value = true;
 	};
 
-	static_assert(_IsSame<wchar_t, unsigned short>::Value, "Please enable \"Treat WChar_t As Built in Type\" in the project settings");
+	static_assert(_IsSame<wchar_t, unsigned short>::Value,
+		"Please disable \"Treat WChar_t As Built in Type\" in the project settings. "
+		"Disabling this is required as dui70.dll is compiled with this setting disabled, "
+		"otherwise linking to dui70.dll functions using WCHAR will fail.");
 
 
 	typedef class ProviderProxy* (CALLBACK *PfnCreateProxy)(class Element*);

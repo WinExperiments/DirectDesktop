@@ -2,6 +2,12 @@
 
 namespace DirectUI
 {
+	struct ButtonContextEvent : Event
+	{
+		UINT uModifiers;
+		POINT pt;
+	};
+
 	class UILIB_API Button : public Element
 	{
 	public:

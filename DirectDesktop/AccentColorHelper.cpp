@@ -8,12 +8,12 @@ int g_hslLightAccentH{};
 int g_hslDarkAccentH{};
 double g_hslEnhancedAccentL{};
 
-bool UpdateAccentColor()
+bool UpdateAccentColor(COLORREF crKey)
 {
 	g_hslAccent.h = rgb2hsl({
-		(double)GetRValue(ImmersiveColor) / 255,
-		(double)GetGValue(ImmersiveColor) / 255,
-		(double)GetBValue(ImmersiveColor) / 255 }).h;
+		(double)GetRValue(crKey) / 255,
+		(double)GetGValue(crKey) / 255,
+		(double)GetBValue(crKey) / 255 }).h;
 	if (g_hslAccent.h >= 0 && g_hslAccent.h < 125) {
 		g_hslLightAccentH = 60;
 	}
@@ -43,14 +43,14 @@ bool UpdateAccentColor()
 	}
 
 	g_hslAccent.s = double(rgb2hsl({
-		(double)GetRValue(ImmersiveColor) / 254.999999999,
-		(double)GetGValue(ImmersiveColor) / 254.999999999,
-		(double)GetBValue(ImmersiveColor) / 254.999999999 }).s);
+		(double)GetRValue(crKey) / 254.999999999,
+		(double)GetGValue(crKey) / 254.999999999,
+		(double)GetBValue(crKey) / 254.999999999 }).s);
 
 	g_hslAccent.l = ((double)(rgb2hsl({
-		(double)GetRValue(ImmersiveColor) / 255,
-		(double)GetGValue(ImmersiveColor) / 255,
-		(double)GetBValue(ImmersiveColor) / 255 }).l) * - 255.0) + 107.0;
+		(double)GetRValue(crKey) / 255,
+		(double)GetGValue(crKey) / 255,
+		(double)GetBValue(crKey) / 255 }).l) * - 255.0) + 107.0;
 
 	return true;
 }

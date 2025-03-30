@@ -8,6 +8,31 @@ interface IDirectManipulationViewport;
 
 namespace DirectUI
 {
+	struct ManipulationEvent : Event
+	{
+		bool isInertia;
+		float scale;
+		float translateX;
+		float translateY;
+		float centerX;
+		float centerY;
+	};
+
+	struct SemanticChangeEvent : Event
+	{
+		float scaleFactor;
+		float x;
+		float y;
+		float translateX;
+		float translateY;
+	};
+
+	struct SetContactEvent : Event
+	{
+		UINT uiPointerID;
+		bool fCancel;
+	};
+
 	struct TILE
 	{
 		UINT64 uiID;

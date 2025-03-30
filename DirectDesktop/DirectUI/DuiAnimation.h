@@ -499,6 +499,13 @@ namespace DirectUI
 		bool fSkipScaleTransform;
 	};
 
+	struct TriggeredAnimationCompleteEvent : Event
+	{
+		UINT nCode;
+		DWORD dwCookie;
+		bool fStoryboardAnimated;
+	};
+
 	MIDL_INTERFACE("0372C617-AEB1-4BCC-8703-DAD13E0C7D8A")
 	IDuiAnimationTriggers : IUnknown
 	{
@@ -570,7 +577,7 @@ namespace DirectUI
 		UILIB_API static UID WINAPI AnimationStatusChange();
 	};
 
-	class PVLLauncherAnimationTriggers : public IDuiLauncherAnimationTriggers
+	/*class PVLLauncherAnimationTriggers : public IDuiLauncherAnimationTriggers
 	{
 	public:
 		static HRESULT WINAPI Startup();
@@ -602,5 +609,5 @@ namespace DirectUI
 	private:
 		static PVLLauncherAnimationTriggers* s_pLauncherInstance;
 		bool _fDestroyed;
-	};
+	};*/
 }

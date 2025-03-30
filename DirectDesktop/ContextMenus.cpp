@@ -3,6 +3,7 @@
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
 #include "resource.h"
+#include <propkey.h>
 
 std::wstring RemoveQuotes2(const std::wstring& input) {
     if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"') {
@@ -27,6 +28,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
         {
             HMENU hm = CreatePopupMenu();
             HMENU hsm = CreatePopupMenu();
+            HMENU hsm2 = CreatePopupMenu();
             MENUITEMINFOW mii{};
             mii.cbSize = sizeof(MENUITEMINFOW);
             mii.fMask = MIIM_STATE;
@@ -34,20 +36,27 @@ void DesktopRightClick(Element* elem, Event* iev) {
             AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4005).c_str());
             AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4006).c_str());
             AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1004, LoadStrFromRes(4007).c_str());
-            for (int menuitem = 1001; menuitem <= 1004; menuitem++) {
+            AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1005, LoadStrFromRes(4034).c_str());
+            for (int menuitem = 1001; menuitem <= 1005; menuitem++) {
                 mii.fState = MFS_UNCHECKED;
                 SetMenuItemInfoW(hsm, menuitem, 0, &mii);
             }
             mii.fState = MFS_CHECKED;
-            if (globaliconsz <= 32) SetMenuItemInfoW(hsm, 1004, 0, &mii);
+            if (touchmode) SetMenuItemInfoW(hsm, 1005, 0, &mii);
+            else if (globaliconsz <= 32) SetMenuItemInfoW(hsm, 1004, 0, &mii);
             else if (globaliconsz <= 48) SetMenuItemInfoW(hsm, 1003, 0, &mii);
             else if (globaliconsz <= 96) SetMenuItemInfoW(hsm, 1002, 0, &mii);
             else SetMenuItemInfoW(hsm, 1001, 0, &mii);
-            AppendMenuW(hsm, MF_SEPARATOR, 1005, L"_");
-            AppendMenuW(hsm, MF_STRING, 1006, LoadStrFromRes(4008).c_str());
+            AppendMenuW(hsm, MF_SEPARATOR, 1006, L"_");
+            AppendMenuW(hsm, MF_STRING, 1007, LoadStrFromRes(4008).c_str());
             mii.fState = hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
-            SetMenuItemInfoW(hsm, 1006, 0, &mii);
+            SetMenuItemInfoW(hsm, 1007, 0, &mii);
+            AppendMenuW(hsm2, MF_STRING, 1008, L"Name");
+            AppendMenuW(hsm2, MF_STRING, 1009, L"Date modified");
+            AppendMenuW(hsm2, MF_STRING, 1010, L"Type");
+            AppendMenuW(hsm2, MF_STRING, 1011, L"Size");
             InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, LoadStrFromRes(4001).c_str());
+            //InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm2, L"Sort by");
             InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
             InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
             InsertMenuW(hm, 3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
@@ -79,6 +88,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
             POINT pt;
             GetCursorPos(&pt);
             int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
+            bool touchmodeMem{};
             switch (menuItemId) {
             case 2002:
                 InitLayout(false, false);
@@ -90,31 +100,67 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 globaliconsz = 144;
                 globalshiconsz = 48;
                 globalgpiconsz = 48;
+                touchmodeMem = touchmode;
+                touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144, false, nullptr);
+                if (touchmodeMem) {
+                    InitLayout(false, false);
+                    break;
+                }
                 RearrangeIcons(true, true);
                 break;
             case 1002:
                 globaliconsz = 96;
                 globalshiconsz = 48;
                 globalgpiconsz = 32;
+                touchmodeMem = touchmode;
+                touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96, false, nullptr);
+                if (touchmodeMem) {
+                    InitLayout(false, false);
+                    break;
+                }
                 RearrangeIcons(true, true);
                 break;
             case 1003:
                 globaliconsz = 48;
                 globalshiconsz = 32;
                 globalgpiconsz = 16;
+                touchmodeMem = touchmode;
+                touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48, false, nullptr);
+                if (touchmodeMem) {
+                    InitLayout(false, false);
+                    break;
+                }
                 RearrangeIcons(true, true);
                 break;
             case 1004:
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
+                touchmodeMem = touchmode;
+                touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32, false, nullptr);
+                if (touchmodeMem) {
+                    InitLayout(false, false);
+                    break;
+                }
                 RearrangeIcons(true, true);
                 break;
-            case 1006:
+            case 1005:
+                globaliconsz = 32;
+                globalshiconsz = 32;
+                globalgpiconsz = 12;
+                touchmodeMem = touchmode;
+                touchmode = true;
+                if (!touchmodeMem) {
+                    InitLayout(false, false);
+                    break;
+                }
+                RearrangeIcons(true, true);
+                break;
+            case 1007:
                 for (int items = 0; items < validItems; items++) {
                     switch (hiddenIcons) {
                     case 0:
@@ -128,6 +174,14 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 hiddenIcons = !hiddenIcons;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons, false, nullptr);
                 break;
+            //case 1008:
+            //    break;
+            //case 1009:
+            //    break;
+            //case 1010:
+            //    break;
+            //case 1011:
+            //    break;
             default:
                 CMINVOKECOMMANDINFO ici;
                 ZeroMemory(&ici, sizeof(ici));
@@ -137,6 +191,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 pICv1->InvokeCommand(&ici);
                 break;
             }
+            SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", touchmode, false, nullptr);
         }
         pShellFolder->Release();
     }

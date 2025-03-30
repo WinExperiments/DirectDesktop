@@ -37,7 +37,9 @@
 #include "UiaSchema.h"
 #include "Element.h"
 #include "PatternProvider.h"
+#include "PropNotify.h"
 #include "Value.h"
+#include "ValuePtr.h"
 #include "Parser.h"
 #include "Browser.h"
 #include "Bind.h"
@@ -45,6 +47,7 @@
 #include "Button.h"
 #include "Base.h"
 #include "ClassInfo.h"
+#include "ElementWithProxy.h"
 #include "AccessibleButton.h"
 #include "AutoButton.h"
 #include "PushButton.h"
@@ -136,6 +139,7 @@
 #include "DuiAnimation.h"
 
 // Touch elements
+#include "ModernProgressBar.h"
 #include "TouchButton.h"
 #include "TouchCheckBox.h"
 #include "TouchHWNDElement.h"
@@ -156,6 +160,12 @@
 UILIB_API void WINAPI DumpDuiTree(DirectUI::Element* pe, BOOL fShowProperties);
 UILIB_API void WINAPI DumpDuiProperties(DirectUI::Element* pe);
 UILIB_API HRESULT WINAPI DuiCreateObject(REFCLSID rclsid, REFIID riid, void** ppv);
+
+#include "PVLTrigger.h"
+#include "PVLLauncherTrigger.h"
+#include "BehaviorEngine.h"
+#include "BehaviorEngineHelper.h"
+#include "ContextMenuBehavior.h"
 
 namespace DirectUI
 {
@@ -203,7 +213,7 @@ namespace DirectUI
 
 		HBRUSH WINAPI BrushFromEnumI(int c);
 		COLORREF WINAPI ColorFromEnumI(int c);
-		COLORREF WINAPI ARGBColorEnumI(int c);
+		COLORREF WINAPI ARGBColorFromEnumI(int c);
 
 		DWORD* WINAPI DisableAnimations();
 		int WINAPI DrawShadowTextEx(HDC hdc, const WCHAR *pszText, int cch, RECT* prc, DWORD dwFlags, COLORREF crText, COLORREF crShadow, int ixOffset, int iyOffset, BYTE bInitialAlpha, BOOL fAPIInit);
@@ -238,5 +248,11 @@ namespace DirectUI
 
 		HRESULT WINAPI RegisterPVLBehaviorFactory();
 		void WINAPI DUIStopPVLAnimation(Element* peAnimating, UINT nDCProperty, BOOL fFinal);
+	}
+
+	inline int GetPixelHelper(Element* pe, const PropertyInfo* ppi, bool fUseDefault)
+	{
+		CValuePtr spv(pe->GetRawValue(ppi, 2, nullptr));
+		return spv->GetElementScaledInt(pe);
 	}
 }

@@ -215,6 +215,8 @@
     <ClInclude Include="AutoVariant.h" />
     <ClInclude Include="AutoThread.h" />
     <ClInclude Include="Base.h" />
+    <ClInclude Include="BehaviorEngine.h" />
+    <ClInclude Include="BehaviorEngineHelper.h" />
     <ClInclude Include="Bind.h" />
     <ClInclude Include="BorderLayout.h" />
     <ClInclude Include="Browser.h" />
@@ -235,6 +237,7 @@
     <ClInclude Include="CHScrollBar.h" />
     <ClInclude Include="CListBox.h" />
     <ClInclude Include="Combobox.h" />
+    <ClInclude Include="ContextMenuBehavior.h" />
     <ClInclude Include="CProgressBar.h" />
     <ClInclude Include="CPushButton.h" />
     <ClInclude Include="CRadioButton.h" />
@@ -250,6 +253,7 @@
     <ClInclude Include="Element.h" />
     <ClInclude Include="ElementProviderManager.h" />
     <ClInclude Include="ElementWithHWND.h" />
+    <ClInclude Include="ElementWithProxy.h" />
     <ClInclude Include="Event.h" />
     <ClInclude Include="EventManager.h" />
     <ClInclude Include="Expandable.h" />
@@ -271,6 +275,7 @@
     <ClInclude Include="Macro.h" />
     <ClInclude Include="ManipulationHelper.h" />
     <ClInclude Include="Misc.h" />
+    <ClInclude Include="ModernProgressBar.h" />
     <ClInclude Include="Movie.h" />
     <ClInclude Include="NativeHWNDHost.h" />
     <ClInclude Include="Navigator.h" />
@@ -281,9 +286,12 @@
     <ClInclude Include="Primitives.h" />
     <ClInclude Include="Progress.h" />
     <ClInclude Include="PromptText.h" />
+    <ClInclude Include="PropNotify.h" />
     <ClInclude Include="Provider.h" />
     <ClInclude Include="PText.h" />
     <ClInclude Include="PushButton.h" />
+    <ClInclude Include="PVLLauncherTrigger.h" />
+    <ClInclude Include="PVLTrigger.h" />
     <ClInclude Include="RadioButtonGlyph.h" />
     <ClInclude Include="RangeValue.h" />
     <ClInclude Include="RefPointElement.h" />
@@ -321,6 +329,7 @@
     <ClInclude Include="UiaSchema.h" />
     <ClInclude Include="UnknownElement.h" />
     <ClInclude Include="Value.h" />
+    <ClInclude Include="ValuePtr.h" />
     <ClInclude Include="Viewer.h" />
     <ClInclude Include="XBaby.h" />
     <ClInclude Include="XElement.h" />

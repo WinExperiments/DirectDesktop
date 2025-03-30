@@ -5,34 +5,48 @@ namespace DirectUI
 	class UILIB_API Macro : public Element
 	{
 	public:
-		Macro(Macro const &);
-		Macro(void);
-		virtual ~Macro(void);
-		Macro & operator=(Macro const &);
+		static HRESULT WINAPI Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
 
-		static long __stdcall Create(Element *, unsigned long *, Element * *);
-		static PropertyInfo const * __stdcall ExpandProp(void);
-		static IClassInfo * __stdcall GetClassInfoPtr(void);
-		static long __stdcall Register(void);
-		static void __stdcall SetClassInfoPtr(IClassInfo *);
+		// ReSharper disable once CppHiddenFunction
+		HRESULT Initialize(Element* pParent, DWORD* pdwDeferCookie);
 
-		void SetDataEntry(IDataEntry *, Element *);;
-		long SetExpand(unsigned short const *);
-		void SetParser(DUIXmlParser *);
-		IDataEntry * GetDataEntry(void);
-		unsigned short const * GetExpand(Value * *);
-		long Initialize(Element *, unsigned long *);
+		static const PropertyInfo* WINAPI ExpandProp();
+		const WCHAR* GetExpand(Value** ppv);
+		HRESULT SetExpand(const WCHAR* v);
 
+		void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+		HRESULT Add(Element** ppe, UINT cCount) override;
 
-		virtual long Add(Element * *, unsigned int);
-		virtual IClassInfo * GetClassInfoW(void);
-		virtual void OnPropertyChanged(PropertyInfo const *, int, Value *, Value *);
-	protected:
-		//1
-		virtual long BuildElement(void);
-		void ResolveBindings(void);
+		static IClassInfo* WINAPI GetClassInfoPtr();
+		static void WINAPI SetClassInfoPtr(IClassInfo* pClass);
 
 	private:
-		static IClassInfo * s_pClassInfo;
+		static IClassInfo* s_pClassInfo;
+
+	public:
+		IClassInfo* GetClassInfoW() override;
+
+		static HRESULT WINAPI Register();
+
+		void SetDataEntry(IDataEntry* pide, Element* peBindings);
+		IDataEntry* GetDataEntry();
+		void SetParser(DUIXmlParser* pParser);
+		void SetDefaultGraphicType(BYTE defaultGraphicType, bool fOffOpaqueGraphicType);
+
+	protected:
+		Element* _peBindings;
+		IDataEntry* _pide;
+		DUIXmlParser* _pXmlParser;
+
+		virtual HRESULT BuildElement();
+
+		void ResolveBindings();
+		void _BitAccurateFillRect(HDC hDC, int x, int y, int w, int h, BYTE r, BYTE g, BYTE b, BYTE a, DWORD dwROP);
+		bool _GetBitmapSize(HBITMAP hBitmap, SIZE* pSize);
+		Value* _LoadImage32BitsPerPixel(const WCHAR* pszPath);
+
+		int _fResolveBindings;
+		BYTE _dDefaultGraphicType;
+		bool _fOffOpaqueGraphicType;
 	};
 }

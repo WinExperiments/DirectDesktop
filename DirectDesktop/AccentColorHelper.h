@@ -9,4 +9,4 @@ extern int g_hslDarkAccentH;
 extern double g_hslEnhancedAccentL;
 extern double g_oldhslEnhancedAccentL;
 
-bool UpdateAccentColor();
+bool UpdateAccentColor(COLORREF crKey);

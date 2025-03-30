@@ -22,6 +22,10 @@ namespace DirectUI
 		~PatternProvider() override
 		{
 			_pprv->TossPatternProvider(PatternT);
+			if (_pprv) // TODO We don't have AutoReleasePointer yet
+			{
+				_pprv->Release();
+			}
 		}
 
 		static long WINAPI Create(ElementProvider* pprv, IUnknown** ppunk)

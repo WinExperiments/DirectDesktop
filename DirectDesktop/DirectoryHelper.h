@@ -16,6 +16,7 @@ extern vector<DirectUI::Element*> shadowpm;
 extern vector<DirectUI::RichText*> filepm;
 extern vector<DirectUI::RichText*> fileshadowpm;
 extern vector<DirectUI::Element*> cbpm;
+extern void InitLayout(bool bUnused1, bool bUnused2);
 
 class ThumbIcons {
 private:

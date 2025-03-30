@@ -14,6 +14,7 @@ extern void RearrangeIcons(bool animation, bool reloadicons);
 extern std::wstring LoadStrFromRes(UINT id);
 extern bool hiddenIcons;
 extern int globaliconsz, globalshiconsz, globalgpiconsz;
+extern bool touchmode;
 extern int currentPageID;
 extern int localeType;
 extern NativeHWNDHost* wnd;

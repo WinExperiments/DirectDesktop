@@ -2,7 +2,7 @@
 	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default" background="rgb(0,0,0)">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
-			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
+			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client" animation="alpha|s|veryfast|delayshort">
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" animation="position|s|fast">
 
 				</Element>
@@ -14,37 +14,45 @@
 				</TouchButton>
 				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
+				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="flowlayout(0,2,2,0)">
+					<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
+							 foreground="themeable(gtc(DragDrop,8,0,3803), black)" padding="themeable(gtmar(DragDrop,8,0,3602), rect(5rp,1rp,5rp,1rp))" compositedtext="true" textglowsize="0"/>
+				</Element>
 			</Element>
 		</Element>
 	</HWNDElement>
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="default">
-		<Button id="atom(fullscreenpopupbase)" layout="flowlayout(0,2,2,0)" layoutpos="client" class="popupbg" visible="false" padding="rect(16rp,16rp,16rp,16rp)">
-			<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast"/>
-		</Button>
-		//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
-		<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
-		<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
-		<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-			// minsize="size(0,128rp)"
-			<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
-		</Button>
-		<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-			<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-				<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-					<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-				</Element>
+		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" alpha="0" animation="alpha|s|veryfast">
+			<Element class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)">
+				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
+			</Element>
+			//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
+			<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
+			<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
+			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+				// minsize="size(0,128rp)"
+				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
 			</Button>
-			<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-				<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-					<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-					<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-				</Element>
+			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+						<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+					</Element>
+				</Button>
+				<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+						<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
+					</Element>
+				</Button>
 			</Button>
 		</Button>
 	</HWNDElement>
 	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
-	<DDScalableElement resid="simpleviewoverlay" class="roundoverlay" DrawType="1"/>
+	<DDScalableButton resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" animation="size|log|fast"/>
+	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1" animation="size|log|fast"/>
+	<Element resid="deskpreview" layoutpos="absolute" background="argb(0,0,0,0)" alpha="255" animation="size|log|fast"/>
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
@@ -55,7 +63,9 @@
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" alpha ="0" animation="alpha|s|mediumslow|delayshort" contentalign="bottomleft"/>
 		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
-		<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="absolute" width="20rp" height="20rp" x="6rp" y="6rp"/>
+		<Element layout="ninegridlayout()" layoutpos="ninetopleft">
+			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
+		</Element>
 	</LVItem>
 	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
@@ -64,7 +74,23 @@
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</LVItem>
-	<DDScalableButton resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1"/>
+	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" padding="rect(1rp,1rp,1rp,1rp)" width="144rp" height="144rp" animation="position|s|fast">
+		<Element id="atom(innerElem)" class="itemTouchInner"/>
+		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(3rp,3rp,3rp,3rp)" background="argb(0,0,0,0)">
+			<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()" background="argb(0,0,0,0)">
+				<Element id="atom(iconElemShadow)" contentalign="bottomleft" background="argb(0,0,0,0)" layoutpos="left" width="48rp" height="48rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
+				<Element layoutpos="left" layout="borderlayout()">
+					<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="bottom" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)" DrawType="1"/>
+				</Element>
+				<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="left" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)" alpha="0" animation="alpha|s|mediumslow|delayshort"/>
+			</Element>
+			<RichText id="atom(textElemShadow)" layoutpos="absolute" x="6rp" y="6rp" width="124rp" height="76rp" background="argb(0,0,0,0)"/>
+			<RichText id="atom(textElem)" layoutpos="absolute" x="8rp" y="8rp" width="120rp" height="72rp" background="argb(0,0,0,0)"/>
+		</Element>
+		<Element layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
+			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
+		</Element>
+	</LVItem>
 	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
@@ -168,6 +194,12 @@
 					</if>
 				</if>
 			</if>
+			<if class="itemTouchOuter">
+				<LVItem background="gradient(ImmersiveStartSystemTilesBackground,ImmersiveControlDarkToggleThumbDisabled,0)" cursor="hand"/>
+			</if>
+			<if class="itemTouchInner">
+				<Element layoutpos="client" background="gradient(ImmersiveStartDesktopTilesBackground,ImmersiveStartSystemTilesBackground,0)"/>
+			</if>
 			<if class="selector">
 				<Element alpha="themeable(224, 148)"/>
 				<if visible="false">
@@ -190,7 +222,7 @@
 				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
-				<Button background="resbmp(164,7,-1,0,0,1,1)"/>
+				<Element background="resbmp(164,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="popupwindow">
 				<DDScalableButton FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -218,9 +250,9 @@
 				<Button background="argb(0,0,0,0)" foreground="black"/>
 				<if mousefocused="true">
 					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
-				</if>
-				<if Pressed="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<if Pressed="true">
+						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					</if>
 				</if>
 			</if>
 			<if class="pilltab">
@@ -301,6 +333,12 @@
 					</if>
 				</if>
 			</if>
+			<if class="itemTouchOuter">
+				<LVItem background="gradient(ImmersiveStartSystemTilesBackground,ImmersiveControlDarkToggleThumbDisabled,0)" cursor="hand"/>
+			</if>
+			<if class="itemTouchInner">
+				<Element layoutpos="client" background="gradient(ImmersiveStartDesktopTilesBackground,ImmersiveStartSystemTilesBackground,0)"/>
+			</if>
 			<if class="selector">
 				<Element alpha="themeable(224, 148)"/>
 				<if visible="false">
@@ -323,7 +361,7 @@
 				<DDScalableElement FirstScaledImage="265" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
-				<Button background="resbmp(264,7,-1,0,0,1,1)"/>
+				<Element background="resbmp(264,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="popupwindow">
 				<DDScalableButton FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -351,9 +389,9 @@
 				<Button background="argb(0,0,0,0)" foreground="white"/>
 				<if mousefocused="true">
 					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
-				</if>
-				<if Pressed="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<if Pressed="true">
+						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					</if>
 				</if>
 			</if>
 			<if class="pilltab">

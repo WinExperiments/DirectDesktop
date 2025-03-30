@@ -9,86 +9,11 @@ using namespace DirectUI;
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 
-IClassInfo* LVItem::s_pClassInfo;
+
 IClassInfo* DDScalableElement::s_pClassInfo;
 IClassInfo* DDScalableButton::s_pClassInfo;
+IClassInfo* LVItem::s_pClassInfo;
 IClassInfo* DDToggleButton::s_pClassInfo;
-
-IClassInfo* LVItem::GetClassInfoPtr() {
-    return s_pClassInfo;
-}
-void LVItem::SetClassInfoPtr(IClassInfo* pClass) {
-    s_pClassInfo = pClass;
-}
-IClassInfo* LVItem::GetClassInfoW() {
-    return s_pClassInfo;
-}
-HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
-    return CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-}
-HRESULT LVItem::Register() {
-    return ClassInfo<LVItem, Button, StandardCreator<LVItem>>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
-}
-unsigned short LVItem::GetInternalXPos() {
-    return _xPos;
-}
-unsigned short LVItem::GetInternalYPos() {
-    return _yPos;
-}
-void LVItem::SetInternalXPos(unsigned short iXPos) {
-    _xPos = iXPos;
-}
-void LVItem::SetInternalYPos(unsigned short iYPos) {
-    _yPos = iYPos;
-}
-wstring LVItem::GetFilename() {
-    return _filename;
-}
-wstring LVItem::GetSimpleFilename() {
-    return _simplefilename;
-}
-void LVItem::SetFilename(const wstring& wsFilename) {
-    _filename = wsFilename;
-}
-void LVItem::SetSimpleFilename(const wstring& wsSimpleFilename) {
-    _simplefilename = wsSimpleFilename;
-}
-bool LVItem::GetDirState() {
-    return _isDirectory;
-}
-bool LVItem::GetHiddenState() {
-    return _isHidden;
-}
-bool LVItem::GetMemorySelected() {
-    return _mem_isSelected;
-}
-bool LVItem::GetShortcutState() {
-    return _isShortcut;
-}
-bool LVItem::GetColorLock() {
-    return _colorLock;
-}
-void LVItem::SetDirState(bool dirState) {
-    _isDirectory = dirState;
-}
-void LVItem::SetHiddenState(bool hiddenState) {
-    _isHidden = hiddenState;
-}
-void LVItem::SetMemorySelected(bool mem_isSelectedState) {
-    _mem_isSelected = mem_isSelectedState;
-}
-void LVItem::SetShortcutState(bool shortcutState) {
-    _isShortcut = shortcutState;
-}
-void LVItem::SetColorLock(bool colorLockState) {
-    _colorLock = colorLockState;
-}
-unsigned short LVItem::GetPage() {
-    return _page;
-}
-void LVItem::SetPage(unsigned short pageID) {
-    _page = pageID;
-}
 
 static const int vvimpFirstScaledImageProp[] = { 1, -1 };
 static PropertyInfoData dataimpFirstScaledImageProp;
@@ -152,12 +77,12 @@ static const PropertyInfo impNeedsFontResizeProp =
 };
 
 void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    if (pProp == Element::MouseFocusedProp() || pProp == Button::PressedProp() || pProp == Element::EnabledProp() || pProp == Element::SelectedProp()) {
+    if (pProp == Element::MouseFocusedProp() || pProp == Button::PressedProp() || pProp == Element::EnabledProp() || pProp == Element::SelectedProp() || pProp == DDScalableElement::FirstScaledImageProp()) {
         ((DDScalableElement*)elem)->InitDrawImage();
     }
 }
 unsigned long DelayedDraw(LPVOID lpParam) {
-    Sleep(50);
+    Sleep(150);
     assignExtendedFn((DDScalableElement*)lpParam, UpdateImageOnPropChange);
     ((DDScalableElement*)lpParam)->InitDrawImage();
     ((DDScalableElement*)lpParam)->InitDrawFont();
@@ -492,6 +417,88 @@ void DDScalableButton::SetAssociatedBool(bool* pb) {
 }
 void DDScalableButton::ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2) {
     pfn(fnb1, fnb2);
+}
+
+IClassInfo* LVItem::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void LVItem::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* LVItem::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    return CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+}
+HRESULT LVItem::Register() {
+    return ClassInfo<LVItem, Button, StandardCreator<LVItem>>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
+}
+unsigned short LVItem::GetInternalXPos() {
+    return _xPos;
+}
+unsigned short LVItem::GetInternalYPos() {
+    return _yPos;
+}
+void LVItem::SetInternalXPos(unsigned short iXPos) {
+    _xPos = iXPos;
+}
+void LVItem::SetInternalYPos(unsigned short iYPos) {
+    _yPos = iYPos;
+}
+wstring LVItem::GetFilename() {
+    return _filename;
+}
+wstring LVItem::GetSimpleFilename() {
+    return _simplefilename;
+}
+void LVItem::SetFilename(const wstring& wsFilename) {
+    _filename = wsFilename;
+}
+void LVItem::SetSimpleFilename(const wstring& wsSimpleFilename) {
+    _simplefilename = wsSimpleFilename;
+}
+bool LVItem::GetDirState() {
+    return _isDirectory;
+}
+bool LVItem::GetHiddenState() {
+    return _isHidden;
+}
+bool LVItem::GetMemorySelected() {
+    return _mem_isSelected;
+}
+bool LVItem::GetShortcutState() {
+    return _isShortcut;
+}
+bool LVItem::GetColorLock() {
+    return _colorLock;
+}
+bool LVItem::GetDragState() {
+    return _dragged;
+}
+void LVItem::SetDirState(bool dirState) {
+    _isDirectory = dirState;
+}
+void LVItem::SetHiddenState(bool hiddenState) {
+    _isHidden = hiddenState;
+}
+void LVItem::SetMemorySelected(bool mem_isSelectedState) {
+    _mem_isSelected = mem_isSelectedState;
+}
+void LVItem::SetShortcutState(bool shortcutState) {
+    _isShortcut = shortcutState;
+}
+void LVItem::SetColorLock(bool colorLockState) {
+    _colorLock = colorLockState;
+}
+void LVItem::SetDragState(bool dragstate) {
+    _dragged = dragstate;
+}
+unsigned short LVItem::GetPage() {
+    return _page;
+}
+void LVItem::SetPage(unsigned short pageID) {
+    _page = pageID;
 }
 
 IClassInfo* DDToggleButton::GetClassInfoPtr() {
