@@ -251,6 +251,7 @@ vector<Element*> shadowpm, subshadowpm;
 vector<RichText*> filepm, subfilepm;
 vector<RichText*> fileshadowpm, subfileshadowpm;
 vector<Element*> cbpm;
+vector<LVItem*> selectedLVItems;
 bool checkifelemexists = 0;
 bool issubviewopen = 0;
 bool hiddenIcons;
@@ -258,6 +259,7 @@ bool editmode = 0;
 bool pendingaction = 0;
 bool invokedpagechange = 0;
 void fullscreenAnimation(int width, int height, float animstartscale);
+void HidePopupCore(bool WinDInvoked);
 void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
 void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id);
 unsigned long CreateIndividualThumbnail(LPVOID lpParam);
@@ -417,6 +419,12 @@ void ShowSimpleView() {
     invokedpagechange = false;
 }
 
+unsigned long ShowTimedSimpleView(LPVOID lpParam) {
+    Sleep(250);
+    SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 1);
+    return 0;
+}
+
 unsigned long EndExplorer(LPVOID lpParam) {
     Sleep(250);
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
@@ -449,6 +457,15 @@ void AdjustWindowSizes(bool firsttime) {
     SetWindowPos(hWndTaskbar, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 }
 
+unsigned long WallpaperHelper24H2(LPVOID lpParam) {
+    int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
+    Sleep(200);
+    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
+    bool bTest = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &hWorkerW, &hSHELLDLL_DefView, false);
+    return 0;
+}
+
 LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
@@ -462,6 +479,19 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (wParam == SPI_SETWORKAREA) {
             AdjustWindowSizes(false);
             RearrangeIcons(true, false);
+        }
+        if (wParam == SPI_SETDESKWALLPAPER) {
+            static int messagemitigation{};
+            messagemitigation++;
+            if (messagemitigation & 1) {
+                int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
+                if (WindowsBuild >= 26002) {
+                    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+                    SetParent(hSHELLDLL_DefView, hWndProgman);
+                    DWORD dwWallpaper{};
+                    HANDLE wallpaperThread = CreateThread(0, 0, WallpaperHelper24H2, NULL, 0, &dwWallpaper);
+                }
+            }
         }
         if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0) {
             UpdateModeInfo();
@@ -499,6 +529,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_COMMAND: {
+        break;
+    }
+    case WM_HOTKEY: {
+        switch (wParam) {
+        case 1:
+            DWORD dw;
+            HANDLE handle = CreateThread(0, 0, ShowTimedSimpleView, NULL, 0, &dw);
+            break;
+        }
         break;
     }
     case WM_USER + 1: {
@@ -583,29 +622,24 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
         if (localeType == 1) ppt.x = dimensions.right - ppt.x;
-        if (ppt.x >= origX) {
-            selector->SetWidth(ppt.x - origX);
-            selector->SetX(origX);
-            selector2->SetWidth(ppt.x - origX);
-            selector2->SetX(origX);
-        }
-        if (ppt.x < origX) {
-            selector->SetWidth(origX - ppt.x);
-            selector->SetX(ppt.x);
-            selector2->SetWidth(origX - ppt.x);
-            selector2->SetX(ppt.x);
-        }
-        if (ppt.y >= origY) {
-            selector->SetHeight(ppt.y - origY);
-            selector->SetY(origY);
-            selector2->SetHeight(ppt.y - origY);
-            selector2->SetY(origY);
-        }
-        if (ppt.y < origY) {
-            selector->SetHeight(origY - ppt.y);
-            selector->SetY(ppt.y);
-            selector2->SetHeight(origY - ppt.y);
-            selector2->SetY(ppt.y);
+        MARGINS borders = { (ppt.x < origX) ? ppt.x : origX, abs(ppt.x - origX),
+            (ppt.y < origY) ? ppt.y : origY, abs(ppt.y - origY) };
+        selector->SetWidth(borders.cxRightWidth);
+        selector->SetX(borders.cxLeftWidth);
+        selector->SetHeight(borders.cyBottomHeight);
+        selector->SetY(borders.cyTopHeight);
+        selector2->SetWidth(borders.cxRightWidth);
+        selector2->SetX(borders.cxLeftWidth);
+        selector2->SetHeight(borders.cyBottomHeight);
+        selector2->SetY(borders.cyTopHeight);
+        for (int items = 0; items < validItems; items++) {
+            MARGINS iconborders = { pm[items]->GetX(), pm[items]->GetX() + pm[items]->GetWidth(), pm[items]->GetY(), pm[items]->GetY() + pm[items]->GetHeight() };
+            bool selectstate = (borders.cxRightWidth + borders.cxLeftWidth > iconborders.cxLeftWidth &&
+                iconborders.cxRightWidth > borders.cxLeftWidth &&
+                borders.cyBottomHeight + borders.cyTopHeight > iconborders.cyTopHeight &&
+                iconborders.cyBottomHeight > borders.cyTopHeight);
+            pm[items]->SetSelected(selectstate);
+            if (showcheckboxes == 1) cbpm[items]->SetVisible(selectstate);
         }
         break;
     }
@@ -764,7 +798,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 15: {
-        ShowSimpleView();
+        if (!editmode || lParam == 0) ShowSimpleView();
+        else HidePopupCore(false);
         break;
     }
     case WM_USER + 16: {
@@ -791,7 +826,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         static const int dragWidth = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth"));
         static const int dragHeight = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight"));
         if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight) {
-            ((LVItem*)wParam)->SetDragState(true);
+            (*(vector<LVItem*>*)wParam)[0]->SetDragState(true);
             dragpreview->SetVisible(true);
         }
         dragpreview->SetX(ppt.x - origX);
@@ -801,6 +836,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_USER + 18: {
         switch (lParam) {
         case 0: {
+            vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
             POINT ppt;
             GetCursorPos(&ppt);
             ScreenToClient(wnd->GetHWND(), &ppt);
@@ -808,7 +844,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 22) * flScaleFactor;
             int largestXPos = dimensions.right / outerSizeX;
             int largestYPos = dimensions.bottom / outerSizeY;
-            int desktoppadding = touchmode ? 16 : 4;
+            int desktoppadding = touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL;
             desktoppadding *= flScaleFactor;
             if (touchmode) {
                 outerSizeX = touchSizeX + desktoppadding;
@@ -820,22 +856,38 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             int destY = desktoppadding + round((ppt.y - origY) / static_cast<float>(outerSizeY)) * outerSizeY;
             if (localeType == 1) {
                 destX = dimensions.right - destX;
-                if (destX > dimensions.right - outerSizeX) destX = dimensions.right - outerSizeX - desktoppadding;
             }
-            else if (destX < 0) destX = desktoppadding;
-            if (destY < 0) destY = desktoppadding;
-            for (int items = 0; items < pm.size(); items++) {
-                if (pm[items]->GetX() == destX && pm[items]->GetY() == destY && pm[items]->GetPage() == ((LVItem*)wParam)->GetPage()) break;
-                if (items == pm.size() - 1) {
-                    ((Element*)wParam)->SetX(destX);
-                    ((Element*)wParam)->SetY(destY);
+            const int mainElementX = internalselectedLVItems[0]->GetX();
+            const int mainElementY = internalselectedLVItems[0]->GetY();
+            int itemstodrag = internalselectedLVItems.size();
+            if (itemstodrag == 0) itemstodrag = 1;
+            for (int items = 0; items < itemstodrag; items++) {
+                int finaldestX = destX - mainElementX + internalselectedLVItems[items]->GetX();
+                int finaldestY = destY - mainElementY + internalselectedLVItems[items]->GetY();
+                if (localeType == 1) {
+                    if (finaldestX > dimensions.right - outerSizeX) finaldestX = dimensions.right - outerSizeX - desktoppadding;
+                }
+                else {
+                    if (finaldestX < 0) finaldestX = desktoppadding;
+                    if (finaldestX > dimensions.right - outerSizeX + desktoppadding) finaldestX = round((dimensions.right - outerSizeX) / static_cast<float>(outerSizeX)) * outerSizeX + desktoppadding;
+                }
+                if (finaldestY < 0) finaldestY = desktoppadding;
+                if (finaldestY > dimensions.bottom - outerSizeY + desktoppadding) finaldestY = round((dimensions.bottom - outerSizeY) / static_cast<float>(outerSizeY)) * outerSizeY + desktoppadding;
+                for (int items2 = 0; items2 < pm.size(); items2++) {
+                    if (pm[items2]->GetX() == finaldestX && pm[items2]->GetY() == finaldestY && pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage()) break;
+                    if (items2 == pm.size() - 1) {
+                        internalselectedLVItems[items]->SetX(finaldestX);
+                        internalselectedLVItems[items]->SetY(finaldestY);
+                    }
                 }
             }
+            internalselectedLVItems.clear();
             dragpreview->SetVisible(false);
             break;
         }
         case 1: {
-            ((LVItem*)wParam)->SetDragState(false);
+            LVItem* item = (*(vector<LVItem*>*)wParam)[0];
+            item->SetDragState(false);
             break;
         }
         }
@@ -858,6 +910,7 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 1: {
+        if (wParam < 4096) break;
         if (((DDScalableElement*)wParam)->GetFirstScaledImage() == -1) break;
         int scaleInterval = GetCurrentScaleInterval();
         int scaleIntervalImage = ((DDScalableElement*)wParam)->GetScaledImageIntervals();
@@ -1115,7 +1168,7 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
 unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
     Sleep(50);
-    SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, NULL);
+    SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
     return 0;
 }
 void GoToPrevPage(Element* elem, Event* iev) {
@@ -1543,9 +1596,9 @@ void SelectItem(Element* elem, Event* iev) {
                 if (cbpm[items]->GetSelected() == false && showcheckboxes == 1) cbpm[items]->SetVisible(false);
             }
         }
-        if (elem != emptyspace && checkbox->GetMouseFocused() == false) elem->SetSelected(!elem->GetSelected());
-        if (validation % 2 == 1) {
-            if (elem != emptyspace && checkbox->GetMouseFocused() == true) elem->SetSelected(!elem->GetSelected());
+        if (elem != emptyspace && checkbox->GetMouseFocused() == false && GetAsyncKeyState(VK_CONTROL) == 0) elem->SetSelected(!elem->GetSelected());
+        if (validation & 1) {
+            if (elem != emptyspace && checkbox->GetMouseFocused() == true && GetAsyncKeyState(VK_CONTROL) == 0) elem->SetSelected(!elem->GetSelected());
         }
         if (showcheckboxes == 1) checkbox->SetVisible(true);
         if (shellstate[4] & 0x20 && !touchmode) {
@@ -1627,9 +1680,9 @@ void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* 
 bool isPressed = 0, isIconPressed = 0;
 unsigned long UpdateMarqueeSelectorPosition(LPVOID lpParam) {
     while (true) {
-        SendMessageW(wnd->GetHWND(), WM_USER + 5, NULL, NULL);
-        Sleep(10);
         if (!isPressed) break;
+        Sleep(10);
+        SendMessageW(wnd->GetHWND(), WM_USER + 5, NULL, NULL);
     }
     return 0;
 }
@@ -1639,11 +1692,11 @@ unsigned long UpdateIconPosition(LPVOID lpParam) {
     GetCursorPos(&ppt);
     while (true) {
         Sleep(10);
-        SendMessageW(wnd->GetHWND(), WM_USER + 17, (WPARAM)lpParam, (LPARAM)&ppt);
+        SendMessageW(wnd->GetHWND(), WM_USER + 17, (WPARAM)((vector<LVItem*>*)lpParam), (LPARAM)&ppt);
         if (!isIconPressed) {
-            SendMessageW(wnd->GetHWND(), WM_USER + 18, (WPARAM)lpParam, 0);
+            SendMessageW(wnd->GetHWND(), WM_USER + 18, (WPARAM)((vector<LVItem*>*)lpParam), 0);
             Sleep(100);
-            SendMessageW(wnd->GetHWND(), WM_USER + 18, (WPARAM)lpParam, 1);
+            SendMessageW(wnd->GetHWND(), WM_USER + 18, (WPARAM)((vector<LVItem*>*)lpParam), 1);
             break;
         }
     }
@@ -1657,6 +1710,7 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
     HBITMAP selectorBmp = IconToBitmap(dummyi);
     if (pProp == Button::CapturedProp()) {
         if (!isPressed) {
+            emptyspace->SetLayoutPos(-3);
             POINT ppt;
             GetCursorPos(&ppt);
             ScreenToClient(wnd->GetHWND(), &ppt);
@@ -1688,6 +1742,7 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
             selector2->SetVisible(false);
             selector2->SetLayoutPos(-3);
             isPressed = 0;
+            emptyspace->SetLayoutPos(4);
         }
     }
 }
@@ -1697,8 +1752,10 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
     POINT ppt;
     if (pProp == Button::CapturedProp()) {
         if (!isIconPressed) {
+            selectedLVItems.clear();
+            selectedLVItems.push_back((LVItem*)elem);
             int selectedItems{};
-            if (elem->GetSelected() == false) {
+            if (elem->GetSelected() == false && GetAsyncKeyState(VK_CONTROL) == 0) {
                 for (int items = 0; items < validItems; items++) {
                     pm[items]->SetSelected(false);
                     if (cbpm[items]->GetSelected() == false && showcheckboxes == 1) cbpm[items]->SetVisible(false);
@@ -1706,15 +1763,17 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
             }
             elem->SetSelected(true);
             for (int items = 0; items < validItems; items++) {
-                if (pm[items]->GetSelected() == true) selectedItems++;
+                if (pm[items]->GetSelected() == true) {
+                    selectedItems++;
+                    if (pm[items] != elem) selectedLVItems.push_back(pm[items]);
+                }
             }
-            //////// Will be uncommented once feature is complete
-            // Element* multipleitems = regElem(L"multipleitems", pMain);
-            // multipleitems->SetVisible(false);
-            // if (selectedItems >= 2) {
-                // multipleitems->SetVisible(true);
-                //multipleitems->SetContentString(to_wstring(selectedItems).c_str());
-            // }
+            Element* multipleitems = regElem(L"multipleitems", pMain);
+            multipleitems->SetVisible(false);
+            if (selectedItems >= 2) {
+                multipleitems->SetVisible(true);
+                multipleitems->SetContentString(to_wstring(selectedItems).c_str());
+            }
             if (showcheckboxes) {
                 Button* checkbox = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));
                 checkbox->SetVisible(true);
@@ -1746,7 +1805,7 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
             if (hbmCapture != nullptr) DeleteObject(hbmCapture);
             dragpreview->SetWidth(elem->GetWidth());
             dragpreview->SetHeight(elem->GetHeight());
-            dragThreadHandle = CreateThread(0, 0, UpdateIconPosition, elem, 0, &dragThread);
+            dragThreadHandle = CreateThread(0, 0, UpdateIconPosition, &selectedLVItems, 0, &dragThread);
         }
         isIconPressed = 1;
     }
@@ -1788,7 +1847,7 @@ void RearrangeIcons(bool animation, bool reloadicons) {
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
-    int desktoppadding = touchmode ? 16 : 4;
+    int desktoppadding = touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL;
     desktoppadding *= flScaleFactor;
     int x = desktoppadding, y = desktoppadding;
     DWORD* animThread = new DWORD[count];
@@ -1888,7 +1947,6 @@ void InitLayout(bool cloaked, bool bUnused2) {
     int count2{};
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 6 complete: Obtained desktop item count.");
 
-    Button* emptyspace;
     parser->CreateElement(L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
     UIContainer->Add((Element**)&emptyspace, 1);
     assignFn(emptyspace, SelectItem);
@@ -2073,6 +2131,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
     HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, NULL, &key2, (Element**)&subviewparent);
+    RegisterHotKey(wnd->GetHWND(), 1, 0x0002 | MOD_ALT, 'E');
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);

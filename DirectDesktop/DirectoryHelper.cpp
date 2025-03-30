@@ -471,8 +471,8 @@ bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWN
             if (*hSHELLDLL_DefView != nullptr) MainLogger.WriteLine(L"Information: Found WorkerW.");
             else MainLogger.WriteLine(L"Error: No WorkerW found.");
         }
+        if (*hSHELLDLL_DefView != nullptr) hWndResult = SetParent(*hSHELLDLL_DefView, *hWorkerW);
         if (*WindowsBuild >= 26002) {
-            if (*hSHELLDLL_DefView != nullptr) hWndResult = SetParent(*hSHELLDLL_DefView, *hWorkerW);
             //SetParent(*hWorkerW, NULL);
             if (logging == IDYES) {
                 if (hWndResult != nullptr) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 WorkerW.");
