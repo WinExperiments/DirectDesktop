@@ -32,7 +32,6 @@ HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
 void UpdateModeInfo() {
     theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
     ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
-    sheetName = theme ? L"default" : L"defaultdark";
     WhiteText.r = GetRValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
     WhiteText.g = GetGValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
     WhiteText.b = GetBValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));

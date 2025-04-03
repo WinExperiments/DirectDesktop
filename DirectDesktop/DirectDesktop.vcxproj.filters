@@ -372,6 +372,9 @@
     <ClInclude Include="DDControls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ShutdownDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -402,6 +405,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DDControls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShutdownDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -978,10 +984,103 @@
     <Image Include="ImageResources\292.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\1101.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1102.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1103.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1104.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1105.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1106.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1107.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1201.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1202.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1203.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1204.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1205.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1206.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1207.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1108.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1109.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1110.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1111.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1112.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1113.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1114.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1208.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1209.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1210.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1211.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1212.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1213.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\1214.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectUI\DirectUI.def">
       <Filter>Header Files\DirectUI</Filter>
+    </None>
+    <None Include="imageresources\uifile5.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="imageresources\uifile3.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="imageresources\uifile6.bin">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -997,6 +1096,8 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="uifile.xml" />
+    <Xml Include="shutdown.xml" />
+    <Xml Include="fullscreenpopup.xml" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DirectDesktop.manifest">

@@ -1,0 +1,301 @@
+<duixml>
+	<HWNDElement resid="ShutDownWindows" sheet="shutdownstyle" layoutpos="client" layout="borderlayout()">
+		<Element padding="rect(0,4rp,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)"> // Extra padding, honestly don't know if it's good or not
+			<Element id="atom(FakeTitlebar)" layout="flowlayout(0,2,0,0)" layoutpos="top" padding="rect(sysmetric(32),sysmetric(33),sysmetric(32),sysmetric(8))" background="argb(0,0,0,0)">
+				<Element id="atom(TitlebarIcon)" layout="flowlayout(0,2,2,0)" height="sysmetric(4)" padding="rect(sysmetric(32),sysmetric(46),sysmetric(32),sysmetric(46))">
+					<RichText id="atom(moon)" layout="filllayout()" content="resstr(209)" width="sysmetric(49)" height="sysmetric(50)" contentalign="topleft">
+						<RichText id="atom(stars)" direction="ltr" layoutpos="client" content="resstr(211)" width="sysmetric(49)" height="sysmetric(50)" contentalign="topleft"/>
+					</RichText>
+				</Element>
+				<DDScalableElement id="atom(TitlebarText)" height="sysmetric(4)" font="captionfont;100%" NeedsFontResize="1" compositedtext="true" textglowsize="0" contentalign="middleleft" padding="rect(0,0,0,sysmetric(46))"/>
+			</Element>
+		</Element>
+		<DDScalableElement id="atom(Logo)" direction="ltr" ScaledImageIntervals="7" DrawType="2" contentalign="middlecenter" layoutpos="top" height="96rp" padding="rect(0,0,0,16rp)"/> // Use 12rp instead of 16 if using standard titlebar
+		<Element id="atom(SeparatorLine)" layoutpos="top" height="1rp"/>
+		<Element id="atom(StatusBar)" layoutpos="top" layout="filllayout()"/>
+		<Element id="atom(ShutdownActions)" layoutpos="client" layout="gridlayout(2,3)" padding="rect(12rp,12rp,12rp,12rp)">
+			<Button id="atom(SwitchUser)" class="dialogbutton" layout="filllayout()">
+				<Button id="atom(SUInner)" class="dialogbuttontexture" layoutpos="client" accdesc="resstr(3053, library(shutdownux.dll))"/>
+				<Element layout="flowlayout(0,2,2,0)" layoutpos="client">
+					<Element layout="verticalflowlayout(0,2,2,0)">
+						<RichText content="resstr(201)" class="dialogbuttonicon"/>
+						<DDScalableElement content="resstr(3052, library(shutdownux.dll))" class="dialogbuttontext" alpha="255" animation="none"/>
+					</Element>
+				</Element>
+			</Button>
+			<Button id="atom(SignOut)" class="dialogbutton" layout="filllayout()">
+				<Button id="atom(SOInner)" class="dialogbuttontexture" layoutpos="client" accdesc="resstr(3035, library(shutdownux.dll))"/>
+				<Element layout="flowlayout(0,2,2,0)" layoutpos="client">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(202)" class="dialogbuttonicon"/>
+						<DDScalableElement content="resstr(3034, library(shutdownux.dll))" class="dialogbuttontext"/>
+					</Element>
+				</Element>
+			</Button>
+			<Button id="atom(SleepButton)" class="dialogbutton" layout="filllayout()">
+				<Button id="atom(SlInner)" class="dialogbuttontexture" layoutpos="client" accdesc="resstr(3021, library(shutdownux.dll))"/>
+				<Element layout="flowlayout(0,2,2,0)" layoutpos="client">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(203)" class="dialogbuttonicon"/>
+						<DDScalableElement content="resstr(3019, library(shutdownux.dll))" class="dialogbuttontext"/>
+					</Element>
+				</Element>
+			</Button>
+			<Button id="atom(Hibernate)" class="dialogbutton" layout="filllayout()">
+				<Button id="atom(HiInner)" class="dialogbuttontexture" layoutpos="client" accdesc="resstr(3025, library(shutdownux.dll))"/>
+				<Element layout="flowlayout(0,2,2,0)" layoutpos="client">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(204)" class="dialogbuttonicon"/>
+						<DDScalableElement content="resstr(3022, library(shutdownux.dll))" class="dialogbuttontext"/>
+					</Element>
+				</Element>
+			</Button>
+			<Button id="atom(Shutdown)" class="dialogbutton" layout="filllayout()">
+				<Button id="atom(ShInner)" class="dialogbuttontexture" layoutpos="client" accdesc="resstr(3015, library(shutdownux.dll))"/>
+				<Element layout="flowlayout(0,2,2,0)" layoutpos="client">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(205)" class="dialogbuttonicon"/>
+						<DDScalableElement content="resstr(3013, library(shutdownux.dll))" class="dialogbuttontext"/>
+					</Element>
+				</Element>
+			</Button>
+			<Button id="atom(Restart)" class="dialogbutton" layout="filllayout()">
+				<Button id="atom(ReInner)" class="dialogbuttontexture" layoutpos="client" accdesc="resstr(3018, library(shutdownux.dll))"/>
+				<Element layout="flowlayout(0,2,2,0)" layoutpos="client">
+					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
+						<RichText content="resstr(206)" class="dialogbuttonicon"/>
+						<DDScalableElement content="resstr(3016, library(shutdownux.dll))" class="dialogbuttontext"/>
+					</Element>
+				</Element>
+			</Button>
+		</Element>
+		<Element id="atom(DelayBar)" padding="rect(12rp,0,12rp,12rp)" layoutpos="bottom" layout="borderlayout()">
+			<TouchCheckBox id="atom(delaytoggle)" accessible="true" layoutpos="left" checkedstate="checked" padding="rect(0,4rp,0,0)" active="mouse | keyboard" content="resstr(4035)" height="32rp"/>
+			<Element layout="filllayout()" layoutpos="left" width="80rp" height="32rp" background="argb(0,0,0,0)">
+				<TouchEdit2 id="atom(delayseconds)" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')"/>
+				<Element id="atom(delaysecondspreview)" visible="false" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
+			</Element>
+			<RichText content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>
+		</Element>
+	</HWNDElement>
+	<Element resid="StatusBar" layout="borderlayout()" height="44rp" padding="rect(12rp,12rp,12rp,0)" background="argb(0,0,0,0)">
+		<RichText id="atom(StatusIcon)" layoutpos="left" font="14pt;Normal;None;Segoe Fluent Icons" content="resstr(207)" contentalign="middleleft"/>
+		<Button id="atom(StatusCancel)" layoutpos="right" class="dialogbutton" layout="filllayout()" minsize="size(96rp,32rp)">
+			<Button id="atom(SCInner)" class="dialogbuttontexture" layoutpos="client"/>
+			<DDScalableElement layoutpos="client" content="resstr(801, library(user32.dll))" font="messagefont;115%" NeedsFontResize="1" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+		</Button>
+		<DDScalableElement id="atom(StatusText)" class="statustext" layoutpos="left" font="messagefont;115%" NeedsFontResize="1" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
+	</Element>
+	<stylesheets>
+		<style resid="shutdownstyle">
+			<HWNDElement background="rgb(243,243,243)"/>
+			<if id="atom(TitlebarIcon)">
+				<Element foreground="black"/>
+			</if>
+			<if id="atom(TitlebarText)">
+				<DDScalableElement foreground="black"/>
+			</if>
+			<if class="dialogbutton">
+				<Button background="argb(0,0,0,0)" margin="rect(0,0,12rp,12rp)" foreground="themeable(gtc(DirectUILight::Button,1,1,3803), Buttontext)"/>
+				<if mousefocused="true">
+					<Button foreground="themeable(gtc(DirectUILight::Button,1,2,3803), Buttontext)"/>
+				</if>
+				<if Pressed="true">
+					<Button foreground="themeable(gtc(DirectUILight::Button,1,3,3803), Buttontext)"/>
+				</if>
+				<if Enabled="false">
+					<Button foreground="themeable(gtc(DirectUILight::Button,1,4,3803), Graytext)"/>
+				</if>
+			</if>
+			<if class="dialogbuttontexture">
+				<Button background="themeable(dtb(DirectUILight::Button,1,1), dfc(4, 0x0010))" alpha="160" animation="alpha|linear|veryfast" tooltip="true"/>
+				<if mousefocused="true">
+					<Button background="themeable(dtb(DirectUILight::Button,1,2), dfc(4, 0x0010))"/>
+				</if>
+				<if Pressed="true">
+					<Button background="themeable(dtb(DirectUILight::Button,1,3), dfc(4, 0x0010 | 0x4000))"/>
+				</if>
+				<if Enabled="false">
+					<Button background="themeable(dtb(DirectUILight::Button,1,4), dfc(4, 0x0010))"/>
+				</if>
+			</if>
+			<if class="dialogbuttonicon">
+				<RichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
+			</if>
+			<if class="dialogbuttontext">
+				<DDScalableElement font="messagefont;115%" NeedsFontResize="1" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
+			</if>
+			<if id="atom(DelayBar)">
+				<Element foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)"/>
+			</if>
+			<if id="atom(StatusIcon)">
+				<RichText foreground="20006"/>
+			</if>
+			<if class="statustext">
+				<DDScalableElement foreground="black"/>
+			</if>
+			<TouchCheckBox contentalign="endellipsis" background="20575" accessible="true" accrole="checkbutton" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" minsize="size(100,32rp)" padding="rect(0,0,0,0)"/>
+			<if checkedstate="unchecked">
+				<TouchCheckBox accdefaction="resstr(105, library(dui70.dll))"/>
+			</if>
+			<if checkedstate="checked">
+				<TouchCheckBox accdefaction="resstr(106, library(dui70.dll))"/>
+			</if>
+			<if Enabled="false">
+				<TouchCheckBox foreground="20629"/>
+			</if>
+			<if id="atom(TCB_Glyph)">
+				<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))" constrainlayout="NarrowClip" font="0pt;;;"/>
+				<if keyfocused="true">
+					<TouchCheckBoxGlyph contentalign="middlecenter|focusrect"/>
+				</if>
+				<if mousefocused="true">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
+				</if>
+				<if captured="true">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
+				</if>
+				<if Pressed="true">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,3), argb(0,0,0,0))"/>
+				</if>
+				<if Enabled="false">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,4), argb(0,0,0,0))"/>
+				</if>
+				<if checkedstate="checked">
+					<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))" constrainlayout="NarrowClip" font="themeable(0pt;;;, 8pt;Normal;None;Marlett)" content="themeable(' ', 'b')"/>
+					<if mousefocused="true">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
+					</if>
+					<if captured="true">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
+					</if>
+					<if Pressed="true">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,7), argb(0,0,0,0))"/>
+					</if>
+					<if Enabled="false">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,8), argb(0,0,0,0))"/>
+					</if>
+				</if>
+			</if>
+			<if id="atom(TCB_Label)">
+				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)" constrainlayout="narrow"/>
+			</if>
+			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(AB::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" cursor="ibeam"/>
+			<if mousewithin="true">
+				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
+			</if>
+			<if keywithin="true">
+				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))" padding="rect(4rp,4rp,4rp,4rp)"/>
+			</if>
+			<if id="atom(TouchEdit_TextContainer)">
+				<Element background="white" padding="rect(0,0,0,0)"/>
+			</if>
+			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
+		</style>
+		<style resid="shutdownstyledark">
+			<HWNDElement background="rgb(32,32,32)"/>
+			<if id="atom(TitlebarIcon)">
+				<Element foreground="white"/>
+			</if>
+			<if id="atom(TitlebarText)">
+				<DDScalableElement foreground="white"/>
+			</if>
+			<if class="dialogbutton">
+				<Button background="argb(0,0,0,0)" margin="rect(0,0,12rp,12rp)" foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), Buttontext)"/>
+				<if mousefocused="true">
+					<Button foreground="themeable(gtc(DarkMode_Explorer::Button,1,2,3803), Buttontext)"/>
+				</if>
+				<if Pressed="true">
+					<Button foreground="themeable(gtc(DarkMode_Explorer::Button,1,3,3803), Buttontext)"/>
+				</if>
+				<if Enabled="false">
+					<Button foreground="themeable(gtc(DarkMode_Explorer::Button,1,4,3803), Graytext)"/>
+				</if>
+			</if>
+			<if class="dialogbuttontexture">
+				<Button background="themeable(dtb(DarkMode_Explorer::Button,1,1), dfc(4, 0x0010))" alpha="208" animation="alpha|linear|veryfast" tooltip="true"/>
+				<if mousefocused="true">
+					<Button background="themeable(dtb(DarkMode_Explorer::Button,1,2), dfc(4, 0x0010))"/>
+				</if>
+				<if Pressed="true">
+					<Button background="themeable(dtb(DarkMode_Explorer::Button,1,3), dfc(4, 0x0010 | 0x4000))"/>
+				</if>
+				<if Enabled="false">
+					<Button background="themeable(dtb(DarkMode_Explorer::Button,1,4), dfc(4, 0x0010))"/>
+				</if>
+			</if>
+			<if class="dialogbuttonicon">
+				<RichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
+			</if>
+			<if class="dialogbuttontext">
+				<DDScalableElement font="messagefont;115%" NeedsFontResize="1" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
+			</if>
+			<if id="atom(DelayBar)">
+				<Element foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)"/>
+			</if>
+			<if id="atom(StatusIcon)">
+				<RichText foreground="20003"/>
+			</if>
+			<if class="statustext">
+				<DDScalableElement foreground="white"/>
+			</if>
+			<TouchCheckBox contentalign="endellipsis" background="20575" accessible="true" accrole="checkbutton" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" minsize="size(100,32rp)" padding="rect(0,0,0,0)"/>
+			<if checkedstate="unchecked">
+				<TouchCheckBox accdefaction="resstr(105, library(dui70.dll))"/>
+			</if>
+			<if checkedstate="checked">
+				<TouchCheckBox accdefaction="resstr(106, library(dui70.dll))"/>
+			</if>
+			<if Enabled="false">
+				<TouchCheckBox foreground="20629"/>
+			</if>
+			<if id="atom(TCB_Glyph)">
+				<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))" constrainlayout="NarrowClip" font="0pt;;;"/>
+				<if keyfocused="true">
+					<TouchCheckBoxGlyph contentalign="middlecenter|focusrect"/>
+				</if>
+				<if mousefocused="true">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
+				</if>
+				<if captured="true">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
+				</if>
+				<if Pressed="true">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,3), argb(0,0,0,0))"/>
+				</if>
+				<if Enabled="false">
+					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,4), argb(0,0,0,0))"/>
+				</if>
+				<if checkedstate="checked">
+					<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))" constrainlayout="NarrowClip" font="themeable(0pt;;;, 8pt;Normal;None;Marlett)" content="themeable(' ', 'b')"/>
+					<if mousefocused="true">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
+					</if>
+					<if captured="true">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
+					</if>
+					<if Pressed="true">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,7), argb(0,0,0,0))"/>
+					</if>
+					<if Enabled="false">
+						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,8), argb(0,0,0,0))"/>
+					</if>
+				</if>
+			</if>
+			<if id="atom(TCB_Label)">
+				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)" constrainlayout="narrow"/>
+			</if>
+			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" cursor="ibeam"/>
+			<if mousewithin="true">
+				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
+			</if>
+			<if keywithin="true">
+				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))" padding="rect(4rp,4rp,4rp,4rp)"/>
+			</if>
+			<if id="atom(TouchEdit_TextContainer)">
+				<Element background="rgb(32,32,32)" padding="rect(0,0,0,0)"/>
+			</if>
+			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
+		</style>
+	</stylesheets>
+</duixml>

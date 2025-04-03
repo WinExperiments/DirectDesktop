@@ -260,6 +260,7 @@
     <ClInclude Include="DDControls.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SettingsHelper.h" />
+    <ClInclude Include="ShutdownDialog.h" />
     <ClInclude Include="StyleModifier.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -273,6 +274,7 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="DDControls.cpp" />
     <ClCompile Include="SettingsHelper.cpp" />
+    <ClCompile Include="ShutdownDialog.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -291,7 +293,21 @@
     <Image Include="ImageResources\108.png" />
     <Image Include="ImageResources\109.png" />
     <Image Include="ImageResources\110.png" />
+    <Image Include="ImageResources\1101.png" />
+    <Image Include="ImageResources\1102.png" />
+    <Image Include="ImageResources\1103.png" />
+    <Image Include="ImageResources\1104.png" />
+    <Image Include="ImageResources\1105.png" />
+    <Image Include="ImageResources\1106.png" />
+    <Image Include="ImageResources\1107.png" />
+    <Image Include="ImageResources\1108.png" />
+    <Image Include="ImageResources\1109.png" />
     <Image Include="ImageResources\111.png" />
+    <Image Include="ImageResources\1110.png" />
+    <Image Include="ImageResources\1111.png" />
+    <Image Include="ImageResources\1112.png" />
+    <Image Include="ImageResources\1113.png" />
+    <Image Include="ImageResources\1114.png" />
     <Image Include="ImageResources\112.png" />
     <Image Include="ImageResources\113.png" />
     <Image Include="ImageResources\114.png" />
@@ -301,7 +317,21 @@
     <Image Include="ImageResources\118.png" />
     <Image Include="ImageResources\119.png" />
     <Image Include="ImageResources\120.png" />
+    <Image Include="ImageResources\1201.png" />
+    <Image Include="ImageResources\1202.png" />
+    <Image Include="ImageResources\1203.png" />
+    <Image Include="ImageResources\1204.png" />
+    <Image Include="ImageResources\1205.png" />
+    <Image Include="ImageResources\1206.png" />
+    <Image Include="ImageResources\1207.png" />
+    <Image Include="ImageResources\1208.png" />
+    <Image Include="ImageResources\1209.png" />
     <Image Include="ImageResources\121.png" />
+    <Image Include="ImageResources\1210.png" />
+    <Image Include="ImageResources\1211.png" />
+    <Image Include="ImageResources\1212.png" />
+    <Image Include="ImageResources\1213.png" />
+    <Image Include="ImageResources\1214.png" />
     <Image Include="ImageResources\122.png" />
     <Image Include="ImageResources\123.png" />
     <Image Include="ImageResources\124.png" />
@@ -471,6 +501,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectUI\DirectUI.def" />
+    <None Include="imageresources\uifile3.bin" />
+    <None Include="imageresources\uifile5.bin" />
+    <None Include="imageresources\uifile6.bin" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="DirectUI\msdef.txt" />
@@ -480,6 +513,8 @@
     <Library Include="dui70.lib" />
   </ItemGroup>
   <ItemGroup>
+    <Xml Include="fullscreenpopup.xml" />
+    <Xml Include="shutdown.xml" />
     <Xml Include="uifile.xml" />
   </ItemGroup>
   <ItemGroup>

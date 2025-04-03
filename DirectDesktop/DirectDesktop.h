@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable:28159)
 
 #include "resource.h"
 

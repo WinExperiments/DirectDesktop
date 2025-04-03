@@ -21,38 +21,7 @@
 			</Element>
 		</Element>
 	</HWNDElement>
-	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="default">
-		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" alpha="0" animation="alpha|s|veryfast">
-			<Element class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)">
-				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
-			</Element>
-			//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
-			<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
-			<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
-			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-				// minsize="size(0,128rp)"
-				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
-			</Button>
-			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-						<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-						<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-					</Element>
-				</Button>
-				<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-						<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-					</Element>
-				</Button>
-			</Button>
-		</Button>
-	</HWNDElement>
 	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
-	<DDScalableButton resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" animation="size|log|fast"/>
-	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1" animation="size|log|fast"/>
-	<Element resid="deskpreview" layoutpos="absolute" background="argb(0,0,0,0)" alpha="255" animation="size|log|fast"/>
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
@@ -91,91 +60,6 @@
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
 		</Element>
 	</LVItem>
-	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
-		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
-			<Element id="atom(tasksanimator)" layoutpos="right"/>
-			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
-				<DDScalableButton id="atom(Customize)" content="resstr(4027)" class="popupbutton"/>
-				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(4028)" class="popupbutton"/>
-			</Element>
-			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,0)" width="400rp">
-				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
-				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
-			</Element>
-		</Element>
-		<ScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
-			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
-		</ScrollViewer>
-	</Element>
-	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
-		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
-			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<DDScalableElement id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
-		</Element>
-		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,8rp,0,8rp)" layout="flowlayout()">
-			<DDScalableButton id="atom(PageTab1)" content="resstr(4011)" class="pilltab"/>
-			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
-			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
-		</Element>
-		<ScrollViewer id="atom(settingslist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
-			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
-		</ScrollViewer>
-	</Element>
-	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(ItemCheckboxes)" class="togglebutton"/>
-			</Element>
-		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(ShowHiddenFiles)" class="togglebutton"/>
-			</Element>
-		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(FilenameExts)" class="togglebutton"/>
-			</Element>
-		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(4014)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(TreatDirAsGroup)" class="togglebutton"/>
-			</Element>
-		</Element>
-	</Element>
-	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(4015)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(EnableAccent)" class="togglebutton"/>
-			</Element>
-		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(IconThumbnails)" class="togglebutton"/>
-			</Element>
-		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableButton id="atom(DesktopIconSettings)" content="resstr(112, library(desk.cpl))" layoutpos="left" class="popupbutton" visible="true"/>
-		</Element>
-	</Element>
-	<Element resid="SettingsPage3" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableElement content="resstr(4016)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(EnableLogging)" class="togglebutton"/>
-			</Element>
-		</Element>
-		<Element class="togglecontainer" layout="borderlayout()">
-			<DDScalableButton id="atom(ViewLastLog)" content="resstr(4033)" layoutpos="left" class="popupbutton" visible="true"/>
-		</Element>
-	</Element>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
 	<stylesheets>
 		<style resid="default">
@@ -195,10 +79,10 @@
 				</if>
 			</if>
 			<if class="itemTouchOuter">
-				<LVItem background="gradient(ImmersiveStartSystemTilesBackground,ImmersiveControlDarkToggleThumbDisabled,0)" cursor="hand"/>
+				<LVItem cursor="hand"/>
 			</if>
 			<if class="itemTouchInner">
-				<Element layoutpos="client" background="gradient(ImmersiveStartDesktopTilesBackground,ImmersiveStartSystemTilesBackground,0)"/>
+				<Element layoutpos="client"/>
 			</if>
 			<if class="selector">
 				<Element alpha="themeable(224, 148)"/>
@@ -218,94 +102,11 @@
 					</if>
 				</if>
 			</if>
-			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
-			</if>
-			<if class="popupbg">
-				<Element background="resbmp(164,7,-1,0,0,1,1)"/>
-			</if>
-			<if class="popupwindow">
-				<DDScalableButton FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
-			</if>
-			<if class="popuptext">
-				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="0"/>
-				<RichText foreground="black"/>
-			</if>
-			<if class="popupbutton">
-				<DDScalableButton foreground="20007" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="1"/>
-				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
-			</if>
-			<if class="simpleview">
-				<RichText background="argb(0,0,0,0)" foreground="black"/>				
-				<Button background="argb(0,0,0,0)" foreground="black"/>
-				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
-					<if Pressed="true">
-						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
-					</if>
-				</if>
-			</if>
-			<if class="pilltab">
-				<DDScalableButton FirstScaledImage="172" ScaledImageIntervals="7" DrawType="1" EnableAccent="1" NeedsFontResize="1" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
-					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(0,0,0)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
-				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="179" foreground="rgb(0,0,0)"/>
-				</if>
-				<if selected="true">
-					<DDScalableButton FirstScaledImage="186" foreground="rgb(255,255,255)"/>
-				</if>
-			</if>
-			<if class="togglecontainer">
-				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
-			</if>
-			<if class="toggletext">
-				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="1" compositedtext="true" textglowsize="0"/>
-			</if>
-			<if class="togglebuttoncontainer">
-				<Element layoutpos="right"/>
-			</if>
-			<if class="togglebutton">
-				<DDToggleButton width="40rp" height="20rp" FirstScaledImage="108" ScaledImageIntervals="7" DrawType="2" EnableAccent="1" contentalign="middlecenter"/>
-				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="115"/>
-				</if>
-				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="122"/>
-				</if>
-				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="129"/>
-				</if>
-				<if selected="true">
-					<DDToggleButton FirstScaledImage="136"/>
-					<if mousefocused="true">
-						<DDToggleButton FirstScaledImage="143"/>
-					</if>
-					<if Pressed="true">
-						<DDToggleButton FirstScaledImage="150"/>
-					</if>
-					<if Enabled="false">
-						<DDToggleButton FirstScaledImage="157"/>
-					</if>
-				</if>
-			</if>
 			<if class="pageselector">
 				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
 				<if mousewithin="true">
 					<TouchButton alpha="255" width="160rp"/>
 				</if>
-			</if>
-			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 			<if class="singleclicked">
 				<LVItem cursor="hand"/>
@@ -334,10 +135,10 @@
 				</if>
 			</if>
 			<if class="itemTouchOuter">
-				<LVItem background="gradient(ImmersiveStartSystemTilesBackground,ImmersiveControlDarkToggleThumbDisabled,0)" cursor="hand"/>
+				<LVItem cursor="hand"/>
 			</if>
 			<if class="itemTouchInner">
-				<Element layoutpos="client" background="gradient(ImmersiveStartDesktopTilesBackground,ImmersiveStartSystemTilesBackground,0)"/>
+				<Element layoutpos="client"/>
 			</if>
 			<if class="selector">
 				<Element alpha="themeable(224, 148)"/>
@@ -357,94 +158,11 @@
 					</if>
 				</if>
 			</if>
-			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="265" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
-			</if>
-			<if class="popupbg">
-				<Element background="resbmp(264,7,-1,0,0,1,1)"/>
-			</if>
-			<if class="popupwindow">
-				<DDScalableButton FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
-			</if>
-			<if class="popuptext">
-				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="0"/> 
-				<RichText foreground="white"/>
-			</if>
-			<if class="popupbutton">
-				<DDScalableButton foreground="20002" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="1"/>
-				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
-				</if>
-				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
-				</if>
-			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
-			</if>
-			<if class="simpleview">
-				<RichText background="argb(0,0,0,0)" foreground="white"/>
-				<Button background="argb(0,0,0,0)" foreground="white"/>
-				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
-					<if Pressed="true">
-						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
-					</if>
-				</if>
-			</if>
-			<if class="pilltab">
-				<DDScalableButton FirstScaledImage="272" ScaledImageIntervals="7" DrawType="1" EnableAccent="1" NeedsFontResize="1" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
-					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
-				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="279" foreground="rgb(255,255,255)"/>
-				</if>
-				<if selected="true">
-					<DDScalableButton FirstScaledImage="286" foreground="rgb(0,0,0)"/>
-				</if>
-			</if>
-			<if class="togglecontainer">
-				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
-			</if>
-			<if class="toggletext">
-				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="1" compositedtext="true" textglowsize="0"/>
-			</if>
-			<if class="togglebuttoncontainer">
-				<Element layoutpos="right"/>
-			</if>
-			<if class="togglebutton">
-				<DDToggleButton width="40rp" height="20rp" FirstScaledImage="208" ScaledImageIntervals="7" DrawType="2" EnableAccent="1" contentalign="middlecenter"/>
-				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="215"/>
-				</if>
-				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="222"/>
-				</if>
-				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="229"/>
-				</if>
-				<if selected="true">
-					<DDToggleButton FirstScaledImage="236"/>
-					<if mousefocused="true">
-						<DDToggleButton FirstScaledImage="243"/>
-					</if>
-					<if Pressed="true">
-						<DDToggleButton FirstScaledImage="250"/>
-					</if>
-					<if Enabled="false">
-						<DDToggleButton FirstScaledImage="257"/>
-					</if>
-				</if>
-			</if>
 			<if class="pageselector">
 				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
 				<if mousewithin="true">
 					<TouchButton alpha="255" width="160rp"/>
 				</if>
-			</if>
-			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 			<if class="singleclicked">
 				<LVItem cursor="hand"/>

@@ -184,7 +184,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     return hNewBitmap;
 }
 
-bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurradius, float alphaValue) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
+bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alphaValue) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
 {
     BITMAP bm;
     GetObject(hbm, sizeof(bm), &bm);
@@ -343,7 +343,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
         vResultBitsA.clear();
         break;
     }
-    case 3: {
+    case 3: { // blur radius is used here as colorref
         BYTE* pBits = new BYTE[bmBits];
         GetBitmapBits(hbm, bmBits, pBits);
 
@@ -357,9 +357,9 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, int blurra
 
             for (x = 0; x < bm.bmWidth; x++)
             {
-                pPixel[2] = (int)(ImmersiveColor % 16777216);
-                pPixel[1] = (int)((ImmersiveColor / 256) % 65536);
-                pPixel[0] = (int)((ImmersiveColor / 65536) % 256);
+                pPixel[2] = (int)(blurradius % 16777216);
+                pPixel[1] = (int)((blurradius / 256) % 65536);
+                pPixel[0] = (int)((blurradius / 65536) % 256);
                 pPixel[3] = 255 * alphaValue;
 
                 pPixel += 4;
