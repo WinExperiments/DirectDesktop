@@ -231,14 +231,16 @@ void DDScalableElement::RedrawFonts() {
         if (pe->GetNeedsFontResize() == true) {
             if (pe->GetFont(&v) == nullptr) break;
             wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%");
+            wregex fontRegex(L".*font;.*\%.*");
             bool isSysmetricFont = regex_match(fontOld, fontRegex);
             if (isSysmetricFont) {
                 size_t modifier = fontOld.find(L";");
+                size_t modifier2 = fontOld.find(L"%");
                 wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, wcslen(fontOld.c_str()) - 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
                 int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + L"\%";
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
                 pe->SetFont(fontNew.c_str());
             }
         }
@@ -384,14 +386,16 @@ void DDScalableButton::RedrawFonts() {
         if (pe->GetNeedsFontResize() == true) {
             if (pe->GetFont(&v) == nullptr) break;
             wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%");
+            wregex fontRegex(L".*font;.*\%.*");
             bool isSysmetricFont = regex_match(fontOld, fontRegex);
             if (isSysmetricFont) {
                 size_t modifier = fontOld.find(L";");
+                size_t modifier2 = fontOld.find(L"%");
                 wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, wcslen(fontOld.c_str()) - 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
                 int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + L"\%";
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
                 pe->SetFont(fontNew.c_str());
             }
         }

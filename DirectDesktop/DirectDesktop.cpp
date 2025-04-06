@@ -71,6 +71,7 @@ HWND hSHELLDLL_DefView = NULL;
 HWND hWndTaskbar = FindWindowW(L"Shell_TrayWnd", NULL);
 Logger MainLogger;
 
+DWORD shutdownReason = SHTDN_REASON_UNKNOWN;
 int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
 int localeType{};
@@ -182,24 +183,9 @@ struct EventListener2 : public IElementListener {
     }
 };
 
-Element* regElem(const wchar_t* elemName, Element* peParent) {
-    Element* result = (Element*)peParent->FindDescendent(StrToID(elemName));
-    return result;
-}
-RichText* regRichText(const wchar_t* elemName, Element* peParent) {
-    RichText* result = (RichText*)peParent->FindDescendent(StrToID(elemName));
-    return result;
-}
-Button* regBtn(const wchar_t* btnName, Element* peParent) {
-    Button* result = (Button*)peParent->FindDescendent(StrToID(btnName));
-    return result;
-}
-TouchButton* regTouchBtn(const wchar_t* btnName, Element* peParent) {
-    TouchButton* result = (TouchButton*)peParent->FindDescendent(StrToID(btnName));
-    return result;
-}
-Edit* regEdit(const wchar_t* editName, Element* peParent) {
-    Edit* result = (Edit*)peParent->FindDescendent(StrToID(editName));
+template <typename elemType>
+elemType regElem(const wchar_t* elemName, Element* peParent) {
+    elemType result = (elemType)peParent->FindDescendent(StrToID(elemName));
     return result;
 }
 void assignFn(Element* btnName, void(*fnName)(Element* elem, Event* iev)) {
@@ -233,6 +219,7 @@ struct ThumbnailIcon {
 double px[80]{};
 double py[80]{};
 int origX{}, origY{}, globaliconsz, globalshiconsz, globalgpiconsz;
+int emptyclicks = 1;
 bool touchmode{};
 bool delayedshutdownstatuses[6] = { false, false, false, false, false, false };
 
@@ -653,9 +640,14 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 5: {
+        static const int dragWidth = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth"));
+        static const int dragHeight = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight"));
         POINT ppt;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
+        if (abs(ppt.x - origX) > dragWidth || abs(ppt.y - origY) > dragHeight) {
+            emptyclicks = 1;
+        }
         if (localeType == 1) ppt.x = dimensions.right - ppt.x;
         MARGINS borders = { (ppt.x < origX) ? ppt.x : origX, abs(ppt.x - origX),
             (ppt.y < origY) ? ppt.y : origY, abs(ppt.y - origY) };
@@ -812,7 +804,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                 iconpm[icon]->SetWidth(globaliconsz * flScaleFactor + 2 * groupspace);
                 iconpm[icon]->SetHeight(globaliconsz * flScaleFactor + 2 * groupspace);
             }
-            Element* iconcontainer = (Element*)pm[icon]->FindDescendent(StrToID(L"iconcontainer"));
+            Element* iconcontainer = regElem<Element*>(L"iconcontainer", pm[icon]);
             if (touchmode) iconcontainer->SetPadding(0, 0, 0, 0);
             if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
                 iconpm[icon]->SetClass(L"groupthumbnail");
@@ -952,11 +944,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             break;
         }
         case 5: {
-            ExitWindowsEx(EWX_SHUTDOWN | EWX_POWEROFF, SHTDN_REASON_FLAG_PLANNED);
+            ExitWindowsEx(EWX_SHUTDOWN | EWX_POWEROFF, shutdownReason);
             break;
         }
         case 6: {
-            ExitWindowsEx(EWX_REBOOT, SHTDN_REASON_FLAG_PLANNED);
+            ExitWindowsEx(EWX_REBOOT, shutdownReason);
             break;
         }
         }
@@ -1022,14 +1014,16 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (((DDScalableElement*)wParam)->GetNeedsFontResize() > 0) {
             if (((DDScalableElement*)wParam)->GetFont(&v) == nullptr) break;
             wstring fontOld = ((DDScalableElement*)wParam)->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%");
+            wregex fontRegex(L".*font;.*\%.*");
             bool isSysmetricFont = regex_match(fontOld, fontRegex);
             if (isSysmetricFont) {
                 size_t modifier = fontOld.find(L";");
+                size_t modifier2 = fontOld.find(L"%");
                 wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, wcslen(fontOld.c_str()) - 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
                 int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + L"\%";
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
                 ((DDScalableElement*)wParam)->SetFont(fontNew.c_str());
             }
         }
@@ -1070,11 +1064,12 @@ unsigned long fastin(LPVOID lpParam) {
     IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), textshader);
     DesktopIcon di;
     ApplyIcons(pm, iconpm, &di, false, yV->y);
-    di.text = capturedBitmap;
-    di.textshadow = shadowBitmap;
+    if (capturedBitmap != nullptr) di.text = capturedBitmap;
+    if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
     //if (di.icon == nullptr) fastin(lpParam);
     SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, yV->y);
     SendMessageW(wnd->GetHWND(), WM_USER + 3, (WPARAM)&di, yV->y);
+    Sleep(50);
     free(yV);
     return 0;
 }
@@ -1105,11 +1100,12 @@ unsigned long subfastin(LPVOID lpParam) {
     }
     DesktopIcon di;
     ApplyIcons(subpm, subiconpm, &di, false, yV->y);
-    di.text = capturedBitmap;
-    di.textshadow = shadowBitmap;
+    if (capturedBitmap != nullptr) di.text = capturedBitmap;
+    if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
     //if (di.icon == nullptr) subfastin(lpParam);
     SendMessageW(wnd->GetHWND(), WM_USER + 10, NULL, yV->y);
     SendMessageW(wnd->GetHWND(), WM_USER + 9, (WPARAM)&di, yV->y);
+    Sleep(50);
     free(yV);
     return 0;
 }
@@ -1126,8 +1122,8 @@ unsigned long animate5(LPVOID lpParam) {
 }
 
 unsigned long animate6(LPVOID lpParam) {
-    Sleep(200);
     pSubview->SetAccessible(false);
+    Sleep(200);
     subviewwnd->ShowWindow(SW_HIDE);
     BlurBackground(subviewwnd->GetHWND(), false);
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
@@ -1222,12 +1218,11 @@ void OpenGroupInExplorer(Element* elem, Event* iev) {
     }
 }
 
-int clicks = 1;
 BYTE* shellstate;
 unsigned long DoubleClickHandler(LPVOID lpParam) {
     wchar_t* dcms = GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed");
     Sleep(_wtoi(dcms));
-    clicks = 1;
+    *((int*)lpParam) = 1;
     return 0;
 }
 
@@ -1407,8 +1402,8 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     Element* groupdirectory{};
     parser2->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
     fullscreeninner->Add((Element**)&groupdirectory, 1);
-    ScrollViewer* groupdirlist = (ScrollViewer*)groupdirectory->FindDescendent(StrToID(L"groupdirlist"));
-    SubUIContainer = (RichText*)groupdirlist->FindDescendent(StrToID(L"SubUIContainer"));
+    ScrollViewer* groupdirlist = regElem<ScrollViewer*>(L"groupdirlist", groupdirectory);
+    SubUIContainer = regElem<RichText*>(L"SubUIContainer", groupdirlist);
     unsigned short count = 0;
     int count2{};
     EnumerateFolder((LPWSTR)filename, nullptr, false, true, &count);
@@ -1421,17 +1416,17 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             }
             else parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
             SubUIContainer->Add((Element**)&outerElemGrouped, 1);
-            iconElem = (DDScalableElement*)outerElemGrouped->FindDescendent(StrToID(L"iconElem"));
-            shortcutElem = (Element*)outerElemGrouped->FindDescendent(StrToID(L"shortcutElem"));
-            iconElemShadow = (Element*)outerElemGrouped->FindDescendent(StrToID(L"iconElemShadow"));
-            textElem = (RichText*)outerElemGrouped->FindDescendent(StrToID(L"textElem"));
+            iconElem = regElem<DDScalableElement*>(L"iconElem", outerElemGrouped);
+            shortcutElem = regElem<Element*>(L"shortcutElem", outerElemGrouped);
+            iconElemShadow = regElem<Element*>(L"iconElemShadow", outerElemGrouped);
+            textElem = regElem<RichText*>(L"textElem", outerElemGrouped);
             subpm.push_back(outerElemGrouped);
             subiconpm.push_back(iconElem);
             subshortpm.push_back(shortcutElem);
             subshadowpm.push_back(iconElemShadow);
             subfilepm.push_back(textElem);
             if (touchmode) {
-                textElemShadow = (RichText*)outerElemGrouped->FindDescendent(StrToID(L"textElemShadow"));
+                textElemShadow = regElem<RichText*>(L"textElemShadow", outerElemGrouped);
                 subfileshadowpm.push_back(textElemShadow);
             }
             outerElemGrouped->SetAnimation(NULL);
@@ -1479,7 +1474,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
         x -= outerSizeX;
         if (maxX != 0 && xRuns % maxX != 0) y += outerSizeY;
         SubUIContainer->SetHeight(y);
-        Element* dirtitle = (Element*)groupdirectory->FindDescendent(StrToID(L"dirtitle"));
+        Element* dirtitle = regElem<Element*>(L"dirtitle", groupdirectory);
         for (int j = 0; j < count; j++) {
             if (localeType == 1 && y > (480 * flScaleFactor - (dirtitle->GetHeight() + dimensions.top + dimensions.bottom)))
                 subpm[j]->SetX(subpm[j]->GetX() - GetSystemMetricsForDpi(SM_CXVSCROLL, dpi));
@@ -1496,26 +1491,26 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
         }
         else SubUIContainer->SetContentString(LoadStrFromRes(4029).c_str());
     }
-    dirnameanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"dirnameanimator"));
-    tasksanimator = (Element*)groupdirectory->FindDescendent(StrToID(L"tasksanimator"));
-    DDScalableElement* dirname = (DDScalableElement*)groupdirectory->FindDescendent(StrToID(L"dirname"));
+    dirnameanimator = regElem<Element*>(L"dirnameanimator", groupdirectory);
+    tasksanimator = regElem<Element*>(L"tasksanimator", groupdirectory);
+    DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
     dirname->SetContentString(simplefilename);
     dirname->SetAlpha(255);
-    DDScalableElement* dirdetails = (DDScalableElement*)groupdirectory->FindDescendent(StrToID(L"dirdetails"));
+    DDScalableElement* dirdetails = regElem<DDScalableElement*>(L"dirdetails", groupdirectory);
     WCHAR itemCount[64];
     if (count == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
     else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), count);
     dirdetails->SetContentString(itemCount);
-    BYTE alphavalue = (count == 0) ? 1 : 160;
-    dirdetails->SetAlpha(alphavalue);
-    Element* tasks = (Element*)groupdirectory->FindDescendent(StrToID(L"tasks"));
+    dirdetails->SetAlpha(160);
+    if (count == 0) dirdetails->SetLayoutPos(-3);
+    Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
     checkifelemexists = true;
     DWORD animThread3;
     DWORD animThread4;
     HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
     HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
-    DDScalableButton* Customize = (DDScalableButton*)groupdirectory->FindDescendent(StrToID(L"Customize"));
-    DDScalableButton* OpenInExplorer = (DDScalableButton*)groupdirectory->FindDescendent(StrToID(L"OpenInExplorer"));
+    DDScalableButton* Customize = regElem<DDScalableButton*>(L"Customize", groupdirectory);
+    DDScalableButton* OpenInExplorer = regElem<DDScalableButton*>(L"OpenInExplorer", groupdirectory);
     Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
     assignFn(OpenInExplorer, OpenGroupInExplorer);
     bufferOpenInExplorer = (wstring)filename;
@@ -1544,10 +1539,11 @@ void ShowPage1(Element* elem, Event* iev) {
         Element* SettingsPage1;
         parser2->CreateElement(L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
         SubUIContainer->Add((Element**)&SettingsPage1, 1);
-        DDToggleButton* ItemCheckboxes = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"ItemCheckboxes"));
-        DDToggleButton* ShowHiddenFiles = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"ShowHiddenFiles"));
-        DDToggleButton* FilenameExts = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"FilenameExts"));
-        DDToggleButton* TreatDirAsGroup = (DDToggleButton*)SettingsPage1->FindDescendent(StrToID(L"TreatDirAsGroup"));
+        DDToggleButton* ItemCheckboxes = regElem<DDToggleButton*>(L"ItemCheckboxes", SettingsPage1);
+        DDToggleButton* ShowHiddenFiles = regElem<DDToggleButton*>(L"ShowHiddenFiles", SettingsPage1);
+        DDToggleButton* FilenameExts = regElem<DDToggleButton*>(L"FilenameExts", SettingsPage1);
+        DDToggleButton* TreatDirAsGroup = regElem<DDToggleButton*>(L"TreatDirAsGroup", SettingsPage1);
+        DDToggleButton* TripleClickAndHide = regElem<DDToggleButton*>(L"TripleClickAndHide", SettingsPage1);
         RegKeyValue rkvTemp{};
         rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
         rkvTemp._valueToFind = L"AutoCheckSelect";
@@ -1568,10 +1564,15 @@ void ShowPage1(Element* elem, Event* iev) {
         TreatDirAsGroup->SetAssociatedBool(&treatdirasgroup);
         TreatDirAsGroup->SetAssociatedFn(RearrangeIcons);
         TreatDirAsGroup->SetRegKeyValue(rkvTemp);
+        rkvTemp._valueToFind = L"TripleClickAndHide";
+        TripleClickAndHide->SetSelected(tripleclickandhide);
+        TripleClickAndHide->SetAssociatedBool(&tripleclickandhide);
+        TripleClickAndHide->SetRegKeyValue(rkvTemp);
         assignFn(ItemCheckboxes, ToggleSetting);
         assignFn(ShowHiddenFiles, ToggleSetting);
         assignFn(FilenameExts, ToggleSetting);
         assignFn(TreatDirAsGroup, ToggleSetting);
+        assignFn(TripleClickAndHide, ToggleSetting);
     }
 }
 void ShowPage2(Element* elem, Event* iev) {
@@ -1583,9 +1584,9 @@ void ShowPage2(Element* elem, Event* iev) {
         Element* SettingsPage2;
         parser2->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
         SubUIContainer->Add((Element**)&SettingsPage2, 1);
-        DDToggleButton* EnableAccent = (DDToggleButton*)SettingsPage2->FindDescendent(StrToID(L"EnableAccent"));
-        DDToggleButton* IconThumbnails = (DDToggleButton*)SettingsPage2->FindDescendent(StrToID(L"IconThumbnails"));
-        DDScalableButton* DesktopIconSettings = (DDScalableButton*)SettingsPage2->FindDescendent(StrToID(L"DesktopIconSettings"));
+        DDToggleButton* EnableAccent = regElem<DDToggleButton*>(L"EnableAccent", SettingsPage2);
+        DDToggleButton* IconThumbnails = regElem<DDToggleButton*>(L"IconThumbnails", SettingsPage2);
+        DDScalableButton* DesktopIconSettings = regElem<DDScalableButton*>(L"DesktopIconSettings", SettingsPage2);
         RegKeyValue rkvTemp{};
         rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"AccentColorIcons";
         EnableAccent->SetSelected(isColorized);
@@ -1610,8 +1611,8 @@ void ShowPage3(Element* elem, Event* iev) {
         Element* SettingsPage3;
         parser2->CreateElement(L"SettingsPage3", NULL, NULL, NULL, (Element**)&SettingsPage3);
         SubUIContainer->Add((Element**)&SettingsPage3, 1);
-        DDToggleButton* EnableLogging = (DDToggleButton*)SettingsPage3->FindDescendent(StrToID(L"EnableLogging"));
-        DDScalableButton* ViewLastLog = (DDScalableButton*)SettingsPage3->FindDescendent(StrToID(L"ViewLastLog"));
+        DDToggleButton* EnableLogging = regElem<DDToggleButton*>(L"EnableLogging", SettingsPage3);
+        DDScalableButton* ViewLastLog = regElem<DDScalableButton*>(L"ViewLastLog", SettingsPage3);
         RegKeyValue rkvTemp{};
         rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"Logging";
         EnableLogging->SetSelected(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
@@ -1635,18 +1636,18 @@ void ShowSettings(Element* elem, Event* iev) {
         Element* settingsview{};
         parser2->CreateElement(L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
         fullscreeninner->Add((Element**)&settingsview, 1);
-        ScrollViewer* settingslist = (ScrollViewer*)settingsview->FindDescendent(StrToID(L"settingslist"));
-        SubUIContainer = (RichText*)settingsview->FindDescendent(StrToID(L"SubUIContainer"));
-        PageTab1 = (DDScalableButton*)settingsview->FindDescendent(StrToID(L"PageTab1"));
-        PageTab2 = (DDScalableButton*)settingsview->FindDescendent(StrToID(L"PageTab2"));
-        PageTab3 = (DDScalableButton*)settingsview->FindDescendent(StrToID(L"PageTab3"));
+        ScrollViewer* settingslist = regElem<ScrollViewer*>(L"SettingsList", settingsview);
+        SubUIContainer = regElem<RichText*>(L"SubUIContainer", settingsview);
+        PageTab1 = regElem<DDScalableButton*>(L"PageTab1", settingsview);
+        PageTab2 = regElem<DDScalableButton*>(L"PageTab2", settingsview);
+        PageTab3 = regElem<DDScalableButton*>(L"PageTab3", settingsview);
         assignFn(PageTab1, ShowPage1);
         assignFn(PageTab2, ShowPage2);
         assignFn(PageTab3, ShowPage3);
         ShowPage1(elem, iev);
         CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
-        dirnameanimator = (Element*)settingsview->FindDescendent(StrToID(L"dirnameanimator"));
-        DDScalableElement* name = (DDScalableElement*)settingsview->FindDescendent(StrToID(L"name"));
+        dirnameanimator = regElem<Element*>(L"dirnameanimator", settingsview);
+        DDScalableElement* name = regElem<DDScalableElement*>(L"name", settingsview);
         name->SetAlpha(255);
         checkifelemexists = true;
         DWORD animThread3;
@@ -1663,10 +1664,11 @@ void ExitWindow(Element* elem, Event* iev) {
 Element* elemStorage;
 bool fileopened{};
 void SelectItem(Element* elem, Event* iev) {
+    static int clicks = 1;
     static int validation = 0;
     if (iev->uidType == Button::Click) {
         validation++;
-        Button* checkbox = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));
+        Button* checkbox = regElem<Button*>(L"checkboxElem", elem);
         if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
             for (int items = 0; items < validItems; items++) {
                 pm[items]->SetSelected(false);
@@ -1681,13 +1683,13 @@ void SelectItem(Element* elem, Event* iev) {
         if (shellstate[4] & 0x20 && !touchmode) {
             if (elem == elemStorage) clicks++; else clicks = 0;
             DWORD doubleClickThread{};
-            HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, NULL, 0, &doubleClickThread);
+            HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, &clicks, 0, &doubleClickThread);
             elemStorage = elem;
         }
         for (int items = 0; items < validItems; items++) {
             pm[items]->SetMemorySelected(pm[items]->GetSelected());
         }
-        if (clicks % 2 == 1 && checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false) {
+        if (clicks & 1 && checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false) {
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items] == elem) {
                     wstring temp = RemoveQuotes(pm[items]->GetFilename());
@@ -1711,8 +1713,8 @@ void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Valu
     if (!touchmode && pProp == Element::SelectedProp()) {
         float spacingInternal = CalcTextLines(((LVItem*)elem)->GetSimpleFilename().c_str(), ((LVItem*)elem)->GetWidth());
         int extraBottomSpacing = (((LVItem*)elem)->GetSelected() == true) ? ceil(spacingInternal) * textm.tmHeight : floor(spacingInternal) * textm.tmHeight;
-        textElem = (RichText*)((LVItem*)elem)->FindDescendent(StrToID(L"textElem"));
-        textElemShadow = (RichText*)((LVItem*)elem)->FindDescendent(StrToID(L"textElemShadow"));
+        textElem = regElem<RichText*>(L"textElem", (LVItem*)elem);
+        textElemShadow = regElem<RichText*>(L"textElemShadow", (LVItem*)elem);
         if (spacingInternal == 1.5) {
             if (((LVItem*)elem)->GetSelected() == true) ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() + extraBottomSpacing * 0.5);
             else ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() - extraBottomSpacing);
@@ -1735,7 +1737,7 @@ void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Valu
 }
 
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    Button* checkboxElem = (Button*)elem->FindDescendent(StrToID(L"checkboxElem")); 
+    Button* checkboxElem = regElem<Button*>(L"checkboxElem", (LVItem*)elem);
     if (pProp == Element::MouseFocusedProp() && showcheckboxes == 1) {
         for (int items = 0; items < validItems; items++) {
             if (cbpm[items]->GetSelected() == false) cbpm[items]->SetVisible(false);
@@ -1749,7 +1751,7 @@ void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* 
         Element* parent = elem->GetParent();
         Element* grandparent = parent->GetParent();
         Value* v = elem->GetValue(Element::MouseFocusedProp, 1, &u);
-        Element* item = grandparent->FindDescendent(StrToID(L"innerElem"));
+        Element* item = regElem<Element*>(L"innerElem", grandparent);
         if (item != nullptr) item->SetValue(Element::MouseFocusedProp(), 1, v);
     }
 }
@@ -1786,6 +1788,26 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
     HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
     HBITMAP selectorBmp = IconToBitmap(dummyi);
     if (pProp == Button::CapturedProp()) {
+        if (tripleclickandhide == true && ((Button*)elem)->GetCaptured() == true) {
+            emptyclicks++;
+            DWORD doubleClickThread{};
+            HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, &emptyclicks, 0, &doubleClickThread);
+            if (emptyclicks & 1) {
+                for (int items = 0; items < validItems; items++) {
+                    switch (hiddenIcons) {
+                    case 0:
+                        pm[items]->SetVisible(false);
+                        break;
+                    case 1:
+                        if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(true);
+                        break;
+                    }
+                }
+                hiddenIcons = !hiddenIcons;
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons, false, nullptr);
+                emptyclicks = 1;
+            }
+        }
         if (!isPressed) {
             emptyspace->SetLayoutPos(-3);
             POINT ppt;
@@ -1843,14 +1865,14 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
                     if (pm[items] != elem) selectedLVItems.push_back(pm[items]);
                 }
             }
-            Element* multipleitems = regElem(L"multipleitems", pMain);
+            Element* multipleitems = regElem<Element*>(L"multipleitems", pMain);
             multipleitems->SetVisible(false);
             if (selectedItems >= 2) {
                 multipleitems->SetVisible(true);
                 multipleitems->SetContentString(to_wstring(selectedItems).c_str());
             }
             if (showcheckboxes) {
-                Button* checkbox = (Button*)elem->FindDescendent(StrToID(L"checkboxElem"));
+                Button* checkbox = regElem<Button*>(L"checkboxElem", (LVItem*)elem);
                 checkbox->SetVisible(true);
             }
             fileopened = false;
@@ -2041,12 +2063,12 @@ void InitLayout(bool cloaked, bool bUnused2) {
         }
         else parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
         UIContainer->Add((Element**)&outerElem, 1);
-        iconElem = (DDScalableElement*)outerElem->FindDescendent(StrToID(L"iconElem"));
-        shortcutElem = (Element*)outerElem->FindDescendent(StrToID(L"shortcutElem"));
-        iconElemShadow = (Element*)outerElem->FindDescendent(StrToID(L"iconElemShadow"));
-        textElem = (RichText*)outerElem->FindDescendent(StrToID(L"textElem"));
-        textElemShadow = (RichText*)outerElem->FindDescendent(StrToID(L"textElemShadow"));
-        checkboxElem = (Button*)outerElem->FindDescendent(StrToID(L"checkboxElem"));
+        iconElem = regElem<DDScalableElement*>(L"iconElem", outerElem);
+        shortcutElem = regElem<Element*>(L"shortcutElem", outerElem);
+        iconElemShadow = regElem<Element*>(L"iconElemShadow", outerElem);
+        textElem = regElem<RichText*>(L"textElem", outerElem);
+        textElemShadow = regElem<RichText*>(L"textElemShadow", outerElem);
+        checkboxElem = regElem<Button*>(L"checkboxElem", outerElem);
         pm.push_back(outerElem);
         iconpm.push_back(iconElem);
         shortpm.push_back(shortcutElem);
@@ -2176,6 +2198,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDScalableElement::Register();
     DDScalableButton::Register();
     DDToggleButton::Register();
+    RegisterPVLBehaviorFactory();
     HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
     WCHAR localeName[256]{};
@@ -2270,23 +2293,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetTheme();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Set the theme successfully.");
 
-    sampleText = regElem(L"sampleText", pMain);
-    mainContainer = regElem(L"mainContainer", pMain);
-    UIContainer = regElem(L"UIContainer", pMain);
-    fullscreenpopupbase = regBtn(L"fullscreenpopupbase", pSubview);
-    centered = regBtn(L"centered", pSubview);
-    selector = regElem(L"selector", pMain);
-    selector2 = regElem(L"selector2", pMain);
-    SimpleViewTop = regBtn(L"SimpleViewTop", pSubview);
-    SimpleViewBottom = regBtn(L"SimpleViewBottom", pSubview);
-    SimpleViewSettings = regBtn(L"SimpleViewSettings", pSubview);
-    SimpleViewClose = regBtn(L"SimpleViewClose", pSubview);
-    prevpage = regTouchBtn(L"prevpage", pSubview);
-    nextpage = regTouchBtn(L"nextpage", pSubview);
-    prevpageMain = regTouchBtn(L"prevpageMain", pMain);
-    nextpageMain = regTouchBtn(L"nextpageMain", pMain);
-    pageinfo = regRichText(L"pageinfo", pSubview);
-    dragpreview = regElem(L"dragpreview", pMain);
+    sampleText = regElem<Element*>(L"sampleText", pMain);
+    mainContainer = regElem<Element*>(L"mainContainer", pMain);
+    UIContainer = regElem<Element*>(L"UIContainer", pMain);
+    fullscreenpopupbase = regElem<Button*>(L"fullscreenpopupbase", pSubview);
+    centered = regElem<Button*>(L"centered", pSubview);
+    selector = regElem<Element*>(L"selector", pMain);
+    selector2 = regElem<Element*>(L"selector2", pMain);
+    SimpleViewTop = regElem<Button*>(L"SimpleViewTop", pSubview);
+    SimpleViewBottom = regElem<Button*>(L"SimpleViewBottom", pSubview);
+    SimpleViewSettings = regElem<Button*>(L"SimpleViewSettings", pSubview);
+    SimpleViewClose = regElem<Button*>(L"SimpleViewClose", pSubview);
+    prevpage = regElem<TouchButton*>(L"prevpage", pSubview);
+    nextpage = regElem<TouchButton*>(L"nextpage", pSubview);
+    prevpageMain = regElem<TouchButton*>(L"prevpageMain", pMain);
+    nextpageMain = regElem<TouchButton*>(L"nextpageMain", pMain);
+    pageinfo = regElem<RichText*>(L"pageinfo", pSubview);
+    dragpreview = regElem<Element*>(L"dragpreview", pMain);
 
     assignFn(fullscreenpopupbase, testEventListener3);
     assignFn(SimpleViewTop, testEventListener3);
@@ -2304,9 +2327,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup", 0, true, nullptr);
+    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TripleClickAndHide", 0, true, nullptr);
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons", 0, true, nullptr);
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", 0, true, nullptr);
     treatdirasgroup = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup");
+    tripleclickandhide = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TripleClickAndHide");
     isColorized = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons");
     touchmode = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView");
     if (touchmode) globaliconsz = 32;

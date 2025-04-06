@@ -12,17 +12,13 @@
 				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
 			</Button>
 			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
-				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-						<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-						<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-					</Element>
+				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+					<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 				</Button>
-				<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="flowlayout(0,2,2,0)" class="simpleview">
-					<Element layout="verticalflowlayout(0,2,2,0)" background="argb(0,0,0,0)">
-						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-						<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)"/>
-					</Element>
+				<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+					<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+					<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 				</Button>
 			</Button>
 		</Button>
@@ -38,7 +34,7 @@
 				<DDScalableButton id="atom(Customize)" content="resstr(4027)" class="popupbutton"/>
 				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(4028)" class="popupbutton"/>
 			</Element>
-			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,0)" width="400rp">
+			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="400rp">
 				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 			</Element>
@@ -84,6 +80,12 @@
 			<DDScalableElement content="resstr(4014)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(TreatDirAsGroup)" class="togglebutton"/>
+			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<DDScalableElement content="resstr(4040)" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<DDToggleButton id="atom(TripleClickAndHide)" class="togglebutton"/>
 			</Element>
 		</Element>
 	</Element>

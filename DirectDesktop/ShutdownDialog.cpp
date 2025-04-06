@@ -23,11 +23,15 @@ Element* pShutdown;
 WNDPROC WndProc4;
 Button* SwitchUser, *SignOut, *SleepButton, *Hibernate, *Shutdown, *Restart, *StatusCancel;
 Button* SUInner, *SOInner, *SlInner, *HiInner, *ShInner, *ReInner;
+Element* StatusBarResid;
 Element* StatusText;
+Element* AdvancedOptions;
+DDScalableButton* RestartWinRE, *RestartBIOS;
 TouchEdit2* delayseconds;
 
 HANDLE ActionThread, TimerThread;
 int savedremaining; // Display remaining time immediately when the dialog is invoked
+wstring reasonStr = LoadStrFromRes(8261, L"user32.dll");;
 
 struct DialogValues {
 	int buttonID{};
@@ -186,7 +190,7 @@ void PerformOperation(Element* elem, Event* iev) {
 			}
 			if (elem == StatusCancel) {
 				DestroyShutdownDialog();
-				ShowNotification(LoadStrFromRes(4024), LoadStrFromRes(801, L"user32.dll"));
+				ShowNotification(LoadStrFromRes(4024), LoadStrFromRes(4039));
 				return;
 			}
 			if (elem == SwitchUser) pressedID = 1;
@@ -195,7 +199,7 @@ void PerformOperation(Element* elem, Event* iev) {
 			if (elem == Hibernate) pressedID = 4;
 			if (elem == Shutdown) pressedID = 5;
 			if (elem == Restart) pressedID = 6;
-			int delay = _wtol(delayseconds->GetContentString(&v));
+			int delay = _wtoi(delayseconds->GetContentString(&v));
 			if (delay < 0) delay = 0;
 			DialogValues dv{};
 			dv.buttonID = pressedID;
@@ -203,7 +207,7 @@ void PerformOperation(Element* elem, Event* iev) {
 			DWORD dwAction{};
 			ActionThread = CreateThread(0, 0, DelayedAction, (LPVOID)&dv, NULL, &dwAction);
 			DestroyShutdownDialog();
-			ShowNotification(LoadStrFromRes(4024), GetNotificationString(pressedID, delay));
+			if (delay > 0) ShowNotification(LoadStrFromRes(4024), GetNotificationString(pressedID, delay));
 		}
 	}
 }
@@ -222,12 +226,144 @@ void PressSync(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, V
 	}
 }
 
+void ToggleAdvancedOptions(Element* elem, Event* iev) {
+	static int expanded{};
+	if (iev->uidType == Button::Click) {
+		expanded++;
+		short pos = expanded & 2 ? 3 : -3;
+		bool arrowselection = expanded & 2 ? true : false;
+		AdvancedOptions->SetLayoutPos(pos);
+		RichText* AdvancedOptionsArrow = regElem<RichText*>(L"AdvancedOptionsArrow", elem);
+		AdvancedOptionsArrow->SetSelected(arrowselection);
+		int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
+		int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
+		int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
+		int sizeX = 480 * flScaleFactor + windowsThemeX;
+		int sizeY = 360 * flScaleFactor + windowsThemeY;
+		if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * flScaleFactor;
+		for (int i = 0; i < 6; i++) {
+			if (delayedshutdownstatuses[i] == true) {
+				sizeY += StatusBarResid->GetHeight();
+				break;
+			}
+		}
+		if (expanded & 2) sizeY += AdvancedOptions->GetHeight();
+		SetWindowPos(shutdownwnd->GetHWND(), NULL, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
+	}
+}
+
+void ToggleDelayOption(Element* elem, Event* iev) {
+	if (iev->uidType == TouchButton::Click) {
+		Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
+		CheckedStateFlags newChecked = (((TouchCheckBox*)elem)->GetCheckedState() == CSF_Unchecked) ? CSF_Checked : CSF_Unchecked;
+		((TouchCheckBox*)elem)->SetCheckedState(newChecked);
+		delayseconds->SetEnabled((newChecked == CSF_Checked) ? true : false);
+		delaysecondspreview->SetVisible((newChecked == CSF_Checked) ? true : false);
+		if (newChecked == CSF_Unchecked) {
+			delayseconds->SetContentString(L"0");
+			delaysecondspreview->SetContentString(L"0");
+		}
+	}
+}
+
+
+void AdvancedShutdown(Element* elem, Event* iev) {
+	if (iev->uidType == Button::Click) {
+		if (elem == RestartWinRE) {
+			WinExec("reagentc /boottore", SW_HIDE);
+			WinExec("shutdown /r /f /t 0", SW_HIDE);
+		}
+		if (elem == RestartBIOS) {
+			WinExec("shutdown /r /fw", SW_HIDE);
+		}
+	}
+}
+
 void UpdateDelaySecondsPreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
 	if (pProp == Element::KeyWithinProp()) {
-		Element* delaysecondspreview = regElem(L"delaysecondspreview", pShutdown);
+		Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
 		Value* v;
 		delaysecondspreview->SetVisible(!elem->GetKeyWithin());
 		delaysecondspreview->SetContentString(elem->GetContentString(&v));
+	}
+}
+
+void UpdateShutdownReasonCode(Element* elem, Event* iev) {
+	if (iev->uidType == Combobox::SelectionChange()) {
+		switch (((Combobox*)elem)->GetSelection()) {
+		case 0:
+			shutdownReason = SHTDN_REASON_MAJOR_OTHER | SHTDN_REASON_MINOR_OTHER;
+			reasonStr = LoadStrFromRes(8261, L"user32.dll");
+			break;
+		case 1:
+			shutdownReason = SHTDN_REASON_MAJOR_OTHER | SHTDN_REASON_MINOR_OTHER | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8262, L"user32.dll");
+			break;
+		case 2:
+			shutdownReason = SHTDN_REASON_MAJOR_HARDWARE | SHTDN_REASON_MINOR_MAINTENANCE;
+			reasonStr = LoadStrFromRes(8250, L"user32.dll");
+			break;
+		case 3:
+			shutdownReason = SHTDN_REASON_MAJOR_HARDWARE | SHTDN_REASON_MINOR_MAINTENANCE | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8251, L"user32.dll");
+			break;
+		case 4:
+			shutdownReason = SHTDN_REASON_MAJOR_HARDWARE | SHTDN_REASON_MINOR_INSTALLATION;
+			reasonStr = LoadStrFromRes(8252, L"user32.dll");
+			break;
+		case 5:
+			shutdownReason = SHTDN_REASON_MAJOR_HARDWARE | SHTDN_REASON_MINOR_INSTALLATION | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8253, L"user32.dll");
+			break;
+		case 6:
+			shutdownReason = SHTDN_REASON_MAJOR_OPERATINGSYSTEM | SHTDN_REASON_MINOR_SYSTEMRESTORE;
+			reasonStr = LoadStrFromRes(8272, L"user32.dll");
+			break;
+		case 7:
+			shutdownReason = SHTDN_REASON_MAJOR_OPERATINGSYSTEM | SHTDN_REASON_MINOR_SYSTEMRESTORE | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8271, L"user32.dll");
+			break;
+		case 8:
+			shutdownReason = SHTDN_REASON_MAJOR_OPERATINGSYSTEM | SHTDN_REASON_MINOR_RECONFIG;
+			reasonStr = LoadStrFromRes(8256, L"user32.dll");
+			break;
+		case 9:
+			shutdownReason = SHTDN_REASON_MAJOR_OPERATINGSYSTEM | SHTDN_REASON_MINOR_RECONFIG | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8257, L"user32.dll");
+			break;
+		case 10:
+			shutdownReason = SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE;
+			reasonStr = LoadStrFromRes(8260, L"user32.dll");
+			break;
+		case 11:
+			shutdownReason = SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8268, L"user32.dll");
+			break;
+		case 12:
+			shutdownReason = SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_INSTALLATION | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8293, L"user32.dll");
+			break;
+		case 13:
+			shutdownReason = SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_HUNG;
+			reasonStr = LoadStrFromRes(8258, L"user32.dll");
+			break;
+		case 14:
+			shutdownReason = SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_UNSTABLE;
+			reasonStr = LoadStrFromRes(8259, L"user32.dll");
+			break;
+		case 15:
+			shutdownReason = SHTDN_REASON_MAJOR_SYSTEM | SHTDN_REASON_MINOR_SECURITY;
+			reasonStr = LoadStrFromRes(8299, L"user32.dll");
+			break;
+		case 16:
+			shutdownReason = SHTDN_REASON_MAJOR_SYSTEM | SHTDN_REASON_MINOR_SECURITY | SHTDN_REASON_FLAG_PLANNED;
+			reasonStr = LoadStrFromRes(8300, L"user32.dll");
+			break;
+		case 17:
+			shutdownReason = SHTDN_REASON_MAJOR_SYSTEM | SHTDN_REASON_MINOR_NETWORK_CONNECTIVITY;
+			reasonStr = LoadStrFromRes(8301, L"user32.dll");
+			break;
+		}
 	}
 }
 
@@ -238,11 +374,15 @@ void DisplayShutdownDialog() {
 	HWND hWndShutdown = FindWindowW(L"NativeHWNDHost", caption.c_str());
 	if (hWndShutdown) return;
 	unsigned long key3 = 0;
+	int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
 	int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
 	int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
 	int sizeX = 480 * flScaleFactor + windowsThemeX;
 	int sizeY = 360 * flScaleFactor + windowsThemeY;
-	NativeHWNDHost::Create(caption.c_str(), NULL, LoadIconW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(108)), (GetSystemMetrics(SM_CXSCREEN) - sizeX) / 2, (GetSystemMetrics(SM_CYSCREEN) - sizeY) / 2, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, 0, &shutdownwnd);
+	if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * flScaleFactor;
+	RECT dimensions;
+	SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+	NativeHWNDHost::Create(caption.c_str(), NULL, LoadIconW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(108)), (dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 2, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, 0, &shutdownwnd);
 	DUIXmlParser::Create(&parser3, NULL, NULL, NULL, NULL);
 	parser3->SetXMLFromResource(IDR_UIFILE4, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 	HWNDElement::Create(shutdownwnd->GetHWND(), true, NULL, NULL, &key3, (Element**)&parent2);
@@ -260,29 +400,73 @@ void DisplayShutdownDialog() {
 	pShutdown->EndDefer(key3);
 	shutdownwnd->Host(pShutdown);
 	dialogopen = true;
-	DDScalableElement* FakeTitlebar = (DDScalableElement*)pShutdown->FindDescendent(StrToID(L"FakeTitlebar"));
-	DDScalableElement* TitlebarText = (DDScalableElement*)pShutdown->FindDescendent(StrToID(L"TitlebarText"));
-	DDScalableElement* Logo = (DDScalableElement*)pShutdown->FindDescendent(StrToID(L"Logo"));
-	Element* StatusBar = regElem(L"StatusBar", pShutdown);
-	Element* SeparatorLine = regElem(L"SeparatorLine", pShutdown);
-	Element* ShutdownActions = regElem(L"ShutdownActions", pShutdown);
-	Element* DelayBar = regElem(L"DelayBar", pShutdown);
-	RichText* moon = regRichText(L"moon", pShutdown);
-	RichText* stars = regRichText(L"stars", pShutdown);
+	DDScalableElement* FakeTitlebar = regElem<DDScalableElement*>(L"FakeTitlebar", pShutdown);
+	DDScalableElement* TitlebarText = regElem<DDScalableElement*>(L"TitlebarText", pShutdown);
+	DDScalableElement* Logo = regElem<DDScalableElement*>(L"Logo", pShutdown);
+	Element* StatusBar = regElem<Element*>(L"StatusBar", pShutdown);
+	Element* SeparatorLine = regElem<Element*>(L"SeparatorLine", pShutdown);
+	Element* SeparatorLine2 = regElem<Element*>(L"SeparatorLine2", pShutdown);
+	Element* ShutdownActions = regElem<Element*>(L"ShutdownActions", pShutdown);
+	Element* ShutdownEventTracker = regElem<Element*>(L"ShutdownEventTracker", pShutdown);
+	Element* AdvancedOptionsBar = regElem<Element*>(L"AdvancedOptionsBar", pShutdown);
+	RestartWinRE = regElem<DDScalableButton*>(L"RestartWinRE", pShutdown);
+	RestartBIOS = regElem<DDScalableButton*>(L"RestartBIOS", pShutdown);
+	FIRMWARE_TYPE firmwareType{};
+	GetFirmwareType(&firmwareType);
+	if (firmwareType == FirmwareTypeUefi) RestartBIOS->SetLayoutPos(4);
+	AdvancedOptions = regElem<Element*>(L"AdvancedOptions", pShutdown);
+	RichText* moon = regElem<RichText*>(L"moon", pShutdown);
+	RichText* stars = regElem<RichText*>(L"stars", pShutdown);
 	for (int i = 0; i < 6; i++) {
 		if (delayedshutdownstatuses[i] == true) {
-			Element* StatusBarResid{};
 			parser3->CreateElement(L"StatusBar", NULL, NULL, NULL, (Element**)&StatusBarResid);
 			StatusBar->Add((Element**)&StatusBarResid, 1);
-			StatusText = regRichText(L"StatusText", StatusBarResid);
-			StatusCancel = regBtn(L"StatusCancel", StatusBarResid);
-			Button* SCInner = regBtn(L"SCInner", StatusBarResid);
+			StatusText = regElem<DDScalableElement*>(L"StatusText", StatusBarResid);
+			StatusCancel = regElem<Button*>(L"StatusCancel", StatusBarResid);
+			Button* SCInner = regElem<Button*>(L"SCInner", StatusBarResid);
 			assignFn(StatusCancel, PerformOperation);
 			assignExtendedFn(SCInner, PressSync);
-			SetWindowPos(shutdownwnd->GetHWND(), NULL, 0, 0, sizeX, sizeY + StatusBarResid->GetHeight(), SWP_NOMOVE | SWP_NOZORDER);
+			sizeY += StatusBarResid->GetHeight();
+			SetWindowPos(shutdownwnd->GetHWND(), NULL, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
 			StatusText->SetContentString(GetNotificationString(i + 1, savedremaining).c_str());
+			if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) {
+				DDScalableElement* ReasonText = regElem<DDScalableElement*>(L"ReasonText", StatusBarResid);
+				ReasonText->SetLayoutPos(4);
+				WCHAR* cReason = new WCHAR[128];
+				StringCchPrintfW(cReason, 128, LoadStrFromRes(4038).c_str(), reasonStr.c_str());
+				ReasonText->SetContentString(cReason);
+				if (cReason) delete[] cReason;
+			}
 			break;
 		}
+	}
+	if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) {
+		shutdownReason = SHTDN_REASON_MAJOR_OTHER | SHTDN_REASON_MINOR_OTHER;
+		Element* ShutdownEventTrackerResid{};
+		parser3->CreateElement(L"ShutdownEventTracker", NULL, NULL, NULL, (Element**)&ShutdownEventTrackerResid);
+		ShutdownEventTracker->Add((Element**)&ShutdownEventTrackerResid, 1);
+		DDScalableElement* SETText = regElem<DDScalableElement*>(L"SETText", ShutdownEventTrackerResid);
+		HMODULE hDLL2 = LoadLibraryExW(L"shutdownext.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
+		SETText->SetContentString(GetDialogCaption(hDLL2, 2210).c_str());
+		if (hDLL2) FreeLibrary(hDLL2);
+		Combobox* SETReason = (Combobox*)ShutdownEventTracker->FindDescendent(StrToID(L"SETReason"));
+		for (short s = 8261; s <= 8262; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+		for (short s = 8250; s <= 8253; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+		for (short s = 8272; s >= 8271; s--) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+		for (short s = 8256; s <= 8257; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+		SETReason->AddString(LoadStrFromRes(8260, L"user32.dll").c_str());
+		SETReason->AddString(LoadStrFromRes(8268, L"user32.dll").c_str());
+		SETReason->AddString(LoadStrFromRes(8293, L"user32.dll").c_str());
+		for (short s = 8258; s <= 8259; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+		for (short s = 8299; s <= 8301; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+		SETReason->SetSelection(0);
+		HWND hDUI = FindWindowExW(shutdownwnd->GetHWND(), NULL, L"DirectUIHWND", NULL);
+		HWND hCtrl = FindWindowExW(hDUI, NULL, L"CtrlNotifySink", NULL);
+		HWND hCombobox = FindWindowExW(hCtrl, NULL, L"ComboBox", NULL);
+		SetWindowLongPtrW(hCombobox, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
+		SetLayeredWindowAttributes(hCombobox, 0, 254, LWA_ALPHA);
+		if (!theme) SetWindowTheme(hCtrl, L"DarkMode_CFD", NULL);
+		assignFn(SETReason, UpdateShutdownReasonCode);
 	}
 	WCHAR* cBuffer = new WCHAR[64];
 	int dpiAdjusted = (dpi * 96.0) / dpiLaunch;
@@ -300,14 +484,16 @@ void DisplayShutdownDialog() {
 	IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, separator, 0.125);
 	Value* colorBMPV = DirectUI::Value::CreateGraphic(colorBMP, 7, 0xffffffff, false, false, false);
 	SeparatorLine->SetValue(Element::BackgroundProp, 1, colorBMPV);
+	SeparatorLine2->SetValue(Element::BackgroundProp, 1, colorBMPV);
 	DeleteObject(colorBMP);
 	colorBMPV->Release();
 	COLORREF white = RGB(255, 255, 255);
 	IterateBitmap(colorBMP2, SimpleBitmapPixelHandler, 3, white, bodyalpha);
 	Value* colorBMPV2 = DirectUI::Value::CreateGraphic(colorBMP2, 7, 0xffffffff, false, false, false);
 	ShutdownActions->SetValue(Element::BackgroundProp, 1, colorBMPV2);
-	DelayBar->SetValue(Element::BackgroundProp, 1, colorBMPV2);
+	AdvancedOptions->SetValue(Element::BackgroundProp, 1, colorBMPV2);
 	StatusBar->SetValue(Element::BackgroundProp, 1, colorBMPV2);
+	ShutdownEventTracker->SetValue(Element::BackgroundProp, 1, colorBMPV2);
 	DeleteObject(dummyi);
 	DeleteObject(colorBMP2);
 	colorBMPV2->Release();
@@ -339,20 +525,28 @@ void DisplayShutdownDialog() {
 		Logo->SetFirstScaledImage(theme ? 1101 : 1201);
 	}
 	else Logo->SetFirstScaledImage(theme ? 1108 : 1208);
-	SwitchUser = regBtn(L"SwitchUser", pShutdown), SignOut = regBtn(L"SignOut", pShutdown), SleepButton = regBtn(L"SleepButton", pShutdown),
-	Hibernate = regBtn(L"Hibernate", pShutdown), Shutdown = regBtn(L"Shutdown", pShutdown), Restart = regBtn(L"Restart", pShutdown);
-	SUInner = regBtn(L"SUInner", pShutdown), SOInner = regBtn(L"SOInner", pShutdown), SlInner = regBtn(L"SlInner", pShutdown),
-	HiInner = regBtn(L"HiInner", pShutdown), ShInner = regBtn(L"ShInner", pShutdown), ReInner = regBtn(L"ReInner", pShutdown);
+	SwitchUser = regElem<Button*>(L"SwitchUser", pShutdown), SignOut = regElem<Button*>(L"SignOut", pShutdown), SleepButton = regElem<Button*>(L"SleepButton", pShutdown),
+	Hibernate = regElem<Button*>(L"Hibernate", pShutdown), Shutdown = regElem<Button*>(L"Shutdown", pShutdown), Restart = regElem<Button*>(L"Restart", pShutdown);
+	SUInner = regElem<Button*>(L"SUInner", pShutdown), SOInner = regElem<Button*>(L"SOInner", pShutdown), SlInner = regElem<Button*>(L"SlInner", pShutdown),
+	HiInner = regElem<Button*>(L"HiInner", pShutdown), ShInner = regElem<Button*>(L"ShInner", pShutdown), ReInner = regElem<Button*>(L"ReInner", pShutdown);
 	Button* buttons[6] = { SwitchUser, SignOut, SleepButton, Hibernate, Shutdown, Restart };
 	Button* innerbuttons[6] = { SUInner, SOInner, SlInner, HiInner, ShInner, ReInner };
+	TouchCheckBox* delaytoggle = (TouchCheckBox*)pShutdown->FindDescendent(StrToID(L"delaytoggle"));
 	delayseconds = (TouchEdit2*)pShutdown->FindDescendent(StrToID(L"delayseconds"));
+	Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
+	delayseconds->SetContentString(L"0");
+	delaysecondspreview->SetContentString(L"0");
 	for (auto btn : buttons) {
 		assignFn(btn, PerformOperation);
 	}
 	for (auto btn : innerbuttons) {
 		assignExtendedFn(btn, PressSync);
 	}
+	assignFn(AdvancedOptionsBar, ToggleAdvancedOptions);
+	assignFn(delaytoggle, ToggleDelayOption);
 	assignExtendedFn(delayseconds, UpdateDelaySecondsPreview);
+	assignFn(RestartWinRE, AdvancedShutdown);
+	assignFn(RestartBIOS, AdvancedShutdown);
 }
 void DestroyShutdownDialog() {
 	shutdownwnd->DestroyWindow();

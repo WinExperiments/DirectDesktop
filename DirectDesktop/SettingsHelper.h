@@ -6,6 +6,7 @@ using namespace DirectUI;
 
 extern bool showcheckboxes;
 extern bool treatdirasgroup;
+extern bool tripleclickandhide;
 extern bool isColorized;
 extern int localeType;
 

@@ -1,5 +1,6 @@
 #pragma once
 #pragma warning(disable:6258)
+#pragma warning(disable:28159)
 #include "framework.h"
 #include "DirectUI/DirectUI.h"
 #include "StyleModifier.h"
@@ -9,15 +10,15 @@
 using namespace std;
 using namespace DirectUI;
 
+extern DWORD shutdownReason;
 extern NativeHWNDHost* wnd;
 extern float flScaleFactor;
 extern int dpi, dpiLaunch;
 extern bool dialogopen;
 extern bool theme;
 extern bool delayedshutdownstatuses[6];
-extern Element* regElem(const wchar_t* elemName, Element* peParent);
-extern Button* regBtn(const wchar_t* btnName, Element* peParent);
-extern RichText* regRichText(const wchar_t* elemName, Element* peParent);
+template <typename elemType>
+extern elemType regElem(const wchar_t* elemName, Element* peParent);
 extern wstring LoadStrFromRes(UINT id);
 extern wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
 extern struct EventListener;

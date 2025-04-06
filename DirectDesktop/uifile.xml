@@ -12,7 +12,7 @@
 				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" class="pageselector">
 					<RichText layoutpos="right" background="resbmp(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
 				</TouchButton>
-				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
+				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered()"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="flowlayout(0,2,2,0)">
 					<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
