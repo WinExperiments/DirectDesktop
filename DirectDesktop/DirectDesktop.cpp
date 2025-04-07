@@ -1409,12 +1409,26 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     EnumerateFolder((LPWSTR)filename, nullptr, false, true, &count);
     CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
     if (count <= 128 && count > 0) {
+        StyleSheet* sheet = pMain->GetSheet();
+        Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+        parser->GetSheet(theme ? L"default" : L"defaultdark", &sheetStorage);
+        HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
+        HBITMAP tileBmp = IconToBitmap(dummyi);
+        IterateBitmap(tileBmp, SimpleBitmapPixelHandler, 3, RGB(255, 255, 255), 0.25);
+        Value* tileBmpV = DirectUI::Value::CreateGraphic(tileBmp, 7, 0xffffffff, false, false, false);
+        HBITMAP tileBmp2 = IconToBitmap(dummyi);
+        IterateBitmap(tileBmp2, SimpleBitmapPixelHandler, 3, ImmersiveColor, 0.5);
+        Value* tileBmpV2 = DirectUI::Value::CreateGraphic(tileBmp2, 7, 0xffffffff, false, false, false);
         for (int i = 0; i < count; i++) {
             LVItem* outerElemGrouped;
             if (touchmode) {
                 parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+                outerElemGrouped->SetValue(Element::BackgroundProp, 1, tileBmpV);
+                Element* innerElem = regElem<Element*>(L"innerElem", outerElemGrouped);
+                innerElem->SetValue(Element::BackgroundProp, 1, tileBmpV2);
             }
             else parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+            outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage);
             SubUIContainer->Add((Element**)&outerElemGrouped, 1);
             iconElem = regElem<DDScalableElement*>(L"iconElem", outerElemGrouped);
             shortcutElem = regElem<Element*>(L"shortcutElem", outerElemGrouped);
@@ -1431,6 +1445,12 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             }
             outerElemGrouped->SetAnimation(NULL);
         }
+        DeleteObject(dummyi);
+        DeleteObject(tileBmp);
+        DeleteObject(tileBmp2);
+        tileBmpV->Release();
+        tileBmpV2->Release();
+        sheetStorage->Release();
         EnumerateFolder((LPWSTR)filename, &subpm, true, false, nullptr, &count2);
         int x = 0, y = 0;
         int maxX{}, xRuns{};
@@ -1727,10 +1747,14 @@ void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Valu
         IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), 2);
         Value* bitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
         Value* bitmapSh = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
-        textElem->SetValue(Element::ContentProp, 1, bitmap);
-        textElemShadow->SetValue(Element::ContentProp, 1, bitmapSh);
-        bitmap->Release();
-        bitmapSh->Release();
+        if (bitmap != nullptr) {
+            textElem->SetValue(Element::ContentProp, 1, bitmap);
+            bitmap->Release();
+        }
+        if (bitmapSh != nullptr) {
+            textElemShadow->SetValue(Element::ContentProp, 1, bitmapSh);
+            bitmapSh->Release();
+        }
         DeleteObject(capturedBitmap);
         DeleteObject(shadowBitmap);
     }
@@ -2053,13 +2077,18 @@ void InitLayout(bool cloaked, bool bUnused2) {
     assignFn(emptyspace, DesktopRightClick);
     HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
     HBITMAP tileBmp = IconToBitmap(dummyi);
-    IterateBitmap(tileBmp, SimpleBitmapPixelHandler, 3, ImmersiveColor, 0.5);
+    IterateBitmap(tileBmp, SimpleBitmapPixelHandler, 3, RGB(255, 255, 255), 0.25);
     Value* tileBmpV = DirectUI::Value::CreateGraphic(tileBmp, 7, 0xffffffff, false, false, false);
+    HBITMAP tileBmp2 = IconToBitmap(dummyi);
+    IterateBitmap(tileBmp2, SimpleBitmapPixelHandler, 3, ImmersiveColor, 0.5);
+    Value* tileBmpV2 = DirectUI::Value::CreateGraphic(tileBmp2, 7, 0xffffffff, false, false, false);
     for (int i = 0; i < count; i++) {
         LVItem* outerElem;
         if (touchmode) {
             parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElem);
             outerElem->SetValue(Element::BackgroundProp, 1, tileBmpV);
+            Element* innerElem = regElem<Element*>(L"innerElem", outerElem);
+            innerElem->SetValue(Element::BackgroundProp, 1, tileBmpV2);
         }
         else parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
         UIContainer->Add((Element**)&outerElem, 1);
@@ -2077,6 +2106,11 @@ void InitLayout(bool cloaked, bool bUnused2) {
         fileshadowpm.push_back(textElemShadow);
         cbpm.push_back(checkboxElem);
     }
+    DeleteObject(dummyi);
+    DeleteObject(tileBmp);
+    DeleteObject(tileBmp2);
+    tileBmpV->Release();
+    tileBmpV2->Release();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
     if (count2 < count) EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, true, false, nullptr, &count2);
     DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
