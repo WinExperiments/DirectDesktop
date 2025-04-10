@@ -77,7 +77,7 @@ static const PropertyInfo impNeedsFontResizeProp =
 };
 
 void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    if (pProp == Element::MouseFocusedProp() || pProp == Button::PressedProp() || pProp == Element::EnabledProp() || pProp == Element::SelectedProp() || pProp == DDScalableElement::FirstScaledImageProp()) {
+    if (pProp == DDScalableElement::FirstScaledImageProp()) {
         ((DDScalableElement*)elem)->InitDrawImage();
     }
 }
@@ -433,10 +433,13 @@ IClassInfo* LVItem::GetClassInfoW() {
     return s_pClassInfo;
 }
 HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
-    return CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    HRESULT hr = CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    DWORD dw;
+    HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+    return hr;
 }
 HRESULT LVItem::Register() {
-    return ClassInfo<LVItem, Button, StandardCreator<LVItem>>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
+    return ClassInfo<LVItem, DDScalableButton, StandardCreator<LVItem>>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
 }
 unsigned short LVItem::GetInternalXPos() {
     return _xPos;

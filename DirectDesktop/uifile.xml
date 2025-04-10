@@ -12,7 +12,7 @@
 				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" class="pageselector">
 					<RichText layoutpos="right" background="resbmp(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
 				</TouchButton>
-				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered()"/>
+				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered(0x00000001)"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="flowlayout(0,2,2,0)">
 					<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
@@ -25,7 +25,7 @@
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
-	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" animation="position|s|fast">
+	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="1"/>
@@ -36,16 +36,16 @@
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
 		</Element>
 	</LVItem>
-	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute">
+	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</LVItem>
-	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" padding="rect(1rp,1rp,1rp,1rp)" width="144rp" height="144rp" animation="position|s|fast">
-		<Element id="atom(innerElem)" class="itemTouchInner"/>
-		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(3rp,3rp,3rp,3rp)" background="argb(0,0,0,0)">
+	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp">
+		<DDScalableElement id="atom(innerElem)" class="itemTouchInner"/>
+		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)">
 			<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()" background="argb(0,0,0,0)">
 				<Element id="atom(iconElemShadow)" contentalign="bottomleft" background="argb(0,0,0,0)" layoutpos="left" width="48rp" height="48rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
 				<Element layoutpos="left" layout="borderlayout()">
@@ -53,8 +53,7 @@
 				</Element>
 				<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="left" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)" alpha="0" animation="alpha|s|mediumslow|delayshort"/>
 			</Element>
-			<RichText id="atom(textElemShadow)" layoutpos="absolute" x="6rp" y="6rp" width="124rp" height="76rp" background="argb(0,0,0,0)"/>
-			<RichText id="atom(textElem)" layoutpos="absolute" x="8rp" y="8rp" width="120rp" height="72rp" background="argb(0,0,0,0)"/>
+			<RichText id="atom(textElem)" layoutpos="absolute" x="8rp" y="8rp" width="104rp" height="56rp" background="argb(0,0,0,0)"/>
 		</Element>
 		<Element layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
@@ -79,10 +78,16 @@
 				</if>
 			</if>
 			<if class="itemTouchOuter">
-				<LVItem cursor="hand"/>
+				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1"/>
 			</if>
 			<if class="itemTouchInner">
-				<Element layoutpos="client"/>
+				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
+				<if mousefocused="true">
+					<DDScalableElement FirstScaledImage="3017"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableElement FirstScaledImage="3024"/>
+				</if>
 			</if>
 			<if class="selector">
 				<Element alpha="themeable(224, 148)"/>
@@ -135,10 +140,16 @@
 				</if>
 			</if>
 			<if class="itemTouchOuter">
-				<LVItem cursor="hand"/>
+				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1"/>
 			</if>
 			<if class="itemTouchInner">
-				<Element layoutpos="client"/>
+				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
+				<if mousefocused="true">
+					<DDScalableElement FirstScaledImage="3017"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableElement FirstScaledImage="3024"/>
+				</if>
 			</if>
 			<if class="selector">
 				<Element alpha="themeable(224, 148)"/>
@@ -172,99 +183,6 @@
 			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
-			</if>
-		</style>
-		<style resid="scrollbarstyle">
-			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="white"/>
-			<TouchScrollBar accessible="true" accrole="scrollbar" background="white"/>
-			<if vertical="true">
-				<TouchScrollBar width="16rp" layoutpos="nineright"/>
-			</if>
-			<if vertical="false">
-				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
-			</if>
-			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="white" foreground="argb(250, 136, 136, 136)" font="resstr(130)"/>
-				<if mousewithin="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 160, 160, 160)"/>
-				</if>
-				<if Pressed="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 136, 136, 136)"/>
-				</if>
-				<if id="atom(LineUp)">
-					<TouchRepeatButton layoutpos="top" height="22rp"/>
-				</if>
-				<if id="atom(LineDown)">
-					<TouchRepeatButton layoutpos="bottom" height="22rp"/>
-				</if>
-				<if id="atom(LineLeft)">
-					<TouchRepeatButton layoutpos="left" width="22rp"/>
-				</if>
-				<if id="atom(LineRight)">
-					<TouchRepeatButton layoutpos="right" width="22rp"/>
-				</if>
-			</if>
-			<if class="Line_Arrow">
-				<InternalRichText background="white" constrainlayout="narrow" direction="LTR" overhang="true"/>
-				<if id="atom(LineUp_Arrow)">
-					<InternalRichText content="resstr(131)" contentalign="bottomcenter" linespacing="33rp" baseline="27rp"/>
-				</if>
-				<if id="atom(LineDown_Arrow)">
-					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="33rp" baseline="17rp"/>
-				</if>
-				<if id="atom(LineLeft_Arrow)">
-					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="14rp" padding="rect(0,0,7rp,0)"/>
-				</if>
-				<if id="atom(LineRight_Arrow)">
-					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="14rp" padding="rect(7rp,0,0,0)"/>
-				</if>
-			</if>
-			<if id="atom(TouchScrollBar_Track)">
-				<Element layoutpos="client" background="argb(0,0,0,0)"/>
-			</if>
-			<if class="Page">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)"/>
-				<if id="atom(PageUp)">
-					<TouchRepeatButton width="16rp"/>
-				</if>
-				<if id="atom(PageDown)">
-					<TouchRepeatButton width="16rp"/>
-				</if>
-				<if id="atom(PageLeft)">
-					<TouchRepeatButton height="16rp"/>
-				</if>
-				<if id="atom(PageRight)">
-					<TouchRepeatButton height="16rp"/>
-				</if>
-			</if>
-			<if class="Thumb_Mouse">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 136, 136, 136)"/>
-				<if mousewithin="true">
-					<Thumb background="argb(255, 160, 160, 160)" bordercolor="20768"/>
-				</if>
-				<if captured="true">
-					<Thumb background="argb(255, 136, 136, 136)" bordercolor="20769"/>
-				</if>
-				<if id="atom(Thumb)">
-					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
-				</if>
-				<if id="atom(HThumb)">
-					<Thumb height="6rp" minsize="size(16rp,0)" margin="rect(0,5rp,0,0)"/>
-				</if>
-			</if>
-			<if class="Thumb_Pan">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 136, 136, 136)"/>
-				<if id="atom(Thumb)">
-					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
-				</if>
-				<if id="atom(HThumb)">
-					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
-				</if>
-			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
 			</if>
 		</style>
 	</stylesheets>

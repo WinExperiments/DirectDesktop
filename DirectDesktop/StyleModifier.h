@@ -16,3 +16,4 @@ void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a);
 void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a);
 void UndoPremultiplication(int& r, int& g, int& b, int& a);
 void DesaturateWhiten(int& r, int& g, int& b, int& a);
+COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize);

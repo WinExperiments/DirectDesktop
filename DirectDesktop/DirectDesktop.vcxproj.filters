@@ -375,6 +375,9 @@
     <ClInclude Include="ShutdownDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cdpa.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -1066,6 +1069,99 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="ImageResources\1214.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3003.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3004.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3005.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3003.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3004.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3005.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3006.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3007.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3008.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3009.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3010.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3011.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3012.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3013.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3014.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3015.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3016.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3017.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3018.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3019.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3020.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3021.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3022.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3023.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3024.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3025.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3026.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3027.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3028.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3029.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3030.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

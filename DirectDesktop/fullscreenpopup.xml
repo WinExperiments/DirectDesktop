@@ -39,9 +39,9 @@
 				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 			</Element>
 		</Element>
-		<ScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
+		<TouchScrollViewer id="atom(groupdirlist)" sheet="scrollbarstyle" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
 			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
-		</ScrollViewer>
+		</TouchScrollViewer>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
@@ -295,6 +295,99 @@
 			</if>
 			<if class="pageselectoreditmode">
 				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+			</if>
+		</style>
+		<style resid="scrollbarstyle">
+			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
+			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
+			<if vertical="true">
+				<TouchScrollBar width="16rp" layoutpos="nineright"/>
+			</if>
+			<if vertical="false">
+				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
+			</if>
+			<if class="Line">
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(250, 136, 136, 136)" font="resstr(130)"/>
+				<if mousewithin="true">
+					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 160, 160, 160)"/>
+				</if>
+				<if Pressed="true">
+					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 136, 136, 136)"/>
+				</if>
+				<if id="atom(LineUp)">
+					<TouchRepeatButton layoutpos="top" height="22rp"/>
+				</if>
+				<if id="atom(LineDown)">
+					<TouchRepeatButton layoutpos="bottom" height="22rp"/>
+				</if>
+				<if id="atom(LineLeft)">
+					<TouchRepeatButton layoutpos="left" width="22rp"/>
+				</if>
+				<if id="atom(LineRight)">
+					<TouchRepeatButton layoutpos="right" width="22rp"/>
+				</if>
+			</if>
+			<if class="Line_Arrow">
+				<InternalRichText background="argb(0,0,0,0)" constrainlayout="narrow" direction="LTR" overhang="true"/>
+				<if id="atom(LineUp_Arrow)">
+					<InternalRichText content="resstr(131)" contentalign="bottomcenter" linespacing="33rp" baseline="27rp"/>
+				</if>
+				<if id="atom(LineDown_Arrow)">
+					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="33rp" baseline="17rp"/>
+				</if>
+				<if id="atom(LineLeft_Arrow)">
+					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="14rp" padding="rect(0,0,7rp,0)"/>
+				</if>
+				<if id="atom(LineRight_Arrow)">
+					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="14rp" padding="rect(7rp,0,0,0)"/>
+				</if>
+			</if>
+			<if id="atom(TouchScrollBar_Track)">
+				<Element layoutpos="client" background="argb(0,0,0,0)"/>
+			</if>
+			<if class="Page">
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)"/>
+				<if id="atom(PageUp)">
+					<TouchRepeatButton width="16rp"/>
+				</if>
+				<if id="atom(PageDown)">
+					<TouchRepeatButton width="16rp"/>
+				</if>
+				<if id="atom(PageLeft)">
+					<TouchRepeatButton height="16rp"/>
+				</if>
+				<if id="atom(PageRight)">
+					<TouchRepeatButton height="16rp"/>
+				</if>
+			</if>
+			<if class="Thumb_Mouse">
+				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
+				<if mousewithin="true">
+					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20768"/>
+				</if>
+				<if captured="true">
+					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20769"/>
+				</if>
+				<if id="atom(Thumb)">
+					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
+				</if>
+				<if id="atom(HThumb)">
+					<Thumb height="6rp" minsize="size(16rp,0)" margin="rect(0,5rp,0,0)"/>
+				</if>
+			</if>
+			<if class="Thumb_Pan">
+				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
+				<if id="atom(Thumb)">
+					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
+				</if>
+				<if id="atom(HThumb)">
+					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
+				</if>
+			</if>
+			<if class="ScrollViewer">
+				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
+				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
+				<viewer layoutpos="nineclient" />
 			</if>
 		</style>
 	</stylesheets>

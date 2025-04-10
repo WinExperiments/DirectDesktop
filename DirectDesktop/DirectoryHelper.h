@@ -17,6 +17,8 @@ extern vector<DirectUI::RichText*> filepm;
 extern vector<DirectUI::RichText*> fileshadowpm;
 extern vector<DirectUI::Element*> cbpm;
 extern void InitLayout(bool bUnused1, bool bUnused2);
+extern wstring LoadStrFromRes(UINT id);
+extern wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
 
 class ThumbIcons {
 private:

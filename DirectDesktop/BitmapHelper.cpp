@@ -343,7 +343,9 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
         vResultBitsA.clear();
         break;
     }
-    case 3: { // blur radius is used here as colorref
+    case 3: {
+        // blur radius is used here as colorref
+        // handlers do not affect this, except simple, which converts all alpha to the alphaValue arg
         BYTE* pBits = new BYTE[bmBits];
         GetBitmapBits(hbm, bmBits, pBits);
 
@@ -360,7 +362,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
                 pPixel[2] = (int)(blurradius % 16777216);
                 pPixel[1] = (int)((blurradius / 256) % 65536);
                 pPixel[0] = (int)((blurradius / 65536) % 256);
-                pPixel[3] = 255 * alphaValue;
+                pPixel[3] = (handler == SimpleBitmapPixelHandler) ? 255 * alphaValue : pPixel[3] * alphaValue;
 
                 pPixel += 4;
             }

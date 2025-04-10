@@ -103,7 +103,7 @@ private:
     static IClassInfo* s_pClassInfo;
 };
 
-class LVItem final : public Button {
+class LVItem final : public DDScalableButton {
 public:
     LVItem() {
 

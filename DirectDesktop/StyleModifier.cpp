@@ -4,6 +4,8 @@
 #include "AccentColorHelper.h"
 #include "ImmersiveColor.h"
 #include "DirectoryHelper.h"
+#include "cdpa.h"
+#include <uxtheme.h>
 
 COLORREF ImmersiveColor;
 bool theme;
@@ -82,11 +84,111 @@ void UndoPremultiplication(int& r, int& g, int& b, int& a)
 void DesaturateWhiten(int& r, int& g, int& b, int& a)
 {
     rgb_t rgbVal = { r, g, b };
-
     hsl_t hslVal = rgb2hsl(rgbVal);
 
     a = hslVal.l;
-    r = touchmode ? WhiteText.r : 255.0;
-    g = touchmode ? WhiteText.g : 255.0;
-    b = touchmode ? WhiteText.b : 255.0;
+    r = 255.0;
+    g = 255.0;
+    b = 255.0;
+}
+
+struct BUCKET {
+    CDPA<RGBQUAD, CTContainer_PolicyUnOwned<RGBQUAD>> _dpa;
+    BUCKET() {
+        _dpa.Create(16);
+    }
+};
+
+COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize) {
+    COLORREF outDominantColor = RGB(128, 136, 144);
+
+    HDC hMemDC = CreateCompatibleDC(nullptr);
+    HDC hMemDC2 = CreateCompatibleDC(nullptr);
+
+    RECT rcIcon;
+    rcIcon.left = 0;
+    rcIcon.top = 0;
+    rcIcon.right = iconsize;
+    rcIcon.bottom = iconsize;
+
+    HDC hdcPaint;
+    HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hMemDC, &rcIcon, BPBF_TOPDOWNDIB, nullptr, &hdcPaint);
+    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC2, hbm);
+    if (hBufferedPaint) {
+        BufferedPaintClear(hBufferedPaint, &rcIcon);
+        BitBlt(hdcPaint, rcIcon.left, rcIcon.top, rcIcon.right, rcIcon.bottom, hMemDC2, 0, 0, SRCCOPY);
+
+        RGBQUAD* pbBuffer;
+        int cxRow;
+        GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
+
+        constexpr int bucketCoef = 86;
+        constexpr int nonGreyishThreshold = 48;
+        constexpr int hitRatioThreshold = 7;
+
+        constexpr int frac = 0xFF / (bucketCoef - 1);
+        BUCKET rgBucket[
+            (frac * frac) * (0xFF / bucketCoef)
+                + (frac) * (0xFF / bucketCoef)
+                + (0xFF / bucketCoef)
+                + 1
+        ];
+        for (int row = 0; row < 32; ++row, pbBuffer += cxRow - 32) {
+            for (int column = 0; column < 32; ++column, ++pbBuffer) {
+                if (pbBuffer->rgbReserved) {
+                    pbBuffer->rgbRed = 0xFF * pbBuffer->rgbRed / pbBuffer->rgbReserved;
+                    pbBuffer->rgbGreen = 0xFF * pbBuffer->rgbGreen / pbBuffer->rgbReserved;
+                    pbBuffer->rgbBlue = 0xFF * pbBuffer->rgbBlue / pbBuffer->rgbReserved;
+
+                    BYTE maxValue = max(pbBuffer->rgbRed, max(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
+                    BYTE minValue = min(pbBuffer->rgbRed, min(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
+                    if (maxValue - minValue > nonGreyishThreshold) {
+                        BUCKET* bucket = &rgBucket[
+                            (frac * frac) * (pbBuffer->rgbRed / bucketCoef)
+                                + (frac) * (pbBuffer->rgbGreen / bucketCoef)
+                                + (pbBuffer->rgbBlue / bucketCoef)
+                        ];
+                        bucket->_dpa.AppendPtr(pbBuffer);
+                    }
+                }
+            }
+        }
+
+        SIZE_T bucketWithMostHits = -1;
+        int totalHits = 0;
+        for (SIZE_T bucketIdx = 0; bucketIdx < ARRAYSIZE(rgBucket); ++bucketIdx) {
+            int myHits = rgBucket[bucketIdx]._dpa.GetPtrCount();
+            totalHits += myHits;
+            if (bucketWithMostHits == -1 || myHits > rgBucket[bucketWithMostHits]._dpa.GetPtrCount()) {
+                bucketWithMostHits = bucketIdx;
+            }
+        }
+
+        const BUCKET* bestBucket = &rgBucket[bucketWithMostHits];
+        int denominator = 0;
+        int totalR = 0;
+        int totalG = 0;
+        int totalB = 0;
+        int numBestBucketHits = bestBucket->_dpa.GetPtrCount();
+        if (numBestBucketHits > 0) {
+            denominator = numBestBucketHits;
+            for (int colorIdx = 0; colorIdx < numBestBucketHits; ++colorIdx) {
+                const RGBQUAD* color = bestBucket->_dpa.FastGetPtr(colorIdx);
+                totalR += color->rgbRed;
+                totalG += color->rgbGreen;
+                totalB += color->rgbBlue;
+            }
+        }
+
+        if (MulDiv(numBestBucketHits, 100, totalHits) >= hitRatioThreshold) {
+            outDominantColor = RGB(totalR / denominator, totalG / denominator, totalB / denominator);
+        }
+
+        EndBufferedPaint(hBufferedPaint, FALSE);
+        DeleteObject(hOldBitmap);
+        DeleteDC(hMemDC);
+        DeleteDC(hMemDC2);
+    }
+
+    return outDominantColor;
 }

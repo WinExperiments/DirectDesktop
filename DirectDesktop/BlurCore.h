@@ -1,6 +1,7 @@
 #pragma once
 #include "framework.h"
 #include "StyleModifier.h"
+#include "DirectoryHelper.h"
 #include <vector>
 #include <cmath>
 
@@ -97,17 +98,19 @@ struct WINDOWCOMPOSITIONATTRIBDATA {
 typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
 void ToggleAcrylicBlur(HWND hwnd, bool blur) {
-    HMODULE hUser = GetModuleHandleW(L"user32.dll");
-    if (hUser) {
-        pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
-            (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+    if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1) {
+        HMODULE hUser = GetModuleHandleW(L"user32.dll");
+        if (hUser) {
+            pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
+                (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
 
-        if (SetWindowCompositionAttribute) {
-            ACCENT_STATE as = blur ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
-            int blurcolor = 0x00000000;
-            ACCENT_POLICY policy = { as, 0, blurcolor, 0 };
-            WINDOWCOMPOSITIONATTRIBDATA data = { 19, &policy, sizeof(ACCENT_POLICY) };
-            SetWindowCompositionAttribute(hwnd, &data);
+            if (SetWindowCompositionAttribute) {
+                ACCENT_STATE as = blur ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
+                int blurcolor = 0x00000000;
+                ACCENT_POLICY policy = { as, 0, blurcolor, 0 };
+                WINDOWCOMPOSITIONATTRIBDATA data = { 19, &policy, sizeof(ACCENT_POLICY) };
+                SetWindowCompositionAttribute(hwnd, &data);
+            }
         }
     }
 }

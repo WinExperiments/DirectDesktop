@@ -148,6 +148,7 @@
     <ClInclude Include="BitmapHelper.h" />
     <ClInclude Include="BlurCore.cpp" />
     <ClInclude Include="BlurCore.h" />
+    <ClInclude Include="cdpa.h" />
     <ClInclude Include="ColorHelper.h" />
     <ClInclude Include="ContextMenus.h" />
     <ClInclude Include="DirectoryHelper.h" />
@@ -497,6 +498,37 @@
     <Image Include="ImageResources\292.png" />
     <Image Include="ImageResources\3001.bmp" />
     <Image Include="ImageResources\3002.bmp" />
+    <Image Include="ImageResources\3003.bmp" />
+    <Image Include="ImageResources\3003.png" />
+    <Image Include="ImageResources\3004.bmp" />
+    <Image Include="ImageResources\3004.png" />
+    <Image Include="ImageResources\3005.bmp" />
+    <Image Include="ImageResources\3005.png" />
+    <Image Include="ImageResources\3006.png" />
+    <Image Include="ImageResources\3007.png" />
+    <Image Include="ImageResources\3008.png" />
+    <Image Include="ImageResources\3009.png" />
+    <Image Include="ImageResources\3010.png" />
+    <Image Include="ImageResources\3011.png" />
+    <Image Include="ImageResources\3012.png" />
+    <Image Include="ImageResources\3013.png" />
+    <Image Include="ImageResources\3014.png" />
+    <Image Include="ImageResources\3015.png" />
+    <Image Include="ImageResources\3016.png" />
+    <Image Include="ImageResources\3017.png" />
+    <Image Include="ImageResources\3018.png" />
+    <Image Include="ImageResources\3019.png" />
+    <Image Include="ImageResources\3020.png" />
+    <Image Include="ImageResources\3021.png" />
+    <Image Include="ImageResources\3022.png" />
+    <Image Include="ImageResources\3023.png" />
+    <Image Include="ImageResources\3024.png" />
+    <Image Include="ImageResources\3025.png" />
+    <Image Include="ImageResources\3026.png" />
+    <Image Include="ImageResources\3027.png" />
+    <Image Include="ImageResources\3028.png" />
+    <Image Include="ImageResources\3029.png" />
+    <Image Include="ImageResources\3030.png" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

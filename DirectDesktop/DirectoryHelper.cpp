@@ -3,6 +3,7 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <exdisp.h>
+#include <ShlGuid.h>
 #pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "shlwapi.lib")
 
@@ -164,14 +165,47 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
     return result;
 }
 
+wstring GetExplorerTooltipText(const wstring& filePath) {
+    wstring tooltipText;
+
+    LPITEMIDLIST pidl = ILCreateFromPathW(filePath.c_str());
+    if (!pidl) return L"";
+
+    IShellFolder* pDesktopFolder = nullptr;
+    if (SHGetDesktopFolder(&pDesktopFolder) == S_OK) {
+        IQueryInfo* pQueryInfo = nullptr;
+        if (SUCCEEDED(pDesktopFolder->GetUIObjectOf(
+            NULL, 1, (LPCITEMIDLIST*)&pidl, IID_IQueryInfo, NULL, (void**)&pQueryInfo))) {
+            wchar_t* pTip = nullptr;
+            if (SUCCEEDED(pQueryInfo->GetInfoTip(0, &pTip)) && pTip) {
+                tooltipText = pTip;
+                CoTaskMemFree(pTip);
+            }
+            pQueryInfo->Release();
+        }
+        pDesktopFolder->Release();
+    }
+
+    ILFree(pidl);
+    return tooltipText;
+}
+
 static int checkSpotlight{};
 void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* count2) {
     if (clsid == L"{645FF040-5081-101B-9F08-00AA002F954E}") {
         if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == -1) {
             WCHAR clsidEx[64];
             StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
+            WCHAR clsidEx2[64];
+            StringCchPrintfW(clsidEx2, 64, L"CLSID\\%s", clsid);
+            WCHAR* cRegValue = GetRegistryStrValues(HKEY_CLASSES_ROOT, clsidEx2, L"InfoTip");
+            wstring regValue{};
+            if (cRegValue) regValue = cRegValue;
+            size_t modifier = regValue.find_last_of(L"\\") + 1;
+            size_t modifier2 = regValue.find(L",");
             (*pm)[(*count2)]->SetSimpleFilename(displayName);
             (*pm)[(*count2)]->SetFilename(clsidEx);
+            (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
             (*dirIndex)++;
             (*hiddenIndex)++;
             (*shortIndex)++;
@@ -184,8 +218,16 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
         if (checkSpotlight == 1) {
             WCHAR clsidEx[64];
             StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
-            (*pm)[(*hiddenIndex)]->SetSimpleFilename(displayName);
-            (*pm)[(*hiddenIndex)]->SetFilename(clsidEx);
+            WCHAR clsidEx2[64];
+            StringCchPrintfW(clsidEx2, 64, L"CLSID\\%s", clsid);
+            WCHAR* cRegValue = GetRegistryStrValues(HKEY_CLASSES_ROOT, clsidEx2, L"InfoTip");
+            wstring regValue{};
+            if (cRegValue) regValue = cRegValue;
+            size_t modifier = regValue.find_last_of(L"\\") + 1;
+            size_t modifier2 = regValue.find(L",");
+            (*pm)[(*count2)]->SetSimpleFilename(displayName);
+            (*pm)[(*count2)]->SetFilename(clsidEx);
+            if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
             (*dirIndex)++;
             (*hiddenIndex)++;
             (*shortIndex)++;
@@ -196,8 +238,16 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
     if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == 0) {
         WCHAR clsidEx[64];
         StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
-        (*pm)[(*hiddenIndex)]->SetSimpleFilename(displayName);
-        (*pm)[(*hiddenIndex)]->SetFilename(clsidEx);
+        WCHAR clsidEx2[64];
+        StringCchPrintfW(clsidEx2, 64, L"CLSID\\%s", clsid);
+        WCHAR* cRegValue = GetRegistryStrValues(HKEY_CLASSES_ROOT, clsidEx2, L"InfoTip"); 
+        wstring regValue{};
+        if (cRegValue) regValue = cRegValue;
+        size_t modifier = regValue.find_last_of(L"\\") + 1;
+        size_t modifier2 = regValue.find(L",");
+        (*pm)[(*count2)]->SetSimpleFilename(displayName);
+        (*pm)[(*count2)]->SetFilename(clsidEx);
+        if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
         (*dirIndex)++;
         (*hiddenIndex)++;
         (*shortIndex)++;
@@ -308,6 +358,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                     }
                     (*pm)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                     (*pm)[*(count2)]->SetFilename(foundfilename);
+                    (*pm)[*(count2)]->SetAccDesc(GetExplorerTooltipText(fd.cFileName).c_str());
                 }
                 dirIndex++;
                 hiddenIndex++;

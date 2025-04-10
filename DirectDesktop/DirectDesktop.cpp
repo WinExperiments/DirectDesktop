@@ -79,7 +79,7 @@ int touchSizeX, touchSizeY;
 
 wstring LoadStrFromRes(UINT id) {
     WCHAR* loadedStrBuffer = new WCHAR[512]{};
-    LoadStringW((HINSTANCE)GetModuleHandleW(NULL), id, loadedStrBuffer, 512);
+    LoadStringW((HINSTANCE)HINST_THISCOMPONENT, id, loadedStrBuffer, 512);
     wstring loadedStr = loadedStrBuffer;
     delete[] loadedStrBuffer;
     return loadedStr;
@@ -207,6 +207,7 @@ struct DesktopIcon {
     HBITMAP iconshortcut{};
     HBITMAP text{};
     HBITMAP textshadow{};
+    HBITMAP dominantTileColor{};
 };
 
 struct ThumbnailIcon {
@@ -254,7 +255,7 @@ vector<Element*> shortpm, subshortpm;
 vector<DDScalableElement*> iconpm, subiconpm;
 vector<Element*> shadowpm, subshadowpm;
 vector<RichText*> filepm, subfilepm;
-vector<RichText*> fileshadowpm, subfileshadowpm;
+vector<RichText*> fileshadowpm;
 vector<Element*> cbpm;
 vector<LVItem*> selectedLVItems;
 bool checkifelemexists = 0;
@@ -341,7 +342,7 @@ float CalcTextLines(const wchar_t* str, int width) {
 void CalcDesktopIconInfo(yValue* yV, int* lines_basedOnEllipsis, DWORD* alignment, bool subdirectory) {
     vector<LVItem*>* pmLVItem = subdirectory ? &subpm : &pm;
     vector<RichText*>* pmFile = subdirectory ? &subfilepm : &filepm;
-    vector<RichText*>* pmFileShadow = subdirectory ? &subfileshadowpm : &fileshadowpm;
+    vector<RichText*>* pmFileShadow = &fileshadowpm;
     *alignment = DT_CENTER | DT_END_ELLIPSIS;
     if (!touchmode) {
         *lines_basedOnEllipsis = floor(CalcTextLines((*pmLVItem)[yV->y]->GetSimpleFilename().c_str(), yV->innerSizeX)) * textm.tmHeight;
@@ -350,7 +351,8 @@ void CalcDesktopIconInfo(yValue* yV, int* lines_basedOnEllipsis, DWORD* alignmen
         DWORD direction = (localeType == 1) ? DT_RIGHT : DT_LEFT;
         *alignment = direction | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS;
         int maxlines_basedOnEllipsis = (*pmFile)[yV->y]->GetHeight();
-        yV->innerSizeX = (*pmFileShadow)[yV->y]->GetWidth();
+        if (!touchmode) yV->innerSizeX = (*pmFileShadow)[yV->y]->GetWidth();
+        else yV->innerSizeX = (*pmFile)[yV->y]->GetWidth() + 4;
         *lines_basedOnEllipsis = CalcTextLines((*pmLVItem)[yV->y]->GetSimpleFilename().c_str(), yV->innerSizeX) * textm.tmHeight;
         if (*lines_basedOnEllipsis > maxlines_basedOnEllipsis) *lines_basedOnEllipsis = maxlines_basedOnEllipsis;
     }
@@ -621,6 +623,15 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             fileshadowpm[lParam]->SetValue(Element::ContentProp, 1, bitmapTextShadow);
             bitmapTextShadow->Release();
         }
+        if (touchmode) {
+            HBITMAP tileBmp = ((DesktopIcon*)wParam)->dominantTileColor;
+            Value* tileBmpV = DirectUI::Value::CreateGraphic(tileBmp, 7, 0xffffffff, false, false, false);
+            DeleteObject(tileBmp);
+            if (tileBmpV != nullptr) {
+                pm[lParam]->SetValue(Element::BackgroundProp, 1, tileBmpV);
+                tileBmpV->Release();
+            }
+        }
         pm[lParam]->SetAnimation(listviewAnimStorage);
         break;
     }
@@ -743,12 +754,12 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             bitmapText->Release();
         }
         if (touchmode) {
-            HBITMAP textshadowbmp = ((DesktopIcon*)wParam)->textshadow;
-            Value* bitmapTextShadow = DirectUI::Value::CreateGraphic(textshadowbmp, 2, 0xffffffff, false, false, false);
-            DeleteObject(textshadowbmp);
-            if (bitmapTextShadow != nullptr) {
-                subfileshadowpm[lParam]->SetValue(Element::ContentProp, 1, bitmapTextShadow);
-                bitmapTextShadow->Release();
+            HBITMAP tileBmp = ((DesktopIcon*)wParam)->dominantTileColor;
+            Value* tileBmpV = DirectUI::Value::CreateGraphic(tileBmp, 7, 0xffffffff, false, false, false);
+            DeleteObject(tileBmp);
+            if (tileBmpV != nullptr) {
+                subpm[lParam]->SetValue(Element::BackgroundProp, 1, tileBmpV);
+                tileBmpV->Release();
             }
         }
         break;
@@ -799,7 +810,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             iconpm[icon]->SetClass(L"");
             iconpm[icon]->SetValue(Element::BackgroundProp, 1, v);
             shadowpm[icon]->SetVisible(true);
-            static const int groupspace = 8 * flScaleFactor;
+            int groupspace = 8 * flScaleFactor;
             if (touchmode) {
                 iconpm[icon]->SetWidth(globaliconsz * flScaleFactor + 2 * groupspace);
                 iconpm[icon]->SetHeight(globaliconsz * flScaleFactor + 2 * groupspace);
@@ -982,7 +993,7 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         int scaleIntervalImage = ((DDScalableElement*)wParam)->GetScaledImageIntervals();
         if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
         int imageID = ((DDScalableElement*)wParam)->GetFirstScaledImage() + scaleInterval;
-        HBITMAP newImage = (HBITMAP)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
         if (newImage == nullptr) {
             newImage = LoadPNGAsBitmap(imageID);
             IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1);
@@ -1050,6 +1061,7 @@ unsigned long subanimate(LPVOID lpParam) {
 }
 
 unsigned long fastin(LPVOID lpParam) {
+    InitThread(TSM_DESKTOP_DYNAMIC);
     Sleep(125);
     yValue* yV = (yValue*)lpParam;
     int lines_basedOnEllipsis{};
@@ -1059,22 +1071,44 @@ unsigned long fastin(LPVOID lpParam) {
     HBITMAP capturedBitmap;
     capturedBitmap = CreateTextBitmap(pm[yV->y]->GetSimpleFilename().c_str(), yV->innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, alignment, touchmode);
     float textshader = touchmode ? 0.75 : 2;
-    IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
-    HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
-    IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), textshader);
     DesktopIcon di;
     ApplyIcons(pm, iconpm, &di, false, yV->y);
+    if (touchmode) {
+        UpdateCache* uc{};
+        HBITMAP tileBmp{};
+        Sleep(200);
+        Value* tileBmpVOld = pm[yV->y]->GetValue(Element::BackgroundProp, 1, uc);
+        if ((unsigned long)tileBmpVOld > 4096) {
+            tileBmp = (HBITMAP)tileBmpVOld->GetImage(false, 1);
+            tileBmpVOld->Release();
+        }
+        COLORREF iconcolor = GetDominantColorFromIcon(di.icon, globaliconsz);
+        float intensity = pm[yV->y]->GetHiddenState() ? 0.75 : 1;
+        IterateBitmap(tileBmp, StandardBitmapPixelHandler, 3, iconcolor, intensity);
+        di.dominantTileColor = tileBmp;
+        if (GetRValue(iconcolor) * 0.299 + GetGValue(iconcolor) * 0.587 + GetBValue(iconcolor) * 0.114 > 156) {
+            IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1);
+            IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1);
+        }
+        else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
+    }
+    else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
     if (capturedBitmap != nullptr) di.text = capturedBitmap;
-    if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
-    //if (di.icon == nullptr) fastin(lpParam);
+    if (!touchmode) {
+        HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
+        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), textshader);
+        if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
+    }
+    if (di.icon == nullptr) fastin(lpParam);
     SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, yV->y);
     SendMessageW(wnd->GetHWND(), WM_USER + 3, (WPARAM)&di, yV->y);
-    Sleep(50);
+    Sleep(500);
     free(yV);
     return 0;
 }
 
 unsigned long subfastin(LPVOID lpParam) {
+    InitThread(TSM_DESKTOP_DYNAMIC);
     Sleep(125);
     yValue* yV = (yValue*)lpParam;
     int lines_basedOnEllipsis{};
@@ -1088,24 +1122,37 @@ unsigned long subfastin(LPVOID lpParam) {
     if (touchmode) capturedBitmap = CreateTextBitmap(subpm[yV->y]->GetSimpleFilename().c_str(), yV->innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, alignment, touchmode);
     else capturedBitmap = CreateTextBitmap(subpm[yV->y]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, touchmode);
     float textshader = touchmode ? 0.75 : 2;
-    if (theme && !touchmode) {
+    DesktopIcon di;
+    ApplyIcons(subpm, subiconpm, &di, false, yV->y);
+    if (touchmode) {
+        UpdateCache* uc{};
+        HBITMAP tileBmp{};
+        Sleep(200);
+        Value* tileBmpVOld = subpm[yV->y]->GetValue(Element::BackgroundProp, 1, uc);
+        if ((unsigned long)tileBmpVOld > 4096) {
+            tileBmp = (HBITMAP)tileBmpVOld->GetImage(false, 1);
+            tileBmpVOld->Release();
+        }
+        COLORREF iconcolor = GetDominantColorFromIcon(di.icon, globaliconsz);
+        float intensity = subpm[yV->y]->GetHiddenState() ? 0.75 : 1;
+        IterateBitmap(tileBmp, StandardBitmapPixelHandler, 3, iconcolor, intensity);
+        di.dominantTileColor = tileBmp;
+        if (GetRValue(iconcolor) * 0.299 + GetGValue(iconcolor) * 0.587 + GetBValue(iconcolor) * 0.114 > 156) {
+            IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1);
+            IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1);
+        }
+        else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
+    }
+    else if (theme && !touchmode) {
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1);
         IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9);
     }
     else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
     HBITMAP shadowBitmap{};
-    if (touchmode) {
-        shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
-        IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * flScaleFactor), textshader);
-    }
-    DesktopIcon di;
-    ApplyIcons(subpm, subiconpm, &di, false, yV->y);
     if (capturedBitmap != nullptr) di.text = capturedBitmap;
-    if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
-    //if (di.icon == nullptr) subfastin(lpParam);
     SendMessageW(wnd->GetHWND(), WM_USER + 10, NULL, yV->y);
     SendMessageW(wnd->GetHWND(), WM_USER + 9, (WPARAM)&di, yV->y);
-    Sleep(50);
+    Sleep(500);
     free(yV);
     return 0;
 }
@@ -1199,7 +1246,6 @@ void HidePopupCore(bool WinDInvoked) {
     subshortpm.clear();
     subshadowpm.clear();
     subfilepm.clear();
-    subfileshadowpm.clear();
     SimpleViewTop->SetLayoutPos(-3);
     SimpleViewBottom->SetLayoutPos(-3);
     nextpage->SetWidth(0);
@@ -1395,6 +1441,13 @@ void SelectSubItem(Element* elem, Event* iev) {
     }
 }
 
+void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    if (touchmode && pProp == Button::PressedProp()) {
+        Element* innerElem = regElem<Element*>(L"innerElem", elem);
+        innerElem->SetEnabled(!((LVItem*)elem)->GetPressed());
+    }
+}
+
 void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor, 0.9);
@@ -1402,8 +1455,9 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     Element* groupdirectory{};
     parser2->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
     fullscreeninner->Add((Element**)&groupdirectory, 1);
-    ScrollViewer* groupdirlist = regElem<ScrollViewer*>(L"groupdirlist", groupdirectory);
+    TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
     SubUIContainer = regElem<RichText*>(L"SubUIContainer", groupdirlist);
+    SetGadgetFlags(groupdirlist->GetDisplayNode(), 0x1, 0x1);
     unsigned short count = 0;
     int count2{};
     EnumerateFolder((LPWSTR)filename, nullptr, false, true, &count);
@@ -1412,20 +1466,10 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
         StyleSheet* sheet = pMain->GetSheet();
         Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
         parser->GetSheet(theme ? L"default" : L"defaultdark", &sheetStorage);
-        HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-        HBITMAP tileBmp = IconToBitmap(dummyi);
-        IterateBitmap(tileBmp, SimpleBitmapPixelHandler, 3, RGB(255, 255, 255), 0.25);
-        Value* tileBmpV = DirectUI::Value::CreateGraphic(tileBmp, 7, 0xffffffff, false, false, false);
-        HBITMAP tileBmp2 = IconToBitmap(dummyi);
-        IterateBitmap(tileBmp2, SimpleBitmapPixelHandler, 3, ImmersiveColor, 0.5);
-        Value* tileBmpV2 = DirectUI::Value::CreateGraphic(tileBmp2, 7, 0xffffffff, false, false, false);
         for (int i = 0; i < count; i++) {
             LVItem* outerElemGrouped;
             if (touchmode) {
                 parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElemGrouped);
-                outerElemGrouped->SetValue(Element::BackgroundProp, 1, tileBmpV);
-                Element* innerElem = regElem<Element*>(L"innerElem", outerElemGrouped);
-                innerElem->SetValue(Element::BackgroundProp, 1, tileBmpV2);
             }
             else parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
             outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage);
@@ -1439,17 +1483,8 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             subshortpm.push_back(shortcutElem);
             subshadowpm.push_back(iconElemShadow);
             subfilepm.push_back(textElem);
-            if (touchmode) {
-                textElemShadow = regElem<RichText*>(L"textElemShadow", outerElemGrouped);
-                subfileshadowpm.push_back(textElemShadow);
-            }
             outerElemGrouped->SetAnimation(NULL);
         }
-        DeleteObject(dummyi);
-        DeleteObject(tileBmp);
-        DeleteObject(tileBmp2);
-        tileBmpV->Release();
-        tileBmpV2->Release();
         sheetStorage->Release();
         EnumerateFolder((LPWSTR)filename, &subpm, true, false, nullptr, &count2);
         int x = 0, y = 0;
@@ -1475,6 +1510,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
             }
             assignFn(subpm[j], SelectSubItem);
             assignFn(subpm[j], SubItemRightClick);
+            assignExtendedFn(subpm[j], SelectSubItemListener);
             if (!touchmode) subpm[j]->SetClass(L"singleclicked");
             int xRender = (localeType == 1) ? (800 * flScaleFactor - (dimensions.left + dimensions.right + outerSizeX)) - x : x;
             subpm[j]->SetX(xRender), subpm[j]->SetY(y);
@@ -1757,6 +1793,10 @@ void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Valu
         }
         DeleteObject(capturedBitmap);
         DeleteObject(shadowBitmap);
+    }
+    if (touchmode && pProp == Button::PressedProp()) {
+        Element* innerElem = regElem<Element*>(L"innerElem", elem);
+        innerElem->SetEnabled(!((LVItem*)elem)->GetPressed());
     }
 }
 
@@ -2075,20 +2115,10 @@ void InitLayout(bool cloaked, bool bUnused2) {
     assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
     assignExtendedFn(emptyspace, MarqueeSelector);
     assignFn(emptyspace, DesktopRightClick);
-    HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-    HBITMAP tileBmp = IconToBitmap(dummyi);
-    IterateBitmap(tileBmp, SimpleBitmapPixelHandler, 3, RGB(255, 255, 255), 0.25);
-    Value* tileBmpV = DirectUI::Value::CreateGraphic(tileBmp, 7, 0xffffffff, false, false, false);
-    HBITMAP tileBmp2 = IconToBitmap(dummyi);
-    IterateBitmap(tileBmp2, SimpleBitmapPixelHandler, 3, ImmersiveColor, 0.5);
-    Value* tileBmpV2 = DirectUI::Value::CreateGraphic(tileBmp2, 7, 0xffffffff, false, false, false);
     for (int i = 0; i < count; i++) {
         LVItem* outerElem;
         if (touchmode) {
             parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElem);
-            outerElem->SetValue(Element::BackgroundProp, 1, tileBmpV);
-            Element* innerElem = regElem<Element*>(L"innerElem", outerElem);
-            innerElem->SetValue(Element::BackgroundProp, 1, tileBmpV2);
         }
         else parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
         UIContainer->Add((Element**)&outerElem, 1);
@@ -2106,11 +2136,6 @@ void InitLayout(bool cloaked, bool bUnused2) {
         fileshadowpm.push_back(textElemShadow);
         cbpm.push_back(checkboxElem);
     }
-    DeleteObject(dummyi);
-    DeleteObject(tileBmp);
-    DeleteObject(tileBmp2);
-    tileBmpV->Release();
-    tileBmpV2->Release();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
     if (count2 < count) EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, true, false, nullptr, &count2);
     DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
@@ -2129,8 +2154,8 @@ void InitLayout(bool cloaked, bool bUnused2) {
         if (pm[i]->GetHiddenState() == true) {
             iconpm[i]->SetAlpha(128);
             shadowpm[i]->SetAlpha(0);
-            filepm[i]->SetAlpha(192);
-            fileshadowpm[i]->SetAlpha(128);
+            filepm[i]->SetAlpha(touchmode ? 128 : 192);
+            if (!touchmode) fileshadowpm[i]->SetAlpha(128);
         }
         assignFn(pm[i], SelectItem);
         assignFn(pm[i], ItemRightClick);
@@ -2206,13 +2231,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     hMutex = CreateMutex(NULL, TRUE, szWindowClass);
     if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError()) {
-        TaskDialog(NULL, GetModuleHandleW(NULL), LoadStrFromRes(4025).c_str(), NULL,
+        TaskDialog(NULL, HINST_THISCOMPONENT, LoadStrFromRes(4025).c_str(), NULL,
             LoadStrFromRes(4021).c_str(), TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
         return 1;
     }
     if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"FFlags") & 0x4);
     else {
-        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", LoadStrFromRes(4022).c_str(),
+        TaskDialog(NULL, HINST_THISCOMPONENT, L"DirectDesktop", LoadStrFromRes(4022).c_str(),
             LoadStrFromRes(4023).c_str(), TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, NULL);
         return 1;
     }
@@ -2225,12 +2250,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
     AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
 
-    InitProcessPriv(14, NULL, true, true, true);
+    InitProcessPriv(14, HINST_THISCOMPONENT, true, true, true);
     InitThread(TSM_IMMERSIVE);
     RegisterAllControls();
-    LVItem::Register();
     DDScalableElement::Register();
     DDScalableButton::Register();
+    LVItem::Register();
     DDToggleButton::Register();
     RegisterPVLBehaviorFactory();
     HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
@@ -2247,7 +2272,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     bool checklog{};
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", 0, true, &checklog);
     if (checklog) {
-        TaskDialog(NULL, GetModuleHandleW(NULL), L"DirectDesktop", LoadStrFromRes(4017).c_str(),
+        TaskDialog(NULL, HINST_THISCOMPONENT, L"DirectDesktop", LoadStrFromRes(4017).c_str(),
             LoadStrFromRes(4018).c_str(), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
         SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", logging, false, nullptr);
     }
@@ -2280,7 +2305,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Found SysListView32 window to hide.");
         ShowWindow(hSysListView32, SW_HIDE);
     }
-    KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, GetModuleHandleW(NULL), 0);
+    KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
     NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
     NativeHWNDHost::Create(L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, 0, &subviewwnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
@@ -2308,17 +2333,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         else MainLogger.WriteLine(L"Error: DirectDesktop is still hosted in its own window.");
     }
 
+    parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
+    pMain->SetVisible(true);
+    AddLayeredRef(pMain->GetDisplayNode());
+    SetGadgetFlags(pMain->GetDisplayNode(), 0x1, 0x1);
+    pMain->EndDefer(key);
+    parser2->CreateElement(L"fullscreenpopup", subviewparent, NULL, NULL, &pSubview);
+    pSubview->SetVisible(true);
+    AddLayeredRef(pSubview->GetDisplayNode());
+    SetGadgetFlags(pSubview->GetDisplayNode(), 0x1, 0x1);
+    pSubview->EndDefer(key2);
+
     LVItem* outerElemTouch;
     parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElemTouch);
     touchSizeX = outerElemTouch->GetWidth();
     touchSizeY = outerElemTouch->GetHeight();
-
-    parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
-    pMain->SetVisible(true);
-    pMain->EndDefer(key);
-    parser2->CreateElement(L"fullscreenpopup", subviewparent, NULL, NULL, &pSubview);
-    pSubview->SetVisible(true);
-    pSubview->EndDefer(key2);
 
     InitialUpdateScale();
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Updated scaling.");
@@ -2391,7 +2420,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     logging = IDNO;
     StartMessagePump();
-    UnInitProcessPriv(0);
+    UnInitProcessPriv(HINST_THISCOMPONENT);
     WTSUnRegisterSessionNotification(wnd->GetHWND());
     CoUninitialize();
     if (KeyHook) {
