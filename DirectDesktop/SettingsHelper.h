@@ -8,6 +8,7 @@ extern bool showcheckboxes;
 extern bool treatdirasgroup;
 extern bool tripleclickandhide;
 extern bool isColorized;
+extern bool atleastonesetting;
 extern int localeType;
 
 extern Element* UIContainer;

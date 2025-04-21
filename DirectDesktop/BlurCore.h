@@ -2,6 +2,7 @@
 #include "framework.h"
 #include "StyleModifier.h"
 #include "DirectoryHelper.h"
+#include <dwmapi.h>
 #include <vector>
 #include <cmath>
 
@@ -74,41 +75,99 @@ vector<BYTE> Blur(vector<BYTE>& source, int w, int h, int radius)
     return target;
 }
 
-enum ACCENT_STATE {
-    ACCENT_DISABLED = 0,
-    ACCENT_ENABLE_GRADIENT = 1,
-    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-    ACCENT_ENABLE_BLURBEHIND = 3,
-    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 // Acrylic blur effect
+// https://github.com/ALTaleX531/TranslucentFlyouts/blob/master/TFMain/EffectHelper.hpp
+
+enum class WINDOWCOMPOSITIONATTRIBUTE
+{
+	WCA_UNDEFINED,
+	WCA_NCRENDERING_ENABLED,
+	WCA_NCRENDERING_POLICY,
+	WCA_TRANSITIONS_FORCEDISABLED,
+	WCA_ALLOW_NCPAINT,
+	WCA_CAPTION_BUTTON_BOUNDS,
+	WCA_NONCLIENT_RTL_LAYOUT,
+	WCA_FORCE_ICONIC_REPRESENTATION,
+	WCA_EXTENDED_FRAME_BOUNDS,
+	WCA_HAS_ICONIC_BITMAP,
+	WCA_THEME_ATTRIBUTES,
+	WCA_NCRENDERING_EXILED,
+	WCA_NCADORNMENTINFO,
+	WCA_EXCLUDED_FROM_LIVEPREVIEW,
+	WCA_VIDEO_OVERLAY_ACTIVE,
+	WCA_FORCE_ACTIVEWINDOW_APPEARANCE,
+	WCA_DISALLOW_PEEK,
+	WCA_CLOAK,
+	WCA_CLOAKED,
+	WCA_ACCENT_POLICY,
+	WCA_FREEZE_REPRESENTATION,
+	WCA_EVER_UNCLOAKED,
+	WCA_VISUAL_OWNER,
+	WCA_HOLOGRAPHIC,
+	WCA_EXCLUDED_FROM_DDA,
+	WCA_PASSIVEUPDATEMODE,
+	WCA_USEDARKMODECOLORS,
+	WCA_CORNER_STYLE,
+	WCA_PART_COLOR,
+	WCA_DISABLE_MOVESIZE_FEEDBACK,
+	WCA_LAST
 };
 
-struct ACCENT_POLICY {
-    ACCENT_STATE AccentState;
-    DWORD AccentFlags;
-    DWORD GradientColor;
-    DWORD AnimationId;
+struct WINDOWCOMPOSITIONATTRIBDATA
+{
+	DWORD dwAttribute;
+	PVOID pvData;
+	SIZE_T cbData;
 };
 
-struct WINDOWCOMPOSITIONATTRIBDATA {
-    DWORD dwAttrib;
-    PVOID pvData;
-    SIZE_T cbData;
+enum class ACCENT_STATE
+{
+	ACCENT_DISABLED,
+	ACCENT_ENABLE_GRADIENT,
+	ACCENT_ENABLE_TRANSPARENTGRADIENT,
+	ACCENT_ENABLE_BLURBEHIND,	// Removed in Windows 11 22H2+
+	ACCENT_ENABLE_ACRYLICBLURBEHIND,
+	ACCENT_ENABLE_HOSTBACKDROP,
+	ACCENT_INVALID_STATE
+};
+
+enum class ACCENT_FLAG
+{
+	ACCENT_NONE,
+	ACCENT_ENABLE_MODERN_ACRYLIC_RECIPE = 1 << 1,	// Windows 11 22H2+ exclusive
+	ACCENT_ENABLE_GRADIENT_COLOR = 1 << 1, // ACCENT_ENABLE_BLURBEHIND
+	ACCENT_ENABLE_FULLSCREEN = 1 << 2,
+	ACCENT_ENABLE_BORDER_LEFT = 1 << 5,
+	ACCENT_ENABLE_BORDER_TOP = 1 << 6,
+	ACCENT_ENABLE_BORDER_RIGHT = 1 << 7,
+	ACCENT_ENABLE_BORDER_BOTTOM = 1 << 8,
+	ACCENT_ENABLE_BLUR_RECT = 1 << 9,	// DwmpUpdateAccentBlurRect, it conflicts with ACCENT_ENABLE_GRADIENT_COLOR when using ACCENT_ENABLE_BLURBEHIND
+	ACCENT_ENABLE_BORDER = ACCENT_ENABLE_BORDER_LEFT | ACCENT_ENABLE_BORDER_TOP | ACCENT_ENABLE_BORDER_RIGHT | ACCENT_ENABLE_BORDER_BOTTOM
+};
+
+struct ACCENT_POLICY
+{
+	DWORD AccentState;
+	DWORD AccentFlags;
+	DWORD dwGradientColor;
+	DWORD dwAnimationId;
 };
 
 typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
-void ToggleAcrylicBlur(HWND hwnd, bool blur) {
-    if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1) {
+void ToggleAcrylicBlur(HWND hwnd, bool blur, bool fullscreen) {
+    if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1 || !fullscreen) {
         HMODULE hUser = GetModuleHandleW(L"user32.dll");
         if (hUser) {
             pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
                 (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
 
             if (SetWindowCompositionAttribute) {
-                ACCENT_STATE as = blur ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_DISABLED;
-                int blurcolor = 0x00000000;
-                ACCENT_POLICY policy = { as, 0, blurcolor, 0 };
-                WINDOWCOMPOSITIONATTRIBDATA data = { 19, &policy, sizeof(ACCENT_POLICY) };
+				int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
+                int blurcolor = fullscreen ? theme ? 0x33D3D3D3 : 0x33202020 : WindowsBuild < 22523 ? theme ? 0xDCE4E4E4 : 0xCA1F1F1F : theme ? 0x18FAFAFA : 0xC02C2C2C;
+				ACCENT_POLICY policy = { static_cast<DWORD>(ACCENT_STATE::ACCENT_DISABLED), fullscreen ? static_cast<DWORD>(ACCENT_FLAG::ACCENT_NONE) : static_cast<DWORD>(ACCENT_FLAG::ACCENT_ENABLE_BORDER), blurcolor, 0 };
+				WINDOWCOMPOSITIONATTRIBDATA data = { static_cast<DWORD>(WINDOWCOMPOSITIONATTRIBUTE::WCA_ACCENT_POLICY),	&policy, sizeof(ACCENT_POLICY) };
+				policy.AccentState = static_cast<DWORD>(blur ? ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE::ACCENT_DISABLED);
+				if (!fullscreen && WindowsBuild >= 22523) policy.AccentFlags |= static_cast<DWORD>(ACCENT_FLAG::ACCENT_ENABLE_MODERN_ACRYLIC_RECIPE);
                 SetWindowCompositionAttribute(hwnd, &data);
             }
         }

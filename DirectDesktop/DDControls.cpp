@@ -1,7 +1,10 @@
 #include "DDControls.h"
 #include "BitmapHelper.h"
+#include "DirectoryHelper.h"
 #include "StyleModifier.h"
 #include <regex>
+#include <uxtheme.h>
+#include <dwmapi.h>
 
 using namespace std;
 using namespace DirectUI;
@@ -14,6 +17,23 @@ IClassInfo* DDScalableElement::s_pClassInfo;
 IClassInfo* DDScalableButton::s_pClassInfo;
 IClassInfo* LVItem::s_pClassInfo;
 IClassInfo* DDToggleButton::s_pClassInfo;
+IClassInfo* DDNotificationBanner::s_pClassInfo;
+struct IntegerWrapper {
+    int val;
+};
+NativeHWNDHost* notificationwnd{};
+WNDPROC WndProc5;
+
+HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams) {
+    HRESULT hr{};
+    Value* pvLayout{};
+    hr = pfnCreate(dNumParams, pParams, &pvLayout);
+    if (SUCCEEDED(hr)) {
+        hr = pe->SetValue(Element::LayoutProp, 1, pvLayout);
+        pvLayout->Release();
+    }
+    return hr;
+}
 
 static const int vvimpFirstScaledImageProp[] = { 1, -1 };
 static PropertyInfoData dataimpFirstScaledImageProp;
@@ -82,7 +102,7 @@ void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type,
     }
 }
 unsigned long DelayedDraw(LPVOID lpParam) {
-    Sleep(150);
+    Sleep(50);
     assignExtendedFn((DDScalableElement*)lpParam, UpdateImageOnPropChange);
     ((DDScalableElement*)lpParam)->InitDrawImage();
     ((DDScalableElement*)lpParam)->InitDrawFont();
@@ -525,4 +545,196 @@ HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element*
 }
 HRESULT DDToggleButton::Register() {
     return ClassInfo<DDToggleButton, DDScalableButton, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", nullptr, 0);
+}
+
+LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    Value* v{};
+    Element* ppeTemp;
+    wstring fontOld;
+    wregex fontRegex(L".*font;.*\%.*");
+    bool isSysmetricFont;
+    switch (uMsg) {
+    case WM_CLOSE:
+        //DDNotificationBanner::DestroyBanner(nullptr);
+        return 0;
+        break;
+    case WM_DESTROY:
+        return 0;
+        break;
+    case WM_USER + 2:
+        ppeTemp = (Element*)wParam;
+        if (ppeTemp != nullptr) fontOld = ppeTemp->GetFont(&v);
+        isSysmetricFont = regex_match(fontOld, fontRegex);
+        if (isSysmetricFont) {
+            size_t modifier = fontOld.find(L";");
+            size_t modifier2 = fontOld.find(L"%");
+            wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+            wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+            wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
+            int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+            wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
+            ppeTemp->SetFont(fontNew.c_str());
+        }
+        break;
+    case WM_USER + 3:
+        DDNotificationBanner::DestroyBanner(nullptr);
+        break;
+    }
+    return CallWindowProc(WndProc5, hWnd, uMsg, wParam, lParam);
+}
+unsigned long AutoCloseNotification(LPVOID lpParam) {
+    IntegerWrapper* iwTemp = (IntegerWrapper*)lpParam;
+    Sleep(iwTemp->val * 1000);
+    SendMessageW(notificationwnd->GetHWND(), WM_USER + 3, NULL, NULL);
+    return 0;
+}
+unsigned long AutoSizeFont(LPVOID lpParam) {
+    InitThread(TSM_DESKTOP_DYNAMIC);
+    Sleep(50);
+    Element* ppeTemp = (Element*)lpParam;
+    if (!ppeTemp || notificationwnd == nullptr) return 1;
+    SendMessageW(notificationwnd->GetHWND(), WM_USER + 2, (WPARAM)ppeTemp, NULL);
+    return 0;
+}
+IClassInfo* DDNotificationBanner::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDNotificationBanner::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDNotificationBanner::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDNotificationBanner::Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr{};
+    HANDLE ProcessHeap{};
+    DDNotificationBanner* buffer{};
+    DDNotificationBanner* pResult{};
+    ProcessHeap = GetProcessHeap();
+    buffer = (DDNotificationBanner*)HeapAlloc(ProcessHeap, 0x8, sizeof(DDNotificationBanner));
+    pResult = buffer;
+    if (buffer) {
+        hr = pResult->Initialize(hParent, fDblBuffer, nCreate, pParent, pdwDeferCookie);
+        if (FAILED(hr)) {
+            pResult->Destroy(true);
+            pResult = nullptr;
+        }
+    }
+    else {
+        hr = E_OUTOFMEMORY;
+    }
+    *ppElement = pResult;
+    return hr;
+}
+HRESULT DDNotificationBanner::Register() {
+    return ClassInfo<DDNotificationBanner, HWNDElement, EmptyCreator<DDNotificationBanner>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDNotificationBanner", nullptr, 0);
+}
+Element* DDNotificationBanner::GetIconElement() {
+    return _icon;
+}
+DDScalableElement* DDNotificationBanner::GetTitleElement() {
+    return _title;
+}
+DDScalableElement* DDNotificationBanner::GetContentElement() {
+    return _content;
+}
+void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, int cx, int cy, short timeout, bool fClose) {
+    static bool notificationopen{};
+    static HANDLE AutoCloseHandle;
+    if (notificationopen) DestroyBanner(&notificationopen);
+    unsigned long keyN{};
+    Element* pHostElement;
+    RECT dimensions;
+    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+    NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", NULL, NULL, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * flScaleFactor, cx, cy, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwnd);
+    HWNDElement::Create(notificationwnd->GetHWND(), true, NULL, NULL, &keyN, (Element**)&pDDNB);
+    ITaskbarList* pTaskbarList = nullptr;
+    if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
+        IID_ITaskbarList, (void**)&pTaskbarList))) {
+        if (SUCCEEDED(pTaskbarList->HrInit())) {
+            pTaskbarList->DeleteTab(notificationwnd->GetHWND());
+        }
+        pTaskbarList->Release();
+    }
+    pParser->CreateElement(pszResID, pDDNB, NULL, NULL, &pHostElement);
+    WndProc5 = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
+    pHostElement->SetVisible(true);
+    pHostElement->EndDefer(keyN);
+    notificationwnd->Host(pHostElement);
+    int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
+    MARGINS margins = { -1, -1, -1, -1 };
+    DwmExtendFrameIntoClientArea(notificationwnd->GetHWND(), &margins);
+    if (WindowsBuild >= 22000) {
+        DWORD cornerPreference = DWMWCP_ROUND;
+        DwmSetWindowAttribute(notificationwnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
+    }
+    BlurBackground(notificationwnd->GetHWND(), true, false);
+    pHostElement->SetBackgroundStdColor(7);
+    Value* v{};
+    pDDNB->GetPadding(&v);
+    pHostElement->SetValue(Element::PaddingProp, 1, v);
+    SetForegroundWindow(notificationwnd->GetHWND());
+    CreateAndSetLayout(pHostElement, BorderLayout::Create, 0, 0);
+
+    Element* peTemp = pDDNB->GetIconElement();
+    CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+    peTemp->SetID(L"DDNB_Icon");
+    pHostElement->Add(&peTemp, 1);
+    wstring titleStr{};
+    switch (type) {
+    case DDNT_SUCCESS:
+        if (!title) titleStr = LoadStrFromRes(217);
+        peTemp->SetClass(L"DDNB_Icon_Success");
+        break;
+    case DDNT_INFO:
+        if (!title) titleStr = LoadStrFromRes(218);
+        peTemp->SetClass(L"DDNB_Icon_Info");
+        break;
+    case DDNT_WARNING:
+        if (!title) titleStr = LoadStrFromRes(219);
+        peTemp->SetClass(L"DDNB_Icon_Warning");
+        break;
+    case DDNT_ERROR:
+        if (!title) titleStr = LoadStrFromRes(220);
+        peTemp->SetClass(L"DDNB_Icon_Error");
+        break;
+    }
+    if (title) titleStr = title;
+
+    peTemp = pDDNB->GetTitleElement();
+    CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+    peTemp->SetID(L"DDNB_Title");
+    pHostElement->Add(&peTemp, 1);
+    HANDLE setFontStr = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+    peTemp->SetContentString(titleStr.c_str());
+
+    peTemp = pDDNB->GetContentElement();
+    CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+    peTemp->SetID(L"DDNB_Content");
+    pHostElement->Add(&peTemp, 1);
+    HANDLE setFontStr2 = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+    peTemp->SetContentString(content);
+
+    LPWSTR sheetName = theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+    StyleSheet* sheet = pHostElement->GetSheet();
+    Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+    pParser->GetSheet(sheetName, &sheetStorage);
+    pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
+
+    notificationwnd->ShowWindow(SW_SHOW);
+    SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    notificationopen = true;
+    IntegerWrapper* iw = new IntegerWrapper{ timeout };
+    if (timeout > 0) {
+        TerminateThread(AutoCloseHandle, 1);
+        DWORD dwAutoClose;
+        AutoCloseHandle = CreateThread(0, 0, AutoCloseNotification, iw, NULL, &dwAutoClose);
+    }
+}
+void DDNotificationBanner::DestroyBanner(bool* notificationopen) {
+    if (notificationwnd != nullptr) {
+        notificationwnd->DestroyWindow();
+        notificationwnd = nullptr;
+    }
+    if (notificationopen != nullptr) *notificationopen = false;
 }

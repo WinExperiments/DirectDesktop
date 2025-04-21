@@ -48,7 +48,17 @@
 #define IDS_STRING209                   209
 #define IDS_STRING210                   210
 #define IDS_STRING211                   211
+#define IDS_STRING212                   212
+#define IDS_STRING213                   213
+#define IDS_STRING214                   214
+#define IDS_STRING215                   215
+#define IDS_STRING216                   216
+#define IDS_STRING217                   217
+#define IDS_STRING218                   218
+#define IDS_STRING219                   219
+#define IDS_STRING220                   220
 #define IDB_PNG9                        387
+#define IDR_UIFILE5                     393
 #define IDS_STRING4001                  4001
 #define IDS_STRING4002                  4002
 #define IDS_STRING4003                  4003
@@ -89,6 +99,8 @@
 #define IDS_STRING4038                  4038
 #define IDS_STRING4039                  4039
 #define IDS_STRING4040                  4040
+#define IDS_STRING4041                  4041
+#define IDS_STRING4042                  4042
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -96,7 +108,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        393
+#define _APS_NEXT_RESOURCE_VALUE        394
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

@@ -259,6 +259,7 @@
     <ClInclude Include="ImmersiveColor.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="DDControls.h" />
+    <ClInclude Include="RenameCore.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="ShutdownDialog.h" />
@@ -274,6 +275,7 @@
     <ClCompile Include="DirectoryHelper.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="DDControls.cpp" />
+    <ClCompile Include="RenameCore.cpp" />
     <ClCompile Include="SettingsHelper.cpp" />
     <ClCompile Include="ShutdownDialog.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
@@ -547,6 +549,7 @@
   <ItemGroup>
     <Xml Include="fullscreenpopup.xml" />
     <Xml Include="shutdown.xml" />
+    <Xml Include="styles.xml" />
     <Xml Include="uifile.xml" />
   </ItemGroup>
   <ItemGroup>

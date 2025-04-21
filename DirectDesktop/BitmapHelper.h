@@ -8,7 +8,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
 HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding);
 HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch);
 HBITMAP LoadPNGAsBitmap(int imageID);
-void BlurBackground(HWND hwnd, bool blur);
+void BlurBackground(HWND hwnd, bool blur, bool fullscreen);
 
 extern TEXTMETRICW textm;
 extern int dpi;

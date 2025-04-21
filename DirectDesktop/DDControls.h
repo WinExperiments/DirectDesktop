@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable:6258)
 #include <string>
 #include <vector>
 #include "DirectUI/DirectUI.h"
@@ -10,6 +11,7 @@ extern int dpi, dpiLaunch;
 extern float flScaleFactor;
 extern NativeHWNDHost* subviewwnd;
 extern int GetCurrentScaleInterval();
+extern struct yValue;
 extern struct EventListener2;
 extern void assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2));
 
@@ -168,4 +170,39 @@ public:
     static HRESULT Register();
 private:
     static IClassInfo* s_pClassInfo;
+};
+
+enum DDNotificationType {
+    DDNT_SUCCESS = 0,
+    DDNT_INFO = 1,
+    DDNT_WARNING = 2,
+    DDNT_ERROR = 3
+};
+
+class DDNotificationBanner final : public HWNDElement {
+public:
+    DDNotificationBanner() {
+
+    }
+    virtual ~DDNotificationBanner() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    Element* GetIconElement();
+    DDScalableElement* GetTitleElement();
+    DDScalableElement* GetContentElement();
+    static void CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, int cx, int cy, short timeout, bool fClose);
+    static void DestroyBanner(bool* notificationopen);
+private:
+    static IClassInfo* s_pClassInfo;
+    DDNotificationType _notificationType{};
+    RichText* _icon{};
+    wstring _titleStr{};
+    DDScalableElement* _title{};
+    wstring _contentStr{};
+    DDScalableElement* _content{};
 };

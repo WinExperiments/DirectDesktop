@@ -53,15 +53,18 @@
 				</Element>
 				<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="left" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)" alpha="0" animation="alpha|s|mediumslow|delayshort"/>
 			</Element>
-			<RichText id="atom(textElem)" layoutpos="absolute" x="8rp" y="8rp" width="104rp" height="56rp" background="argb(0,0,0,0)"/>
+			<RichText id="atom(textElem)" layoutpos="absolute" x="8rp" y="8rp" width="112rp" height="56rp" background="argb(0,0,0,0)"/>
 		</Element>
 		<Element layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
 		</Element>
 	</LVItem>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
+	<Element resid="RenameBoxElement" layout="filllayout()" visible="false"/>
+	<HWNDElement resid="RenameBox" layout="borderlayout()" layoutpos="client" padding="rect(3rp,4rp,3rp,4rp)"/>
+	<DDNotificationBanner resid="DDNB" padding="rect(12rp,12rp,12rp,12rp)"/>
 	<stylesheets>
-		<style resid="default">
+		<style resid="default" base="ressheet(31, DDBase)">
 			<if id="atom(mainContainer)">
 				<Element background="black"/>
 			</if>
@@ -71,7 +74,7 @@
 					<Element background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))" alpha="255"/>
 				</if>
 				<if selected="true">
-					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha ="255"/>
+					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="255"/>
 					<if mousefocused="true">
 						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))" alpha="255"/>
 					</if>
@@ -123,7 +126,7 @@
 				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 		</style>
-		<style resid="defaultdark">
+		<style resid="defaultdark" base="ressheet(31, DDBaseDark)">
 			<if id="atom(mainContainer)">
 				<Element background="black"/>
 			</if>
@@ -133,7 +136,7 @@
 					<Element background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))" alpha="255"/>
 				</if>
 				<if selected="true">
-					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha ="255"/>
+					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))" alpha="255"/>
 					<if mousefocused="true">
 						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))" alpha="255"/>
 					</if>
@@ -184,6 +187,12 @@
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
+		</style>
+		<style resid="renamestyle">
+			<HWNDElement background="themeable(dtb(AB::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))"/>
+		</style>
+		<style resid="renamestyledark">
+			<HWNDElement background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))"/>
 		</style>
 	</stylesheets>
 </duixml>

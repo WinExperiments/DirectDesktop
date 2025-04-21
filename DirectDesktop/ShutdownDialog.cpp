@@ -31,7 +31,7 @@ TouchEdit2* delayseconds;
 
 HANDLE ActionThread, TimerThread;
 int savedremaining; // Display remaining time immediately when the dialog is invoked
-wstring reasonStr = LoadStrFromRes(8261, L"user32.dll");;
+wstring reasonStr = LoadStrFromRes(8261, L"user32.dll");
 
 struct DialogValues {
 	int buttonID{};
@@ -131,6 +131,7 @@ wstring GetNotificationString(int id, int delay) {
 LRESULT CALLBACK ShutdownWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 	case WM_CLOSE:
+		DestroyShutdownDialog();
 		return 0;
 		break;
 	case WM_DESTROY:
@@ -165,7 +166,7 @@ unsigned long DelayedAction(LPVOID lpParam) {
 	delayedshutdownstatuses[dv->buttonID - 1] = true;
 	int seconds = dv->delay;
 	int id = dv->buttonID;
-	TimerThread = CreateThread(0, 0, ShowTimerStatus, dv, NULL, NULL);
+	if (seconds > 0) TimerThread = CreateThread(0, 0, ShowTimerStatus, dv, NULL, NULL);
 	Sleep(seconds * 1000);
 	SendMessageW(wnd->GetHWND(), WM_USER + 19, NULL, id);
 	return 0;
@@ -199,13 +200,10 @@ void PerformOperation(Element* elem, Event* iev) {
 			if (elem == Hibernate) pressedID = 4;
 			if (elem == Shutdown) pressedID = 5;
 			if (elem == Restart) pressedID = 6;
-			int delay = _wtoi(delayseconds->GetContentString(&v));
-			if (delay < 0) delay = 0;
-			DialogValues dv{};
-			dv.buttonID = pressedID;
-			dv.delay = delay;
+			int delay = (AdvancedOptions->GetLayoutPos() == -3) ? 0 : _wtoi(delayseconds->GetContentString(&v));
+			DialogValues* dv = new DialogValues{ pressedID, delay };
 			DWORD dwAction{};
-			ActionThread = CreateThread(0, 0, DelayedAction, (LPVOID)&dv, NULL, &dwAction);
+			ActionThread = CreateThread(0, 0, DelayedAction, dv, NULL, &dwAction);
 			DestroyShutdownDialog();
 			if (delay > 0) ShowNotification(LoadStrFromRes(4024), GetNotificationString(pressedID, delay));
 		}
@@ -236,10 +234,8 @@ void ToggleAdvancedOptions(Element* elem, Event* iev) {
 		RichText* AdvancedOptionsArrow = regElem<RichText*>(L"AdvancedOptionsArrow", elem);
 		AdvancedOptionsArrow->SetSelected(arrowselection);
 		int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
-		int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
-		int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-		int sizeX = 480 * flScaleFactor + windowsThemeX;
-		int sizeY = 360 * flScaleFactor + windowsThemeY;
+		int sizeX = 500 * flScaleFactor;
+		int sizeY = 400 * flScaleFactor;
 		if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * flScaleFactor;
 		for (int i = 0; i < 6; i++) {
 			if (delayedshutdownstatuses[i] == true) {
@@ -371,18 +367,16 @@ void DisplayShutdownDialog() {
 	HMODULE hDLL = LoadLibraryExW(L"ShutdownUX.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
 	wstring caption = GetDialogCaption(hDLL, 2000);
 	if (hDLL) FreeLibrary(hDLL);
-	HWND hWndShutdown = FindWindowW(L"NativeHWNDHost", caption.c_str());
+	HWND hWndShutdown = FindWindowW(L"DD_ShutdownHost", caption.c_str());
 	if (hWndShutdown) return;
 	unsigned long key3 = 0;
 	int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
-	int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXEDGE, dpi) * 2) * 2;
-	int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CYEDGE, dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
-	int sizeX = 480 * flScaleFactor + windowsThemeX;
-	int sizeY = 360 * flScaleFactor + windowsThemeY;
+	int sizeX = 500 * flScaleFactor;
+	int sizeY = 400 * flScaleFactor;
 	if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * flScaleFactor;
 	RECT dimensions;
 	SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-	NativeHWNDHost::Create(caption.c_str(), NULL, LoadIconW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(108)), (dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 2, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, 0, &shutdownwnd);
+	NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), NULL, NULL, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, NULL, 0, &shutdownwnd);
 	DUIXmlParser::Create(&parser3, NULL, NULL, NULL, NULL);
 	parser3->SetXMLFromResource(IDR_UIFILE4, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 	HWNDElement::Create(shutdownwnd->GetHWND(), true, NULL, NULL, &key3, (Element**)&parent2);
@@ -460,11 +454,10 @@ void DisplayShutdownDialog() {
 		for (short s = 8258; s <= 8259; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
 		for (short s = 8299; s <= 8301; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
 		SETReason->SetSelection(0);
-		HWND hDUI = FindWindowExW(shutdownwnd->GetHWND(), NULL, L"DirectUIHWND", NULL);
-		HWND hCtrl = FindWindowExW(hDUI, NULL, L"CtrlNotifySink", NULL);
+		HWND hCtrl = FindWindowExW(parent2->GetHWND(), NULL, L"CtrlNotifySink", NULL);
 		HWND hCombobox = FindWindowExW(hCtrl, NULL, L"ComboBox", NULL);
 		SetWindowLongPtrW(hCombobox, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
-		SetLayeredWindowAttributes(hCombobox, 0, 254, LWA_ALPHA);
+		SetLayeredWindowAttributes(hCombobox, 0, 255, LWA_ALPHA);
 		if (!theme) SetWindowTheme(hCtrl, L"DarkMode_CFD", NULL);
 		assignFn(SETReason, UpdateShutdownReasonCode);
 	}
@@ -507,7 +500,7 @@ void DisplayShutdownDialog() {
 	StyleSheet* sheet = pShutdown->GetSheet();
 	Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
 	parser3->GetSheet(sheetName, &sheetStorage);
-	pShutdown->SetValue(Element::SheetProp, 1, sheetStorage);
+	pShutdown->SetValue(Element::SheetProp, 1, sheetStorage);	
 	sheetStorage->Release();
 	shutdownwnd->ShowWindow(SW_SHOW);
 	if (WindowsBuild >= 22000) {

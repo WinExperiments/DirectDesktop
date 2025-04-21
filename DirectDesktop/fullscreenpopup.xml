@@ -1,7 +1,8 @@
 <duixml>
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
 		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" alpha="0" animation="alpha|s|veryfast">
-			<Element class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)">
+			<Element id="atom(popupbg)" class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client"/>
+			<Element background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
 			</Element>
 			//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
@@ -39,7 +40,7 @@
 				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 			</Element>
 		</Element>
-		<TouchScrollViewer id="atom(groupdirlist)" sheet="scrollbarstyle" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
+		<TouchScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
 			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
 		</TouchScrollViewer>
 	</Element>
@@ -118,7 +119,7 @@
 		</Element>
 	</Element>
 	<stylesheets>
-		<style resid="popup">
+		<style resid="popup" base="ressheet(31, DDBase)">
 			<if class="roundoverlay">
 				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
@@ -132,20 +133,6 @@
 				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="0"/>
 				<RichText foreground="black"/>
 			</if>
-			<if class="popupbutton">
-				<DDScalableButton foreground="20007" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="1"/>
-				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
-			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>
 				<Button background="argb(0,0,0,0)" foreground="black"/>
@@ -156,16 +143,6 @@
 					</if>
 				</if>
 			</if>
-			<if class="pilltab">
-				<DDScalableButton FirstScaledImage="172" ScaledImageIntervals="7" DrawType="1" EnableAccent="1" NeedsFontResize="1" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
-					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(0,0,0)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
-				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="179" foreground="rgb(0,0,0)"/>
-				</if>
-				<if selected="true">
-					<DDScalableButton FirstScaledImage="186" foreground="rgb(255,255,255)"/>
-				</if>
-			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
 			</if>
@@ -174,30 +151,6 @@
 			</if>
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right"/>
-			</if>
-			<if class="togglebutton">
-				<DDToggleButton width="40rp" height="20rp" FirstScaledImage="108" ScaledImageIntervals="7" DrawType="2" EnableAccent="1" contentalign="middlecenter"/>
-				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="115"/>
-				</if>
-				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="122"/>
-				</if>
-				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="129"/>
-				</if>
-				<if selected="true">
-					<DDToggleButton FirstScaledImage="136"/>
-					<if mousefocused="true">
-						<DDToggleButton FirstScaledImage="143"/>
-					</if>
-					<if Pressed="true">
-						<DDToggleButton FirstScaledImage="150"/>
-					</if>
-					<if Enabled="false">
-						<DDToggleButton FirstScaledImage="157"/>
-					</if>
-				</if>
 			</if>
 			<if class="pageselectoreditmode">
 				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
@@ -212,7 +165,7 @@
 				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 		</style>
-		<style resid="popupdark">
+		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
 			<if class="roundoverlay">
 				<DDScalableElement FirstScaledImage="265" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
@@ -226,20 +179,6 @@
 				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="0"/>
 				<RichText foreground="white"/>
 			</if>
-			<if class="popupbutton">
-				<DDScalableButton foreground="20002" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="1"/>
-				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
-				</if>
-				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
-				</if>
-			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
-			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
 				<Button background="argb(0,0,0,0)" foreground="white"/>
@@ -248,16 +187,6 @@
 					<if Pressed="true">
 						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 					</if>
-				</if>
-			</if>
-			<if class="pilltab">
-				<DDScalableButton FirstScaledImage="272" ScaledImageIntervals="7" DrawType="1" EnableAccent="1" NeedsFontResize="1" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
-					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
-				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="279" foreground="rgb(255,255,255)"/>
-				</if>
-				<if selected="true">
-					<DDScalableButton FirstScaledImage="286" foreground="rgb(0,0,0)"/>
 				</if>
 			</if>
 			<if class="togglecontainer">
@@ -269,125 +198,8 @@
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right"/>
 			</if>
-			<if class="togglebutton">
-				<DDToggleButton width="40rp" height="20rp" FirstScaledImage="208" ScaledImageIntervals="7" DrawType="2" EnableAccent="1" contentalign="middlecenter"/>
-				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="215"/>
-				</if>
-				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="222"/>
-				</if>
-				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="229"/>
-				</if>
-				<if selected="true">
-					<DDToggleButton FirstScaledImage="236"/>
-					<if mousefocused="true">
-						<DDToggleButton FirstScaledImage="243"/>
-					</if>
-					<if Pressed="true">
-						<DDToggleButton FirstScaledImage="250"/>
-					</if>
-					<if Enabled="false">
-						<DDToggleButton FirstScaledImage="257"/>
-					</if>
-				</if>
-			</if>
 			<if class="pageselectoreditmode">
 				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
-			</if>
-		</style>
-		<style resid="scrollbarstyle">
-			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
-			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
-			<if vertical="true">
-				<TouchScrollBar width="16rp" layoutpos="nineright"/>
-			</if>
-			<if vertical="false">
-				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
-			</if>
-			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(250, 136, 136, 136)" font="resstr(130)"/>
-				<if mousewithin="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 160, 160, 160)"/>
-				</if>
-				<if Pressed="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 136, 136, 136)"/>
-				</if>
-				<if id="atom(LineUp)">
-					<TouchRepeatButton layoutpos="top" height="22rp"/>
-				</if>
-				<if id="atom(LineDown)">
-					<TouchRepeatButton layoutpos="bottom" height="22rp"/>
-				</if>
-				<if id="atom(LineLeft)">
-					<TouchRepeatButton layoutpos="left" width="22rp"/>
-				</if>
-				<if id="atom(LineRight)">
-					<TouchRepeatButton layoutpos="right" width="22rp"/>
-				</if>
-			</if>
-			<if class="Line_Arrow">
-				<InternalRichText background="argb(0,0,0,0)" constrainlayout="narrow" direction="LTR" overhang="true"/>
-				<if id="atom(LineUp_Arrow)">
-					<InternalRichText content="resstr(131)" contentalign="bottomcenter" linespacing="33rp" baseline="27rp"/>
-				</if>
-				<if id="atom(LineDown_Arrow)">
-					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="33rp" baseline="17rp"/>
-				</if>
-				<if id="atom(LineLeft_Arrow)">
-					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="14rp" padding="rect(0,0,7rp,0)"/>
-				</if>
-				<if id="atom(LineRight_Arrow)">
-					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="14rp" padding="rect(7rp,0,0,0)"/>
-				</if>
-			</if>
-			<if id="atom(TouchScrollBar_Track)">
-				<Element layoutpos="client" background="argb(0,0,0,0)"/>
-			</if>
-			<if class="Page">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)"/>
-				<if id="atom(PageUp)">
-					<TouchRepeatButton width="16rp"/>
-				</if>
-				<if id="atom(PageDown)">
-					<TouchRepeatButton width="16rp"/>
-				</if>
-				<if id="atom(PageLeft)">
-					<TouchRepeatButton height="16rp"/>
-				</if>
-				<if id="atom(PageRight)">
-					<TouchRepeatButton height="16rp"/>
-				</if>
-			</if>
-			<if class="Thumb_Mouse">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
-				<if mousewithin="true">
-					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20768"/>
-				</if>
-				<if captured="true">
-					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20769"/>
-				</if>
-				<if id="atom(Thumb)">
-					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
-				</if>
-				<if id="atom(HThumb)">
-					<Thumb height="6rp" minsize="size(16rp,0)" margin="rect(0,5rp,0,0)"/>
-				</if>
-			</if>
-			<if class="Thumb_Pan">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
-				<if id="atom(Thumb)">
-					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
-				</if>
-				<if id="atom(HThumb)">
-					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
-				</if>
-			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
 			</if>
 		</style>
 	</stylesheets>

@@ -23,6 +23,7 @@
 #include "SettingsHelper.h"
 #include "ContextMenus.h"
 #include "ShutdownDialog.h"
+#include "RenameCore.h"
 #pragma comment (lib, "dwmapi.lib")
 #pragma comment (lib, "dui70.lib")
 #pragma comment (lib, "comctl32.lib")
@@ -49,6 +50,7 @@ RichText* textElem;
 RichText* textElemShadow;
 Button* checkboxElem;
 DDScalableButton* fullscreeninner;
+Element* popupbg;
 Button* fullscreenpopupbase, *centered;
 DDScalableElement* simpleviewoverlay;
 Element* deskpreview;
@@ -222,6 +224,7 @@ double py[80]{};
 int origX{}, origY{}, globaliconsz, globalshiconsz, globalgpiconsz;
 int emptyclicks = 1;
 bool touchmode{};
+bool renameactive{};
 bool delayedshutdownstatuses[6] = { false, false, false, false, false, false };
 
 void CubicBezier(const int frames, double px[], double py[], double x0, double y0, double x1, double y1) {
@@ -260,6 +263,7 @@ vector<Element*> cbpm;
 vector<LVItem*> selectedLVItems;
 bool checkifelemexists = 0;
 bool issubviewopen = 0;
+bool issettingsopen = 0;
 bool hiddenIcons;
 bool editmode = 0;
 bool pendingaction = 0;
@@ -386,6 +390,7 @@ void ShowSimpleView() {
     IterateBitmap(hbmCapture, UndoPremultiplication, 1, 0, 1);
     bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
     fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4);
+    popupbg->SetVisible(true);
     SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     parser2->CreateElement(L"deskpreview", NULL, NULL, NULL, (Element**)&deskpreview);
     centered->Add((Element**)&deskpreview, 1);
@@ -421,7 +426,7 @@ void ShowSimpleView() {
     centered->Add((Element**)&simpleviewoverlay, 1);
     static const int savedanim3 = simpleviewoverlay->GetAnimation();
     PlaySimpleViewAnimation(simpleviewoverlay, dimensions.right * 0.7, dimensions.bottom * 0.7, savedanim3, 1.4);
-    BlurBackground(subviewwnd->GetHWND(), false);
+    BlurBackground(subviewwnd->GetHWND(), false, true);
     wnd->ShowWindow(SW_SHOW);
     invokedpagechange = false;
 }
@@ -1102,8 +1107,6 @@ unsigned long fastin(LPVOID lpParam) {
     if (di.icon == nullptr) fastin(lpParam);
     SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, yV->y);
     SendMessageW(wnd->GetHWND(), WM_USER + 3, (WPARAM)&di, yV->y);
-    Sleep(500);
-    free(yV);
     return 0;
 }
 
@@ -1152,8 +1155,6 @@ unsigned long subfastin(LPVOID lpParam) {
     if (capturedBitmap != nullptr) di.text = capturedBitmap;
     SendMessageW(wnd->GetHWND(), WM_USER + 10, NULL, yV->y);
     SendMessageW(wnd->GetHWND(), WM_USER + 9, (WPARAM)&di, yV->y);
-    Sleep(500);
-    free(yV);
     return 0;
 }
 
@@ -1172,7 +1173,7 @@ unsigned long animate6(LPVOID lpParam) {
     pSubview->SetAccessible(false);
     Sleep(200);
     subviewwnd->ShowWindow(SW_HIDE);
-    BlurBackground(subviewwnd->GetHWND(), false);
+    BlurBackground(subviewwnd->GetHWND(), false, true);
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
     return 0;
 }
@@ -1208,8 +1209,8 @@ void fullscreenAnimation(int width, int height, float animstartscale) {
     fullscreenpopupbase->SetAlpha(255);
     fullscreenpopupbase->SetVisible(true);
     fullscreeninner->SetVisible(true);
-    BlurBackground(subviewwnd->GetHWND(), true);
-    issubviewopen = 1;
+    BlurBackground(subviewwnd->GetHWND(), true, true);
+    issubviewopen = true;
 }
 void fullscreenAnimation2() {
     DWORD animThread;
@@ -1235,7 +1236,13 @@ void HidePopupCore(bool WinDInvoked) {
             deskpreview->SetHeight(deskpreview->GetHeight() * 0.85);
         }
     }
-    issubviewopen = 0;
+    if (issettingsopen && atleastonesetting) {
+        DDNotificationBanner* ddnb{};
+        DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_SUCCESS, L"DDNB", NULL, LoadStrFromRes(4042).c_str(), 400 * flScaleFactor, 72 * flScaleFactor, 3, false);
+    }
+    issubviewopen = false;
+    issettingsopen = false;
+    atleastonesetting = false;
     mainContainer->SetVisible(true);
     mainContainer->SetAlpha(255);
     if (!editmode) SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -1451,6 +1458,7 @@ void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, V
 void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor, 0.9);
+    popupbg->SetVisible(false);
     SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     Element* groupdirectory{};
     parser2->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
@@ -1681,6 +1689,7 @@ void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
         subviewwnd->ShowWindow(SW_HIDE);
         mainContainer->SetVisible(true);
+        popupbg->SetVisible(false);
         centered->DestroyAll(true);
         ShowPopupCore();
         SimpleViewTop->SetLayoutPos(-3);
@@ -1688,7 +1697,8 @@ void ShowSettings(Element* elem, Event* iev) {
         nextpage->SetWidth(0);
         prevpage->SetWidth(0);
         editmode = false;
-        issubviewopen = 1;
+        issubviewopen = true;
+        issettingsopen = true;
         Element* settingsview{};
         parser2->CreateElement(L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
         fullscreeninner->Add((Element**)&settingsview, 1);
@@ -1771,12 +1781,22 @@ void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Valu
         int extraBottomSpacing = (((LVItem*)elem)->GetSelected() == true) ? ceil(spacingInternal) * textm.tmHeight : floor(spacingInternal) * textm.tmHeight;
         textElem = regElem<RichText*>(L"textElem", (LVItem*)elem);
         textElemShadow = regElem<RichText*>(L"textElemShadow", (LVItem*)elem);
-        if (spacingInternal == 1.5) {
-            if (((LVItem*)elem)->GetSelected() == true) ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() + extraBottomSpacing * 0.5);
-            else ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() - extraBottomSpacing);
+        if (type == 69) {
+            int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor;
+            int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor - textm.tmHeight;
+            int lines_basedOnEllipsis = ceil(CalcTextLines(((LVItem*)elem)->GetSimpleFilename().c_str(), innerSizeX)) * textm.tmHeight;
+            elem->SetHeight(innerSizeY + lines_basedOnEllipsis + 6 * flScaleFactor);
+            textElem->SetHeight(lines_basedOnEllipsis + 4 * flScaleFactor);
+            textElemShadow->SetHeight(lines_basedOnEllipsis + 5 * flScaleFactor);
         }
-        textElem->SetHeight(extraBottomSpacing + 4 * flScaleFactor);
-        textElemShadow->SetHeight(extraBottomSpacing + 5 * flScaleFactor);
+        else {
+            if (spacingInternal == 1.5) {
+                if (((LVItem*)elem)->GetSelected() == true) ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() + extraBottomSpacing * 0.5);
+                else ((LVItem*)elem)->SetHeight(((LVItem*)elem)->GetHeight() - extraBottomSpacing);
+            }
+            textElem->SetHeight(extraBottomSpacing + 4 * flScaleFactor);
+            textElemShadow->SetHeight(extraBottomSpacing + 5 * flScaleFactor);
+        }
         HBITMAP capturedBitmap = CreateTextBitmap(((LVItem*)elem)->GetSimpleFilename().c_str(), ((LVItem*)elem)->GetWidth() - 4 * flScaleFactor, extraBottomSpacing, DT_CENTER | DT_END_ELLIPSIS, false);
         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33);
         HBITMAP shadowBitmap = AddPaddingToBitmap(capturedBitmap, 2 * flScaleFactor);
@@ -2185,6 +2205,16 @@ unsigned long FinishedLogging(LPVOID lpParam) {
     return 0;
 }
 
+HWND GetShutdownWindowIfPresent() {
+    if (shutdownwnd) return shutdownwnd->GetHWND();
+    else return NULL;
+}
+bool IsDesktopActive() {
+    HWND hWnd = GetForegroundWindow();
+    if (hWnd == NULL) return false;
+    return (hWnd == hWorkerW || hWnd == hWndTaskbar || hWnd == GetShutdownWindowIfPresent());
+}
+
 HHOOK KeyHook = nullptr;
 bool dialogopen{};
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -2195,26 +2225,34 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             HidePopupCore(true);
             SetWindowPos(hWndTaskbar, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         }
-        if ((pKeyInfo->vkCode == VK_F4) && GetAsyncKeyState(VK_MENU) & 0x8000) {
-            static bool valid{};
-            valid = !valid;
-            if (valid) {
-                switch (dialogopen) {
-                case false:
-                    DisplayShutdownDialog();
-                    break;
-                case true:
-                    DestroyShutdownDialog();
-                    break;
+        if (IsDesktopActive()) {
+            if (pKeyInfo->vkCode == VK_F2) {
+                if (!keyHold[pKeyInfo->vkCode] && !renameactive && !isIconPressed) {
+                    ShowRename();
+                    keyHold[pKeyInfo->vkCode] = true;
                 }
-                Sleep(50);
             }
-            return 1;
-        }
-        if (pKeyInfo->vkCode == VK_F5) {
-            if (!keyHold[pKeyInfo->vkCode]) {
-                InitLayout(false, false);
-                keyHold[pKeyInfo->vkCode] = true;
+            if ((pKeyInfo->vkCode == VK_F4) && GetAsyncKeyState(VK_MENU) & 0x8000) {
+                static bool valid{};
+                valid = !valid;
+                if (valid) {
+                    switch (dialogopen) {
+                    case false:
+                        DisplayShutdownDialog();
+                        break;
+                    case true:
+                        DestroyShutdownDialog();
+                        break;
+                    }
+                    Sleep(50);
+                }
+                return 1;
+            }
+            if (pKeyInfo->vkCode == VK_F5) {
+                if (!keyHold[pKeyInfo->vkCode]) {
+                    InitLayout(false, false);
+                    keyHold[pKeyInfo->vkCode] = true;
+                }
             }
         }
         if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
@@ -2222,6 +2260,36 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         }
     }
     return CallNextHookEx(KeyHook, nCode, wParam, lParam);
+}
+
+// Windows.UI.Immersive.dll ordinal 100
+typedef HRESULT(WINAPI* RegisterImmersiveBehaviors_t)();
+HRESULT RegisterImmersiveBehaviors()
+{
+    static RegisterImmersiveBehaviors_t fn = nullptr;
+    if (!fn)
+    {
+        HMODULE h = LoadLibraryW(L"Windows.UI.Immersive.dll");
+        if (h)
+            fn = (RegisterImmersiveBehaviors_t)GetProcAddress(h, MAKEINTRESOURCEA(100));
+    }
+    if (fn == nullptr) return E_FAIL;
+    else return fn();
+}
+
+// Windows.UI.Immersive.dll ordinal 101
+typedef void (WINAPI* UnregisterImmersiveBehaviors_t)();
+void UnregisterImmersiveBehaviors()
+{
+    static UnregisterImmersiveBehaviors_t fn = nullptr;
+    if (!fn)
+    {
+        HMODULE h = LoadLibraryW(L"Windows.UI.Immersive.dll");
+        if (h)
+            fn = (UnregisterImmersiveBehaviors_t)GetProcAddress(h, MAKEINTRESOURCEA(101));
+    }
+    if (fn == nullptr) return;
+    else return fn();
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -2257,6 +2325,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDScalableButton::Register();
     LVItem::Register();
     DDToggleButton::Register();
+    DDNotificationBanner::Register();
+    RegisterImmersiveBehaviors();
     RegisterPVLBehaviorFactory();
     HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
@@ -2306,8 +2376,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ShowWindow(hSysListView32, SW_HIDE);
     }
     KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
-    NativeHWNDHost::Create(L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, 0, &wnd);
-    NativeHWNDHost::Create(L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, 0, &subviewwnd);
+    NativeHWNDHost::Create(L"DD_DesktopHost", L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, NULL, 0, &wnd);
+    NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &subviewwnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     DUIXmlParser::Create(&parser2, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
@@ -2360,6 +2430,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     mainContainer = regElem<Element*>(L"mainContainer", pMain);
     UIContainer = regElem<Element*>(L"UIContainer", pMain);
     fullscreenpopupbase = regElem<Button*>(L"fullscreenpopupbase", pSubview);
+    popupbg = regElem<Button*>(L"popupbg", pSubview);
     centered = regElem<Button*>(L"centered", pSubview);
     selector = regElem<Element*>(L"selector", pMain);
     selector2 = regElem<Element*>(L"selector2", pMain);

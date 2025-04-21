@@ -69,7 +69,7 @@
 			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
 				<TouchCheckBox id="atom(delaytoggle)" accessible="true" layoutpos="left" padding="rect(0,4rp,0,0)" active="mouse | keyboard" content="resstr(4035)" height="32rp"/>
 				<Element layout="filllayout()" layoutpos="left" width="80rp" height="32rp" background="argb(0,0,0,0)">
-					<TouchEdit2 id="atom(delayseconds)" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" Enabled="false"/>
+					<TouchEdit2 id="atom(delayseconds)" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" Enabled="false" behaviors="Windows.UI.Popups::TouchEditContextMenu();PVL::EnsureLayered()"/>
 					<Element id="atom(delaysecondspreview)" visible="false" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 				</Element>
 				<RichText content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>
@@ -101,7 +101,7 @@
 		<Combobox id="atom(SETReason)" layoutpos="top" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')"/>
 	</Element>
 	<stylesheets>
-		<style resid="shutdownstyle">
+		<style resid="shutdownstyle" base="ressheet(31, DDBase)">
 			<HWNDElement background="rgb(243,243,243)"/>
 			<if id="atom(TitlebarIcon)">
 				<Element foreground="black"/>
@@ -152,83 +152,14 @@
 				<DDScalableElement foreground="rgb(128,128,128)"/>
 			</if>
 			<Combobox background="rgb(248,248,248)"/>
-			<if class="hyperlink">
-				<DDScalableButton foreground="20007" alpha="224" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="1"/>
-				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-			</if>
 			<if id="atom(AdvancedOptionsArrow)">
-				<RichText content="resstr(143)" font="12pr;Normal;None;Segoe Fluent Icons"/>
+				<RichText content="resstr(143)" font="12pt;Normal;None;Segoe Fluent Icons"/>
 				<if selected="true">
 					<RichText content="resstr(142)"/>
 				</if>
 			</if>
-			<TouchCheckBox contentalign="endellipsis" background="20575" accessible="true" accrole="checkbutton" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" minsize="size(100,32rp)" padding="rect(0,0,0,0)"/>
-			<if checkedstate="unchecked">
-				<TouchCheckBox accdefaction="resstr(105, library(dui70.dll))"/>
-			</if>
-			<if checkedstate="checked">
-				<TouchCheckBox accdefaction="resstr(106, library(dui70.dll))"/>
-			</if>
-			<if Enabled="false">
-				<TouchCheckBox foreground="20629"/>
-			</if>
-			<if id="atom(TCB_Glyph)">
-				<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))" constrainlayout="NarrowClip" font="0pt;;;"/>
-				<if keyfocused="true">
-					<TouchCheckBoxGlyph contentalign="middlecenter|focusrect"/>
-				</if>
-				<if mousefocused="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
-				</if>
-				<if captured="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,3), argb(0,0,0,0))"/>
-				</if>
-				<if Enabled="false">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,4), argb(0,0,0,0))"/>
-				</if>
-				<if checkedstate="checked">
-					<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))" constrainlayout="NarrowClip" font="themeable(0pt;;;, 8pt;Normal;None;Marlett)" content="themeable(' ', 'b')"/>
-					<if mousefocused="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
-					</if>
-					<if captured="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
-					</if>
-					<if Pressed="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,7), argb(0,0,0,0))"/>
-					</if>
-					<if Enabled="false">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,8), argb(0,0,0,0))"/>
-					</if>
-				</if>
-			</if>
-			<if id="atom(TCB_Label)">
-				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)" constrainlayout="narrow"/>
-			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(AB::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" cursor="ibeam"/>
-			<if mousewithin="true">
-				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
-			<if Enabled="false">
-				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,3), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
-			<if keywithin="true">
-				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))" padding="rect(4rp,4rp,4rp,4rp)"/>
-			</if>
-			<if id="atom(TouchEdit_TextContainer)">
-				<Element background="white" padding="rect(0,0,0,0)"/>
-			</if>
-			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
 		</style>
-		<style resid="shutdownstyledark">
+		<style resid="shutdownstyledark" base="ressheet(31, DDBaseDark)">
 			<HWNDElement background="rgb(32,32,32)"/>
 			<if id="atom(TitlebarIcon)">
 				<Element foreground="white"/>
@@ -279,81 +210,12 @@
 				<DDScalableElement foreground="rgb(160,160,160)"/>
 			</if>
 			<Combobox background="rgb(42,42,42)"/>
-			<if class="hyperlink">
-				<DDScalableButton foreground="20002" alpha="224" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="1"/>
-				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
-				</if>
-			</if>
 			<if id="atom(AdvancedOptionsArrow)">
-				<RichText content="resstr(143)" font="12pr;Normal;None;Segoe Fluent Icons"/>
+				<RichText content="resstr(143)" font="12pt;Normal;None;Segoe Fluent Icons"/>
 				<if selected="true">
 					<RichText content="resstr(142)"/>
 				</if>
 			</if>
-			<TouchCheckBox contentalign="endellipsis" background="20575" accessible="true" accrole="checkbutton" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" minsize="size(100,32rp)" padding="rect(0,0,0,0)"/>
-			<if checkedstate="unchecked">
-				<TouchCheckBox accdefaction="resstr(105, library(dui70.dll))"/>
-			</if>
-			<if checkedstate="checked">
-				<TouchCheckBox accdefaction="resstr(106, library(dui70.dll))"/>
-			</if>
-			<if Enabled="false">
-				<TouchCheckBox foreground="20629"/>
-			</if>
-			<if id="atom(TCB_Glyph)">
-				<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))" constrainlayout="NarrowClip" font="0pt;;;"/>
-				<if keyfocused="true">
-					<TouchCheckBoxGlyph contentalign="middlecenter|focusrect"/>
-				</if>
-				<if mousefocused="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
-				</if>
-				<if captured="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,3), argb(0,0,0,0))"/>
-				</if>
-				<if Enabled="false">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,4), argb(0,0,0,0))"/>
-				</if>
-				<if checkedstate="checked">
-					<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))" constrainlayout="NarrowClip" font="themeable(0pt;;;, 8pt;Normal;None;Marlett)" content="themeable(' ', 'b')"/>
-					<if mousefocused="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
-					</if>
-					<if captured="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
-					</if>
-					<if Pressed="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,7), argb(0,0,0,0))"/>
-					</if>
-					<if Enabled="false">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,8), argb(0,0,0,0))"/>
-					</if>
-				</if>
-			</if>
-			<if id="atom(TCB_Label)">
-				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)" constrainlayout="narrow"/>
-			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" cursor="ibeam"/>
-			<if mousewithin="true">
-				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
-			<if Enabled="false">
-				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,3), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
-			<if keywithin="true">
-				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))" padding="rect(4rp,4rp,4rp,4rp)"/>
-			</if>
-			<if id="atom(TouchEdit_TextContainer)">
-				<Element background="rgb(32,32,32)" padding="rect(0,0,0,0)"/>
-			</if>
-			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
 		</style>
 	</stylesheets>
 </duixml>

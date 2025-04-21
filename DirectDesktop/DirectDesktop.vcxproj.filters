@@ -378,6 +378,9 @@
     <ClInclude Include="cdpa.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RenameCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -411,6 +414,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ShutdownDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RenameCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1194,6 +1200,7 @@
     <Xml Include="uifile.xml" />
     <Xml Include="shutdown.xml" />
     <Xml Include="fullscreenpopup.xml" />
+    <Xml Include="styles.xml" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DirectDesktop.manifest">
