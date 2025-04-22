@@ -130,7 +130,7 @@ LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             case 2:
                 MessageBeep(MB_OK);
                 DDNotificationBanner* ddnb{};
-                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", NULL, LoadStrFromRes(4109, L"shell32.dll").c_str(), 480 * flScaleFactor, 480 * flScaleFactor, 5, false);
+                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", NULL, LoadStrFromRes(4109, L"shell32.dll").c_str(), 480 * flScaleFactor, 100 * flScaleFactor, 5, false);
                 break;
             }
             break;

@@ -431,12 +431,6 @@ void ShowSimpleView() {
     invokedpagechange = false;
 }
 
-unsigned long ShowTimedSimpleView(LPVOID lpParam) {
-    Sleep(250);
-    SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 1);
-    return 0;
-}
-
 unsigned long EndExplorer(LPVOID lpParam) {
     Sleep(250);
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
@@ -560,11 +554,14 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_COMMAND: {
         break;
     }
-    case WM_HOTKEY: {
+    case WM_TIMER: {
+        KillTimer(hWnd, wParam);
         switch (wParam) {
         case 1:
-            DWORD dw;
-            HANDLE handle = CreateThread(0, 0, ShowTimedSimpleView, NULL, 0, &dw);
+            SendMessageW(hWnd, WM_USER + 15, NULL, 1);
+            break;
+        case 2:
+            InitLayout(false, false);
             break;
         }
         break;
@@ -2214,6 +2211,11 @@ bool IsDesktopActive() {
     if (hWnd == NULL) return false;
     return (hWnd == hWorkerW || hWnd == hWndTaskbar || hWnd == GetShutdownWindowIfPresent());
 }
+bool IsDesktopOrSubviewActive() {
+    HWND hWnd = GetForegroundWindow();
+    if (hWnd == NULL) return false;
+    return (hWnd == hWorkerW || hWnd == hWndTaskbar || hWnd == subviewwnd->GetHWND() || hWnd == GetShutdownWindowIfPresent());
+}
 
 HHOOK KeyHook = nullptr;
 bool dialogopen{};
@@ -2250,7 +2252,15 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             }
             if (pKeyInfo->vkCode == VK_F5) {
                 if (!keyHold[pKeyInfo->vkCode]) {
-                    InitLayout(false, false);
+                    SetTimer(wnd->GetHWND(), 2, 150, NULL);
+                    keyHold[pKeyInfo->vkCode] = true;
+                }
+            }
+        }
+        if (IsDesktopOrSubviewActive()) {
+            if (pKeyInfo->vkCode == 'E' && GetAsyncKeyState(VK_LWIN) & 0x8000 && GetAsyncKeyState(VK_CONTROL) & 0x8000) {
+                if (!keyHold[pKeyInfo->vkCode]) {
+                    SetTimer(wnd->GetHWND(), 1, 500, NULL);
                     keyHold[pKeyInfo->vkCode] = true;
                 }
             }
@@ -2385,7 +2395,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
     HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, NULL, &key2, (Element**)&subviewparent);
     WTSRegisterSessionNotification(wnd->GetHWND(), NOTIFY_FOR_THIS_SESSION);
-    RegisterHotKey(wnd->GetHWND(), 1, 0x0002 | MOD_ALT, 'E');
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
