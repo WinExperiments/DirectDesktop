@@ -66,6 +66,35 @@ void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
     b = rgbVal.b;
 }
 
+void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a)
+{
+    UpdateAccentColor(ImmersiveColor);
+    rgb_t rgbVal = { r, g, b };
+
+    hsl_t hslVal = rgb2hsl(rgbVal);
+
+    double g_hslEnhancedAccentHL = 107 - g_hslAccent.l;
+
+    hslVal.l += (g_hslAccent.l * hslVal.s);
+    if (hslVal.l < 64) hslVal.l = 64 - pow((64 - hslVal.l), 0.8);
+    if (hslVal.l > 192) hslVal.l = 192 + pow((hslVal.l - 192), 0.8);
+
+    hslVal.s = (hslVal.s * 0.8 - 0.2) * g_hslAccent.s;
+
+    if (hslVal.l > g_hslEnhancedAccentHL) {
+        hslVal.h = g_hslAccent.h + 0.5 * ((g_hslLightAccentH - g_hslAccent.h) * ((hslVal.l - g_hslEnhancedAccentHL) / (255.0 - g_hslEnhancedAccentHL)));
+    }
+    else if (hslVal.l <= g_hslEnhancedAccentHL) {
+        hslVal.h = g_hslAccent.h + 0.5 * ((g_hslDarkAccentH - g_hslAccent.h) * ((g_hslEnhancedAccentHL - hslVal.l) / g_hslEnhancedAccentHL));
+    }
+
+    rgbVal = hsl2rgb(hslVal);
+
+    r = rgbVal.r;
+    g = rgbVal.g;
+    b = rgbVal.b;
+}
+
 void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a)
 {
     r = 0;

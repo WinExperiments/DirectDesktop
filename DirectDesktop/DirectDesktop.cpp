@@ -512,12 +512,13 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0) {
             UpdateModeInfo();
             // This message is sent 4-5 times upon changing accent color so this mitigation is applied
+            // 0.4.5.2 test case: seems to be sent 3-4 times. Maybe dependent on Windows install?
             static int messagemitigation{};
             messagemitigation++;
             SetTheme();
             DDScalableElement::RedrawImages();
             DDScalableButton::RedrawImages();
-            if (messagemitigation % 5 == 2) {
+            if (messagemitigation % 4 == 2) { // was originally 5
                 if (isColorized) RearrangeIcons(false, true);
             }
         }
@@ -1167,7 +1168,6 @@ unsigned long animate5(LPVOID lpParam) {
 }
 
 unsigned long animate6(LPVOID lpParam) {
-    pSubview->SetAccessible(false);
     Sleep(200);
     subviewwnd->ShowWindow(SW_HIDE);
     BlurBackground(subviewwnd->GetHWND(), false, true);
@@ -1194,7 +1194,6 @@ unsigned long grouptasksanimation(LPVOID lpParam) {
 }
 
 void fullscreenAnimation(int width, int height, float animstartscale) {
-    pSubview->SetAccessible(true);
     subviewwnd->ShowWindow(SW_SHOW);
     parser2->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
     centered->Add((Element**)&fullscreeninner, 1);
@@ -1214,7 +1213,6 @@ void fullscreenAnimation2() {
     HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
 }
 void ShowPopupCore() {
-    pSubview->SetAccessible(true);
     subviewwnd->ShowWindow(SW_SHOW);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor, 0.9);
 }
@@ -1385,7 +1383,7 @@ unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
         for (int thumbs = 0; thumbs < count; thumbs++) {
             HBITMAP thumbIcon = GetShellItemImage((strs[thumbs].GetFilename()).c_str(), globalgpiconsz, globalgpiconsz);
             if (isColorized && strs[thumbs].GetColorLock() == false) {
-                IterateBitmap(thumbIcon, StandardBitmapPixelHandler, 1, 0, 1);
+                IterateBitmap(thumbIcon, EnhancedBitmapPixelHandler, 1, 0, 1);
             }
             int xRender = (localeType == 1) ? (globaliconsz - globalgpiconsz) * flScaleFactor - x : x;
             x += ((globalgpiconsz + paddingInner) * flScaleFactor);
@@ -1421,7 +1419,7 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, Des
     }
     HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
     if (isColorized) {
-        if (pmLVItem[id]->GetColorLock() == false) IterateBitmap(bmp, StandardBitmapPixelHandler, 1, 0, 1);
+        if (pmLVItem[id]->GetColorLock() == false) IterateBitmap(bmp, EnhancedBitmapPixelHandler, 1, 0, 1);
         IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1);
     }
     IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1);
@@ -1623,7 +1621,7 @@ void ShowPage1(Element* elem, Event* iev) {
         rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"TreatDirAsGroup";
         TreatDirAsGroup->SetSelected(treatdirasgroup);
         TreatDirAsGroup->SetAssociatedBool(&treatdirasgroup);
-        TreatDirAsGroup->SetAssociatedFn(RearrangeIcons);
+        TreatDirAsGroup->SetAssociatedFn(InitLayout);
         TreatDirAsGroup->SetRegKeyValue(rkvTemp);
         rkvTemp._valueToFind = L"TripleClickAndHide";
         TripleClickAndHide->SetSelected(tripleclickandhide);
@@ -1652,11 +1650,11 @@ void ShowPage2(Element* elem, Event* iev) {
         rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"AccentColorIcons";
         EnableAccent->SetSelected(isColorized);
         EnableAccent->SetAssociatedBool(&isColorized);
-        EnableAccent->SetAssociatedFn(RearrangeIcons);
+        EnableAccent->SetAssociatedFn(InitLayout);
         EnableAccent->SetRegKeyValue(rkvTemp);
         rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
         IconThumbnails->SetSelected(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
-        IconThumbnails->SetAssociatedFn(RearrangeIcons);
+        IconThumbnails->SetAssociatedFn(InitLayout);
         IconThumbnails->SetRegKeyValue(rkvTemp);
         assignFn(EnableAccent, ToggleSetting);
         assignFn(IconThumbnails, ToggleSetting);
@@ -1995,7 +1993,7 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
 
 void testEventListener3(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
-        switch (pSubview->GetAccessible()) {
+        switch (issubviewopen) {
         case false:
             if (elem != fullscreenpopupbase) {
                 ShowPopupCore();
@@ -2260,7 +2258,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (IsDesktopOrSubviewActive()) {
             if (pKeyInfo->vkCode == 'E' && GetAsyncKeyState(VK_LWIN) & 0x8000 && GetAsyncKeyState(VK_CONTROL) & 0x8000) {
                 if (!keyHold[pKeyInfo->vkCode]) {
-                    SetTimer(wnd->GetHWND(), 1, 500, NULL);
+                    SetTimer(wnd->GetHWND(), 1, 150, NULL);
                     keyHold[pKeyInfo->vkCode] = true;
                 }
             }
