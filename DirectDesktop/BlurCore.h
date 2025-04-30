@@ -163,7 +163,7 @@ void ToggleAcrylicBlur(HWND hwnd, bool blur, bool fullscreen) {
 
             if (SetWindowCompositionAttribute) {
 				int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
-                int blurcolor = fullscreen ? theme ? 0x33D3D3D3 : 0x33202020 : WindowsBuild < 22523 ? theme ? 0xDCE4E4E4 : 0xCA1F1F1F : theme ? 0x18FAFAFA : 0xC02C2C2C;
+                int blurcolor = fullscreen ? theme ? 0x33D3D3D3 : 0x33202020 : WindowsBuild < 22523 ? theme ? 0xDCE4E4E4 : 0xCA1F1F1F : theme ? 0x00F8F8F8 : 0x00303030;
 				ACCENT_POLICY policy = { static_cast<DWORD>(ACCENT_STATE::ACCENT_DISABLED), fullscreen ? static_cast<DWORD>(ACCENT_FLAG::ACCENT_NONE) : static_cast<DWORD>(ACCENT_FLAG::ACCENT_ENABLE_BORDER), blurcolor, 0 };
 				WINDOWCOMPOSITIONATTRIBDATA data = { static_cast<DWORD>(WINDOWCOMPOSITIONATTRIBUTE::WCA_ACCENT_POLICY),	&policy, sizeof(ACCENT_POLICY) };
 				policy.AccentState = static_cast<DWORD>(blur ? ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE::ACCENT_DISABLED);

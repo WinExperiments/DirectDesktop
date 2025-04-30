@@ -7,17 +7,15 @@
 
 using namespace DirectUI;
 
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
-
 extern bool renameactive;
 extern bool touchmode;
 extern std::vector<LVItem*> pm;
 extern std::wstring LoadStrFromRes(UINT id);
 extern std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
 extern std::wstring RemoveQuotes(const std::wstring& input);
-extern int validItems;
 extern int globaliconsz;
+extern int currentPageID;
+extern int localeType;
 extern Element* pMain;
 extern DUIXmlParser* parser;
 extern NativeHWNDHost* wnd;

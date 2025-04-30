@@ -23,6 +23,13 @@ struct DesktopItem {
 };
 
 int logging;
+
+struct filestruct {
+    wstring rawstr;
+    DWORD attr;
+};
+vector<filestruct> filestructs;
+
 wstring ThumbIcons::GetFilename() {
     return _filename;
 }
@@ -42,8 +49,12 @@ void ThumbIcons::SetColorLock(bool colorLockState) {
     _colorLock = colorLockState;
 }
 
-wstring hideExt(const wstring& filename, bool isEnabled, vector<LVItem*>* shortpm, int* index) {
+wstring hideExt(const wstring& filename, bool isEnabled, bool dir, vector<LVItem*>* shortpm, int* index) {
     if (isEnabled) {
+        if (dir) {
+            if (index != nullptr) (*index)++;
+            return filename;
+        }
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
@@ -85,6 +96,14 @@ wstring hideExt(const wstring& filename, bool isEnabled, vector<LVItem*>* shortp
             return filename.substr(0, lastdot);
         }
     }
+}
+wstring hideExtFromGetPos(const wstring& filename, bool isEnabled) {
+    for (int i = 0; i < filestructs.size(); i++) {
+        if (filename == filestructs[i].rawstr) {
+            return hideExt(filename, isEnabled, (filestructs[i].attr & 16), nullptr, nullptr);
+        }
+    }
+    return filename;
 }
 vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".ai", L".avi", L".avif", L".bmp", L".flv" L".gif", L".heic", L".heif", L".ico",
     L".jfif", L".jpe", L".jpeg", L".jpg", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf"};
@@ -271,6 +290,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
     int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
     if (path == L"InternalCodeForNamespace") {
+        filestructs.clear();
         HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
         HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
         wchar_t* ThisPC = new wchar_t[260];
@@ -344,12 +364,8 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                     else (*pm)[*(count2)]->SetDirState(false);
                     if (fd.dwFileAttributes & 2) (*pm)[*(count2)]->SetHiddenState(true);
                     else (*pm)[*(count2)]->SetHiddenState(false);
-                    /*if ((*pm)[dirIndex - 1].isDirectory == true) {
-                        files->push_back((wstring)fd.cFileName);
-                        (*pm)[shortIndex++]->SetShortcutState(false);
-                    }
-                    else*/
-                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, pm, &shortIndex);
+                    filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
+                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), pm, &shortIndex);
                     foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
                     if (isThumbnailHidden == 0) {
                         bool image;
@@ -582,10 +598,10 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
 
         // Parse names
         size_t name_len = (item.fileSize * 2) - 8;
-        item.name = hideExt(wstring(
+        item.name = hideExtFromGetPos(wstring(
             reinterpret_cast<const wchar_t*>(&value[offset]),
             name_len / sizeof(wchar_t) 
-        ), isFileExtHidden, nullptr, nullptr);
+        ), isFileExtHidden);
         wchar_t* nameBuffer = new wchar_t[260];
         if (item.name == L"::{20D04FE0-3AEA-1069-A2D8-08002B30309D}") {
             nameBuffer = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL);
@@ -770,7 +786,6 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
             if (tempYPos > 200) break;
         }
     }
-    validItems = fileCount;
     pmBuf.clear();
     pmShortcutBuf.clear();
     pmIconBuf.clear();

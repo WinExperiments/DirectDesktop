@@ -254,13 +254,13 @@
     <ClInclude Include="DirectUI\XBaby.h" />
     <ClInclude Include="DirectUI\XElement.h" />
     <ClInclude Include="DirectUI\XProvider.h" />
-    <ClInclude Include="DUIAppTemplate.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImmersiveColor.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="DDControls.h" />
     <ClInclude Include="RenameCore.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SearchPage.h" />
     <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="ShutdownDialog.h" />
     <ClInclude Include="StyleModifier.h" />
@@ -276,6 +276,7 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="DDControls.cpp" />
     <ClCompile Include="RenameCore.cpp" />
+    <ClCompile Include="SearchPage.cpp" />
     <ClCompile Include="SettingsHelper.cpp" />
     <ClCompile Include="ShutdownDialog.cpp" />
     <ClCompile Include="StyleModifier.cpp" />
@@ -548,6 +549,7 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="fullscreenpopup.xml" />
+    <Xml Include="search.xml" />
     <Xml Include="shutdown.xml" />
     <Xml Include="styles.xml" />
     <Xml Include="uifile.xml" />

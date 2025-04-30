@@ -1,16 +1,20 @@
 <duixml>
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
-		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" alpha="0" animation="alpha|s|veryfast">
+		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
 			<Element id="atom(popupbg)" class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client"/>
-			<Element background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)">
+			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)" alpha="255" animation="alpha|s|veryfast">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
 			</Element>
 			//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
 			<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
 			<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
-			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewTop)" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+			<Button layoutpos="none" layout="filllayout()" id="atom(SimpleViewTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)">
 				// minsize="size(0,128rp)"
 				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
+				<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
+					<Button id="atom(SimpleViewPower)" width="64rp" height="64rp" content="resstr(144)" font="resstr(135)" class="simpleview" margin="rect(0,0,8rp,0)"/>
+					<Button id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
+				</Element>
 			</Button>
 			<Button layoutpos="none" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
 				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
@@ -89,6 +93,12 @@
 				<DDToggleButton id="atom(TripleClickAndHide)" class="togglebutton"/>
 			</Element>
 		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<DDScalableElement content="resstr(4043)" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<DDToggleButton id="atom(LockIconPos)" class="togglebutton"/>
+			</Element>
+		</Element>
 	</Element>
 	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
@@ -135,7 +145,7 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>
-				<Button background="argb(0,0,0,0)" foreground="black"/>
+				<Button background="argb(0,0,0,0)" foreground="black" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
 				<if mousefocused="true">
 					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 					<if Pressed="true">
@@ -181,7 +191,7 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
-				<Button background="argb(0,0,0,0)" foreground="white"/>
+				<Button background="argb(0,0,0,0)" foreground="white" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
 				<if mousefocused="true">
 					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 					<if Pressed="true">

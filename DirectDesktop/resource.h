@@ -7,6 +7,7 @@
 #define IDR_UIFILE2                     32
 #define IDR_UIFILE3                     33
 #define IDR_UIFILE4                     34
+#define IDR_UIFILE5                     35
 #define IDD_DUIAPPTEMPLATE_DIALOG       102
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
@@ -36,6 +37,8 @@
 #define IDS_STRING141                   141
 #define IDS_STRING142                   142
 #define IDS_STRING143                   143
+#define IDS_STRING144                   144
+#define IDS_STRING145                   145
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202
@@ -58,7 +61,6 @@
 #define IDS_STRING219                   219
 #define IDS_STRING220                   220
 #define IDB_PNG9                        387
-#define IDR_UIFILE5                     393
 #define IDS_STRING4001                  4001
 #define IDS_STRING4002                  4002
 #define IDS_STRING4003                  4003
@@ -101,6 +103,9 @@
 #define IDS_STRING4040                  4040
 #define IDS_STRING4041                  4041
 #define IDS_STRING4042                  4042
+#define IDS_STRING4043                  4043
+#define IDS_STRING4044                  4044
+#define IDS_STRING4045                  4045
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

@@ -10,6 +10,7 @@ using namespace DirectUI;
 bool showcheckboxes;
 bool treatdirasgroup;
 bool tripleclickandhide;
+bool lockiconpos;
 bool isColorized;
 bool atleastonesetting{};
 Element* UIContainer;

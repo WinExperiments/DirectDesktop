@@ -9,10 +9,6 @@
 
 #pragma comment (lib, "uxtheme.lib")
 
-
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
-
 using namespace std;
 using namespace DirectUI;
 
@@ -20,7 +16,7 @@ NativeHWNDHost* shutdownwnd;
 DUIXmlParser* parser3;
 HWNDElement* parent2;
 Element* pShutdown;
-WNDPROC WndProc4;
+WNDPROC WndProc3;
 Button* SwitchUser, *SignOut, *SleepButton, *Hibernate, *Shutdown, *Restart, *StatusCancel;
 Button* SUInner, *SOInner, *SlInner, *HiInner, *ShInner, *ReInner;
 Element* StatusBarResid;
@@ -145,7 +141,7 @@ LRESULT CALLBACK ShutdownWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 		break;
 	}
 	}
-	return CallWindowProc(WndProc4, hWnd, uMsg, wParam, lParam);
+	return CallWindowProc(WndProc3, hWnd, uMsg, wParam, lParam);
 }
 
 unsigned long ShowTimerStatus(LPVOID lpParam) {
@@ -389,7 +385,7 @@ void DisplayShutdownDialog() {
 		pTaskbarList->Release();
 	}
 	parser3->CreateElement(L"ShutDownWindows", parent2, NULL, NULL, &pShutdown);
-	WndProc4 = (WNDPROC)SetWindowLongPtrW(shutdownwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)ShutdownWindowProc);
+	WndProc3 = (WNDPROC)SetWindowLongPtrW(shutdownwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)ShutdownWindowProc);
 	pShutdown->SetVisible(true);
 	pShutdown->EndDefer(key3);
 	shutdownwnd->Host(pShutdown);
@@ -502,7 +498,9 @@ void DisplayShutdownDialog() {
 	parser3->GetSheet(sheetName, &sheetStorage);
 	pShutdown->SetValue(Element::SheetProp, 1, sheetStorage);	
 	sheetStorage->Release();
+	//AnimateWindow(shutdownwnd->GetHWND(), 180, AW_BLEND);
 	shutdownwnd->ShowWindow(SW_SHOW);
+	//SetFocus(shutdownwnd->GetHWND());
 	if (WindowsBuild >= 22000) {
 		MARGINS margins = { -1, -1, -1, -1 };
 		DwmExtendFrameIntoClientArea(shutdownwnd->GetHWND(), &margins);
@@ -542,6 +540,7 @@ void DisplayShutdownDialog() {
 	assignFn(RestartBIOS, AdvancedShutdown);
 }
 void DestroyShutdownDialog() {
+	//AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
 	shutdownwnd->DestroyWindow();
 	dialogopen = false;
 }

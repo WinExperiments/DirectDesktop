@@ -1,0 +1,45 @@
+<duixml>
+	<HWNDElement resid="SearchUI" sheet="searchstyle" layoutpos="client" layout="borderlayout()">
+		<Element layout="borderlayout()" layoutpos="client" padding="rect(48rp,48rp,48rp,48rp)">
+			<Element layout="borderlayout()" layoutpos="top" font="24pt;Normal;None;Segoe UI">
+				<Button id="atom(closebutton)" layoutpos="right" background="white" height="64rp" foreground="black" borderthickness="rect(16rp,0,0,0)" compositedtext="true" textglowsize="0" content="X"/>
+				<Button id="atom(searchbutton)" layoutpos="right" background="white" height="64rp" foreground="gray" borderthickness="rect(16rp,0,0,0)" compositedtext="true" textglowsize="0" content="SEARCH"/>
+				<TouchEdit2 id="atom(searchbox)" layoutpos="left" background="white" height="64rp" foreground="black" padding="rect(4rp,4rp,4rp,4rp)"/>
+			</Element>
+			<TouchScrollViewer id="atom(SearchResults)" layoutpos="client" background="argb(255,16,16,16)" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
+				<Element id="atom(rescontainer)" layoutpos="client" layout="borderlayout()"/>
+			</TouchScrollViewer>
+		</Element>
+	</HWNDElement>
+	<RichText resid="ResultCount" layoutpos="client" foreground="white" font="36pt;Normal;None;Segoe UI" contentalign="wrapcenter"/>
+	<LVItem resid="SearchResult" layout="borderlayout()" background="white" layoutpos="top" height="80rp" borderthickness="rect(0,16rp,0,0)" bordercolor="rgb(32,32,32)">
+		<RichText id="atom(name)" layoutpos="top" foreground="black" font="12pt;Normal;None;Segoe UI"/>
+		<RichText id="atom(path)" layoutpos="top" foreground="gray" font="9pt;Normal;None;Segoe UI"/>
+	</LVItem>
+	<stylesheets>
+		<style resid="searchstyle" base="ressheet(31, DDBase)">
+			<HWNDElement background="rgb(0,0,0)"/>
+			<if class="Thumb_Mouse">
+				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
+				<if mousewithin="true">
+					<Thumb background="argb(255,255,255,255)" bordercolor="20768"/>
+				</if>
+				<if captured="true">
+					<Thumb background="argb(255,255,255,255)" bordercolor="20769"/>
+				</if>
+			</if>
+		</style>
+		<style resid="searchstyledark" base="ressheet(31, DDBaseDark)">
+			<HWNDElement background="rgb(0,0,0)"/>
+			<if class="Thumb_Mouse">
+				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
+				<if mousewithin="true">
+					<Thumb background="argb(255,255,255,255)" bordercolor="20768"/>
+				</if>
+				<if captured="true">
+					<Thumb background="argb(255,255,255,255)" bordercolor="20769"/>
+				</if>
+			</if>
+		</style>
+	</stylesheets>
+</duixml>

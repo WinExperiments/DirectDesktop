@@ -195,7 +195,7 @@ public:
     Element* GetIconElement();
     DDScalableElement* GetTitleElement();
     DDScalableElement* GetContentElement();
-    static void CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, int cx, int cy, short timeout, bool fClose);
+    static void CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, short timeout, bool fClose);
     static void DestroyBanner(bool* notificationopen);
 private:
     static IClassInfo* s_pClassInfo;

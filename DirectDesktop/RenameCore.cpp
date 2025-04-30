@@ -115,7 +115,7 @@ LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         case WM_PASTE:
         case WM_CHAR:
             if (wcschr(L"\\/:*?\"<>|", (WCHAR)wParam) != NULL) {
-                SetTimer(hWnd, 2, 100, NULL);
+                SetTimer(hWnd, 2, 50, NULL);
                 return 0;
                 break;
             }
@@ -130,7 +130,7 @@ LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             case 2:
                 MessageBeep(MB_OK);
                 DDNotificationBanner* ddnb{};
-                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", NULL, LoadStrFromRes(4109, L"shell32.dll").c_str(), 480 * flScaleFactor, 100 * flScaleFactor, 5, false);
+                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", NULL, LoadStrFromRes(4109, L"shell32.dll").c_str(), 5, false);
                 break;
             }
             break;
@@ -164,9 +164,9 @@ LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 void ShowRename() {
-    int itemX{}, itemY{}, itemWidth{}, itemHeight{}, textX{}, textY{}, textWidth{}, textHeight{};
+    int itemWidth{}, itemHeight{}, itemX{}, itemY{}, textWidth{}, textHeight{}, textX{}, textY{};
     int found{};
-    for (int items = 0; items < validItems; items++) {
+    for (int items = 0; items < pm.size(); items++) {
         if (pm[items]->GetSelected() == true) {
             static RichText* textElement{};
             static RichText* textElementShadow{};
@@ -175,94 +175,100 @@ void ShowRename() {
             static Element* RenameBoxElement{};
             found++;
             if (found > 1) {
+                Sleep(250);
                 DestroyWindow(FindWindowW(MSFTEDIT_CLASS, NULL));
-                DestroyWindow(RenameBox->GetHWND());
-                textElement->SetVisible(true);
-                if (!touchmode) {
-                    textElementShadow->SetVisible(true);
-                    innerElement->SetVisible(true);
+                if (RenameBox) {
+                    DestroyWindow(RenameBox->GetHWND());
+                    textElement->SetVisible(true);
+                    if (!touchmode) {
+                        textElementShadow->SetVisible(true);
+                        innerElement->SetVisible(true);
+                    }
+                    RenameBoxElement->DestroyAll(true);
+                    RenameBoxElement->Destroy(true);
                 }
-                RenameBoxElement->DestroyAll(true);
-                RenameBoxElement->Destroy(true);
                 renameactive = false;
                 MessageBeep(MB_OK);
                 DDNotificationBanner* ddnb{};
-                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_ERROR, L"DDNB", NULL, LoadStrFromRes(4041).c_str(), 360 * flScaleFactor, 72 * flScaleFactor, 3, false);
+                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_ERROR, L"DDNB", NULL, LoadStrFromRes(4041).c_str(), 3, false);
                 break;
             }
-            int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor;
-            renameactive = true;
-            textElement = regElem<RichText*>(L"textElem", pm[items]);
-            textElementShadow = regElem<RichText*>(L"textElemShadow", pm[items]);
-            innerElement = regElem<RichText*>(L"innerElem", pm[items]);
-            textElement->SetVisible(false);
-            if (!touchmode) {
-                textElementShadow->SetVisible(false);
-                innerElement->SetVisible(false);
-            }
-            LoadLibraryW(L"Msftedit.dll");
-            itemX = pm[items]->GetX();
-            itemY = pm[items]->GetY();
-            itemWidth = pm[items]->GetWidth();
-            itemHeight = pm[items]->GetHeight();
-            textX = textElement->GetX();
-            textY = textElement->GetY();
-            textWidth = textElement->GetWidth();
-            textHeight = textElement->GetHeight() + 4 * flScaleFactor;
-            unsigned long keyR{};
-            Value* v{};
-            parser->CreateElement(L"RenameBoxElement", NULL, NULL, NULL, &RenameBoxElement);
-            RenameBoxElement->SetLayoutPos(textElement->GetLayoutPos());
-            pm[items]->Add((Element**)&RenameBoxElement, 1);
-            RenameBoxElement->SetHeight(textHeight);
-            parser->CreateElement(L"RenameBox", RenameBoxElement, NULL, NULL, (Element**)&RenameBox);
-            HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &keyR, (Element**)&RenameBox);
-            RenameBoxElement->Add((Element**)&RenameBox, 1);
-            RenameBox->SetVisible(true);
-            SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX, itemY + itemHeight - textHeight, itemWidth, textHeight, SWP_SHOWWINDOW);
-            ShowWindow(RenameBox->GetHWND(), SW_SHOW);
-            RECT ebsz{}, rcPadding{};
-            GetClientRect(RenameBox->GetHWND(), &ebsz);
-            rcPadding = *(RenameBoxElement->GetPadding(&v));
-            if (touchmode) {
-                SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX + textX - rcPadding.left, itemY + textY - rcPadding.top, textWidth + rcPadding.left + rcPadding.right, textHeight, SWP_SHOWWINDOW);
+            if (pm[items]->GetPage() == currentPageID) {
+                RECT dimensions{};
+                GetClientRect(wnd->GetHWND(), &dimensions);
+                int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 48) * flScaleFactor;
+                renameactive = true;
+                textElement = regElem<RichText*>(L"textElem", pm[items]);
+                textElementShadow = regElem<RichText*>(L"textElemShadow", pm[items]);
+                innerElement = regElem<RichText*>(L"innerElem", pm[items]);
+                textElement->SetVisible(false);
+                if (!touchmode) {
+                    textElementShadow->SetVisible(false);
+                    innerElement->SetVisible(false);
+                }
+                LoadLibraryW(L"Msftedit.dll");
+                itemWidth = pm[items]->GetWidth();
+                itemHeight = pm[items]->GetHeight();
+                itemX = (localeType == 1) ? dimensions.right - pm[items]->GetX() - itemWidth : pm[items]->GetX();
+                itemY = pm[items]->GetY();
+                textWidth = textElement->GetWidth();
+                textHeight = textElement->GetHeight() + 4 * flScaleFactor;
+                textX = textElement->GetX();
+                textY = textElement->GetY();
+                unsigned long keyR{};
+                Value* v{};
+                parser->CreateElement(L"RenameBoxElement", NULL, NULL, NULL, &RenameBoxElement);
+                RenameBoxElement->SetLayoutPos(textElement->GetLayoutPos());
+                pm[items]->Add((Element**)&RenameBoxElement, 1);
+                RenameBoxElement->SetHeight(textHeight);
+                parser->CreateElement(L"RenameBox", RenameBoxElement, NULL, NULL, (Element**)&RenameBox);
+                HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &keyR, (Element**)&RenameBox);
+                RenameBoxElement->Add((Element**)&RenameBox, 1);
+                RenameBox->SetVisible(true);
+                SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX, itemY + itemHeight - textHeight, itemWidth, textHeight, SWP_SHOWWINDOW);
+                ShowWindow(RenameBox->GetHWND(), SW_SHOW);
+                RECT ebsz{}, rcPadding{};
                 GetClientRect(RenameBox->GetHWND(), &ebsz);
-            }
-            LPWSTR sheetName = theme ? (LPWSTR)L"renamestyle" : (LPWSTR)L"renamestyledark";
-            StyleSheet* sheet = pMain->GetSheet();
-            Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-            parser->GetSheet(sheetName, &sheetStorage);
-            RenameBox->SetValue(Element::SheetProp, 1, sheetStorage);
-            sheetStorage->Release();
-            DWORD alignment = touchmode ? ES_LEFT : ES_CENTER;
-            HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, pm[items]->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
-                ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, RenameBox->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, NULL);
-            LOGFONTW lf{};
-            int dpiAdjusted = (dpiLaunch * 96.0) * (dpiLaunch / 96.0) / dpi;
-            SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
-            CHARFORMAT2W cf{};
-            cf.cbSize = sizeof(CHARFORMAT2W);
-            cf.dwMask = CFM_FACE | CFM_SIZE | CFM_COLOR | CFM_BOLD | CFM_ITALIC;
-            cf.yHeight = (lf.lfHeight * -15 * 96.0) / dpiAdjusted;
-            if (touchmode) cf.yHeight *= 1.25;
-            cf.crTextColor = theme ? GetSysColor(COLOR_WINDOWTEXT) : RGB(255, 255, 255);
-            wcscpy_s(cf.szFaceName, lf.lfFaceName);
-            if (lf.lfWeight == FW_BOLD) cf.dwEffects |= CFE_BOLD;
-            if (lf.lfItalic) cf.dwEffects |= CFE_ITALIC;
+                rcPadding = *(RenameBoxElement->GetPadding(&v));
+                if (touchmode) {
+                    SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX + textX - rcPadding.left, itemY + textY - rcPadding.top, textWidth + rcPadding.left + rcPadding.right, textHeight, SWP_SHOWWINDOW);
+                    GetClientRect(RenameBox->GetHWND(), &ebsz);
+                }
+                LPWSTR sheetName = theme ? (LPWSTR)L"renamestyle" : (LPWSTR)L"renamestyledark";
+                StyleSheet* sheet = pMain->GetSheet();
+                Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+                parser->GetSheet(sheetName, &sheetStorage);
+                RenameBox->SetValue(Element::SheetProp, 1, sheetStorage);
+                sheetStorage->Release();
+                DWORD alignment = touchmode ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
+                HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, pm[items]->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
+                    ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, RenameBox->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, NULL);
+                LOGFONTW lf{};
+                int dpiAdjusted = (dpiLaunch * 96.0) * (dpiLaunch / 96.0) / dpi;
+                SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+                CHARFORMAT2W cf{};
+                cf.cbSize = sizeof(CHARFORMAT2W);
+                cf.dwMask = CFM_FACE | CFM_SIZE | CFM_COLOR | CFM_BOLD | CFM_ITALIC;
+                cf.yHeight = (lf.lfHeight * -15 * 96.0) / dpiAdjusted;
+                if (touchmode) cf.yHeight *= 1.25;
+                cf.crTextColor = theme ? GetSysColor(COLOR_WINDOWTEXT) : RGB(255, 255, 255);
+                wcscpy_s(cf.szFaceName, lf.lfFaceName);
+                if (lf.lfWeight == FW_BOLD) cf.dwEffects |= CFE_BOLD;
+                if (lf.lfItalic) cf.dwEffects |= CFE_ITALIC;
 
-            COLORREF editbg = theme ? GetSysColor(COLOR_WINDOW) : RGB(32, 32, 32);
-            SendMessageW(hRichEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
-            SendMessageW(hRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)editbg);
-            SetWindowLongPtrW(hRichEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
-            SetLayeredWindowAttributes(hRichEdit, 0, 255, LWA_ALPHA);
-            SetWindowPos(hRichEdit, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-            SetFocus(hRichEdit);
-            int textLen = pm[items]->GetSimpleFilename().find_last_of(L".");
-            if (textLen == wstring::npos) textLen = pm[items]->GetSimpleFilename().length();
-            SendMessageW(hRichEdit, EM_SETSEL, 0, textLen);
-            SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)RenameBox);
-            RenameBox->EndDefer(keyR);
-            continue;
+                COLORREF editbg = theme ? GetSysColor(COLOR_WINDOW) : RGB(32, 32, 32);
+                SendMessageW(hRichEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
+                SendMessageW(hRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)editbg);
+                SetWindowLongPtrW(hRichEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
+                SetLayeredWindowAttributes(hRichEdit, 0, 255, LWA_ALPHA);
+                SetWindowPos(hRichEdit, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                SetFocus(hRichEdit);
+                int textLen = pm[items]->GetSimpleFilename().find_last_of(L".");
+                if (textLen == wstring::npos) textLen = pm[items]->GetSimpleFilename().length();
+                SendMessageW(hRichEdit, EM_SETSEL, 0, textLen);
+                SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)RenameBox);
+                RenameBox->EndDefer(keyR);
+            }
         }
     }
 }

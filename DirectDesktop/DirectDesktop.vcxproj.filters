@@ -27,9 +27,6 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DUIAppTemplate.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="DirectUI\accessibility.h">
       <Filter>Header Files\DirectUI</Filter>
     </ClInclude>
@@ -381,6 +378,9 @@
     <ClInclude Include="RenameCore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SearchPage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -417,6 +417,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RenameCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SearchPage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1201,6 +1204,7 @@
     <Xml Include="shutdown.xml" />
     <Xml Include="fullscreenpopup.xml" />
     <Xml Include="styles.xml" />
+    <Xml Include="search.xml" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DirectDesktop.manifest">

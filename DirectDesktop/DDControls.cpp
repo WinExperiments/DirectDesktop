@@ -3,15 +3,12 @@
 #include "DirectoryHelper.h"
 #include "StyleModifier.h"
 #include <regex>
+#include <algorithm>
 #include <uxtheme.h>
 #include <dwmapi.h>
 
 using namespace std;
 using namespace DirectUI;
-
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
-
 
 IClassInfo* DDScalableElement::s_pClassInfo;
 IClassInfo* DDScalableButton::s_pClassInfo;
@@ -22,7 +19,7 @@ struct IntegerWrapper {
     int val;
 };
 NativeHWNDHost* notificationwnd{};
-WNDPROC WndProc5;
+WNDPROC WndProc4;
 
 HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams) {
     HRESULT hr{};
@@ -580,13 +577,45 @@ LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
         DDNotificationBanner::DestroyBanner(nullptr);
         break;
     }
-    return CallWindowProc(WndProc5, hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(WndProc4, hWnd, uMsg, wParam, lParam);
+}
+unsigned long AnimateWindowWrapper(LPVOID lpParam) {
+    Sleep(50);
+    AnimateWindow(notificationwnd->GetHWND(), 180, AW_BLEND);
+    notificationwnd->ShowWindow(SW_SHOW);
+    return 0;
 }
 unsigned long AutoCloseNotification(LPVOID lpParam) {
     IntegerWrapper* iwTemp = (IntegerWrapper*)lpParam;
     Sleep(iwTemp->val * 1000);
     SendMessageW(notificationwnd->GetHWND(), WM_USER + 3, NULL, NULL);
     return 0;
+}
+vector<wstring> SplitLineBreaks(const wstring& originalstr) {
+    vector<wstring> strs;
+    size_t start = 0;
+    size_t end = originalstr.find(L'\n');
+    while (end != wstring::npos) {
+        strs.push_back(originalstr.substr(start, end - start));
+        start = end + 1;
+        end = originalstr.find(L'\n', start);
+    }
+    strs.push_back(originalstr.substr(start));
+    return strs;
+}
+int CalcLines(const wstring& textStr) {
+    int lines = count(textStr.begin(), textStr.end(), L'\n') + 1;
+    return lines;
+}
+void GetLongestLine(HDC hdc, const wstring& textStr, RECT* rcText) {
+    static int lines = CalcLines(textStr);
+    vector<wstring> divided = SplitLineBreaks(textStr);
+    int saved{};
+    for (int i = 0; i < lines; i++) {
+        DrawTextW(hdc, divided[i].c_str(), -1, rcText, DT_CALCRECT | DT_SINGLELINE);
+        if (rcText->right > saved) saved = rcText->right;
+    }
+    rcText->right = saved;
 }
 unsigned long AutoSizeFont(LPVOID lpParam) {
     InitThread(TSM_DESKTOP_DYNAMIC);
@@ -638,7 +667,7 @@ DDScalableElement* DDNotificationBanner::GetTitleElement() {
 DDScalableElement* DDNotificationBanner::GetContentElement() {
     return _content;
 }
-void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, int cx, int cy, short timeout, bool fClose) {
+void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, short timeout, bool fClose) {
     static bool notificationopen{};
     static HANDLE AutoCloseHandle;
     if (notificationopen) DestroyBanner(&notificationopen);
@@ -646,7 +675,7 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     Element* pHostElement;
     RECT dimensions;
     SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-    NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", NULL, NULL, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * flScaleFactor, cx, cy, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwnd);
+    NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", NULL, NULL, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwnd);
     HWNDElement::Create(notificationwnd->GetHWND(), true, NULL, NULL, &keyN, (Element**)&pDDNB);
     ITaskbarList* pTaskbarList = nullptr;
     if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
@@ -657,7 +686,7 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
         pTaskbarList->Release();
     }
     pParser->CreateElement(pszResID, pDDNB, NULL, NULL, &pHostElement);
-    WndProc5 = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
+    WndProc4 = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
     pHostElement->SetVisible(true);
     pHostElement->EndDefer(keyN);
     notificationwnd->Host(pHostElement);
@@ -676,6 +705,10 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     SetForegroundWindow(notificationwnd->GetHWND());
     CreateAndSetLayout(pHostElement, BorderLayout::Create, 0, 0);
 
+    int cx{}, cy{};
+    RECT hostpadding = *(v->GetRect());
+    cx += (hostpadding.left + hostpadding.right + 48 * flScaleFactor); // 48: 28 is the icon width, 20 is extra padding
+    cy += (hostpadding.top + hostpadding.bottom);
     Element* peTemp = pDDNB->GetIconElement();
     CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
     peTemp->SetID(L"DDNB_Icon");
@@ -701,6 +734,26 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     }
     if (title) titleStr = title;
 
+    HDC hdcMem = CreateCompatibleDC(NULL);
+    NONCLIENTMETRICSW ncm{};
+    TEXTMETRICW tm{};
+    SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, NULL, dpi);
+    HFONT hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
+    SelectObject(hdcMem, hFont);
+    RECT rcText{}, rcText2{};
+    GetLongestLine(hdcMem, content, &rcText2);
+    GetTextMetricsW(hdcMem, &tm);
+    cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * flScaleFactor;
+    ncm.lfMessageFont.lfWeight = 700;
+    hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
+    SelectObject(hdcMem, hFont);
+    DrawTextW(hdcMem, title, -1, &rcText, DT_CALCRECT | DT_SINGLELINE);
+    cx += (ceil(max(rcText.right, rcText2.right) * 1.15) * flScaleFactor);
+    GetTextMetricsW(hdcMem, &tm);
+    cy += (ceil(tm.tmHeight * 1.15) + 6) * flScaleFactor;
+    DeleteObject(hFont);
+    DeleteDC(hdcMem);
+
     peTemp = pDDNB->GetTitleElement();
     CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
     peTemp->SetID(L"DDNB_Title");
@@ -721,10 +774,14 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     pParser->GetSheet(sheetName, &sheetStorage);
     pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
 
-    notificationwnd->ShowWindow(SW_SHOW);
-    SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    // Window borders
+    cx += (round(flScaleFactor)) * 2;
+    cy += (round(flScaleFactor)) * 2;
+
+    SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * flScaleFactor, cx, cy, SWP_FRAMECHANGED);
     notificationopen = true;
     IntegerWrapper* iw = new IntegerWrapper{ timeout };
+    HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper, &notificationopen, NULL, NULL);
     if (timeout > 0) {
         TerminateThread(AutoCloseHandle, 1);
         DWORD dwAutoClose;
@@ -733,6 +790,7 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
 }
 void DDNotificationBanner::DestroyBanner(bool* notificationopen) {
     if (notificationwnd != nullptr) {
+        AnimateWindow(notificationwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
         notificationwnd->DestroyWindow();
         notificationwnd = nullptr;
     }

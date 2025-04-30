@@ -8,7 +8,7 @@
 using namespace std;
 extern Logger MainLogger;
 
-extern int logging, validItems;
+extern int logging;
 extern vector<LVItem*> pm, subpm;
 extern vector<DirectUI::Element*> shortpm;
 extern vector<DDScalableElement*> iconpm;

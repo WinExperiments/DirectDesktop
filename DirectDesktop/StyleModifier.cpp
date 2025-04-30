@@ -212,6 +212,15 @@ COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize) {
         if (MulDiv(numBestBucketHits, 100, totalHits) >= hitRatioThreshold) {
             outDominantColor = RGB(totalR / denominator, totalG / denominator, totalB / denominator);
         }
+        if (GetRValue(outDominantColor) * 0.299 + GetGValue(outDominantColor) * 0.587 + GetBValue(outDominantColor) * 0.114 > 156) {
+            rgb_t odcTemp1 = { GetRValue(outDominantColor), GetGValue(outDominantColor), GetBValue(outDominantColor) };
+            hsl_t odcTemp2 = rgb2hsl(odcTemp1);
+            double reduced = pow((odcTemp2.l), 0.972);
+            odcTemp2.s *= (1 + (odcTemp2.l - reduced) / 96);
+            odcTemp2.l = reduced;
+            odcTemp1 = hsl2rgb(odcTemp2);
+            outDominantColor = RGB(odcTemp1.r, odcTemp1.g, odcTemp1.b);
+        }
 
         EndBufferedPaint(hBufferedPaint, FALSE);
         DeleteObject(hOldBitmap);

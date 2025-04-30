@@ -12,7 +12,6 @@ std::wstring RemoveQuotes2(const std::wstring& input) {
     return input;
 }
 
-int validItems;
 void DesktopRightClick(Element* elem, Event* iev) {
     if (iev->uidType == Button::Context) {
 
@@ -161,7 +160,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 RearrangeIcons(true, true);
                 break;
             case 1007:
-                for (int items = 0; items < validItems; items++) {
+                for (int items = 0; items < pm.size(); items++) {
                     switch (hiddenIcons) {
                     case 0:
                         pm[items]->SetVisible(false);
