@@ -2,6 +2,7 @@
 #include "DirectoryHelper.h"
 #include "resource.h"
 #include "BitmapHelper.h"
+#include "DirectDesktop.h"
 #include <shellapi.h>
 #include <uxtheme.h>
 #include <dwmapi.h>

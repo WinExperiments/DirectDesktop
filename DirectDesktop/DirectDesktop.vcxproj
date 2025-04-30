@@ -254,6 +254,7 @@
     <ClInclude Include="DirectUI\XBaby.h" />
     <ClInclude Include="DirectUI\XElement.h" />
     <ClInclude Include="DirectUI\XProvider.h" />
+    <ClInclude Include="EditMode.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImmersiveColor.h" />
     <ClInclude Include="Logger.h" />
@@ -273,6 +274,7 @@
     <ClCompile Include="ContextMenus.cpp" />
     <ClCompile Include="DirectDesktop.cpp" />
     <ClCompile Include="DirectoryHelper.cpp" />
+    <ClCompile Include="EditMode.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="DDControls.cpp" />
     <ClCompile Include="RenameCore.cpp" />
@@ -548,6 +550,7 @@
     <Library Include="dui70.lib" />
   </ItemGroup>
   <ItemGroup>
+    <Xml Include="editmode.xml" />
     <Xml Include="fullscreenpopup.xml" />
     <Xml Include="search.xml" />
     <Xml Include="shutdown.xml" />

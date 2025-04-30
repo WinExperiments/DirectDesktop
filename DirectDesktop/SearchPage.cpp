@@ -1,4 +1,5 @@
 #include "SearchPage.h"
+#include "DirectDesktop.h"
 //#include "EverythingSearch/Everything.h"
 #include "resource.h"
 #include <strsafe.h>

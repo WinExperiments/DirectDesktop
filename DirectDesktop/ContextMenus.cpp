@@ -2,6 +2,7 @@
 #include <ShlGuid.h>
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
+#include "DirectDesktop.h"
 #include "resource.h"
 #include <propkey.h>
 

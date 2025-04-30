@@ -1,5 +1,6 @@
 #include "RenameCore.h"
 #include "StyleModifier.h"
+#include "DirectDesktop.h"
 #include <strsafe.h>
 #include <Richedit.h>
 #include <textserv.h>

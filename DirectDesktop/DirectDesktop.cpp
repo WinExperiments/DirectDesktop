@@ -26,6 +26,7 @@
 #include "ShutdownDialog.h"
 #include "RenameCore.h"
 #include "SearchPage.h"
+#include "EditMode.h"
 #pragma comment (lib, "dwmapi.lib")
 #pragma comment (lib, "dui70.lib")
 #pragma comment (lib, "DUser.lib")
@@ -52,21 +53,15 @@ RichText* textElem;
 RichText* textElemShadow;
 Button* checkboxElem;
 DDScalableButton* fullscreeninner;
-Element* popupbg, *popupcontainer;
+Element* popupcontainer;
 Button* fullscreenpopupbase, *centered;
-DDScalableElement* simpleviewoverlay;
-Element* deskpreview;
 Button* emptyspace;
 Element* selector, *selector2;
 Element* dirnameanimator;
 Element* tasksanimator;
-Button* SimpleViewTop, *SimpleViewBottom;
-Button* SimpleViewPower, *SimpleViewSearch, *SimpleViewSettings, *SimpleViewClose;
 DDScalableButton* PageTab1, *PageTab2, *PageTab3;
 RichText* SubUIContainer;
-TouchButton* nextpage, *prevpage;
 TouchButton* prevpageMain, *nextpageMain;
-RichText* pageinfo;
 Element* dragpreview;
 
 HRESULT err;
@@ -376,66 +371,6 @@ void PlaySimpleViewAnimation(Element* elem, int width, int height, int animation
     elem->SetHeight(height);
 }
 
-void ShowSimpleView() {
-    editmode = true;
-    if (!invokedpagechange) SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
-    RECT dimensions;
-    GetClientRect(wnd->GetHWND(), &dimensions);
-    Value* bitmap{};
-    HBITMAP hbmCapture{};
-    HDC hdcWindow = GetDC(wnd->GetHWND());
-    HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    hbmCapture = CreateCompatibleBitmap(hdcWindow, dimensions.right, dimensions.bottom);
-    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-    BitBlt(hdcMem, 0, 0, dimensions.right, dimensions.bottom, hdcWindow, 0, 0, SRCCOPY);
-    SelectObject(hdcMem, hbmOld);
-    DeleteDC(hdcMem);
-    ReleaseDC(wnd->GetHWND(), hdcWindow);
-    wnd->ShowWindow(SW_HIDE);
-    IterateBitmap(hbmCapture, UndoPremultiplication, 1, 0, 1);
-    bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
-    fullscreenAnimation(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4);
-    fullscreeninner->SetFirstScaledImage(-1);
-    fullscreeninner->SetBorderThickness(9999, 9999, 9999, 9999);
-    popupbg->SetVisible(true);
-    SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    parser2->CreateElement(L"deskpreview", NULL, NULL, NULL, (Element**)&deskpreview);
-    centered->Add((Element**)&deskpreview, 1);
-    if (bitmap != nullptr) deskpreview->SetValue(Element::BackgroundProp, 1, bitmap);
-    static const int savedanim4 = deskpreview->GetAnimation();
-    PlaySimpleViewAnimation(deskpreview, dimensions.right * 0.7, dimensions.bottom * 0.7, savedanim4, 1.4);
-    if (bitmap != nullptr) bitmap->Release();
-    if (hbmCapture != nullptr) DeleteObject(hbmCapture);
-    if (maxPageID != 1) {
-        WCHAR currentPage[64];
-        StringCchPrintfW(currentPage, 64, LoadStrFromRes(4026).c_str(), currentPageID, maxPageID);
-        pageinfo->SetContentString(currentPage);
-    }
-    else pageinfo->SetContentString(L" ");
-    if (currentPageID != maxPageID) {
-        float xLoc = (localeType == 1) ? 0 : 0.9;
-        TogglePage(nextpage, xLoc, 0.2, 0.1, 0.6);
-    }
-    if (currentPageID != 1) {
-        float xLoc = (localeType == 1) ? 0.9 : 0;
-        TogglePage(prevpage, xLoc, 0.2, 0.1, 0.6);
-    }
-    if (!invokedpagechange) {
-        mainContainer->SetAlpha(0);
-    }
-    mainContainer->SetVisible(false);
-    SimpleViewTop->SetLayoutPos(1);
-    SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
-    SimpleViewBottom->SetLayoutPos(3);
-    parser2->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
-    centered->Add((Element**)&simpleviewoverlay, 1);
-    static const int savedanim3 = simpleviewoverlay->GetAnimation();
-    PlaySimpleViewAnimation(simpleviewoverlay, dimensions.right * 0.7, dimensions.bottom * 0.7, savedanim3, 1.4);
-    //BlurBackground(subviewwnd->GetHWND(), false, true);
-    wnd->ShowWindow(SW_SHOW);
-    invokedpagechange = false;
-}
-
 unsigned long EndExplorer(LPVOID lpParam) {
     Sleep(250);
     HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
@@ -461,6 +396,7 @@ void AdjustWindowSizes(bool firsttime) {
     }
     SetWindowPos(wnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
     SetWindowPos(subviewwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+    if (editwnd) SetWindowPos(editwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
     SetWindowPos(hWorkerW, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
     SetWindowPos(hSHELLDLL_DefView, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
     UIContainer->SetWidth(dimensions.right - dimensions.left);
@@ -704,23 +640,12 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         checkifelemexists = false;
         AnimateWindow(subviewwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
         subviewwnd->ShowWindow(SW_HIDE);
-        SimpleViewTop->SetLayoutPos(-3);
-        SimpleViewBottom->SetLayoutPos(-3);
-        nextpage->SetWidth(0);
-        prevpage->SetWidth(0);
         if (pendingaction) Sleep(700);
-        static const int savedanim = mainContainer->GetAnimation();
         if (lParam == 1) {
-            //mainContainer->SetAnimation(NULL);
-            mainContainer->SetAlpha(255);
+            HideSimpleView(false);
             mainContainer->SetVisible(true);
-            //mainContainer->SetAnimation(savedanim);
         }
         centered->DestroyAll(true);
-        //if (issubviewopen) {
-        //    ShowSimpleView();
-        //}
-        //issubviewopen = false;
         break;
     }
     case WM_USER + 8: {
@@ -855,7 +780,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
     case WM_USER + 15: {
         if (!editmode || lParam == 0) ShowSimpleView();
-        else HidePopupCore(false);
+        else HideSimpleView(true);
         break;
     }
     case WM_USER + 16: {
@@ -1250,7 +1175,6 @@ void fullscreenAnimation(int width, int height, float animstartscale) {
     PlaySimpleViewAnimation(centered, width, height, savedanim, animstartscale);
     PlaySimpleViewAnimation(fullscreeninner, width, height, savedanim2, animstartscale);
     centered->SetBackgroundColor(0);
-    //popupcontainer->SetAlpha(255);
     fullscreenpopupbase->SetVisible(true);
     fullscreeninner->SetVisible(true);
     if (!editmode) BlurBackground(subviewwnd->GetHWND(), true, true);
@@ -1267,18 +1191,11 @@ void ShowPopupCore() {
 }
 void HidePopupCore(bool WinDInvoked) {
     if (!WinDInvoked) SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
-    //popupcontainer->SetAlpha(0);
     if (issubviewopen) {
         centered->SetWidth(centered->GetWidth() * 0.85);
         centered->SetHeight(centered->GetHeight() * 0.85);
         fullscreeninner->SetWidth(fullscreeninner->GetWidth() * 0.85);
         fullscreeninner->SetHeight(fullscreeninner->GetHeight() * 0.85);
-        if (editmode) {
-            simpleviewoverlay->SetWidth(simpleviewoverlay->GetWidth() * 0.85);
-            simpleviewoverlay->SetHeight(simpleviewoverlay->GetHeight() * 0.85);
-            deskpreview->SetWidth(deskpreview->GetWidth() * 0.85);
-            deskpreview->SetHeight(deskpreview->GetHeight() * 0.85);
-        }
     }
     if (issettingsopen && atleastonesetting) {
         DDNotificationBanner* ddnb{};
@@ -1288,7 +1205,6 @@ void HidePopupCore(bool WinDInvoked) {
     issettingsopen = false;
     atleastonesetting = false;
     mainContainer->SetVisible(true);
-    mainContainer->SetAlpha(255);
     if (!editmode) SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     editmode = false;
     fullscreenAnimation2();
@@ -1332,7 +1248,7 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
 }
 unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
     SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
-    Sleep(50);
+    Sleep(75);
     SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
     return 0;
 }
@@ -1499,7 +1415,6 @@ void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, V
 void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     fullscreenAnimation(800 * flScaleFactor, 480 * flScaleFactor, 0.9);
-    popupbg->SetVisible(false);
     SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     Element* groupdirectory{};
     parser2->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
@@ -1733,30 +1648,12 @@ void ShowPage3(Element* elem, Event* iev) {
     }
 }
 
-void ShowShutdownDialog(Element* elem, Event* iev) {
-    if (iev->uidType == Button::Click) {
-        DisplayShutdownDialog();
-    }
-}
-void ShowSearchUI(Element* elem, Event* iev) {
-    if (iev->uidType == Button::Click) {
-        CreateSearchPage();
-    }
-}
 void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
-        subviewwnd->ShowWindow(SW_HIDE);
-        mainContainer->SetVisible(true);
-        mainContainer->SetAlpha(255);
-        popupbg->SetVisible(false);
-        centered->DestroyAll(true);
         ShowPopupCore();
         BlurBackground(subviewwnd->GetHWND(), true, true);
-        SimpleViewTop->SetLayoutPos(-3);
-        SimpleViewBottom->SetLayoutPos(-3);
         nextpage->SetWidth(0);
         prevpage->SetWidth(0);
-        editmode = false;
         issubviewopen = true;
         issettingsopen = true;
         Element* settingsview{};
@@ -1778,12 +1675,6 @@ void ShowSettings(Element* elem, Event* iev) {
         checkifelemexists = true;
         DWORD animThread3;
         HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
-    }
-}
-void ExitWindow(Element* elem, Event* iev) {
-    if (iev->uidType == Button::Click) {
-        SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
-        SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, NULL);
     }
 }
 
@@ -2280,6 +2171,10 @@ HWND GetShutdownWindowIfPresent() {
     if (shutdownwnd) return shutdownwnd->GetHWND();
     else return NULL;
 }
+HWND GetEditWindowIfPresent() {
+    if (editwnd) return editwnd->GetHWND();
+    else return NULL;
+}
 bool IsDesktopActive() {
     HWND hWnd = GetForegroundWindow();
     if (hWnd == NULL) return false;
@@ -2288,7 +2183,7 @@ bool IsDesktopActive() {
 bool IsDesktopOrSubviewActive() {
     HWND hWnd = GetForegroundWindow();
     if (hWnd == NULL) return false;
-    return (hWnd == hWorkerW || hWnd == hWndTaskbar || hWnd == subviewwnd->GetHWND() || hWnd == GetShutdownWindowIfPresent());
+    return (hWnd == hWorkerW || hWnd == hWndTaskbar || hWnd == subviewwnd->GetHWND() || hWnd == GetEditWindowIfPresent() || hWnd == GetShutdownWindowIfPresent());
 }
 
 HHOOK KeyHook = nullptr;
@@ -2467,7 +2362,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
     NativeHWNDHost::Create(L"DD_DesktopHost", L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, NULL, 0, &wnd);
-    NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &subviewwnd);
+    NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &subviewwnd);
     DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
     DUIXmlParser::Create(&parser2, NULL, NULL, NULL, NULL);
     parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
@@ -2519,33 +2414,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     mainContainer = regElem<Element*>(L"mainContainer", pMain);
     UIContainer = regElem<Element*>(L"UIContainer", pMain);
     fullscreenpopupbase = regElem<Button*>(L"fullscreenpopupbase", pSubview);
-    popupbg = regElem<Button*>(L"popupbg", pSubview);
     popupcontainer = regElem<Button*>(L"popupcontainer", pSubview);
     centered = regElem<Button*>(L"centered", pSubview);
     selector = regElem<Element*>(L"selector", pMain);
     selector2 = regElem<Element*>(L"selector2", pMain);
-    SimpleViewTop = regElem<Button*>(L"SimpleViewTop", pSubview);
-    SimpleViewBottom = regElem<Button*>(L"SimpleViewBottom", pSubview);
-    SimpleViewPower = regElem<Button*>(L"SimpleViewPower", pSubview);
-    SimpleViewSearch = regElem<Button*>(L"SimpleViewSearch", pSubview);
-    SimpleViewSettings = regElem<Button*>(L"SimpleViewSettings", pSubview);
-    SimpleViewClose = regElem<Button*>(L"SimpleViewClose", pSubview);
-    prevpage = regElem<TouchButton*>(L"prevpage", pSubview);
-    nextpage = regElem<TouchButton*>(L"nextpage", pSubview);
     prevpageMain = regElem<TouchButton*>(L"prevpageMain", pMain);
     nextpageMain = regElem<TouchButton*>(L"nextpageMain", pMain);
-    pageinfo = regElem<RichText*>(L"pageinfo", pSubview);
     dragpreview = regElem<Element*>(L"dragpreview", pMain);
 
     assignFn(fullscreenpopupbase, testEventListener3);
-    assignFn(SimpleViewTop, testEventListener3);
-    assignFn(SimpleViewBottom, testEventListener3);
-    assignFn(SimpleViewPower, ShowShutdownDialog);
-    assignFn(SimpleViewSearch, ShowSearchUI);
-    assignFn(SimpleViewSettings, ShowSettings);
-    assignFn(SimpleViewClose, ExitWindow);
-    assignFn(prevpage, GoToPrevPage);
-    assignFn(nextpage, GoToNextPage);
     assignFn(prevpageMain, GoToPrevPage);
     assignFn(nextpageMain, GoToNextPage);
 

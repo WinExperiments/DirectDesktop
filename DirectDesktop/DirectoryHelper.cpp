@@ -1,5 +1,6 @@
 #include "DirectoryHelper.h"
 #include "strsafe.h"
+#include "DirectDesktop.h"
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <exdisp.h>

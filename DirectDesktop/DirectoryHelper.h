@@ -17,8 +17,6 @@ extern vector<DirectUI::RichText*> filepm;
 extern vector<DirectUI::RichText*> fileshadowpm;
 extern vector<DirectUI::Element*> cbpm;
 extern void InitLayout(bool bUnused1, bool bUnused2);
-extern wstring LoadStrFromRes(UINT id);
-extern wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
 
 class ThumbIcons {
 private:
@@ -41,6 +39,8 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
 void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountItems, unsigned short* countedItems = nullptr, int* count2 = nullptr, unsigned short limit = 65535);
 void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit);
 void GetPos(bool getSpotlightIcon = false, int* setSpotlightIcon = nullptr);
+void GetPos2();
+void SetPos2();
 HWND GetWorkerW();
 HWND GetWorkerW2(int* x, int* y);
 bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView);

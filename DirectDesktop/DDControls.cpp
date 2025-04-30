@@ -1,4 +1,5 @@
 #include "DDControls.h"
+#include "DirectDesktop.h"
 #include "BitmapHelper.h"
 #include "DirectoryHelper.h"
 #include "StyleModifier.h"

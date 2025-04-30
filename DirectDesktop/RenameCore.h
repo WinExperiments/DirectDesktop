@@ -10,8 +10,6 @@ using namespace DirectUI;
 extern bool renameactive;
 extern bool touchmode;
 extern std::vector<LVItem*> pm;
-extern std::wstring LoadStrFromRes(UINT id);
-extern std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
 extern std::wstring RemoveQuotes(const std::wstring& input);
 extern int globaliconsz;
 extern int currentPageID;

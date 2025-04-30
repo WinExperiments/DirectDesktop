@@ -381,6 +381,9 @@
     <ClInclude Include="SearchPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="EditMode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
@@ -422,11 +425,9 @@
     <ClCompile Include="SearchPage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="DirectDesktop.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <ClCompile Include="EditMode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -1205,10 +1206,14 @@
     <Xml Include="fullscreenpopup.xml" />
     <Xml Include="styles.xml" />
     <Xml Include="search.xml" />
+    <Xml Include="editmode.xml" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DirectDesktop.manifest">
       <Filter>Resource Files</Filter>
     </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DirectDesktop.rc" />
   </ItemGroup>
 </Project>

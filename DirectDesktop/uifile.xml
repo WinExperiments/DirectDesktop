@@ -2,7 +2,7 @@
 	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default" background="rgb(0,0,0)">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
-			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client" animation="alpha|s|veryfast|delayshort">
+			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" animation="position|s|fast">
 
 				</Element>

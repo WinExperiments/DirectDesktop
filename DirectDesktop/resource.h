@@ -8,6 +8,7 @@
 #define IDR_UIFILE3                     33
 #define IDR_UIFILE4                     34
 #define IDR_UIFILE5                     35
+#define IDR_UIFILE6						36
 #define IDD_DUIAPPTEMPLATE_DIALOG       102
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
