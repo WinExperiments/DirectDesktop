@@ -11,10 +11,16 @@
 using namespace std;
 using namespace DirectUI;
 
+extern DDScalableButton* fullscreeninner;
+
 IClassInfo* DDScalableElement::s_pClassInfo;
 IClassInfo* DDScalableButton::s_pClassInfo;
 IClassInfo* LVItem::s_pClassInfo;
 IClassInfo* DDToggleButton::s_pClassInfo;
+IClassInfo* DDCheckBox::s_pClassInfo;
+IClassInfo* DDCheckBoxGlyph::s_pClassInfo;
+IClassInfo* DDColorPicker::s_pClassInfo;
+IClassInfo* DDColorPickerButton::s_pClassInfo;
 IClassInfo* DDNotificationBanner::s_pClassInfo;
 struct IntegerWrapper {
     int val;
@@ -69,7 +75,7 @@ static const PropertyInfo impDrawTypeProp =
     Value::GetIntMinusOne,
     &dataimpDrawTypeProp
 };
-static const int vvimpEnableAccentProp[] = { 1, -1 };
+static const int vvimpEnableAccentProp[] = { 2, -1 };
 static PropertyInfoData dataimpEnableAccentProp;
 static const PropertyInfo impEnableAccentProp =
 {
@@ -78,10 +84,10 @@ static const PropertyInfo impEnableAccentProp =
     0x1,
     vvimpEnableAccentProp,
     nullptr,
-    Value::GetIntMinusOne,
+    Value::GetBoolFalse,
     &dataimpEnableAccentProp
 };
-static const int vvimpNeedsFontResizeProp[] = { 1, -1 };
+static const int vvimpNeedsFontResizeProp[] = { 2, -1 };
 static PropertyInfoData dataimpNeedsFontResizeProp;
 static const PropertyInfo impNeedsFontResizeProp =
 {
@@ -90,20 +96,163 @@ static const PropertyInfo impNeedsFontResizeProp =
     0x1,
     vvimpNeedsFontResizeProp,
     nullptr,
-    Value::GetIntMinusOne,
+    Value::GetBoolFalse,
     &dataimpNeedsFontResizeProp
 };
+static const int vvimpCheckedStateProp[] = { 2, -1 };
+static PropertyInfoData dataimpCheckedStateProp;
+static const PropertyInfo impCheckedStateProp =
+{
+    L"CheckedState",
+    0x2 | 0x4,
+    0x1,
+    vvimpCheckedStateProp,
+    nullptr,
+    Value::GetBoolFalse,
+    &dataimpCheckedStateProp
+};
+static const int vvimpAssociatedColorProp[] = { 1, -1 };
+static PropertyInfoData dataimpAssociatedColorProp;
+static const PropertyInfo impAssociatedColorProp =
+{
+    L"AssociatedColor",
+    0x2 | 0x4,
+    0x1,
+    vvimpAssociatedColorProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpAssociatedColorProp
+};
+static const int vvimpColorIntensityProp[] = { 1, -1 };
+static PropertyInfoData dataimpColorIntensityProp;
+static const PropertyInfo impColorIntensityProp =
+{
+    L"ColorIntensity",
+    0x2 | 0x4,
+    0x1,
+    vvimpColorIntensityProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpColorIntensityProp
+};
+static const int vvimpDefaultColorProp[] = { 1, -1 };
+static PropertyInfoData dataimpDefaultColorProp;
+static const PropertyInfo impDefaultColorProp =
+{
+    L"DefaultColor",
+    0x2 | 0x4,
+    0x1,
+    vvimpDefaultColorProp,
+    nullptr,
+    Value::GetIntMinusOne,
+    &dataimpDefaultColorProp
+};
 
+void RedrawImageCore(DDScalableElement* pe) {
+    if (pe->GetFirstScaledImage() == -1) return;
+    int scaleInterval = GetCurrentScaleInterval();
+    int scaleIntervalImage = pe->GetScaledImageIntervals();
+    if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+    int imageID = pe->GetFirstScaledImage() + scaleInterval;
+    HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+    if (newImage == nullptr) {
+        newImage = LoadPNGAsBitmap(imageID);
+        IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
+    }
+    if (pe->GetAssociatedColor() != -1) IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
+    else if (pe->GetEnableAccent()) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1, ImmersiveColor);
+    switch (pe->GetDrawType()) {
+    case 1: {
+        Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
+        if (vImage) {
+            pe->SetValue(Element::BackgroundProp, 1, vImage);
+            vImage->Release();
+        }
+        break;
+    }
+    case 2: {
+        Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
+        if (vImage) {
+            pe->SetValue(Element::ContentProp, 1, vImage);
+            vImage->Release();
+        }
+        break;
+    }
+    }
+    if (newImage) DeleteObject(newImage);
+}
+void RedrawFontCore(DDScalableElement* pe) {
+    Value* v;
+    if (pe->GetNeedsFontResize()) {
+        if (pe->GetFont(&v) == nullptr) return;
+        wstring fontOld = pe->GetFont(&v);
+        wregex fontRegex(L".*font;.*\%.*");
+        bool isSysmetricFont = regex_match(fontOld, fontRegex);
+        if (isSysmetricFont) {
+            size_t modifier = fontOld.find(L";");
+            size_t modifier2 = fontOld.find(L"%");
+            wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+            wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+            wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
+            int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+            wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
+            pe->SetFont(fontNew.c_str());
+        }
+    }
+}
 void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    if (pProp == DDScalableElement::FirstScaledImageProp()) {
+    if (pProp == DDScalableElement::FirstScaledImageProp() || pProp == DDScalableElement::AssociatedColorProp()) {
         ((DDScalableElement*)elem)->InitDrawImage();
     }
 }
+void UpdateGlyphOnPress(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    DDScalableElement* glyph = regElem<DDScalableElement*>(L"DDCB_Glyph", elem->GetParent());
+    if (pProp == Button::PressedProp() || pProp == Button::MouseWithinProp()) {
+        glyph->SetSelected(((Button*)elem)->GetPressed());
+    }
+    if (pProp == DDCheckBox::CheckedStateProp()) {
+        ((DDCheckBoxGlyph*)glyph)->SetCheckedState(((DDCheckBox*)elem)->GetCheckedState());
+    }
+}
+void UpdateUICtrlColor(Element* elem, Event* iev) {
+    if (iev->uidType == Button::Click) {
+        DDScalableElement* DDCPCC = regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", elem->GetParent());
+        DDCPCC->SetX(elem->GetX());
+        vector<DDScalableElement*> te = ((DDColorPickerButton*)elem)->GetTargetElements();
+        RegKeyValue rkv = ((DDColorPicker*)elem->GetParent())->GetRegKeyValue();
+        if (rkv ._hKeyName != NULL) {
+            rkv._dwValue = ((DDColorPickerButton*)elem)->GetOrder();
+            SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
+        }
+        for (int i = 0; i < te.size(); i++) {
+            (te[i])->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
+            (te[i])->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
+        }
+        te.clear();
+    }
+}
 unsigned long DelayedDraw(LPVOID lpParam) {
-    Sleep(50);
-    assignExtendedFn((DDScalableElement*)lpParam, UpdateImageOnPropChange);
+    //Sleep(50);
+    assignExtendedFn((Element*)lpParam, UpdateImageOnPropChange);
     ((DDScalableElement*)lpParam)->InitDrawImage();
     ((DDScalableElement*)lpParam)->InitDrawFont();
+    return 0;
+}
+unsigned long CreateCBInnerElements(LPVOID lpParam) {
+    //Sleep(50);
+    PostMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)lpParam, NULL);
+    assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
+    return 0;
+}
+unsigned long ColorPickerLayout(LPVOID lpParam) {
+    //Sleep(50);
+    PostMessageW(subviewwnd->GetHWND(), WM_USER + 4, (WPARAM)lpParam, NULL);
+    return 0;
+}
+unsigned long PickerBtnFn(LPVOID lpParam) {
+    InitThread(TSM_DESKTOP_DYNAMIC);
+    //Sleep(50);
+    assignFn((Element*)lpParam, UpdateUICtrlColor);
     return 0;
 }
 vector<DDScalableElement*> DDScalableElement::_arrCreatedElements;
@@ -138,18 +287,19 @@ HRESULT DDScalableElement::Register() {
         &impScaledImageIntervalsProp,
         &impDrawTypeProp,
         &impEnableAccentProp,
-        &impNeedsFontResizeProp
+        &impNeedsFontResizeProp,
+        &impAssociatedColorProp
     };
     return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
 }
-int DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc) {
+auto DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
     Value* pv = GetValue(pPropertyProc, 2, nullptr);
-    int v = pv->GetInt();
+    auto v = useInt ? pv->GetInt() : pv->GetBool();
     pv->Release();
     return v;
 }
-void DDScalableElement::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt) {
-    Value* pv = Value::CreateInt(iCreateInt);
+void DDScalableElement::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt) {
+    Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
     HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
     if (SUCCEEDED(hr)) {
         hr = SetValue(pPropertyProc, 1, pv);
@@ -160,108 +310,78 @@ const PropertyInfo* WINAPI DDScalableElement::FirstScaledImageProp() {
     return &impFirstScaledImageProp;
 }
 int DDScalableElement::GetFirstScaledImage() {
-    return this->GetPropCommon(FirstScaledImageProp);
+    return this->GetPropCommon(FirstScaledImageProp, true);
 }
 void DDScalableElement::SetFirstScaledImage(int iFirstImage) {
-    this->SetPropCommon(FirstScaledImageProp, iFirstImage);
+    this->SetPropCommon(FirstScaledImageProp, iFirstImage, true);
 }
 const PropertyInfo* WINAPI DDScalableElement::ScaledImageIntervalsProp() {
     return &impScaledImageIntervalsProp;
 }
 int DDScalableElement::GetScaledImageIntervals() {
-    int v = this->GetPropCommon(ScaledImageIntervalsProp);
+    int v = this->GetPropCommon(ScaledImageIntervalsProp, true);
     if (v < 1) v = 1;
     return v;
 }
 void DDScalableElement::SetScaledImageIntervals(int iScaleIntervals) {
-    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals);
+    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
 }
 const PropertyInfo* WINAPI DDScalableElement::DrawTypeProp() {
     return &impDrawTypeProp;
 }
 int DDScalableElement::GetDrawType() {
-    return this->GetPropCommon(DrawTypeProp);
+    return this->GetPropCommon(DrawTypeProp, true);
 }
 void DDScalableElement::SetDrawType(int iDrawType) {
-    this->SetPropCommon(DrawTypeProp, iDrawType);
+    this->SetPropCommon(DrawTypeProp, iDrawType, true);
 }
 const PropertyInfo* WINAPI DDScalableElement::EnableAccentProp() {
     return &impEnableAccentProp;
 }
-int DDScalableElement::GetEnableAccent() {
-    return this->GetPropCommon(EnableAccentProp);
+bool DDScalableElement::GetEnableAccent() {
+    return this->GetPropCommon(EnableAccentProp, false);
 }
-void DDScalableElement::SetEnableAccent(int iEnableAccent) {
-    this->SetPropCommon(EnableAccentProp, iEnableAccent);
+void DDScalableElement::SetEnableAccent(bool bEnableAccent) {
+    this->SetPropCommon(EnableAccentProp, bEnableAccent, false);
 }
 const PropertyInfo* WINAPI DDScalableElement::NeedsFontResizeProp() {
     return &impNeedsFontResizeProp;
 }
-int DDScalableElement::GetNeedsFontResize() {
-    return this->GetPropCommon(NeedsFontResizeProp);
+bool DDScalableElement::GetNeedsFontResize() {
+    return this->GetPropCommon(NeedsFontResizeProp, false);
 }
-void DDScalableElement::SetNeedsFontResize(int iNeedsFontResize) {
-    this->SetPropCommon(NeedsFontResizeProp, iNeedsFontResize);
+void DDScalableElement::SetNeedsFontResize(bool bNeedsFontResize) {
+    this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
+}
+const PropertyInfo* WINAPI DDScalableElement::AssociatedColorProp() {
+    return &impAssociatedColorProp;
+}
+int DDScalableElement::GetAssociatedColor() {
+    return this->GetPropCommon(AssociatedColorProp, true);
+}
+void DDScalableElement::SetAssociatedColor(int iAssociatedColor) {
+    this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
+}
+int DDScalableElement::GetDDCPIntensity() {
+    return _intensity;
+}
+void DDScalableElement::SetDDCPIntensity(int intensity) {
+    _intensity = intensity;
 }
 void DDScalableElement::InitDrawImage() {
-    SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+    PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
 }
 void DDScalableElement::RedrawImages() {
     for (DDScalableElement* pe : _arrCreatedElements) {
-        if (pe->GetFirstScaledImage() == -1) break;
-        int scaleInterval = GetCurrentScaleInterval();
-        int scaleIntervalImage = pe->GetScaledImageIntervals();
-        if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
-        int imageID = pe->GetFirstScaledImage() + scaleInterval;
-        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-        if (newImage == nullptr) {
-            newImage = LoadPNGAsBitmap(imageID);
-            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1);
-        }
-        if (pe->GetEnableAccent() == 1) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1);
-        switch (pe->GetDrawType()) {
-        case 1: {
-            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
-            if (vImage) {
-                pe->SetValue(Element::BackgroundProp, 1, vImage);
-                vImage->Release();
-            }
-            break;
-        }
-        case 2: {
-            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
-            if (vImage) {
-                pe->SetValue(Element::ContentProp, 1, vImage);
-                vImage->Release();
-            }
-            break;
-        }
-        }
-        if (newImage) DeleteObject(newImage);
+        RedrawImageCore(pe);
     }
 }
 void DDScalableElement::InitDrawFont() {
-    SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+    PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
 }
 void DDScalableElement::RedrawFonts() {
-    Value* v;
     for (DDScalableElement* pe : _arrCreatedElements) {
-        if (pe->GetNeedsFontResize() == true) {
-            if (pe->GetFont(&v) == nullptr) break;
-            wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%.*");
-            bool isSysmetricFont = regex_match(fontOld, fontRegex);
-            if (isSysmetricFont) {
-                size_t modifier = fontOld.find(L";");
-                size_t modifier2 = fontOld.find(L"%");
-                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
-                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
-                pe->SetFont(fontNew.c_str());
-            }
-        }
+        RedrawFontCore(pe);
     }
 }
 
@@ -297,18 +417,19 @@ HRESULT DDScalableButton::Register() {
         &impScaledImageIntervalsProp,
         &impDrawTypeProp,
         &impEnableAccentProp,
-        &impNeedsFontResizeProp
+        &impNeedsFontResizeProp,
+        &impAssociatedColorProp
     };
     return ClassInfo<DDScalableButton, Button, StandardCreator<DDScalableButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
 }
-int DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc) {
+auto DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
     Value* pv = GetValue(pPropertyProc, 2, nullptr);
-    int v = pv->GetInt();
+    auto v = useInt ? pv->GetInt() : pv->GetBool();
     pv->Release();
     return v;
 }
-void DDScalableButton::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt) {
-    Value* pv = Value::CreateInt(iCreateInt);
+void DDScalableButton::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt) {
+    Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
     HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
     if (SUCCEEDED(hr)) {
         hr = SetValue(pPropertyProc, 1, pv);
@@ -319,126 +440,101 @@ const PropertyInfo* WINAPI DDScalableButton::FirstScaledImageProp() {
     return &impFirstScaledImageProp;
 }
 int DDScalableButton::GetFirstScaledImage() {
-    return this->GetPropCommon(FirstScaledImageProp);
+    return this->GetPropCommon(FirstScaledImageProp, true);
 }
 void DDScalableButton::SetFirstScaledImage(int iFirstImage) {
-    this->SetPropCommon(FirstScaledImageProp, iFirstImage);
+    this->SetPropCommon(FirstScaledImageProp, iFirstImage, true);
 }
 const PropertyInfo* WINAPI DDScalableButton::ScaledImageIntervalsProp() {
     return &impScaledImageIntervalsProp;
 }
 int DDScalableButton::GetScaledImageIntervals() {
-    int v = this->GetPropCommon(ScaledImageIntervalsProp);
+    int v = this->GetPropCommon(ScaledImageIntervalsProp, true);
     if (v < 1) v = 1;
     return v;
 }
 void DDScalableButton::SetScaledImageIntervals(int iScaleIntervals) {
-    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals);
+    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
 }
 const PropertyInfo* WINAPI DDScalableButton::DrawTypeProp() {
     return &impDrawTypeProp;
 }
 int DDScalableButton::GetDrawType() {
-    return this->GetPropCommon(DrawTypeProp);
+    return this->GetPropCommon(DrawTypeProp, true);
 }
 void DDScalableButton::SetDrawType(int iDrawType) {
-    this->SetPropCommon(DrawTypeProp, iDrawType);
+    this->SetPropCommon(DrawTypeProp, iDrawType, true);
 }
 const PropertyInfo* WINAPI DDScalableButton::EnableAccentProp() {
     return &impEnableAccentProp;
 }
-int DDScalableButton::GetEnableAccent() {
-    return this->GetPropCommon(EnableAccentProp);
+bool DDScalableButton::GetEnableAccent() {
+    return this->GetPropCommon(EnableAccentProp, false);
 }
-void DDScalableButton::SetEnableAccent(int iEnableAccent) {
-    this->SetPropCommon(EnableAccentProp, iEnableAccent);
+void DDScalableButton::SetEnableAccent(bool bEnableAccent) {
+    this->SetPropCommon(EnableAccentProp, bEnableAccent, false);
 }
 const PropertyInfo* WINAPI DDScalableButton::NeedsFontResizeProp() {
     return &impNeedsFontResizeProp;
 }
-int DDScalableButton::GetNeedsFontResize() {
-    return this->GetPropCommon(NeedsFontResizeProp);
+bool DDScalableButton::GetNeedsFontResize() {
+    return this->GetPropCommon(NeedsFontResizeProp, false);
 }
-void DDScalableButton::SetNeedsFontResize(int iNeedsFontResize) {
-    this->SetPropCommon(NeedsFontResizeProp, iNeedsFontResize);
+void DDScalableButton::SetNeedsFontResize(bool bNeedsFontResize) {
+    this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
+}
+const PropertyInfo* WINAPI DDScalableButton::AssociatedColorProp() {
+    return &impAssociatedColorProp;
+}
+int DDScalableButton::GetAssociatedColor() {
+    return this->GetPropCommon(AssociatedColorProp, true);
+}
+void DDScalableButton::SetAssociatedColor(int iAssociatedColor) {
+    this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
 }
 void DDScalableButton::InitDrawImage() {
-    SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+    PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
 }
 void DDScalableButton::RedrawImages() {
     for (DDScalableButton* pe : _arrCreatedButtons) {
-        if (pe->GetFirstScaledImage() == -1) break;
-        int scaleInterval = GetCurrentScaleInterval();
-        int scaleIntervalImage = pe->GetScaledImageIntervals();
-        if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
-        int imageID = pe->GetFirstScaledImage() + scaleInterval;
-        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-        if (newImage == nullptr) {
-            newImage = LoadPNGAsBitmap(imageID);
-            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1);
-        }
-        if (pe->GetEnableAccent() == 1) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1);
-        switch (pe->GetDrawType()) {
-        case 1: {
-            Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
-            pe->SetValue(Element::BackgroundProp, 1, vImage);
-            vImage->Release();
-            break;
-        }
-        case 2: {
-            Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
-            pe->SetValue(Element::ContentProp, 1, vImage);
-            vImage->Release();
-            break;
-        }
-        }
-        if (newImage) DeleteObject(newImage);
+        RedrawImageCore((DDScalableElement*)pe);
     }
 }
 void DDScalableButton::InitDrawFont() {
-    SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+    PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
 }
 void DDScalableButton::RedrawFonts() {
     Value* v;
     for (DDScalableButton* pe : _arrCreatedButtons) {
-        if (pe->GetNeedsFontResize() == true) {
-            if (pe->GetFont(&v) == nullptr) break;
-            wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%.*");
-            bool isSysmetricFont = regex_match(fontOld, fontRegex);
-            if (isSysmetricFont) {
-                size_t modifier = fontOld.find(L";");
-                size_t modifier2 = fontOld.find(L"%");
-                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
-                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
-                pe->SetFont(fontNew.c_str());
-            }
-        }
+        RedrawFontCore((DDScalableElement*)pe);
     }
 }
 RegKeyValue DDScalableButton::GetRegKeyValue() {
     return _rkv;
 }
-void(*DDScalableButton::GetAssociatedFn())(bool, bool) {
+void(*DDScalableButton::GetAssociatedFn())(bool, bool, bool) {
     return _assocFn;
 }
 bool* DDScalableButton::GetAssociatedBool() {
     return _assocBool;
 }
+int DDScalableButton::GetDDCPIntensity() {
+    return _intensity;
+}
 void DDScalableButton::SetRegKeyValue(RegKeyValue rkvNew) {
     _rkv = rkvNew;
 }
-void DDScalableButton::SetAssociatedFn(void(*pfn)(bool, bool)) {
+void DDScalableButton::SetAssociatedFn(void(*pfn)(bool, bool, bool)) {
     _assocFn = pfn;
 }
 void DDScalableButton::SetAssociatedBool(bool* pb) {
     _assocBool = pb;
 }
-void DDScalableButton::ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2) {
-    pfn(fnb1, fnb2);
+void DDScalableButton::SetDDCPIntensity(int intensity) {
+    _intensity = intensity;
+}
+void DDScalableButton::ExecAssociatedFn(void(*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3) {
+    pfn(fnb1, fnb2, fnb3);
 }
 
 IClassInfo* LVItem::GetClassInfoPtr() {
@@ -542,7 +638,215 @@ HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element*
     return hr;
 }
 HRESULT DDToggleButton::Register() {
-    return ClassInfo<DDToggleButton, DDScalableButton, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", nullptr, 0);
+    static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+    {
+        &impCheckedStateProp
+    };
+    return ClassInfo<DDToggleButton, DDScalableButton, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+const PropertyInfo* WINAPI DDToggleButton::CheckedStateProp() {
+    return &impCheckedStateProp;
+}
+bool DDToggleButton::GetCheckedState() {
+    return this->GetPropCommon(CheckedStateProp, false);
+}
+void DDToggleButton::SetCheckedState(bool bChecked) {
+    this->SetPropCommon(CheckedStateProp, bChecked, false);
+}
+
+IClassInfo* DDCheckBox::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDCheckBox::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDCheckBox::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDCheckBox::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDCheckBox, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    if (SUCCEEDED(hr)) {
+        DWORD dw;
+        HANDLE drawingHandle = CreateThread(0, 0, CreateCBInnerElements, (LPVOID)*ppElement, NULL, &dw);
+    }
+    return hr;
+}
+HRESULT DDCheckBox::Register() {
+    static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+    {
+        &impCheckedStateProp
+    };
+    return ClassInfo<DDCheckBox, DDScalableButton, StandardCreator<DDCheckBox>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBox", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+const PropertyInfo* WINAPI DDCheckBox::CheckedStateProp() {
+    return &impCheckedStateProp;
+}
+bool DDCheckBox::GetCheckedState() {
+    return this->GetPropCommon(CheckedStateProp, false);
+}
+void DDCheckBox::SetCheckedState(bool bChecked) {
+    this->SetPropCommon(CheckedStateProp, bChecked, false);
+}
+
+IClassInfo* DDCheckBoxGlyph::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDCheckBoxGlyph::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDCheckBoxGlyph::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDCheckBoxGlyph::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDCheckBoxGlyph, int>(0, pParent, pdwDeferCookie, ppElement);
+    return hr;
+}
+HRESULT DDCheckBoxGlyph::Register() {
+    static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+    {
+        &impCheckedStateProp
+    };
+    return ClassInfo<DDCheckBoxGlyph, DDScalableElement, StandardCreator<DDCheckBoxGlyph>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBoxGlyph", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+const PropertyInfo* WINAPI DDCheckBoxGlyph::CheckedStateProp() {
+    return &impCheckedStateProp;
+}
+bool DDCheckBoxGlyph::GetCheckedState() {
+    return this->GetPropCommon(CheckedStateProp, false);
+}
+void DDCheckBoxGlyph::SetCheckedState(bool bChecked) {
+    this->SetPropCommon(CheckedStateProp, bChecked, false);
+}
+
+IClassInfo* DDColorPicker::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDColorPicker::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDColorPicker::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDColorPicker::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDColorPicker, int>(0, pParent, pdwDeferCookie, ppElement);
+    if (SUCCEEDED(hr)) {
+        DWORD dw;
+        HANDLE drawingHandle = CreateThread(0, 0, ColorPickerLayout, (LPVOID)*ppElement, NULL, &dw);
+    }
+    return hr;
+}
+HRESULT DDColorPicker::Register() {
+    static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+    {
+        &impFirstScaledImageProp,
+        &impScaledImageIntervalsProp,
+        &impColorIntensityProp,
+        &impDefaultColorProp
+    };
+    return ClassInfo<DDColorPicker, Element, StandardCreator<DDColorPicker>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPicker", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+}
+int DDColorPicker::GetPropCommon(const PropertyProcT pPropertyProc) {
+    Value* pv = GetValue(pPropertyProc, 2, nullptr);
+    int v = pv->GetInt();
+    pv->Release();
+    return v;
+}
+void DDColorPicker::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt) {
+    Value* pv = Value::CreateInt(iCreateInt);
+    HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+    if (SUCCEEDED(hr)) {
+        hr = SetValue(pPropertyProc, 1, pv);
+        pv->Release();
+    }
+}
+const PropertyInfo* WINAPI DDColorPicker::FirstScaledImageProp() {
+    return &impFirstScaledImageProp;
+}
+int DDColorPicker::GetFirstScaledImage() {
+    return this->GetPropCommon(FirstScaledImageProp);
+}
+void DDColorPicker::SetFirstScaledImage(int iFirstImage) {
+    this->SetPropCommon(FirstScaledImageProp, iFirstImage);
+}
+const PropertyInfo* WINAPI DDColorPicker::ScaledImageIntervalsProp() {
+    return &impScaledImageIntervalsProp;
+}
+int DDColorPicker::GetScaledImageIntervals() {
+    int v = this->GetPropCommon(ScaledImageIntervalsProp);
+    if (v < 1) v = 1;
+    return v;
+}
+void DDColorPicker::SetScaledImageIntervals(int iScaleIntervals) {
+    this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals);
+}
+const PropertyInfo* WINAPI DDColorPicker::ColorIntensityProp() {
+    return &impColorIntensityProp;
+}
+int DDColorPicker::GetColorIntensity() {
+    return this->GetPropCommon(ColorIntensityProp);
+}
+void DDColorPicker::SetColorIntensity(int iColorIntensity) {
+    this->SetPropCommon(ColorIntensityProp, iColorIntensity);
+}
+const PropertyInfo* WINAPI DDColorPicker::DefaultColorProp() {
+    return &impDefaultColorProp;
+}
+int DDColorPicker::GetDefaultColor() {
+    return this->GetPropCommon(DefaultColorProp);
+}
+void DDColorPicker::SetDefaultColor(int iDefaultColor) {
+    this->SetPropCommon(DefaultColorProp, iDefaultColor);
+}
+RegKeyValue DDColorPicker::GetRegKeyValue() {
+    return _rkv;
+}
+void DDColorPicker::SetRegKeyValue(RegKeyValue rkvNew) {
+    _rkv = rkvNew;
+}
+vector<DDScalableElement*> DDColorPicker::GetTargetElements() {
+    return _targetElems;
+}
+void DDColorPicker::SetTargetElements(vector<DDScalableElement*> vte) {
+    _targetElems = vte;
+}
+
+IClassInfo* DDColorPickerButton::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDColorPickerButton::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDColorPickerButton::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDColorPickerButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDColorPickerButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    if (SUCCEEDED(hr)) {
+        DWORD dw;
+        HANDLE drawingHandle = CreateThread(0, 0, PickerBtnFn, (LPVOID)*ppElement, NULL, &dw);
+    }
+    return hr;
+}
+HRESULT DDColorPickerButton::Register() {
+    return ClassInfo<DDColorPickerButton, Button, StandardCreator<DDColorPickerButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
+}
+COLORREF DDColorPickerButton::GetAssociatedColor() {
+    return _assocCR;
+}
+BYTE DDColorPickerButton::GetOrder() {
+    return _order;
+}
+vector<DDScalableElement*> DDColorPickerButton::GetTargetElements() {
+    return _targetElems;
+}
+void DDColorPickerButton::SetAssociatedColor(COLORREF cr) {
+    _assocCR = cr;
+}
+void DDColorPickerButton::SetOrder(BYTE bOrder) {
+    _order = bOrder;
+}
+void DDColorPickerButton::SetTargetElements(vector<DDScalableElement*> vte) {
+    _targetElems = vte;
 }
 
 LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

@@ -7,10 +7,10 @@
 
 				</Element>
 				<TouchButton layout="filllayout()" id="atom(prevpageMain)" layoutpos="left" class="pageselector">
-					<RichText layoutpos="left" background="resbmp(3001,7,-1,0,0,1,1)" content="resstr(140)" animation="rectangle|s|fast" width="160rp"/>
+					<RichText layoutpos="left" background="sgraphic(3001,7,-1,0,0,1,1)" content="resstr(140)" animation="rectangle|s|fast" width="160rp"/>
 				</TouchButton>
 				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" class="pageselector">
-					<RichText layoutpos="right" background="resbmp(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
+					<RichText layoutpos="right" background="sgraphic(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
 				</TouchButton>
 				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered(0x00000001)"/>
 				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>

@@ -151,15 +151,15 @@ HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType
     return hBitmap;
 }
 
-HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
+HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int pL, int pT, int pR, int pB)
 {
     BITMAP bmp;
     GetObject(hOriginalBitmap, sizeof(BITMAP), &bmp);
 
     int originalWidth = bmp.bmWidth;
     int originalHeight = bmp.bmHeight;
-    int newWidth = originalWidth + 2 * padding;
-    int newHeight = originalHeight + 2 * padding;
+    int newWidth = originalWidth + pL + pR;
+    int newHeight = originalHeight + pT + pB;
 
     HDC hdcScreen = GetDC(NULL);
     HDC hdcMem = CreateCompatibleDC(hdcScreen);
@@ -173,7 +173,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     HDC hdcOriginal = CreateCompatibleDC(hdcScreen);
     HBITMAP hOldOriginalBitmap = (HBITMAP)SelectObject(hdcOriginal, hOriginalBitmap);
 
-    BitBlt(hdcMem, padding, padding, originalWidth, originalHeight, hdcOriginal, 0, 0, SRCCOPY);
+    BitBlt(hdcMem, pL, pT, originalWidth, originalHeight, hdcOriginal, 0, 0, SRCCOPY);
 
     SelectObject(hdcOriginal, hOldOriginalBitmap);
     DeleteDC(hdcOriginal);
@@ -184,7 +184,7 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int padding)
     return hNewBitmap;
 }
 
-bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alphaValue) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
+bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alphaValue, COLORREF crOpt) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
 {
     BITMAP bm;
     GetObject(hbm, sizeof(bm), &bm);
@@ -216,7 +216,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
                 b = pPixel[0] & 0xFFFFFF;
                 a = pPixel[3] & 0xFFFFFF;
 
-                handler(r, g, b, a);
+                handler(r, g, b, a, crOpt);
 
                 pPixel[2] = r;
                 pPixel[1] = g;
@@ -249,7 +249,7 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
             {
                 a = (pPixel[3] & 0xFFFFFF);
 
-                handler(r, g, b, a);
+                handler(r, g, b, a, crOpt);
 
                 pPixel[2] = r;
                 pPixel[1] = g;
@@ -285,9 +285,6 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
     case 2: {
         BYTE* pBits = new BYTE[bmBits];
         GetBitmapBits(hbm, bmBits, pBits);
-
-        int x, y;
-        int r, g, b, a;
 
         vector<BYTE> vBitsR, vBitsG, vBitsB, vBitsA;
         vBitsR.assign(pBits, pBits + bmBits / 4);
@@ -344,14 +341,14 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
         break;
     }
     case 3: {
-        // blur radius is used here as colorref
-        // handlers do not affect this, except simple, which converts all alpha to the alphaValue arg
+        // handlers do not affect this, except a few.
+        // SimpleBitmapPixelHandler: converts all alpha to the alphaValue arg
+        // UndoPremultiplication: premultiplies the alpha by itself (lol)
         BYTE* pBits = new BYTE[bmBits];
         GetBitmapBits(hbm, bmBits, pBits);
 
         BYTE* pPixel;
         int x, y;
-        int r, g, b, a;
 
         for (y = 0; y < bm.bmHeight; y++)
         {
@@ -359,10 +356,11 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
 
             for (x = 0; x < bm.bmWidth; x++)
             {
-                pPixel[2] = (int)(blurradius % 16777216);
-                pPixel[1] = (int)((blurradius / 256) % 65536);
-                pPixel[0] = (int)((blurradius / 65536) % 256);
+                pPixel[2] = (int)(crOpt % 16777216);
+                pPixel[1] = (int)((crOpt / 256) % 65536);
+                pPixel[0] = (int)((crOpt / 65536) % 256);
                 pPixel[3] = (handler == SimpleBitmapPixelHandler) ? 255 * alphaValue : pPixel[3] * alphaValue;
+                if (handler == UndoPremultiplication) pPixel[3] = pow(pPixel[3] / 255.0, 2) * 255.0;
 
                 pPixel += 4;
             }
@@ -374,6 +372,62 @@ bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned i
     }
     }
 
+    return true;
+}
+
+bool CompositeBitmaps(HBITMAP hbmBg, HBITMAP hbmFg, bool hardLight, float hlCoef) {
+    BITMAP bmBg, bmFg;
+    GetObject(hbmBg, sizeof(bmBg), &bmBg);
+    GetObject(hbmFg, sizeof(bmFg), &bmFg);
+    if (!hbmBg || !hbmFg || bmBg.bmWidth != bmFg.bmWidth || bmBg.bmHeight != bmFg.bmHeight || bmBg.bmBitsPixel != 32 || bmFg.bmBitsPixel != 32) {
+        return false;
+    }
+    int bmBits = (bmBg.bmWidth) * (bmBg.bmHeight) * 4;
+    BYTE* pBitsBg = new BYTE[bmBits];
+    GetBitmapBits(hbmBg, bmBits, pBitsBg);
+    BYTE* pBitsFg = new BYTE[bmBits];
+    GetBitmapBits(hbmFg, bmBits, pBitsFg);
+
+    BYTE* pPixel, *pPixelSec;
+    int x, y;
+
+    for (y = 0; y < bmBg.bmHeight; y++)
+    {
+        pPixel = pBitsBg + bmBg.bmWidth * 4 * y;
+        pPixelSec = pBitsFg + bmFg.bmWidth * 4 * y;
+        for (x = 0; x < bmBg.bmWidth; x++)
+        {
+            float aBg = pPixel[3] / 255.0;
+            float aFg = pPixelSec[3] / 255.0;
+            float resultAlpha = aFg + aBg * (1.0 - aFg);
+            if (resultAlpha < 0.003) {
+                pPixel[2] = 0, pPixel[1] = 0, pPixel[0] = 0, pPixel[3] = 0;
+            }
+            else {
+                float r, g, b;
+                r = (pPixelSec[2] * aFg + pPixel[2] * aBg * (1.0 - aFg)) / resultAlpha;
+                g = (pPixelSec[1] * aFg + pPixel[1] * aBg * (1.0 - aFg)) / resultAlpha;
+                b = (pPixelSec[0] * aFg + pPixel[0] * aBg * (1.0 - aFg)) / resultAlpha;
+                if (hardLight) {
+                    float r2 = (pPixelSec[2] > 128) ? (1 - 2 * (1 - pPixel[2] / 255.0) * (1 - pPixelSec[2] / 255.0)) * 255 : 2 * (pPixel[2] * pPixelSec[2]) / 255.0;
+                    float g2 = (pPixelSec[1] > 128) ? (1 - 2 * (1 - pPixel[1] / 255.0) * (1 - pPixelSec[1] / 255.0)) * 255 : 2 * (pPixel[1] * pPixelSec[1]) / 255.0;
+                    float b2 = (pPixelSec[0] > 128) ? (1 - 2 * (1 - pPixel[0] / 255.0) * (1 - pPixelSec[0] / 255.0)) * 255 : 2 * (pPixel[0] * pPixelSec[0]) / 255.0;
+                    r = r2 * hlCoef + r * (1 - hlCoef), g = g2 * hlCoef + g * (1 - hlCoef), b = b2 * hlCoef + b * (1 - hlCoef);
+                }
+                pPixel[2] = r;
+                pPixel[1] = g;
+                pPixel[0] = b;
+                pPixel[3] = resultAlpha * 255.0;
+            }
+
+            pPixel += 4;
+            pPixelSec += 4;
+        }
+    }
+
+    SetBitmapBits(hbmBg, bmBits, pBitsBg);
+    delete[] pBitsBg;
+    delete[] pBitsFg;
     return true;
 }
 

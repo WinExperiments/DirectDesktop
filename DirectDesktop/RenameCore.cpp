@@ -47,9 +47,6 @@ void RenameCore(Element* elem) {
     WCHAR* newFilename = new WCHAR[256];
     StringCchPrintfW(newFilename, 256, newFilenameBuffer.c_str(), newText.c_str());
     if (hr != E_FAIL && MoveFileW(RemoveQuotes(selectedElement->GetFilename()).c_str(), RemoveQuotes(newFilename).c_str())) {
-        selectedElement->SetFilename(newFilename);
-        selectedElement->SetSimpleFilename(newText);
-        SelectItemListener(selectedElement, Element::SelectedProp(), 69, NULL, NULL);
         SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, NULL, NULL);
         SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, NULL);
     }

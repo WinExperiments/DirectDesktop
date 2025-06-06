@@ -5,6 +5,8 @@
 #include "ImmersiveColor.h"
 #include "DirectoryHelper.h"
 #include "cdpa.h"
+#include <vector>
+#include <map>
 #include <uxtheme.h>
 
 COLORREF ImmersiveColor;
@@ -34,14 +36,12 @@ HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
 void UpdateModeInfo() {
     theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
     ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
-    WhiteText.r = GetRValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
-    WhiteText.g = GetGValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
-    WhiteText.b = GetBValue(CImmersiveColor::GetColor(IMCLR_StartDesktopTilesText));
+    if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", ImmersiveColor, false, nullptr);
 }
 
-void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
-{
-    UpdateAccentColor(ImmersiveColor);
+void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    if (crOpt == NULL) crOpt = ImmersiveColor;
+    UpdateAccentColor(crOpt);
     rgb_t rgbVal = { r, g, b };
 
     hsl_t hslVal = rgb2hsl(rgbVal);
@@ -66,9 +66,9 @@ void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a)
     b = rgbVal.b;
 }
 
-void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a)
-{
-    UpdateAccentColor(ImmersiveColor);
+void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    if (crOpt == NULL) crOpt = ImmersiveColor;
+    UpdateAccentColor(crOpt);
     rgb_t rgbVal = { r, g, b };
 
     hsl_t hslVal = rgb2hsl(rgbVal);
@@ -95,23 +95,20 @@ void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a)
     b = rgbVal.b;
 }
 
-void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a)
-{
+void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
     r = 0;
     g = 0;
     b = 0;
 }
 
-void UndoPremultiplication(int& r, int& g, int& b, int& a)
-{
+void UndoPremultiplication(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
     rgb_t rgbVal = { r, g, b };
     r = rgbVal.r / (a / 255.0);
     g = rgbVal.g / (a / 255.0);
     b = rgbVal.b / (a / 255.0);
 }
 
-void DesaturateWhiten(int& r, int& g, int& b, int& a)
-{
+void DesaturateWhiten(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
     rgb_t rgbVal = { r, g, b };
     hsl_t hslVal = rgb2hsl(rgbVal);
 
@@ -121,6 +118,70 @@ void DesaturateWhiten(int& r, int& g, int& b, int& a)
     b = 255.0;
 }
 
+void ColorToAlpha(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    // https://stackoverflow.com/a/40862635
+    int r1 = GetRValue(crOpt);
+    int r2 = GetGValue(crOpt);
+    int r3 = GetBValue(crOpt);
+    rgb_t rgbThreshold = { r1, r2, r3 };
+    hsl_t hslThreshold = rgb2hsl(rgbThreshold);
+    if (hslThreshold.l < 208) {
+        a *= 0.8;
+        return;
+    }
+    rgb_t rgbVal = { r, g, b };
+    double aA{}, a1{}, a2{}, a3{}, maxA = 255.0, maxX = 255.0;
+
+    if (r > r1) a1 = maxA * (r - r1) / (maxX - r1);
+    else if (r < r1) a1 = maxA * (r1 - r) / r1;
+    else a1 = 0.0;
+
+    if (g > r2) a2 = maxA * (g - r2) / (maxX - r2);
+    else if (g < r2) a2 = maxA * (r2 - g) / r2;
+    else a2 = 0.0;
+
+    if (b > r3) a3 = maxA * (b - r3) / (maxX - r3);
+    else if (b < r3) a3 = maxA * (r3 - b) / r3;
+    else a3 = 0.0;
+
+    aA = a1;
+    if (a2 > aA) aA = a2;
+    if (a3 > aA) aA = a3;
+
+    if (aA >= maxA / maxX) {
+        a = aA * a / 255.0;
+        rgbVal.r = maxA * (r - r1) / aA + r1;
+        rgbVal.g = maxA * (g - r2) / aA + r2;
+        rgbVal.b = maxA * (b - r3) / aA + r3;
+
+        // Color inversion while maintaining hues
+        hsl_t hslVal = rgb2hsl(rgbVal);
+        if (hslVal.h >= 180.0) hslVal.h -= 180.0;
+        else hslVal.h += 180.0;
+        rgbVal = hsl2rgb(hslVal);
+        r = 255.0 - rgbVal.r;
+        g = 255.0 - rgbVal.g;
+        b = 255.0 - rgbVal.b;
+    }
+    else {
+        a = 0;
+        r = 0;
+        g = 0;
+        b = 0;
+    }
+}
+
+void InvertConstHue(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    rgb_t rgbVal = { r, g, b };
+    hsl_t hslVal = rgb2hsl(rgbVal);
+    if (hslVal.h >= 180.0) hslVal.h -= 180.0;
+    else hslVal.h += 180.0;
+    rgbVal = hsl2rgb(hslVal);
+    r = 255.0 - rgbVal.r;
+    g = 255.0 - rgbVal.g;
+    b = 255.0 - rgbVal.b;
+}
+
 struct BUCKET {
     CDPA<RGBQUAD, CTContainer_PolicyUnOwned<RGBQUAD>> _dpa;
     BUCKET() {
@@ -128,8 +189,8 @@ struct BUCKET {
     }
 };
 
-COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize) {
-    COLORREF outDominantColor = RGB(128, 136, 144);
+COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold) {
+    COLORREF outDominantColor = isColorized ? IconColorizationColor : isDarkIconsEnabled ? RGB(72, 76, 80) : RGB(128, 136, 144);
 
     HDC hMemDC = CreateCompatibleDC(nullptr);
     HDC hMemDC2 = CreateCompatibleDC(nullptr);
@@ -152,7 +213,6 @@ COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize) {
         GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
 
         constexpr int bucketCoef = 86;
-        constexpr int nonGreyishThreshold = 48;
         constexpr int hitRatioThreshold = 7;
 
         constexpr int frac = 0xFF / (bucketCoef - 1);
@@ -162,13 +222,9 @@ COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize) {
                 + (0xFF / bucketCoef)
                 + 1
         ];
-        for (int row = 0; row < 32; ++row, pbBuffer += cxRow - 32) {
-            for (int column = 0; column < 32; ++column, ++pbBuffer) {
+        for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize) {
+            for (int column = 0; column < iconsize; ++column, ++pbBuffer) {
                 if (pbBuffer->rgbReserved) {
-                    pbBuffer->rgbRed = 0xFF * pbBuffer->rgbRed / pbBuffer->rgbReserved;
-                    pbBuffer->rgbGreen = 0xFF * pbBuffer->rgbGreen / pbBuffer->rgbReserved;
-                    pbBuffer->rgbBlue = 0xFF * pbBuffer->rgbBlue / pbBuffer->rgbReserved;
-
                     BYTE maxValue = max(pbBuffer->rgbRed, max(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
                     BYTE minValue = min(pbBuffer->rgbRed, min(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
                     if (maxValue - minValue > nonGreyishThreshold) {
@@ -221,6 +277,64 @@ COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize) {
             odcTemp1 = hsl2rgb(odcTemp2);
             outDominantColor = RGB(odcTemp1.r, odcTemp1.g, odcTemp1.b);
         }
+
+        EndBufferedPaint(hBufferedPaint, FALSE);
+        DeleteObject(hOldBitmap);
+        DeleteDC(hMemDC);
+        DeleteDC(hMemDC2);
+    }
+
+    return outDominantColor;
+}
+
+COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize) {
+    COLORREF outDominantColor = RGB(136, 136, 136);
+
+    HDC hMemDC = CreateCompatibleDC(nullptr);
+    HDC hMemDC2 = CreateCompatibleDC(nullptr);
+
+    RECT rcIcon;
+    rcIcon.left = 0;
+    rcIcon.top = 0;
+    rcIcon.right = iconsize;
+    rcIcon.bottom = iconsize;
+
+    HDC hdcPaint;
+    HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hMemDC, &rcIcon, BPBF_TOPDOWNDIB, nullptr, &hdcPaint);
+    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC2, hbm);
+    if (hBufferedPaint) {
+        BufferedPaintClear(hBufferedPaint, &rcIcon);
+        BitBlt(hdcPaint, rcIcon.left, rcIcon.top, rcIcon.right, rcIcon.bottom, hMemDC2, 0, 0, SRCCOPY);
+
+        RGBQUAD* pbBuffer;
+        int cxRow;
+        GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
+        vector<BYTE> lightValues;
+
+        for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize) {
+            for (int column = 0; column < iconsize; ++column, ++pbBuffer) {
+                if (pbBuffer->rgbReserved > 64) {
+                    rgb_t rgbVal = { pbBuffer->rgbRed, pbBuffer->rgbGreen, pbBuffer->rgbBlue };
+                    hsl_t hslVal = rgb2hsl(rgbVal);
+                    hslVal.l = round(hslVal.l / 32.0) * 32;
+                    if (hslVal.l > 255) hslVal.l = 255;
+                    lightValues.push_back(hslVal.l);
+                }
+            }
+        }
+
+        map<int, int> lightMap = {};
+        int lightCount = 0;
+        int lightVal = 0;
+
+        for (auto&& item : lightValues) {
+            lightMap[item] = lightMap.emplace(item, 0).first->second + 1;
+            if (lightMap[item] >= lightCount) {
+                tie(lightCount, lightVal) = tie(lightMap[item], item);
+            }
+        }
+
+        outDominantColor = RGB(lightVal, lightVal, lightVal);
 
         EndBufferedPaint(hBufferedPaint, FALSE);
         DeleteObject(hOldBitmap);

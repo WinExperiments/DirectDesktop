@@ -5,6 +5,7 @@
 #include <shlwapi.h>
 #include <exdisp.h>
 #include <ShlGuid.h>
+#include <algorithm>
 #pragma comment (lib, "comctl32.lib")
 #pragma comment (lib, "shlwapi.lib")
 
@@ -50,29 +51,28 @@ void ThumbIcons::SetColorLock(bool colorLockState) {
     _colorLock = colorLockState;
 }
 
-wstring hideExt(const wstring& filename, bool isEnabled, bool dir, vector<LVItem*>* shortpm, int* index) {
+wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm) {
     if (isEnabled) {
         if (dir) {
-            if (index != nullptr) (*index)++;
             return filename;
         }
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
+            if (shortpm != nullptr) shortpm->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
+            if (shortpm != nullptr) shortpm->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
+            if (shortpm != nullptr) shortpm->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
-        if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(false);
+        if (shortpm != nullptr) shortpm->SetShortcutState(false);
         if (lastdot == wstring::npos) return filename;
         return filename.substr(0, lastdot);
     }
@@ -80,20 +80,20 @@ wstring hideExt(const wstring& filename, bool isEnabled, bool dir, vector<LVItem
         size_t lastdot = filename.find(L".lnk");
         if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
+            if (shortpm != nullptr) shortpm->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) lastdot = filename.find(L".url");
         else {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
+            if (shortpm != nullptr) shortpm->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
         if (lastdot == wstring::npos) {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(false);
+            if (shortpm != nullptr) shortpm->SetShortcutState(false);
             return filename;
         }
         else {
-            if (index != nullptr) (*shortpm)[(*index)++]->SetShortcutState(true);
+            if (shortpm != nullptr) shortpm->SetShortcutState(true);
             return filename.substr(0, lastdot);
         }
     }
@@ -101,18 +101,20 @@ wstring hideExt(const wstring& filename, bool isEnabled, bool dir, vector<LVItem
 wstring hideExtFromGetPos(const wstring& filename, bool isEnabled) {
     for (int i = 0; i < filestructs.size(); i++) {
         if (filename == filestructs[i].rawstr) {
-            return hideExt(filename, isEnabled, (filestructs[i].attr & 16), nullptr, nullptr);
+            return hideExt(filename, isEnabled, (filestructs[i].attr & 16), nullptr);
         }
     }
     return filename;
 }
-vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".ai", L".avi", L".avif", L".bmp", L".flv" L".gif", L".heic", L".heif", L".ico",
-    L".jfif", L".jpe", L".jpeg", L".jpg", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf"};
+vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".accountpicture-ms", L".ai", L".avi", L".avif", L".bmp", L".flv" L".gif", L".heic", L".heif", L".ico",
+    L".jfif", L".jpe", L".jpeg", L".jpg", L".mov", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf"};
 
 int extIterator;
 void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result) {
     if (bReset) extIterator = 0;
-    size_t lastdot = filename.find(ext);
+    wstring filename2 = filename;
+    transform(filename2.begin(), filename2.end(), filename2.begin(), ::tolower);
+    size_t lastdot = filename2.find(ext);
     if (extIterator == imageExts.size() - 1) {
         *result = false;
         return;
@@ -122,6 +124,23 @@ void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* res
         *result = true;
         return;
     }
+}
+
+bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind) {
+    HKEY hKey = nullptr;
+    LONG lResult;
+    lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_READ, &hKey);
+    if (lResult == ERROR_FILE_NOT_FOUND) return false;
+
+    DWORD type;
+    DWORD dataSize = 0;
+    lResult = RegQueryValueExW(hKey, valueToFind, nullptr, &type, nullptr, &dataSize);
+    RegCloseKey(hKey);
+
+    if (lResult == ERROR_FILE_NOT_FOUND) return false;
+    else if (lResult != ERROR_SUCCESS) return false;
+
+    return true;
 }
 
 int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind) {
@@ -184,6 +203,30 @@ BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFi
     }
     return result;
 }
+void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, BYTE* bValue, DWORD length, bool find, bool* isNewValue) {
+    int result{};
+    DWORD dwSize{};
+    HKEY hKey;
+    LONG lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
+    if (lResult == ERROR_FILE_NOT_FOUND) {
+        lResult = RegCreateKeyExW(hKeyName, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+        if (lResult == ERROR_SUCCESS) {
+            lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
+            if (isNewValue != nullptr) *isNewValue = true;
+        }
+    }
+    else if (lResult == ERROR_SUCCESS) {
+        if (lResult == ERROR_SUCCESS && find == false) {
+            lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
+            if (isNewValue != nullptr) *isNewValue = false;
+        }
+        else if (lResult != ERROR_SUCCESS) {
+            lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
+            if (isNewValue != nullptr) *isNewValue = true;
+        }
+    }
+    RegCloseKey(hKey);
+}
 
 wstring GetExplorerTooltipText(const wstring& filePath) {
     wstring tooltipText;
@@ -210,8 +253,62 @@ wstring GetExplorerTooltipText(const wstring& filePath) {
     return tooltipText;
 }
 
+unsigned long MonitorFileChanges(LPVOID lpParam) {
+    WCHAR* path = static_cast<WCHAR*>(lpParam);
+    HANDLE hDir = CreateFileW(path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (hDir == INVALID_HANDLE_VALUE) {
+        TaskDialog(NULL, NULL, LoadStrFromRes(4025).c_str(), L"Failed to open directory handle", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+        return 1;
+    }
+
+    BYTE buffer[1024];
+    DWORD bytesReturned;
+    while (true) {
+        if (ReadDirectoryChangesW(hDir, &buffer, sizeof(buffer), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME
+            | FILE_NOTIFY_CHANGE_ATTRIBUTES, &bytesReturned, NULL, NULL)) {
+            FILE_NOTIFY_INFORMATION* pNotify = nullptr;
+            size_t offset = 0;
+            do {
+                pNotify = (FILE_NOTIFY_INFORMATION*)((BYTE*)buffer + offset);
+                wstring filename(pNotify->FileName, pNotify->FileNameLength / sizeof(WCHAR));
+                switch (pNotify->Action) {
+                case FILE_ACTION_ADDED:
+                    InitNewLVItem(path, filename);
+                    break;
+                case FILE_ACTION_REMOVED:
+                    RemoveLVItem(path, filename);
+                    break;
+                case FILE_ACTION_RENAMED_OLD_NAME:
+                    UpdateLVItem(path, filename, 1);
+                    break;
+                case FILE_ACTION_RENAMED_NEW_NAME:
+                    UpdateLVItem(path, filename, 2);
+                    break;
+                }
+                offset += pNotify->NextEntryOffset;
+            } while (pNotify->NextEntryOffset != 0);
+        }
+        else {
+            TaskDialog(NULL, NULL, LoadStrFromRes(4025).c_str(), L"Failed to read directory changes", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+            break;
+        }
+    }
+
+    CloseHandle(hDir);
+    delete[] path;
+    return 0;
+}
+void StartMonitorFileChanges(const wstring& path) {
+    if (!PathFileExistsW(path.c_str())) return;
+    size_t size = (path.length() + 1);
+    WCHAR* pathCopy = new WCHAR[size];
+    wcscpy_s(pathCopy, size, path.c_str());
+    HANDLE hThread = CreateThread(0, 0, MonitorFileChanges, (LPVOID)pathCopy, NULL, NULL);
+}
+
 static int checkSpotlight{};
-void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* dirIndex, int* hiddenIndex, int* shortIndex, int* count2) {
+void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* count2) {
     if (clsid == L"{645FF040-5081-101B-9F08-00AA002F954E}") {
         if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == -1) {
             WCHAR clsidEx[64];
@@ -226,9 +323,6 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
             (*pm)[(*count2)]->SetSimpleFilename(displayName);
             (*pm)[(*count2)]->SetFilename(clsidEx);
             (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
-            (*dirIndex)++;
-            (*hiddenIndex)++;
-            (*shortIndex)++;
             (*count2)++;
             return;
         }
@@ -248,9 +342,6 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
             (*pm)[(*count2)]->SetSimpleFilename(displayName);
             (*pm)[(*count2)]->SetFilename(clsidEx);
             if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
-            (*dirIndex)++;
-            (*hiddenIndex)++;
-            (*shortIndex)++;
             (*count2)++;
         }
         return;
@@ -268,24 +359,19 @@ void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int*
         (*pm)[(*count2)]->SetSimpleFilename(displayName);
         (*pm)[(*count2)]->SetFilename(clsidEx);
         if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
-        (*dirIndex)++;
-        (*hiddenIndex)++;
-        (*shortIndex)++;
         (*count2)++;
         return;
     }
 }
 
-void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountItems, unsigned short* countedItems, int* count2, unsigned short limit) {
+void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigned short* countedItems, int* count2, unsigned short limit) {
     if (!PathFileExistsW(path) && path != L"InternalCodeForNamespace") {
         WCHAR details[320];
         StringCchPrintfW(details, 320, L"Error: Can't find %s.", path);
         MainLogger.WriteLine(details);
         return;
     }
-    static int dirIndex{}, hiddenIndex{}, shortIndex{};
     int runs = 0;
-    if (bReset) dirIndex = 0, hiddenIndex = 0, shortIndex = 0;
     int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
     int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
     int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
@@ -318,12 +404,12 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
         LoadStringW(WinStorageDLL, 9217, Network, 260);
         wchar_t* LearnAbout = new wchar_t[260];
         LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
-        FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, &dirIndex, &hiddenIndex, &shortIndex, count2);
-        FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, &dirIndex, &hiddenIndex, &shortIndex, count2);
-        FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), &dirIndex, &hiddenIndex, &shortIndex, count2);
-        FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, &dirIndex, &hiddenIndex, &shortIndex, count2);
-        FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, &dirIndex, &hiddenIndex, &shortIndex, count2);
-        FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, &dirIndex, &hiddenIndex, &shortIndex, count2);
+        FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
+        FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
+        FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), count2);
+        FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, count2);
+        FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, count2);
+        FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2);
         delete[] ThisPC;
         delete[] RecycleBin;
         delete[] UserFiles;
@@ -366,7 +452,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                     if (fd.dwFileAttributes & 2) (*pm)[*(count2)]->SetHiddenState(true);
                     else (*pm)[*(count2)]->SetHiddenState(false);
                     filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
-                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), pm, &shortIndex);
+                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), (*pm)[*(count2)]);
                     foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
                     if (isThumbnailHidden == 0) {
                         bool image;
@@ -377,21 +463,13 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bReset, bool bCountI
                     (*pm)[*(count2)]->SetFilename(foundfilename);
                     (*pm)[*(count2)]->SetAccDesc(GetExplorerTooltipText(fd.cFileName).c_str());
                 }
-                dirIndex++;
-                hiddenIndex++;
             }
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
-                dirIndex--;
-                hiddenIndex--;
-                shortIndex--;
                 pMalloc->Free(pidl);
                 continue;
             }
             if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0) {
                 if (fd.dwFileAttributes & 4) {
-                    dirIndex--;
-                    hiddenIndex--;
-                    shortIndex--;
                     pMalloc->Free(pidl);
                     continue;
                 }
@@ -794,4 +872,121 @@ void GetPos(bool getSpotlightIcon, int* setSpotlightIcon) {
     pmFileBuf.clear();
     pmFileShadowBuf.clear();
     pmCBBuf.clear();
+}
+void GetPos2(bool full) {
+    WCHAR DesktopLayoutWithSize[24];
+    if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+    else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+    BYTE* value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize);
+    size_t offset2 = 0;
+    if (full) {
+        for (int i = 0; i < pm.size(); i++) {
+            unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+            offset2 += 2;
+            wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
+            offset2 += (namelen * 2);
+            bool match = false;
+            for (int j = 0; j < pm.size(); j++) {
+                if (pm[j]->GetFilename() == filename) {
+                    unsigned short xPos = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                    offset2 += 2;
+                    pm[j]->SetInternalXPos(xPos);
+                    unsigned short yPos = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                    offset2 += 6;
+                    pm[j]->SetInternalYPos(yPos);
+                    unsigned short page = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                    offset2 += 2;
+                    pm[j]->SetPage(page);
+                    if (page > maxPageID) maxPageID = page;
+                    match = true;
+                    break;
+                }
+            }
+            if (!match) offset2 += 10;
+        }
+    }
+    value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable");
+    offset2 = 0;
+    for (int i = 0; i < pm.size(); i++) {
+        unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+        offset2 += 2;
+        wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
+        offset2 += (namelen * 2);
+        bool match = false;
+        for (int j = 0; j < pm.size(); j++) {
+            if (pm[j]->GetFilename() == filename) {
+                COLORREF color = *reinterpret_cast<COLORREF*>(&value2[offset2]);
+                offset2 += 4;
+                iconpm[j]->SetAssociatedColor(color);
+                unsigned short intensity = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                offset2 += 2;
+                iconpm[j]->SetDDCPIntensity(intensity);
+                match = true;
+                break;
+            }
+        }
+        if (!match) offset2 += 6;
+    }
+}
+void SetPos() {
+    vector<BYTE> DesktopLayout;
+    RECT dimensions;
+    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+    for (int i = 0; i < pm.size(); i++) {
+        unsigned short xPos = (localeType == 1) ? dimensions.right - pm[i]->GetX() - pm[i]->GetWidth() : pm[i]->GetX();
+        wstring filename = pm[i]->GetFilename();
+        unsigned short temp = filename.length();
+        const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(namelen[0]);
+        DesktopLayout.push_back(namelen[1]);
+        const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
+        size_t len = (filename.length()) * sizeof(WCHAR);
+        DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
+        temp = pm[i]->GetInternalXPos();
+        const BYTE* xBinary = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(xBinary[0]);
+        DesktopLayout.push_back(xBinary[1]);
+        temp = pm[i]->GetInternalYPos();
+        const BYTE* yBinary = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(yBinary[0]);
+        DesktopLayout.push_back(yBinary[1]);
+        temp = xPos;
+        const BYTE* xPosBinary = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(xPosBinary[0]);
+        DesktopLayout.push_back(xPosBinary[1]);
+        temp = (unsigned short)pm[i]->GetY();
+        const BYTE* yPosBinary = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(yPosBinary[0]);
+        DesktopLayout.push_back(yPosBinary[1]);
+        temp = pm[i]->GetPage();
+        const BYTE* pageBinary = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(pageBinary[0]);
+        DesktopLayout.push_back(pageBinary[1]);
+    }
+    WCHAR DesktopLayoutWithSize[24];
+    if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+    else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+    SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
+    DesktopLayout.clear();
+    for (int i = 0; i < pm.size(); i++) {
+        wstring filename = pm[i]->GetFilename();
+        unsigned short temp = filename.length();
+        const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(namelen[0]);
+        DesktopLayout.push_back(namelen[1]);
+        const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
+        size_t len = (filename.length()) * sizeof(WCHAR);
+        DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
+        COLORREF tempC = iconpm[i]->GetAssociatedColor();
+        const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&tempC);
+        DesktopLayout.push_back(colorBinary[0]);
+        DesktopLayout.push_back(colorBinary[1]);
+        DesktopLayout.push_back(colorBinary[2]);
+        DesktopLayout.push_back(colorBinary[3]);
+        temp = iconpm[i]->GetDDCPIntensity();
+        const BYTE* intensityBinary = reinterpret_cast<const BYTE*>(&temp);
+        DesktopLayout.push_back(intensityBinary[0]);
+        DesktopLayout.push_back(intensityBinary[1]);
+    }
+    SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
 }

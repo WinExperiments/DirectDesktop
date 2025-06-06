@@ -12,8 +12,6 @@ extern float flScaleFactor;
 extern NativeHWNDHost* subviewwnd;
 extern int GetCurrentScaleInterval();
 extern struct yValue;
-extern struct EventListener2;
-extern void assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2));
 
 struct RegKeyValue {
     HKEY _hKeyName;
@@ -36,24 +34,30 @@ public:
     static const PropertyInfo* WINAPI DrawTypeProp();
     static const PropertyInfo* WINAPI EnableAccentProp();
     static const PropertyInfo* WINAPI NeedsFontResizeProp();
+    static const PropertyInfo* WINAPI AssociatedColorProp();
     int GetFirstScaledImage();
     int GetScaledImageIntervals();
     int GetDrawType();
-    int GetEnableAccent();
-    int GetNeedsFontResize();
+    bool GetEnableAccent();
+    bool GetNeedsFontResize();
+    int GetAssociatedColor();
     void SetFirstScaledImage(int iFirstImage);
     void SetScaledImageIntervals(int iScaleIntervals);
     void SetDrawType(int iDrawType);
-    void SetEnableAccent(int iEnableAccent);
-    void SetNeedsFontResize(int iNeedsFontResize);
+    void SetEnableAccent(bool bEnableAccent);
+    void SetNeedsFontResize(bool bNeedsFontResize);
+    void SetAssociatedColor(int iAssociatedColor);
+    int GetDDCPIntensity();
+    void SetDDCPIntensity(int intensity);
     void InitDrawImage();
     static void RedrawImages();
     void InitDrawFont();
     static void RedrawFonts();
 protected:
     static vector<DDScalableElement*> _arrCreatedElements;
-    int GetPropCommon(const PropertyProcT pPropertyProc);
-    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+    int _intensity = 255;
+    auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
+    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 private:
     static IClassInfo* s_pClassInfo;
 };
@@ -72,35 +76,41 @@ public:
     static const PropertyInfo* WINAPI DrawTypeProp();
     static const PropertyInfo* WINAPI EnableAccentProp();
     static const PropertyInfo* WINAPI NeedsFontResizeProp();
+    static const PropertyInfo* WINAPI AssociatedColorProp();
     int GetFirstScaledImage();
     int GetScaledImageIntervals();
     int GetDrawType();
-    int GetEnableAccent();
-    int GetNeedsFontResize();
+    bool GetEnableAccent();
+    bool GetNeedsFontResize();
+    int GetAssociatedColor();
     void SetFirstScaledImage(int iFirstImage);
     void SetScaledImageIntervals(int iScaleIntervals);
     void SetDrawType(int iDrawType);
-    void SetEnableAccent(int iEnableAccent);
-    void SetNeedsFontResize(int iNeedsFontResize);
+    void SetEnableAccent(bool bEnableAccent);
+    void SetNeedsFontResize(bool bNeedsFontResize);
+    void SetAssociatedColor(int iAssociatedColor);
     void InitDrawImage();
     static void RedrawImages();
     void InitDrawFont();
     static void RedrawFonts();
 
     RegKeyValue GetRegKeyValue();
-    void(*GetAssociatedFn())(bool, bool);
+    void(*GetAssociatedFn())(bool, bool, bool);
     bool* GetAssociatedBool();
+    int GetDDCPIntensity();
     void SetRegKeyValue(RegKeyValue rkvNew);
-    void SetAssociatedFn(void(*pfn)(bool, bool));
+    void SetAssociatedFn(void(*pfn)(bool, bool, bool));
     void SetAssociatedBool(bool* pb);
-    void ExecAssociatedFn(void(*pfn)(bool, bool), bool fnb1, bool fnb2);
+    void SetDDCPIntensity(int intensity);
+    void ExecAssociatedFn(void(*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
 protected:
     static vector<DDScalableButton*> _arrCreatedButtons;
     RegKeyValue _rkv{};
-    void(*_assocFn)(bool, bool) = nullptr;
+    void(*_assocFn)(bool, bool, bool) = nullptr;
     bool* _assocBool = nullptr;
-    int GetPropCommon(const PropertyProcT pPropertyProc);
-    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+    int _intensity = 255;
+    auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
+    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 private:
     static IClassInfo* s_pClassInfo;
 };
@@ -168,8 +178,114 @@ public:
     IClassInfo* GetClassInfoW() override;
     static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
     static HRESULT Register();
+    static const PropertyInfo* WINAPI CheckedStateProp();
+    bool GetCheckedState();
+    void SetCheckedState(bool bChecked);
 private:
     static IClassInfo* s_pClassInfo;
+};
+
+class DDCheckBox final : public DDScalableButton {
+public:
+    DDCheckBox() {
+
+    }
+    virtual ~DDCheckBox() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    static const PropertyInfo* WINAPI CheckedStateProp();
+    bool GetCheckedState();
+    void SetCheckedState(bool bChecked);
+private:
+    static IClassInfo* s_pClassInfo;
+};
+
+class DDCheckBoxGlyph final : public DDScalableElement {
+public:
+    DDCheckBoxGlyph() {
+
+    }
+    virtual ~DDCheckBoxGlyph() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    static const PropertyInfo* WINAPI CheckedStateProp();
+    bool GetCheckedState();
+    void SetCheckedState(bool bChecked);
+private:
+    static IClassInfo* s_pClassInfo;
+};
+
+class DDColorPicker final : public Element {
+public:
+    DDColorPicker() {
+
+    }
+    virtual ~DDColorPicker() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    static const PropertyInfo* WINAPI FirstScaledImageProp();
+    static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+    static const PropertyInfo* WINAPI ColorIntensityProp();
+    static const PropertyInfo* WINAPI DefaultColorProp();
+    int GetFirstScaledImage();
+    int GetScaledImageIntervals();
+    int GetColorIntensity();
+    int GetDefaultColor();
+    void SetFirstScaledImage(int iFirstImage);
+    void SetScaledImageIntervals(int iScaleIntervals);
+    void SetColorIntensity(int iColorIntensity);
+    void SetDefaultColor(int iDefaultColor);
+    RegKeyValue GetRegKeyValue();
+    void SetRegKeyValue(RegKeyValue rkvNew);
+    vector<DDScalableElement*> GetTargetElements();
+    void SetTargetElements(vector<DDScalableElement*> vte);
+private:
+    static IClassInfo* s_pClassInfo;
+    RegKeyValue _rkv{};
+    vector<DDScalableElement*> _targetElems{};
+    int GetPropCommon(const PropertyProcT pPropertyProc);
+    void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+};
+
+class DDColorPickerButton final : public Button {
+public:
+    DDColorPickerButton() {
+
+    }
+    virtual ~DDColorPickerButton() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    COLORREF GetAssociatedColor();
+    BYTE GetOrder();
+    vector<DDScalableElement*> GetTargetElements();
+    void SetAssociatedColor(COLORREF cr);
+    void SetOrder(BYTE bOrder);
+    void SetTargetElements(vector<DDScalableElement*> vte);
+private:
+    static IClassInfo* s_pClassInfo;
+    COLORREF _assocCR{};
+    BYTE _order{};
+    vector<DDScalableElement*> _targetElems{};
 };
 
 enum DDNotificationType {
@@ -206,3 +322,6 @@ private:
     wstring _contentStr{};
     DDScalableElement* _content{};
 };
+
+void RedrawImageCore(DDScalableElement* pe);
+void RedrawFontCore(DDScalableElement* pe);

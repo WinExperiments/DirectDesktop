@@ -1,14 +1,15 @@
 <duixml>
+	<HWNDElement resid="editmodeblur" layout="filllayout()" background="rgb(0,0,0)"/>
 	<HWNDElement resid="editmode" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="edit">
 		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
 			<Element id="atom(popupbg)" class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client"/>
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
 			</Element>
-			//<TouchButton id="atom(newpage)" layoutpos="none" background="resbmp(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
-			<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)"/>
-			<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)"/>
-			<Element layoutpos="top" layout="filllayout()" id="atom(SimpleViewTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)">
+			//<TouchButton id="atom(newpage)" layoutpos="none" background="sgraphic(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
+			<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)" alpha="0" animation="alpha|s|veryfast|delayshort"/>
+			<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)" alpha="0" animation="alpha|s|veryfast|delayshort"/>
+			<Element layoutpos="top" layout="filllayout()" id="atom(SimpleViewTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
 				// minsize="size(0,128rp)"
 				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
 				<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
@@ -16,7 +17,7 @@
 					<Button id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
 				</Element>
 			</Element>
-			<Element layoutpos="bottom" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)">
+			<Element layoutpos="bottom" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
 				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
 					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 					<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
@@ -31,13 +32,14 @@
 	<DDScalableElement resid="fullscreeninner" layoutpos="absolute" background="black" animation="size|log|fast"/>
 	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1" animation="size|log|fast"/>
 	<Element resid="deskpreview" layoutpos="absolute" background="argb(0,0,0,0)" alpha="255" animation="size|log|fast"/>
+	<Element resid="deskpreviewmask" layoutpos="absolute" background="argb(255,0,255,255)" animation="size|log|fast"/>
 	<stylesheets>
 		<style resid="edit" base="ressheet(31, DDBase)">
 			<if class="roundoverlay">
 				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
-				<Element background="resbmp(164,7,-1,0,0,1,1)"/>
+				<Element background="sgraphic(164,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>
@@ -50,7 +52,7 @@
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+				<TouchButton layoutpos="absolute" width="0" background="sgraphic(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 		</style>
 		<style resid="editdark" base="ressheet(31, DDBaseDark)">
@@ -58,7 +60,7 @@
 				<DDScalableElement FirstScaledImage="265" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
-				<Element background="resbmp(264,7,-1,0,0,1,1)"/>
+				<Element background="sgraphic(264,7,-1,0,0,1,1)"/>
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
@@ -71,7 +73,7 @@
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+				<TouchButton layoutpos="absolute" width="0" background="sgraphic(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 		</style>
 	</stylesheets>

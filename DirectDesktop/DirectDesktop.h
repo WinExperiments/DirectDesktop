@@ -8,11 +8,19 @@
 using namespace DirectUI;
 
 #define DESKPADDING_NORMAL 4
-#define DESKPADDING_TOUCH 16 
+#define DESKPADDING_NORMAL_X 4
+#define DESKPADDING_NORMAL_Y 4
+#define DESKPADDING_TOUCH 8
+#define DESKPADDING_TOUCH_X 32
+#define DESKPADDING_TOUCH_Y 128
 
 // Common functions
 std::wstring LoadStrFromRes(UINT id);
 std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
+std::wstring RemoveQuotes(const std::wstring& input);
+
+unsigned long animate(LPVOID lpParam);
+unsigned long fastin(LPVOID lpParam);
 
 template <typename elemType>
 extern elemType regElem(const wchar_t* elemName, Element* peParent);

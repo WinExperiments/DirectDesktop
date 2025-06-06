@@ -91,12 +91,13 @@ void DesktopRightClick(Element* elem, Event* iev) {
             bool touchmodeMem{};
             switch (menuItemId) {
             case 2002:
-                InitLayout(false, false);
+                InitLayout(false, false, true);
                 break;
             case 2003:
                 ShowSimpleView();
                 break;
             case 1001:
+                SetPos();
                 globaliconsz = 144;
                 globalshiconsz = 48;
                 globalgpiconsz = 48;
@@ -104,12 +105,13 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 144, false, nullptr);
                 if (touchmodeMem) {
-                    InitLayout(false, false);
+                    InitLayout(false, false, false);
                     break;
                 }
-                RearrangeIcons(true, true);
+                RearrangeIcons(true, true, false);
                 break;
             case 1002:
+                SetPos();
                 globaliconsz = 96;
                 globalshiconsz = 48;
                 globalgpiconsz = 32;
@@ -117,12 +119,13 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 96, false, nullptr);
                 if (touchmodeMem) {
-                    InitLayout(false, false);
+                    InitLayout(false, false, false);
                     break;
                 }
-                RearrangeIcons(true, true);
+                RearrangeIcons(true, true, false);
                 break;
             case 1003:
+                SetPos();
                 globaliconsz = 48;
                 globalshiconsz = 32;
                 globalgpiconsz = 16;
@@ -130,12 +133,13 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 48, false, nullptr);
                 if (touchmodeMem) {
-                    InitLayout(false, false);
+                    InitLayout(false, false, false);
                     break;
                 }
-                RearrangeIcons(true, true);
+                RearrangeIcons(true, true, false);
                 break;
             case 1004:
+                SetPos();
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
@@ -143,22 +147,23 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 touchmode = false;
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", 32, false, nullptr);
                 if (touchmodeMem) {
-                    InitLayout(false, false);
+                    InitLayout(false, false, false);
                     break;
                 }
-                RearrangeIcons(true, true);
+                RearrangeIcons(true, true, false);
                 break;
             case 1005:
+                SetPos();
                 globaliconsz = 32;
                 globalshiconsz = 32;
                 globalgpiconsz = 12;
                 touchmodeMem = touchmode;
                 touchmode = true;
                 if (!touchmodeMem) {
-                    InitLayout(false, false);
+                    InitLayout(false, false, false);
                     break;
                 }
-                RearrangeIcons(true, true);
+                RearrangeIcons(true, true, false);
                 break;
             case 1007:
                 for (int items = 0; items < pm.size(); items++) {

@@ -8,6 +8,7 @@ extern bool editmode;
 extern bool invokedpagechange;
 extern NativeHWNDHost* wnd;
 extern NativeHWNDHost* editwnd;
+extern NativeHWNDHost* editbgwnd;
 extern HWND hWndTaskbar, hSHELLDLL_DefView;
 extern Element* mainContainer;
 extern int localeType;

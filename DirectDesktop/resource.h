@@ -8,7 +8,7 @@
 #define IDR_UIFILE3                     33
 #define IDR_UIFILE4                     34
 #define IDR_UIFILE5                     35
-#define IDR_UIFILE6						36
+#define IDR_UIFILE6                     36
 #define IDD_DUIAPPTEMPLATE_DIALOG       102
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
@@ -40,6 +40,13 @@
 #define IDS_STRING143                   143
 #define IDS_STRING144                   144
 #define IDS_STRING145                   145
+#define IDS_STRING146                   146
+#define IDS_STRING147                   147
+#define IDS_STRING148                   148
+#define IDS_STRING149                   149
+#define IDS_STRING150                   150
+#define IDS_STRING151                   151
+#define IDS_STRING152                   152
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202
@@ -62,6 +69,8 @@
 #define IDS_STRING219                   219
 #define IDS_STRING220                   220
 #define IDB_PNG9                        387
+#define IDB_PNG15                       430
+#define IDB_PNG8                        438
 #define IDS_STRING4001                  4001
 #define IDS_STRING4002                  4002
 #define IDS_STRING4003                  4003
@@ -107,6 +116,13 @@
 #define IDS_STRING4043                  4043
 #define IDS_STRING4044                  4044
 #define IDS_STRING4045                  4045
+#define IDS_STRING4046                  4046
+#define IDS_STRING4047                  4047
+#define IDS_STRING4048                  4048
+#define IDS_STRING4049                  4049
+#define IDS_STRING4050                  4050
+#define IDS_STRING4051                  4051
+#define IDS_STRING4052                  4052
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -114,7 +130,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        394
+#define _APS_NEXT_RESOURCE_VALUE        449
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

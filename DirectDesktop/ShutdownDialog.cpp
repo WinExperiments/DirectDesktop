@@ -471,14 +471,14 @@ void DisplayShutdownDialog() {
 	HBITMAP colorBMP2 = IconToBitmap(dummyi);
 	COLORREF separator = theme ? RGB(0, 0, 0) : RGB(255, 255, 255);
 	float bodyalpha = theme ? 0.4 : 0.05;
-	IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, separator, 0.125);
+	IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, 0, 0.125, separator);
 	Value* colorBMPV = DirectUI::Value::CreateGraphic(colorBMP, 7, 0xffffffff, false, false, false);
 	SeparatorLine->SetValue(Element::BackgroundProp, 1, colorBMPV);
 	SeparatorLine2->SetValue(Element::BackgroundProp, 1, colorBMPV);
 	DeleteObject(colorBMP);
 	colorBMPV->Release();
 	COLORREF white = RGB(255, 255, 255);
-	IterateBitmap(colorBMP2, SimpleBitmapPixelHandler, 3, white, bodyalpha);
+	IterateBitmap(colorBMP2, SimpleBitmapPixelHandler, 3, 0, bodyalpha, white);
 	Value* colorBMPV2 = DirectUI::Value::CreateGraphic(colorBMP2, 7, 0xffffffff, false, false, false);
 	ShutdownActions->SetValue(Element::BackgroundProp, 1, colorBMPV2);
 	AdvancedOptions->SetValue(Element::BackgroundProp, 1, colorBMPV2);

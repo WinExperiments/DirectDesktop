@@ -1174,6 +1174,165 @@
     <Image Include="ImageResources\3030.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\201.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\101.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\102.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\103.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\104.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\105.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\106.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\107.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\202.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\203.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\204.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\205.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\206.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\207.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3031.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3032.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3033.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3034.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3035.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3036.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3037.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\193.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\194.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\195.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\196.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\197.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\198.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\199.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\293.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\294.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\295.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\296.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\297.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\298.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\299.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\164.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\165.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\166.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\167.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\168.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\169.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\170.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\171.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\264.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\265.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\266.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\267.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\268.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\269.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\270.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\271.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3001.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3002.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectUI\DirectUI.def">

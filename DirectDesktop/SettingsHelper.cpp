@@ -12,6 +12,10 @@ bool treatdirasgroup;
 bool tripleclickandhide;
 bool lockiconpos;
 bool isColorized;
+bool isDarkIconsEnabled;
+bool automaticDark;
+BYTE iconColorID;
+COLORREF IconColorizationColor;
 bool atleastonesetting{};
 Element* UIContainer;
 
@@ -34,7 +38,7 @@ POINT GetTopLeftMonitor() {
     sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b) {
         if (localeType != 1) return a.left < b.left;
         else return a.left > b.left;
-    });
+        });
     ptFinal.x = monitors[0].left;
     sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b) {
         return a.top < b.top;
@@ -62,13 +66,14 @@ unsigned long TempDisableToggle(LPVOID lpParam) {
 
 void ToggleSetting(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
-        elem->SetSelected(!elem->GetSelected());
-        bool* associatedBool = ((DDScalableButton*)elem)->GetAssociatedBool();
+        DDToggleButton* ddtb = (DDToggleButton*)elem;
+        ddtb->SetCheckedState(!ddtb->GetCheckedState());
+        bool* associatedBool = ddtb->GetAssociatedBool();
         if (associatedBool != nullptr) *associatedBool = !(*associatedBool);
-        RegKeyValue rkv = ((DDScalableButton*)elem)->GetRegKeyValue();
-        BYTE regSetter = elem->GetSelected();
-        if (rkv._valueToFind == L"Hidden") regSetter = (!elem->GetSelected() + 1);
-        if (rkv._valueToFind == L"Logging") regSetter = (!elem->GetSelected() + 6);
+        RegKeyValue rkv = ddtb->GetRegKeyValue();
+        BYTE regSetter = ddtb->GetCheckedState();
+        if (rkv._valueToFind == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
+        if (rkv._valueToFind == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
         if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
         SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, NULL, NULL);
         SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, NULL);
@@ -77,8 +82,8 @@ void ToggleSetting(Element* elem, Event* iev) {
             HANDLE DisableToggleHandle = CreateThread(0, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
             return;
         }
-        if (((DDScalableButton*)elem)->GetAssociatedFn() != nullptr)
-            ((DDScalableButton*)elem)->ExecAssociatedFn(((DDScalableButton*)elem)->GetAssociatedFn(), false, true);
+        if (ddtb->GetAssociatedFn() != nullptr)
+            ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn(), false, true, true);
         atleastonesetting = true;
     }
 }

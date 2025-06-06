@@ -7,7 +7,7 @@
 						<RichText id="atom(stars)" direction="ltr" layoutpos="client" content="resstr(211)" width="sysmetric(49)" height="sysmetric(50)" contentalign="topleft"/>
 					</RichText>
 				</Element>
-				<DDScalableElement id="atom(TitlebarText)" height="sysmetric(4)" font="captionfont;100%" NeedsFontResize="1" compositedtext="true" textglowsize="0" contentalign="middleleft" padding="rect(0,0,0,sysmetric(46))"/>
+				<DDScalableElement id="atom(TitlebarText)" height="sysmetric(4)" font="captionfont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="middleleft" padding="rect(0,0,0,sysmetric(46))"/>
 			</Element>
 		</Element>
 		<DDScalableElement id="atom(Logo)" direction="ltr" ScaledImageIntervals="7" DrawType="2" contentalign="middlecenter" layoutpos="top" height="96rp" padding="rect(0,0,0,16rp)"/> // Use 12rp instead of 16 if using standard titlebar
@@ -87,7 +87,7 @@
 		<Element layoutpos="right" layout="flowlayout(0,2,0,0)">
 			<Button id="atom(StatusCancel)" class="dialogbutton" layout="filllayout()" minsize="size(96rp,32rp)">
 				<Button id="atom(SCInner)" class="dialogbuttontexture" layoutpos="client"/>
-				<DDScalableElement layoutpos="client" content="resstr(801, library(user32.dll))" font="messagefont;115%" NeedsFontResize="1" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+				<DDScalableElement layoutpos="client" content="resstr(801, library(user32.dll))" font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
 			</Button>
 		</Element>
 		<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" padding="rect(0,0,8rp,0)">
@@ -137,7 +137,7 @@
 				<RichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
 			</if>
 			<if class="dialogbuttontext">
-				<DDScalableElement font="messagefont;115%" NeedsFontResize="1" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
+				<DDScalableElement font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
 			</if>
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)"/>
@@ -146,7 +146,7 @@
 				<RichText foreground="20006"/>
 			</if>
 			<if class="statustext">
-				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="1"/>
+				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 			</if>
 			<if id="atom(SETDescription)">
 				<DDScalableElement foreground="rgb(128,128,128)"/>
@@ -195,7 +195,7 @@
 				<RichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
 			</if>
 			<if class="dialogbuttontext">
-				<DDScalableElement font="messagefont;115%" NeedsFontResize="1" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
+				<DDScalableElement font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
 			</if>
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)"/>
@@ -204,7 +204,7 @@
 				<RichText foreground="20003"/>
 			</if>
 			<if class="statustext">
-				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="1"/>
+				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 			</if>
 			<if id="atom(SETDescription)">
 				<DDScalableElement foreground="rgb(160,160,160)"/>

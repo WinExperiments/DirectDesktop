@@ -12,8 +12,11 @@
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
 			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
-				<DDScalableButton id="atom(Customize)" content="resstr(4027)" class="popupbutton"/>
-				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(4028)" class="popupbutton"/>
+				<DDScalableButton id="atom(Smaller)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
+				<DDScalableButton id="atom(Larger)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
+				<DDScalableButton id="atom(Pin)" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
+				<DDScalableButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
+				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
 			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="400rp">
 				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
@@ -23,6 +26,12 @@
 		<TouchScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
 			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
 		</TouchScrollViewer>
+	</Element>
+	<Element resid="customizegroup" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
+			<DDScalableElement content="resstr(4046)" class="toggletext"/>
+			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="136" width="352rp" height="32rp"/>
+		</Element>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
@@ -42,51 +51,62 @@
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(ItemCheckboxes)" class="togglebutton"/>
+				<DDToggleButton id="atom(ItemCheckboxes)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(ShowHiddenFiles)" class="togglebutton"/>
+				<DDToggleButton id="atom(ShowHiddenFiles)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(FilenameExts)" class="togglebutton"/>
+				<DDToggleButton id="atom(FilenameExts)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(4014)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(TreatDirAsGroup)" class="togglebutton"/>
+				<DDToggleButton id="atom(TreatDirAsGroup)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(4040)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(TripleClickAndHide)" class="togglebutton"/>
+				<DDToggleButton id="atom(TripleClickAndHide)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(4043)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(LockIconPos)" class="togglebutton"/>
+				<DDToggleButton id="atom(LockIconPos)"/>
 			</Element>
 		</Element>
 	</Element>
 	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
+			<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="bottom">
+				<DDScalableElement content="resstr(4047)" class="toggletext"/>
+				<DDColorPicker id="atom(DDCP_Icons)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="255" DefaultColor="0x909090" height="32rp" width="352rp"/>
+			</Element>
 			<DDScalableElement content="resstr(4015)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(EnableAccent)" class="togglebutton"/>
+				<DDToggleButton id="atom(EnableAccent)"/>
+			</Element>
+		</Element>
+		<Element class="togglecontainer" layout="borderlayout()">
+			<DDCheckBox id="atom(AutoDarkIcons)" content="resstr(4049)" layout="flowlayout(0,2,0,2)"/>
+			<DDScalableElement content="resstr(4048)" class="toggletext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+				<DDToggleButton id="atom(EnableDarkIcons)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(IconThumbnails)" class="togglebutton"/>
+				<DDToggleButton id="atom(IconThumbnails)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
@@ -97,7 +117,7 @@
 		<Element class="togglecontainer" layout="borderlayout()">
 			<DDScalableElement content="resstr(4016)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
-				<DDToggleButton id="atom(EnableLogging)" class="togglebutton"/>
+				<DDToggleButton id="atom(EnableLogging)"/>
 			</Element>
 		</Element>
 		<Element class="togglecontainer" layout="borderlayout()">
@@ -110,29 +130,17 @@
 				<DDScalableButton FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
-				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="0"/>
+				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<RichText foreground="black"/>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
 			</if>
 			<if class="toggletext">
-				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="1" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right"/>
-			</if>
-			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
-			</if>
-			<if class="singleclicked">
-				<LVItem cursor="hand"/>
-			</if>
-			<if class="doubleclicked">
-				<LVItem cursor="arrow"/>
-			</if>
-			<if class="groupthumbnail">
-				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 		</style>
 		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
@@ -140,20 +148,17 @@
 				<DDScalableButton FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
-				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="0"/>
+				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<RichText foreground="white"/>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
 			</if>
 			<if class="toggletext">
-				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="1" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right"/>
-			</if>
-			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="resbmp(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
 			</if>
 		</style>
 	</stylesheets>
