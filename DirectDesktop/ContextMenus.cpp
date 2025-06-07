@@ -16,7 +16,7 @@ std::wstring RemoveQuotes2(const std::wstring& input) {
 
 void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch) {
     if (iconsz == globaliconsz && touch == touchmode) return;
-    SetPos(true);
+    if (isDefaultRes()) SetPos(true);
     globaliconsz = iconsz;
     globalshiconsz = shiconsz;
     globalgpiconsz = gpiconsz;

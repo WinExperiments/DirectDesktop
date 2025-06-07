@@ -234,7 +234,7 @@
 			</if>
 			<DDCheckBox height="32rp"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" content="themeable(dtb(DirectUI::Button,3,1), '')" contentalign="middlecenter" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
 				<if mousefocused="true">
 					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,2), '')"/>
 				</if>
@@ -512,7 +512,7 @@
 			</if>
 			<DDCheckBox height="32rp"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" content="themeable(dtb(DirectUI::Button,3,1), '')" contentalign="middlecenter" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
 				<if mousefocused="true">
 					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,2), '')"/>
 				</if>

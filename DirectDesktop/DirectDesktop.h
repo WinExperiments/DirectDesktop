@@ -14,10 +14,15 @@ using namespace DirectUI;
 #define DESKPADDING_TOUCH_X 32
 #define DESKPADDING_TOUCH_Y 128
 
+extern float flScaleFactor;
+extern unsigned short defWidth, defHeight, lastWidth, lastHeight;
+
 // Common functions
 std::wstring LoadStrFromRes(UINT id);
 std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
 std::wstring RemoveQuotes(const std::wstring& input);
+
+extern bool isDefaultRes();
 
 unsigned long animate(LPVOID lpParam);
 unsigned long fastin(LPVOID lpParam);

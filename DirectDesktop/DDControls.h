@@ -8,7 +8,6 @@ using namespace std;
 using namespace DirectUI;
 
 extern int dpi, dpiLaunch;
-extern float flScaleFactor;
 extern NativeHWNDHost* subviewwnd;
 extern int GetCurrentScaleInterval();
 extern struct yValue;

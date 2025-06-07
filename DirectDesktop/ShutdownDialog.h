@@ -13,7 +13,6 @@ using namespace DirectUI;
 extern DWORD shutdownReason;
 extern NativeHWNDHost* wnd;
 extern NativeHWNDHost* shutdownwnd;
-extern float flScaleFactor;
 extern int dpi, dpiLaunch;
 extern bool dialogopen;
 extern bool theme;

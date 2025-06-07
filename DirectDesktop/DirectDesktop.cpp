@@ -80,6 +80,7 @@ int maxPageID = 1, currentPageID = 1;
 int popupframe, dframe, tframe;
 int localeType{};
 int touchSizeX, touchSizeY;
+unsigned short defWidth, defHeight, lastWidth, lastHeight;
 
 wstring LoadStrFromRes(UINT id) {
     WCHAR* loadedStrBuffer = new WCHAR[512]{};
@@ -108,6 +109,11 @@ int dpi = 96, dpiOld = 1, dpiLaunch{};
 int listviewAnimStorage{};
 float flScaleFactor = 1.0;
 bool isDpiPreviouslyChanged;
+bool isDefaultRes() {
+    int w = (int)(lastWidth / flScaleFactor);
+    int h = (int)(lastHeight / flScaleFactor);
+    return (w <= defWidth + 10 && w >= defWidth - 10 && h <= defHeight + 10 && h >= defHeight - 10);
+}
 void InitialUpdateScale() {
     HDC screen = GetDC(0);
     dpi = GetDeviceCaps(screen, LOGPIXELSX);
@@ -462,6 +468,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     switch (uMsg) {
     case WM_SETTINGCHANGE: {
         if (wParam == SPI_SETWORKAREA) {
+            if (isDefaultRes()) SetPos(true);
+            lastWidth = 0, lastHeight = 0;
             AdjustWindowSizes(false);
             RearrangeIcons(true, false, true);
         }
@@ -1023,7 +1031,9 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_DISPLAYCHANGE: {
+        if (isDefaultRes()) SetPos(true);
         AdjustWindowSizes(true);
+        lastWidth = 0, lastHeight = 0;
         RearrangeIcons(true, false, true);
         break;
     }
@@ -1331,27 +1341,53 @@ unsigned long PositionCheckCircle(LPVOID lpParam) {
     return 0;
 }
 
+static Element* customizegroup{};
+void CloseCustomizePage(Element* elem, Event* iev) {
+    if (iev->uidType == Button::Click) {
+        Element* groupdirectory = elem->GetParent()->GetParent()->GetParent();
+        DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
+        DDScalableElement* dirdetails = regElem<DDScalableElement*>(L"dirdetails", groupdirectory);
+        Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
+        TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
+        Element* Group_BackContainer = regElem<Element*>(L"Group_BackContainer", groupdirectory);
+        DDScalableButton* Group_Back = regElem<DDScalableButton*>(L"Group_Back", groupdirectory);
+        Group_BackContainer->SetLayoutPos(-3);
+        Group_Back->SetVisible(false);
+        dirname->SetContentString(((LVItem*)((Element*)lastopenedgroup)->GetParent())->GetSimpleFilename().c_str());
+        dirdetails->SetLayoutPos(3);
+        tasks->SetVisible(true);
+        groupdirlist->SetLayoutPos(4);
+        customizegroup->SetLayoutPos(-3);
+        customizegroup->Destroy(true);
+    }
+}
 void OpenCustomizePage(Element* elem, Event* iev) {
-    Element* groupdirectory = elem->GetParent()->GetParent()->GetParent();
-    DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
-    DDScalableElement* dirdetails = regElem<DDScalableElement*>(L"dirdetails", groupdirectory);
-    Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
-    TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
-    dirname->SetContentString(LoadStrFromRes(4027).c_str());
-    dirdetails->SetVisible(false);
-    tasks->SetVisible(false);
-    groupdirlist->SetVisible(false);
-    Element* customizegroup{};
-    parser2->CreateElement(L"customizegroup", NULL, NULL, NULL, &customizegroup);
-    groupdirectory->Add(&customizegroup, 1);
-    DDColorPicker* DDCP_Group = regElem<DDColorPicker*>(L"DDCP_Group", customizegroup);
-    DDCP_Group->SetThemeAwareness(true);
-    vector<DDScalableElement*> btnTargets{};
-    btnTargets.push_back((DDScalableElement*)fullscreeninner);
-    btnTargets.push_back((DDScalableElement*)lastopenedgroup);
-    DDCP_Group->SetTargetElements(btnTargets);
-    btnTargets.clear();
-    HANDLE checkedCircleThread = CreateThread(0, 0, PositionCheckCircle, (LPVOID)DDCP_Group, 0, NULL);
+    if (iev->uidType == Button::Click) {
+        Element* groupdirectory = elem->GetParent()->GetParent()->GetParent();
+        DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
+        DDScalableElement* dirdetails = regElem<DDScalableElement*>(L"dirdetails", groupdirectory);
+        Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
+        TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
+        Element* Group_BackContainer = regElem<Element*>(L"Group_BackContainer", groupdirectory);
+        DDScalableButton* Group_Back = regElem<DDScalableButton*>(L"Group_Back", groupdirectory);
+        Group_BackContainer->SetLayoutPos(0);
+        Group_Back->SetVisible(true);
+        assignFn(Group_Back, CloseCustomizePage);
+        dirname->SetContentString(LoadStrFromRes(4027).c_str());
+        dirdetails->SetLayoutPos(-3);
+        tasks->SetVisible(false);
+        groupdirlist->SetLayoutPos(-3);
+        parser2->CreateElement(L"customizegroup", NULL, NULL, NULL, &customizegroup);
+        groupdirectory->Add(&customizegroup, 1);
+        DDColorPicker* DDCP_Group = regElem<DDColorPicker*>(L"DDCP_Group", customizegroup);
+        DDCP_Group->SetThemeAwareness(true);
+        vector<DDScalableElement*> btnTargets{};
+        btnTargets.push_back((DDScalableElement*)fullscreeninner);
+        btnTargets.push_back((DDScalableElement*)lastopenedgroup);
+        DDCP_Group->SetTargetElements(btnTargets);
+        btnTargets.clear();
+        HANDLE checkedCircleThread = CreateThread(0, 0, PositionCheckCircle, (LPVOID)DDCP_Group, 0, NULL);
+    }
 }
 
 wstring bufferOpenInExplorer;
@@ -2255,7 +2291,9 @@ void testEventListener3(Element* elem, Event* iev) {
 }
 
 void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
-    if (bAlreadyOpen) SetPos(true);
+    RECT dimensions;
+    GetClientRect(wnd->GetHWND(), &dimensions);
+    if (bAlreadyOpen && isDefaultRes()) SetPos(true);
     maxPageID = 1;
     prevpageMain->SetVisible(false);
     nextpageMain->SetVisible(false);
@@ -2276,8 +2314,6 @@ void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
         HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
-    RECT dimensions;
-    GetClientRect(wnd->GetHWND(), &dimensions);
     int desktoppadding = flScaleFactor * touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL;
     int desktoppadding_x = flScaleFactor * touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X;
     int desktoppadding_y = flScaleFactor * touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y;
@@ -2359,11 +2395,13 @@ void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
         positions.clear();
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
-    SetPos(true);
+    if (isDefaultRes()) SetPos(true);
+    lastWidth = dimensions.right;
+    lastHeight = dimensions.bottom;
 }
 
 void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
-    if (bAlreadyOpen) SetPos(true);
+    if (bAlreadyOpen && isDefaultRes()) SetPos(true);
     UIContainer->DestroyAll(true);
     pm.clear();
     iconpm.clear();
@@ -2794,24 +2832,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TripleClickAndHide", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"LockIconPos", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DarkIcons", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AutoDarkIcons", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorID", 0, true, nullptr);
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", 0, true, nullptr);
-    treatdirasgroup = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TreatDirAsGroup");
-    tripleclickandhide = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TripleClickAndHide");
-    lockiconpos = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"LockIconPos");
-    isColorized = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AccentColorIcons");
-    isDarkIconsEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DarkIcons");
-    automaticDark = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"AutoDarkIcons");
-    touchmode = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView");
-    iconColorID = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorID");
-    IconColorizationColor = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor");
+    RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\DirectDesktop", NULL, NULL };
+    if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultWidth")) {
+        defWidth = dimensions.right / flScaleFactor;
+        SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultWidth", defWidth, false, nullptr);
+    }
+    else defWidth = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultWidth");
+    if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultHeight")) {
+        defHeight = dimensions.bottom / flScaleFactor;
+        SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultHeight", defHeight, false, nullptr);
+    }
+    else defHeight = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultHeight");
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TreatDirAsGroup", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TripleClickAndHide", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"LockIconPos", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AccentColorIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DarkIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoDarkIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TouchView", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorizationColor", 0, true, nullptr);
+    treatdirasgroup = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TreatDirAsGroup");
+    tripleclickandhide = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TripleClickAndHide");
+    lockiconpos = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"LockIconPos");
+    isColorized = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AccentColorIcons");
+    isDarkIconsEnabled = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DarkIcons");
+    automaticDark = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoDarkIcons");
+    touchmode = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TouchView");
+    iconColorID = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID");
+    IconColorizationColor = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorizationColor");
     if (automaticDark) isDarkIconsEnabled = !theme;
     DDScalableElement::Create(NULL, NULL, (Element**)&RegistryListener);
     assignExtendedFn(RegistryListener, UpdateIconColorizationColor);

@@ -47,6 +47,8 @@
 #define IDS_STRING150                   150
 #define IDS_STRING151                   151
 #define IDS_STRING152                   152
+#define IDS_STRING153                   153
+#define IDS_STRING154                   154
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202

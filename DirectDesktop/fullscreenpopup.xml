@@ -18,6 +18,10 @@
 				<DDScalableButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
 				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
 			</Element>
+			<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,2,0,0)" margin="rect(0,0,6rp,0)">
+				<DDScalableButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)"
+								  tooltip="true" accdesc="resstr(8711, library(Windows.UI.Immersive.dll))" class="popupbuttonicon"/>
+			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="400rp">
 				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
