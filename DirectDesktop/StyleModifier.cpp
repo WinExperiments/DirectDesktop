@@ -9,7 +9,7 @@
 #include <map>
 #include <uxtheme.h>
 
-COLORREF ImmersiveColor;
+COLORREF ImmersiveColor, ImmersiveColorL, ImmersiveColorD;
 bool theme;
 const wchar_t* sheetName;
 rgb_t WhiteText;
@@ -36,6 +36,8 @@ HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
 void UpdateModeInfo() {
     theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
     ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
+    ImmersiveColorL = CImmersiveColor::GetColor(IMCLR_SystemAccentLight2);
+    ImmersiveColorD = CImmersiveColor::GetColor(IMCLR_SystemAccentDark1);
     if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", ImmersiveColor, false, nullptr);
 }
 

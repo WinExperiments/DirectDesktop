@@ -1,6 +1,7 @@
 #include "DirectoryHelper.h"
 #include "strsafe.h"
 #include "DirectDesktop.h"
+#include "StyleModifier.h"
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <exdisp.h>
@@ -301,10 +302,7 @@ unsigned long MonitorFileChanges(LPVOID lpParam) {
 }
 void StartMonitorFileChanges(const wstring& path) {
     if (!PathFileExistsW(path.c_str())) return;
-    size_t size = (path.length() + 1);
-    WCHAR* pathCopy = new WCHAR[size];
-    wcscpy_s(pathCopy, size, path.c_str());
-    HANDLE hThread = CreateThread(0, 0, MonitorFileChanges, (LPVOID)pathCopy, NULL, NULL);
+    HANDLE hThread = CreateThread(0, 0, MonitorFileChanges, (LPVOID)path.c_str(), NULL, NULL);
 }
 
 static int checkSpotlight{};
@@ -877,6 +875,18 @@ void GetPos2(bool full) {
     WCHAR DesktopLayoutWithSize[24];
     if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
     else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+    COLORREF* pImmersiveColor = theme ? &ImmersiveColorL : &ImmersiveColorD;
+    COLORREF colorPickerPalette[8] =
+    {
+        -1,
+        *pImmersiveColor,
+        theme ? RGB(96, 205, 255) : RGB(0, 95, 184),
+        theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
+        theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
+        theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
+        theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
+        theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
+    };
     BYTE* value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize);
     size_t offset2 = 0;
     if (full) {
@@ -905,69 +915,74 @@ void GetPos2(bool full) {
             if (!match) offset2 += 10;
         }
     }
-    value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable");
-    offset2 = 0;
-    for (int i = 0; i < pm.size(); i++) {
-        unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-        offset2 += 2;
-        wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
-        offset2 += (namelen * 2);
-        bool match = false;
-        for (int j = 0; j < pm.size(); j++) {
-            if (pm[j]->GetFilename() == filename) {
-                COLORREF color = *reinterpret_cast<COLORREF*>(&value2[offset2]);
-                offset2 += 4;
-                iconpm[j]->SetAssociatedColor(color);
-                unsigned short intensity = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                offset2 += 2;
-                iconpm[j]->SetDDCPIntensity(intensity);
-                match = true;
-                break;
+    if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable")) {
+        value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable");
+        offset2 = 0;
+        for (int i = 0; i < pm.size(); i++) {
+            unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+            offset2 += 2;
+            wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
+            offset2 += (namelen * 2);
+            bool match = false;
+            for (int j = 0; j < pm.size(); j++) {
+                if (pm[j]->GetFilename() == filename) {
+                    unsigned short colorID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                    offset2 += 2;
+                    iconpm[j]->SetGroupColor(colorID);
+                    iconpm[j]->SetAssociatedColor(colorPickerPalette[colorID]);
+                    unsigned short intensity = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                    offset2 += 2;
+                    iconpm[j]->SetDDCPIntensity(intensity);
+                    match = true;
+                    break;
+                }
             }
+            if (!match) offset2 += 4;
         }
-        if (!match) offset2 += 6;
     }
 }
-void SetPos() {
+void SetPos(bool full) {
     vector<BYTE> DesktopLayout;
-    RECT dimensions;
-    SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-    for (int i = 0; i < pm.size(); i++) {
-        unsigned short xPos = (localeType == 1) ? dimensions.right - pm[i]->GetX() - pm[i]->GetWidth() : pm[i]->GetX();
-        wstring filename = pm[i]->GetFilename();
-        unsigned short temp = filename.length();
-        const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(namelen[0]);
-        DesktopLayout.push_back(namelen[1]);
-        const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
-        size_t len = (filename.length()) * sizeof(WCHAR);
-        DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
-        temp = pm[i]->GetInternalXPos();
-        const BYTE* xBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(xBinary[0]);
-        DesktopLayout.push_back(xBinary[1]);
-        temp = pm[i]->GetInternalYPos();
-        const BYTE* yBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(yBinary[0]);
-        DesktopLayout.push_back(yBinary[1]);
-        temp = xPos;
-        const BYTE* xPosBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(xPosBinary[0]);
-        DesktopLayout.push_back(xPosBinary[1]);
-        temp = (unsigned short)pm[i]->GetY();
-        const BYTE* yPosBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(yPosBinary[0]);
-        DesktopLayout.push_back(yPosBinary[1]);
-        temp = pm[i]->GetPage();
-        const BYTE* pageBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(pageBinary[0]);
-        DesktopLayout.push_back(pageBinary[1]);
+    if (full) {
+        RECT dimensions;
+        SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+        for (int i = 0; i < pm.size(); i++) {
+            unsigned short xPos = (localeType == 1) ? dimensions.right - pm[i]->GetX() - pm[i]->GetWidth() : pm[i]->GetX();
+            wstring filename = pm[i]->GetFilename();
+            unsigned short temp = filename.length();
+            const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(namelen[0]);
+            DesktopLayout.push_back(namelen[1]);
+            const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
+            size_t len = (filename.length()) * sizeof(WCHAR);
+            DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
+            temp = pm[i]->GetInternalXPos();
+            const BYTE* xBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(xBinary[0]);
+            DesktopLayout.push_back(xBinary[1]);
+            temp = pm[i]->GetInternalYPos();
+            const BYTE* yBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(yBinary[0]);
+            DesktopLayout.push_back(yBinary[1]);
+            temp = xPos;
+            const BYTE* xPosBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(xPosBinary[0]);
+            DesktopLayout.push_back(xPosBinary[1]);
+            temp = (unsigned short)pm[i]->GetY();
+            const BYTE* yPosBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(yPosBinary[0]);
+            DesktopLayout.push_back(yPosBinary[1]);
+            temp = pm[i]->GetPage();
+            const BYTE* pageBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(pageBinary[0]);
+            DesktopLayout.push_back(pageBinary[1]);
+        }
+        WCHAR DesktopLayoutWithSize[24];
+        if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+        else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+        SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
+        DesktopLayout.clear();
     }
-    WCHAR DesktopLayoutWithSize[24];
-    if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
-    else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
-    SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
-    DesktopLayout.clear();
     for (int i = 0; i < pm.size(); i++) {
         wstring filename = pm[i]->GetFilename();
         unsigned short temp = filename.length();
@@ -977,12 +992,10 @@ void SetPos() {
         const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
         size_t len = (filename.length()) * sizeof(WCHAR);
         DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
-        COLORREF tempC = iconpm[i]->GetAssociatedColor();
-        const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&tempC);
+        temp = iconpm[i]->GetGroupColor();
+        const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&temp);
         DesktopLayout.push_back(colorBinary[0]);
         DesktopLayout.push_back(colorBinary[1]);
-        DesktopLayout.push_back(colorBinary[2]);
-        DesktopLayout.push_back(colorBinary[3]);
         temp = iconpm[i]->GetDDCPIntensity();
         const BYTE* intensityBinary = reinterpret_cast<const BYTE*>(&temp);
         DesktopLayout.push_back(intensityBinary[0]);

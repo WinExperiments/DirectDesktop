@@ -2,6 +2,8 @@
 #include "framework.h"
 
 extern COLORREF ImmersiveColor;
+extern COLORREF ImmersiveColorL;
+extern COLORREF ImmersiveColorD;
 extern COLORREF IconColorizationColor;
 extern bool theme;
 extern bool touchmode;

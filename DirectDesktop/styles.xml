@@ -74,12 +74,12 @@
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
 			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(250, 136, 136, 136)" font="resstr(130)"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(255,0,0,0)" font="resstr(130)"/>
 				<if mousewithin="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 160, 160, 160)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,64,64,64)"/>
 				</if>
 				<if Pressed="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 136, 136, 136)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,0,0,0)"/>
 				</if>
 				<if id="atom(LineUp)">
 					<TouchRepeatButton layoutpos="top" height="22rp"/>
@@ -128,12 +128,12 @@
 				</if>
 			</if>
 			<if class="Thumb_Mouse">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(255,0,0,0)"/>
 				<if mousewithin="true">
-					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20768"/>
+					<Thumb background="argb(255,0,0,0)" bordercolor="20768"/>
 				</if>
 				<if captured="true">
-					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20769"/>
+					<Thumb background="argb(255,0,0,0)" bordercolor="20769"/>
 				</if>
 				<if id="atom(Thumb)">
 					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
@@ -143,7 +143,7 @@
 				</if>
 			</if>
 			<if class="Thumb_Pan">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(255,0,0,0)"/>
 				<if id="atom(Thumb)">
 					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
 				</if>
@@ -265,14 +265,17 @@
 			</if>
 			<DDColorPickerButton direction="ltr"/>
 			<if Enabled="false">
-				<DDColorPicker alpha="128"/>
-				<DDColorPickerButton alpha="128"/>
+				<DDColorPicker alpha="96"/>
+				<DDColorPickerButton alpha="96"/>
 			</if>
 			<if id="atom(DDColorPicker_HoverCircle)">
 
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
 				<DDScalableElement direction="ltr" FirstScaledImage="193" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<if Enabled="false">
+					<DDScalableElement alpha="72"/>
+				</if>
 			</if>
 		</style>
 		<style resid="DDBaseDark">
@@ -349,12 +352,12 @@
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
 			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(250, 136, 136, 136)" font="resstr(130)"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(255,255,255,255)" font="resstr(130)"/>
 				<if mousewithin="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 160, 160, 160)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,224,224,224)"/>
 				</if>
 				<if Pressed="true">
-					<TouchRepeatButton background="argb(0, 0, 0, 0)" foreground="argb(255, 136, 136, 136)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,255,255,255)"/>
 				</if>
 				<if id="atom(LineUp)">
 					<TouchRepeatButton layoutpos="top" height="22rp"/>
@@ -403,12 +406,12 @@
 				</if>
 			</if>
 			<if class="Thumb_Mouse">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
 				<if mousewithin="true">
-					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20768"/>
+					<Thumb background="argb(255,255,255,255)" bordercolor="20768"/>
 				</if>
 				<if captured="true">
-					<Thumb background="argb(255, 0, 0, 0)" bordercolor="20769"/>
+					<Thumb background="argb(255,255,255,255)" bordercolor="20769"/>
 				</if>
 				<if id="atom(Thumb)">
 					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
@@ -418,7 +421,7 @@
 				</if>
 			</if>
 			<if class="Thumb_Pan">
-				<Thumb accessible="true" accrole="indicator" background="argb(255, 0, 0, 0)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
 				<if id="atom(Thumb)">
 					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
 				</if>
@@ -548,6 +551,9 @@
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
 				<DDScalableElement direction="ltr" FirstScaledImage="293" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<if Enabled="false">
+					<DDScalableElement alpha="96"/>
+				</if>
 			</if>
 		</style>
 	</stylesheets>

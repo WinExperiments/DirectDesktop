@@ -48,7 +48,9 @@ public:
     void SetNeedsFontResize(bool bNeedsFontResize);
     void SetAssociatedColor(int iAssociatedColor);
     int GetDDCPIntensity();
+    unsigned short GetGroupColor();
     void SetDDCPIntensity(int intensity);
+    void SetGroupColor(unsigned short sGC);
     void InitDrawImage();
     static void RedrawImages();
     void InitDrawFont();
@@ -56,6 +58,7 @@ public:
 protected:
     static vector<DDScalableElement*> _arrCreatedElements;
     int _intensity = 255;
+    unsigned short _gc{};
     auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
     void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 private:
@@ -251,13 +254,16 @@ public:
     void SetColorIntensity(int iColorIntensity);
     void SetDefaultColor(int iDefaultColor);
     RegKeyValue GetRegKeyValue();
-    void SetRegKeyValue(RegKeyValue rkvNew);
     vector<DDScalableElement*> GetTargetElements();
+    bool GetThemeAwareness();
+    void SetRegKeyValue(RegKeyValue rkvNew);
     void SetTargetElements(vector<DDScalableElement*> vte);
+    void SetThemeAwareness(bool ta);
 private:
     static IClassInfo* s_pClassInfo;
     RegKeyValue _rkv{};
     vector<DDScalableElement*> _targetElems{};
+    bool _themeAwareness{};
     int GetPropCommon(const PropertyProcT pPropertyProc);
     void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
 };

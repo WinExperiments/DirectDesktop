@@ -67,6 +67,7 @@ Element* dragpreview;
 DDScalableElement* RegistryListener;
 void* tempElem;
 void* lastopenedgroup;
+wstring path1, path2, path3;
 
 HRESULT err;
 HWND hWorkerW = NULL;
@@ -280,6 +281,7 @@ void fullscreenAnimation(int width, int height, float animstartscale);
 void HidePopupCore(bool WinDInvoked);
 void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
 void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id);
+void IconThumbHelper(int id);
 unsigned long CreateIndividualThumbnail(LPVOID lpParam);
 void SelectItem(Element* elem, Event* iev);
 void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
@@ -476,6 +478,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             static int messagemitigation{};
             messagemitigation++;
             SetTheme();
+            SetPos(false);
+            GetPos2(false);
             DDScalableElement::RedrawImages();
             DDScalableButton::RedrawImages();
             if (automaticDark) {
@@ -753,30 +757,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         vector<HANDLE> smThumbnailThreadHandle;
         smThumbnailThread.resize(pm.size());
         smThumbnailThreadHandle.resize(pm.size());
-        static Value* v{};
-        UpdateCache* uc{};
-        if (iconpm[0] != nullptr) v = iconpm[0]->GetValue(Element::BackgroundProp, 1, uc);
         for (int icon = 0; icon < pm.size(); icon++) {
-            iconpm[icon]->DestroyAll(true);
-            iconpm[icon]->SetClass(L"");
-            iconpm[icon]->SetValue(Element::BackgroundProp, 1, v);
-            shadowpm[icon]->SetVisible(true);
-            int groupspace = 8 * flScaleFactor;
-            if (touchmode) {
-                iconpm[icon]->SetWidth(globaliconsz * flScaleFactor + 2 * groupspace);
-                iconpm[icon]->SetHeight(globaliconsz * flScaleFactor + 2 * groupspace);
-            }
-            Element* iconcontainer = regElem<Element*>(L"iconcontainer", pm[icon]);
-            if (touchmode) iconcontainer->SetPadding(0, 0, 0, 0);
-            if (pm[icon]->GetDirState() == true && treatdirasgroup == true) {
-                iconpm[icon]->SetClass(L"groupthumbnail");
-                shadowpm[icon]->SetVisible(false);
-                if (touchmode) {
-                    iconcontainer->SetPadding(groupspace, groupspace, groupspace, groupspace);
-                    iconpm[icon]->SetWidth(globaliconsz * flScaleFactor);
-                    iconpm[icon]->SetHeight(globaliconsz * flScaleFactor);
-                }
-            }
+            IconThumbHelper(icon);
         }
         for (int icon2 = 0; icon2 < pm.size(); icon2++) {
             yValue* yV = new yValue{ icon2 };
@@ -994,6 +976,11 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         filepm.push_back(textElem);
         fileshadowpm.push_back(textElemShadow);
         cbpm.push_back(checkboxElem);
+
+        int currentID = pm.size() - 1;
+        IconThumbHelper(currentID);
+        yValue* yV = new yValue{ currentID };
+        HANDLE smThumbnailThreadHandle = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
         RearrangeIcons(false, false, true);
         break;
     }
@@ -1020,6 +1007,9 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     //    SelectItemListener(toRename, Element::SelectedProp(), 69, NULL, NULL);
     //    break;
     //}
+    case WM_USER + 23: {
+        ((Element*)wParam)->SetX(lParam);
+    }
     }
     return CallWindowProc(WndProc, hWnd, uMsg, wParam, lParam);
 }
@@ -1075,17 +1065,17 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             newImage = LoadPNGAsBitmap(imageID);
             IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
         }
-        COLORREF* pImmersiveColor = &ImmersiveColor;
+        COLORREF* pImmersiveColor = ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? &ImmersiveColorL : &ImmersiveColorD : &ImmersiveColor;
         COLORREF colorPickerPalette[8] =
         {
             ((DDColorPicker*)wParam)->GetDefaultColor(),
             *pImmersiveColor,
-            RGB(0, 120, 215),
-            RGB(177, 70, 194),
-            RGB(232, 17, 35),
-            RGB(247, 99, 12),
-            RGB(255, 185, 0),
-            RGB(0, 204, 106)
+            ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(96, 205, 255) : RGB(0, 95, 184) : RGB(0, 120, 215),
+            ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(216, 141, 225) : RGB(158, 58, 176) : RGB(177, 70, 194),
+            ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(244, 103, 98) : RGB(210, 14, 30) : RGB(232, 17, 35),
+            ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(251, 154, 68) : RGB(224, 83, 7) : RGB(247, 99, 12),
+            ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(255, 213, 42) : RGB(225, 157, 0) : RGB(255, 185, 0),
+            ((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(38, 255, 142) : RGB(0, 178, 90) : RGB(0, 204, 106)
         };
         BITMAP bm{};
         GetObject(newImage, sizeof(BITMAP), &bm);
@@ -1128,7 +1118,7 @@ LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         RegKeyValue rkv = ((DDColorPicker*)wParam)->GetRegKeyValue();
         int order = GetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind) * btnX;
         int checkedBtnX = (localeType == 1) ? ((Element*)wParam)->GetWidth() - order - btnWidth : order;
-        Element* peCircle;
+        DDScalableElement* peCircle;
         //DDScalableElement::Create((Element*)wParam, 0, (Element**)&peCircle);
         //((Element*)wParam)->Add((Element**)&peCircle, 1);
         //peCircle->SetID(L"DDColorPicker_HoverCircle");
@@ -1329,6 +1319,17 @@ void HidePopupCore(bool WinDInvoked) {
     subfilepm.clear();
 }
 
+unsigned long PositionCheckCircle(LPVOID lpParam) {
+    InitThread(TSM_DESKTOP_DYNAMIC);
+    Sleep(150);
+    DDScalableElement* DDCPCC = regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", (DDColorPicker*)lpParam);
+    int btnX = ((DDColorPicker*)lpParam)->GetWidth() / 8;
+    int order = ((DDScalableElement*)lastopenedgroup)->GetGroupColor() * btnX;
+    int checkedBtnX = (localeType == 1) ? ((DDColorPicker*)lpParam)->GetWidth() - order - DDCPCC->GetWidth() : order;
+    SendMessageW(wnd->GetHWND(), WM_USER + 23, (WPARAM)DDCPCC, checkedBtnX);
+    return 0;
+}
+
 void OpenCustomizePage(Element* elem, Event* iev) {
     Element* groupdirectory = elem->GetParent()->GetParent()->GetParent();
     DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
@@ -1343,11 +1344,13 @@ void OpenCustomizePage(Element* elem, Event* iev) {
     parser2->CreateElement(L"customizegroup", NULL, NULL, NULL, &customizegroup);
     groupdirectory->Add(&customizegroup, 1);
     DDColorPicker* DDCP_Group = regElem<DDColorPicker*>(L"DDCP_Group", customizegroup);
+    DDCP_Group->SetThemeAwareness(true);
     vector<DDScalableElement*> btnTargets{};
     btnTargets.push_back((DDScalableElement*)fullscreeninner);
     btnTargets.push_back((DDScalableElement*)lastopenedgroup);
     DDCP_Group->SetTargetElements(btnTargets);
     btnTargets.clear();
+    HANDLE checkedCircleThread = CreateThread(0, 0, PositionCheckCircle, (LPVOID)DDCP_Group, 0, NULL);
 }
 
 wstring bufferOpenInExplorer;
@@ -1566,6 +1569,31 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, Des
     di->icon = bmp;
     di->iconshortcut = bmpShortcut;
 }
+void IconThumbHelper(int id) {
+    static Value* v{};
+    UpdateCache* uc{};
+    if (iconpm[0] != nullptr) v = iconpm[0]->GetValue(Element::BackgroundProp, 1, uc);
+    iconpm[id]->DestroyAll(true);
+    iconpm[id]->SetClass(L"");
+    iconpm[id]->SetValue(Element::BackgroundProp, 1, v);
+    shadowpm[id]->SetVisible(true);
+    int groupspace = 8 * flScaleFactor;
+    if (touchmode) {
+        iconpm[id]->SetWidth(globaliconsz * flScaleFactor + 2 * groupspace);
+        iconpm[id]->SetHeight(globaliconsz * flScaleFactor + 2 * groupspace);
+    }
+    Element* iconcontainer = regElem<Element*>(L"iconcontainer", pm[id]);
+    if (touchmode) iconcontainer->SetPadding(0, 0, 0, 0);
+    if (pm[id]->GetDirState() == true && treatdirasgroup == true) {
+        iconpm[id]->SetClass(L"groupthumbnail");
+        shadowpm[id]->SetVisible(false);
+        if (touchmode) {
+            iconcontainer->SetPadding(groupspace, groupspace, groupspace, groupspace);
+            iconpm[id]->SetWidth(globaliconsz * flScaleFactor);
+            iconpm[id]->SetHeight(globaliconsz * flScaleFactor);
+        }
+    }
+}
 
 void SelectSubItem(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
@@ -1706,7 +1734,7 @@ void ShowDirAsGroup(LPCWSTR filename, LPCWSTR simplefilename) {
     if (count == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
     else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), count);
     dirdetails->SetContentString(itemCount);
-    dirdetails->SetAlpha(160);
+    dirdetails->SetAlpha(theme ? 108 : 144);
     if (count == 0) dirdetails->SetLayoutPos(-3);
     Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
     checkifelemexists = true;
@@ -1829,6 +1857,7 @@ void ShowPage2(Element* elem, Event* iev) {
         EnableAccent->SetAssociatedFn(RearrangeIcons);
         EnableAccent->SetRegKeyValue(rkvTemp);
         rkvTemp._valueToFind = L"IconColorID";
+        DDCP_Icons->SetThemeAwareness(false);
         DDCP_Icons->SetEnabled(isColorized);
         DDCP_Icons->SetRegKeyValue(rkvTemp);
         vector<DDScalableElement*> btnTargets{};
@@ -2216,7 +2245,7 @@ void testEventListener3(Element* elem, Event* iev) {
 }
 
 void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
-    if (bAlreadyOpen) SetPos();
+    if (bAlreadyOpen) SetPos(true);
     maxPageID = 1;
     prevpageMain->SetVisible(false);
     nextpageMain->SetVisible(false);
@@ -2320,11 +2349,11 @@ void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
         positions.clear();
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
-    SetPos();
+    SetPos(true);
 }
 
 void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
-    if (bAlreadyOpen) SetPos();
+    if (bAlreadyOpen) SetPos(true);
     UIContainer->DestroyAll(true);
     pm.clear();
     iconpm.clear();
@@ -2352,10 +2381,6 @@ void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
 
     parser->CreateElement(L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
     UIContainer->Add((Element**)&emptyspace, 1);
-    assignFn(emptyspace, SelectItem);
-    assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
-    assignExtendedFn(emptyspace, MarqueeSelector);
-    assignFn(emptyspace, DesktopRightClick);
     for (int i = 0; i < count; i++) {
         LVItem* outerElem;
         if (touchmode) {
@@ -2383,12 +2408,15 @@ void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
     if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
     if (count2 < count) EnumerateFolder(secondaryPath, &pm, false, nullptr, &count2);
+    path1 = secondaryPath;
     if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
     if (count2 < count) EnumerateFolder(path, &pm, false, nullptr, &count2);
+    path2 = path;
     if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
     d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
     StringCchPrintfW(secondaryPath, 260, L"%s\\Desktop", cBuffer);
     if (count2 < count) EnumerateFolder(secondaryPath, &pm, false, nullptr, &count2);
+    path3 = secondaryPath;
     if (logging == IDYES) MainLogger.WriteLine(to_wstring(count2).c_str());
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 4 of 6 complete: Created arrays according to your desktop items.");
     for (int i = 0; i < count; i++) {
@@ -2398,12 +2426,6 @@ void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
             filepm[i]->SetAlpha(touchmode ? 128 : 192);
             if (!touchmode) fileshadowpm[i]->SetAlpha(128);
         }
-        assignFn(pm[i], SelectItem);
-        assignFn(pm[i], ItemRightClick);
-        assignExtendedFn(pm[i], SelectItemListener);
-        assignExtendedFn(pm[i], ShowCheckboxIfNeeded);
-        assignExtendedFn(pm[i], ItemDragListener);
-        assignExtendedFn(cbpm[i], CheckboxHandler);
         if (!touchmode) {
             if (shellstate[4] & 0x20) {
                 pm[i]->SetClass(L"doubleclicked");
@@ -2414,6 +2436,18 @@ void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
     }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 5 of 6 complete: Filled the arrays with relevant desktop icon data.");
     RearrangeIcons(false, true, false);
+    assignFn(emptyspace, SelectItem);
+    assignExtendedFn(emptyspace, ShowCheckboxIfNeeded);
+    assignExtendedFn(emptyspace, MarqueeSelector);
+    assignFn(emptyspace, DesktopRightClick);
+    for (int i = 0; i < count; i++) {
+        assignFn(pm[i], SelectItem);
+        assignFn(pm[i], ItemRightClick);
+        assignExtendedFn(pm[i], SelectItemListener);
+        assignExtendedFn(pm[i], ShowCheckboxIfNeeded);
+        assignExtendedFn(pm[i], ItemDragListener);
+        assignExtendedFn(cbpm[i], CheckboxHandler);
+    }
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 6 of 6 complete: Arranged the icons according to your icon placements.");
     delete[] cBuffer;
     delete[] secondaryPath;
@@ -2515,6 +2549,28 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (pKeyInfo->vkCode == VK_F5) {
                 if (!keyHold[pKeyInfo->vkCode]) {
                     SetTimer(wnd->GetHWND(), 2, 150, NULL);
+                    keyHold[pKeyInfo->vkCode] = true;
+                }
+            }
+            if (pKeyInfo->vkCode >= '1' && pKeyInfo->vkCode <= '5' && GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+                if (!keyHold[pKeyInfo->vkCode]) {
+                    switch (pKeyInfo->vkCode) {
+                    case '1':
+                        SetView(144, 48, 48, false);
+                        break;
+                    case '2':
+                        SetView(96, 48, 32, false);
+                        break;
+                    case '3':
+                        SetView(48, 32, 16, false);
+                        break;
+                    case '4':
+                        SetView(32, 32, 12, false);
+                        break;
+                    case '5':
+                        SetView(32, 32, 12, true);
+                        break;
+                    }
                     keyHold[pKeyInfo->vkCode] = true;
                 }
             }
@@ -2757,18 +2813,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else if (globaliconsz > 32) globalgpiconsz = 16;
     InitLayout(false, false, false);
 
-    WCHAR* cBuffer = new WCHAR[260];
-    WCHAR* path = new WCHAR[260];
-    path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
-    StartMonitorFileChanges(path);
-    GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
-    StringCchPrintfW(path, 260, L"%s\\Desktop", cBuffer);
-    StartMonitorFileChanges(path);
-    GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
-    StringCchPrintfW(path, 260, L"%s\\Desktop", cBuffer);
-    StartMonitorFileChanges(path);
-    delete[] cBuffer;
-    delete[] path;
+    StartMonitorFileChanges(path1);
+    StartMonitorFileChanges(path2);
+    StartMonitorFileChanges(path3);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
     

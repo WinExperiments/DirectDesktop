@@ -30,7 +30,7 @@
 	<Element resid="customizegroup" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
 			<DDScalableElement content="resstr(4046)" class="toggletext"/>
-			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="136" width="352rp" height="32rp"/>
+			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
 		</Element>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">

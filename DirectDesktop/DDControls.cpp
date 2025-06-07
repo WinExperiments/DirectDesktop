@@ -207,10 +207,10 @@ void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type,
 }
 void UpdateGlyphOnPress(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
     DDScalableElement* glyph = regElem<DDScalableElement*>(L"DDCB_Glyph", elem->GetParent());
-    if (pProp == Button::PressedProp() || pProp == Button::MouseWithinProp()) {
+    if ((pProp == Button::PressedProp() || pProp == Button::MouseWithinProp()) && glyph) {
         glyph->SetSelected(((Button*)elem)->GetPressed());
     }
-    if (pProp == DDCheckBox::CheckedStateProp()) {
+    if (pProp == DDCheckBox::CheckedStateProp() && glyph) {
         ((DDCheckBoxGlyph*)glyph)->SetCheckedState(((DDCheckBox*)elem)->GetCheckedState());
     }
 }
@@ -227,6 +227,7 @@ void UpdateUICtrlColor(Element* elem, Event* iev) {
         for (int i = 0; i < te.size(); i++) {
             (te[i])->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
             (te[i])->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
+            if (((DDColorPicker*)elem->GetParent())->GetThemeAwareness() == true) te[i]->SetGroupColor(((DDColorPickerButton*)elem)->GetOrder());
         }
         te.clear();
     }
@@ -365,8 +366,14 @@ void DDScalableElement::SetAssociatedColor(int iAssociatedColor) {
 int DDScalableElement::GetDDCPIntensity() {
     return _intensity;
 }
+unsigned short DDScalableElement::GetGroupColor() {
+    return _gc;
+}
 void DDScalableElement::SetDDCPIntensity(int intensity) {
     _intensity = intensity;
+}
+void DDScalableElement::SetGroupColor(unsigned short sGC) {
+    _gc = sGC;
 }
 void DDScalableElement::InitDrawImage() {
     PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
@@ -800,14 +807,20 @@ void DDColorPicker::SetDefaultColor(int iDefaultColor) {
 RegKeyValue DDColorPicker::GetRegKeyValue() {
     return _rkv;
 }
-void DDColorPicker::SetRegKeyValue(RegKeyValue rkvNew) {
-    _rkv = rkvNew;
-}
 vector<DDScalableElement*> DDColorPicker::GetTargetElements() {
     return _targetElems;
 }
+bool DDColorPicker::GetThemeAwareness() {
+    return _themeAwareness;
+}
+void DDColorPicker::SetRegKeyValue(RegKeyValue rkvNew) {
+    _rkv = rkvNew;
+}
 void DDColorPicker::SetTargetElements(vector<DDScalableElement*> vte) {
     _targetElems = vte;
+}
+void DDColorPicker::SetThemeAwareness(bool ta) {
+    _themeAwareness = ta;
 }
 
 IClassInfo* DDColorPickerButton::GetClassInfoPtr() {

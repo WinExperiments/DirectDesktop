@@ -54,7 +54,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigne
 void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit);
 void GetPos(bool getSpotlightIcon, int* setSpotlightIcon);
 void GetPos2(bool full);
-void SetPos();
+void SetPos(bool full);
 HWND GetWorkerW();
 HWND GetWorkerW2(int* x, int* y);
 bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView);
