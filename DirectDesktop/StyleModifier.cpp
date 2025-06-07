@@ -17,14 +17,33 @@ rgb_t WhiteText;
 HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
     HDC hDC = GetDC(NULL);
     HDC hMemDC = CreateCompatibleDC(hDC);
-    HBITMAP hMemBmp = CreateCompatibleBitmap(hDC, x, y);
-    HBITMAP hResultBmp = NULL;
-    HGDIOBJ hOrgBMP = SelectObject(hMemDC, hMemBmp);
 
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = x;
+    bmi.bmiHeader.biHeight = -y;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    void* pvBits = NULL;
+    HBITMAP hResultBmp = CreateDIBSection(hMemDC, &bmi, DIB_RGB_COLORS, &pvBits, NULL, 0);
+    if (!hResultBmp) {
+        DeleteDC(hMemDC);
+        ReleaseDC(NULL, hDC);
+        return NULL;
+    }
+
+    HGDIOBJ hOrgBMP = SelectObject(hMemDC, hResultBmp);
     DrawIconEx(hMemDC, 0, 0, hIcon, x, y, 0, NULL, DI_NORMAL);
 
-    hResultBmp = hMemBmp;
-    hMemBmp = NULL;
+    DWORD* pixels = (DWORD*)pvBits;
+    for (int i = 0; i < x * y; ++i) {
+        BYTE* px = (BYTE*)&pixels[i];
+        if ((px[0] != 0 || px[1] != 0 || px[2] != 0) && px[3] == 0) {
+            px[3] = 0xFF;
+        }
+    }
 
     SelectObject(hMemDC, hOrgBMP);
     DeleteDC(hMemDC);

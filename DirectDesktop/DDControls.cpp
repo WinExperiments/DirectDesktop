@@ -149,7 +149,7 @@ static const PropertyInfo impDefaultColorProp =
 };
 
 void RedrawImageCore(DDScalableElement* pe) {
-    if (pe->GetFirstScaledImage() == -1) return;
+    if (!pe || pe->GetFirstScaledImage() == -1) return;
     int scaleInterval = GetCurrentScaleInterval();
     int scaleIntervalImage = pe->GetScaledImageIntervals();
     if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
@@ -182,6 +182,7 @@ void RedrawImageCore(DDScalableElement* pe) {
     if (newImage) DeleteObject(newImage);
 }
 void RedrawFontCore(DDScalableElement* pe) {
+    if (!pe) return;
     Value* v;
     if (pe->GetNeedsFontResize()) {
         if (pe->GetFont(&v) == nullptr) return;
@@ -294,6 +295,7 @@ HRESULT DDScalableElement::Register() {
     return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
 }
 auto DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
+    if (!this) return -1;
     Value* pv = GetValue(pPropertyProc, 2, nullptr);
     auto v = useInt ? pv->GetInt() : pv->GetBool();
     pv->Release();
@@ -430,6 +432,7 @@ HRESULT DDScalableButton::Register() {
     return ClassInfo<DDScalableButton, Button, StandardCreator<DDScalableButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
 }
 auto DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
+    if (!this) return -1;
     Value* pv = GetValue(pPropertyProc, 2, nullptr);
     auto v = useInt ? pv->GetInt() : pv->GetBool();
     pv->Release();
@@ -753,6 +756,7 @@ HRESULT DDColorPicker::Register() {
     return ClassInfo<DDColorPicker, Element, StandardCreator<DDColorPicker>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPicker", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
 }
 int DDColorPicker::GetPropCommon(const PropertyProcT pPropertyProc) {
+    if (!this) return -1;
     Value* pv = GetValue(pPropertyProc, 2, nullptr);
     int v = pv->GetInt();
     pv->Release();

@@ -309,7 +309,8 @@ HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
     }
     else {
         HICON fallback = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, width * flScaleFactor, height * flScaleFactor, LR_SHARED);
-        hBitmap = IconToBitmap(fallback);
+        hBitmap = IconToBitmap(fallback, width * flScaleFactor, height * flScaleFactor);
+        DestroyIcon(fallback);
     }
 
     return hBitmap;
@@ -769,7 +770,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 15: {
-        if (!editmode || lParam == 0) ShowSimpleView();
+        if (!editmode || lParam == 0) ShowSimpleView(lParam);
         else HideSimpleView(true);
         break;
     }
@@ -1384,9 +1385,9 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
     pageinfo->SetContentString(currentPage);
 }
 unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
-    SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
-    Sleep(75);
-    SendMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
+    PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
+    Sleep(35);
+    PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
     return 0;
 }
 void GoToPrevPage(Element* elem, Event* iev) {
@@ -1510,14 +1511,17 @@ unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
 }
 
 void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id) {
-    wstring dllName, iconID;
+    wstring dllName{}, iconID, iconFinal;
     bool customExists = EnsureRegValueExists(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons", L"29");
     if (customExists) {
         wstring customIcon = GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons", L"29");
-        size_t pathEnd = customIcon.find_last_of(L"\\") + 1;
-        size_t idStart = customIcon.find_last_of(L",-") - 1;
-        if (pathEnd != wstring::npos) {
-            dllName = customIcon.substr(pathEnd, idStart - pathEnd);
+        size_t pathEnd = customIcon.find_last_of(L"\\");
+        size_t idStart = customIcon.find(L",-");
+        if (idStart == wstring::npos) {
+            iconFinal = customIcon;
+        }
+        else if (pathEnd != wstring::npos) {
+            dllName = customIcon.substr(pathEnd + 1, idStart - pathEnd - 1);
             iconID = customIcon.substr(idStart + 2, wstring::npos);
         }
         else {
@@ -1529,10 +1533,13 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, Des
         dllName = L"imageres.dll";
         iconID = L"163";
     }
-    HICON icoShortcut = (HICON)LoadImageW(LoadLibraryW(dllName.c_str()), MAKEINTRESOURCE(_wtoi(iconID.c_str())), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
+    bool isCustomPath = (iconFinal.length() > 1);
+    HICON icoShortcut{};
+    if (isCustomPath) icoShortcut = (HICON)LoadImageW(NULL, iconFinal.c_str(), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_LOADFROMFILE);
+    else icoShortcut = (HICON)LoadImageW(LoadLibraryW(dllName.c_str()), MAKEINTRESOURCE(_wtoi(iconID.c_str())), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
     // The use of the 3 lines below is because we can't use a fully transparent bitmap
     static const HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
-    HBITMAP dummyii = IconToBitmap(dummyi);
+    HBITMAP dummyii = IconToBitmap(dummyi, 16, 16);
     IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005, NULL);
     HBITMAP bmp{};
     if (id < pm.size()) {
@@ -1541,7 +1548,8 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, Des
     }
     else if (treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz, globaliconsz);
     else bmp = dummyii;
-    HBITMAP bmpShortcut = IconToBitmap(icoShortcut);
+    HBITMAP bmpShortcut = IconToBitmap(icoShortcut, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor);
+    DestroyIcon(icoShortcut);
     IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1, NULL);
     if (bmp != dummyii) {
         float shadowintensity = touchmode ? 0.8 : 0.33;
@@ -2090,8 +2098,8 @@ unsigned long UpdateIconPosition(LPVOID lpParam) {
 void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2) {
     DWORD marqueeThread;
     HANDLE marqueeThreadHandle;
-    HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-    HBITMAP selectorBmp = IconToBitmap(dummyi);
+    static const HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
+    static const HBITMAP selectorBmp = IconToBitmap(dummyi, 16, 16);
     if (pProp == Button::CapturedProp()) {
         if (tripleclickandhide == true && ((Button*)elem)->GetCaptured() == true) {
             emptyclicks++;
@@ -2129,11 +2137,13 @@ void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* 
             selector->SetLayoutPos(-2);
             IterateBitmap(selectorBmp, SimpleBitmapPixelHandler, 3, 0, 0.33, ImmersiveColor);
             Value* selectorBmpV = DirectUI::Value::CreateGraphic(selectorBmp, 7, 0xffffffff, false, false, false);
-            selector2->SetValue(Element::BackgroundProp, 1, selectorBmpV);
             selector2->SetVisible(true);
             selector2->SetLayoutPos(-2);
             marqueeThreadHandle = CreateThread(0, 0, UpdateMarqueeSelectorPosition, NULL, 0, &marqueeThread);
-            selectorBmpV->Release();
+            if (selectorBmpV) {
+                selector2->SetValue(Element::BackgroundProp, 1, selectorBmpV);
+                selectorBmpV->Release();
+            }
         }
         isPressed = 1;
     }
@@ -2556,7 +2566,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 if (!keyHold[pKeyInfo->vkCode]) {
                     switch (pKeyInfo->vkCode) {
                     case '1':
-                        SetView(144, 48, 48, false);
+                        SetView(144, 64, 48, false);
                         break;
                     case '2':
                         SetView(96, 48, 32, false);
@@ -2806,7 +2816,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDScalableElement::Create(NULL, NULL, (Element**)&RegistryListener);
     assignExtendedFn(RegistryListener, UpdateIconColorizationColor);
     if (touchmode) globaliconsz = 32;
-    if (globaliconsz > 48) globalshiconsz = 48; else globalshiconsz = 32;
+    globalshiconsz = 32;
+    if (globaliconsz > 96) globalshiconsz = 64;
+    else if (globaliconsz > 48) globalshiconsz = 48;
     globalgpiconsz = 12;
     if (globaliconsz > 96) globalgpiconsz = 48;
     else if (globaliconsz > 48) globalgpiconsz = 32;

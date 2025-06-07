@@ -3,6 +3,7 @@
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
 #include "DirectDesktop.h"
+#include "EditMode.h"
 #include "resource.h"
 #include <propkey.h>
 
@@ -14,7 +15,7 @@ std::wstring RemoveQuotes2(const std::wstring& input) {
 }
 
 void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch) {
-    if (iconsz == globaliconsz) return;
+    if (iconsz == globaliconsz && touch == touchmode) return;
     SetPos(true);
     globaliconsz = iconsz;
     globalshiconsz = shiconsz;
@@ -110,10 +111,10 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 InitLayout(false, false, true);
                 break;
             case 2003:
-                ShowSimpleView();
+                ShowSimpleView(true);
                 break;
             case 1001:
-                SetView(144, 48, 48, false);
+                SetView(144, 64, 48, false);
                 break;
             case 1002:
                 SetView(96, 48, 32, false);

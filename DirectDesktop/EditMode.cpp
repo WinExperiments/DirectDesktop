@@ -65,13 +65,16 @@ unsigned long animate7(LPVOID lpParam) {
     return 0;
 }
 
-void fullscreenAnimation3(int width, int height, float animstartscale) {
+static int g_savedanim, g_savedanim2, g_savedanim3, g_savedanim4;
+void fullscreenAnimation3(int width, int height, float animstartscale, bool animate) {
     parser5->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninnerE);
     centeredE->Add((Element**)&fullscreeninnerE, 1);
     static const int savedanim = centeredE->GetAnimation();
     static const int savedanim2 = fullscreeninnerE->GetAnimation();
-    PlaySimpleViewAnimation(centeredE, width, height, savedanim, animstartscale);
-    PlaySimpleViewAnimation(fullscreeninnerE, width, height, savedanim2, animstartscale);
+    g_savedanim = savedanim;
+    g_savedanim2 = savedanim2;
+    PlaySimpleViewAnimation(centeredE, width, height, animate ? savedanim : NULL, animstartscale);
+    PlaySimpleViewAnimation(fullscreeninnerE, width, height, animate ? savedanim2 : NULL, animstartscale);
     centeredE->SetBackgroundColor(0);
     fullscreenpopupbaseE->SetVisible(true);
     fullscreeninnerE->SetVisible(true);
@@ -92,14 +95,12 @@ void fullscreenAnimation4() {
 
 void HideSimpleView(bool animate) {
     if (animate) {
-        centeredE->SetWidth(centeredE->GetWidth() * 1.4285);
-        centeredE->SetHeight(centeredE->GetHeight() * 1.4285);
-        fullscreeninnerE->SetWidth(fullscreeninnerE->GetWidth() * 1.4285);
-        fullscreeninnerE->SetHeight(fullscreeninnerE->GetHeight() * 1.4285);
-        simpleviewoverlay->SetWidth(simpleviewoverlay->GetWidth() * 1.4285);
-        simpleviewoverlay->SetHeight(simpleviewoverlay->GetHeight() * 1.4285);
-        deskpreview->SetWidth(deskpreview->GetWidth() * 1.4285);
-        deskpreview->SetHeight(deskpreview->GetHeight() * 1.4285);
+        RECT dimensions;
+        SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+        PlaySimpleViewAnimation(centeredE, dimensions.right, dimensions.bottom, animate ? g_savedanim : NULL, 0.7);
+        PlaySimpleViewAnimation(fullscreeninnerE, dimensions.right, dimensions.bottom, animate ? g_savedanim2 : NULL, 0.7);
+        PlaySimpleViewAnimation(simpleviewoverlay, dimensions.right, dimensions.bottom, animate ? g_savedanim3 : NULL, 0.7);
+        PlaySimpleViewAnimation(deskpreview, dimensions.right, dimensions.bottom, animate ? g_savedanim4 : NULL, 0.7);
         mainContainer->SetVisible(true);
         mainContainer->SetAlpha(255);
         editmode = false;
@@ -145,7 +146,7 @@ void ExitWindow(Element* elem, Event* iev) {
     }
 }
 
-void ShowSimpleView() {
+void ShowSimpleView(bool animate) {
     editmode = true;
     if (!invokedpagechange) SendMessageW(hWndTaskbar, WM_COMMAND, 419, 0);
     RECT dimensions;
@@ -230,19 +231,20 @@ void ShowSimpleView() {
     wnd->ShowWindow(SW_HIDE);
     IterateBitmap(hbmCapture, UndoPremultiplication, 1, 0, 1, NULL);
     bitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
-    fullscreenAnimation3(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4285);
+    fullscreenAnimation3(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4285, animate);
     parser5->CreateElement(L"deskpreview", NULL, NULL, NULL, (Element**)&deskpreview);
     //parser5->CreateElement(L"deskpreviewmask", NULL, NULL, NULL, (Element**)&deskpreviewmask);
     centeredE->Add((Element**)&deskpreview, 1);
     //pEditBG->Add((Element**)&deskpreviewmask, 1);
     if (bitmap != nullptr) deskpreview->SetValue(Element::BackgroundProp, 1, bitmap);
     static const int savedanim4 = deskpreview->GetAnimation();
+    g_savedanim4 = savedanim4;
     //static const int savedanim5 = deskpreviewmask->GetAnimation();
     //deskpreviewmask->SetX(dimensions.right * 0.15);
     //deskpreviewmask->SetY(dimensions.bottom * 0.15);
     //BlurBackground(editbgwnd->GetHWND(), true, true);
     //SetLayeredWindowAttributes(editbgwnd->GetHWND(), RGB(0, 255, 255), 0, LWA_COLORKEY);
-    PlaySimpleViewAnimation(deskpreview, dimensions.right * 0.7, dimensions.bottom * 0.7, savedanim4, 1.4285);
+    PlaySimpleViewAnimation(deskpreview, dimensions.right * 0.7, dimensions.bottom * 0.7, animate ? savedanim4 : NULL, 1.4285);
     //PlaySimpleViewAnimation(deskpreviewmask, dimensions.right * 0.7, dimensions.bottom * 0.7, savedanim5, 1.4285);
     if (bitmap != nullptr) bitmap->Release();
     if (hbmCapture != nullptr) DeleteObject(hbmCapture);
@@ -268,7 +270,8 @@ void ShowSimpleView() {
     parser5->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
     centeredE->Add((Element**)&simpleviewoverlay, 1);
     static const int savedanim3 = simpleviewoverlay->GetAnimation();
-    PlaySimpleViewAnimation(simpleviewoverlay, dimensions.right * 0.7, dimensions.bottom * 0.7, savedanim3, 1.4285);
+    g_savedanim3 = savedanim3;
+    PlaySimpleViewAnimation(simpleviewoverlay, dimensions.right * 0.7, dimensions.bottom * 0.7, animate ? savedanim3 : NULL, 1.4285);
     wnd->ShowWindow(SW_SHOW);
 
     //NativeHWNDHost::Create(L"DD_EditModeBlur", L"DirectDesktop Edit Mode Blur Helper", NULL, NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP, WS_POPUP | WS_VISIBLE, NULL, 0, &editbgwnd);

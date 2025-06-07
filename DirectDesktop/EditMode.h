@@ -24,5 +24,5 @@ extern void GoToPrevPage(Element* elem, Event* iev);
 extern void GoToNextPage(Element* elem, Event* iev);
 extern unsigned long AnimateWindowWrapper2(LPVOID lpParam);
 
-void ShowSimpleView();
+void ShowSimpleView(bool animate);
 void HideSimpleView(bool animate);

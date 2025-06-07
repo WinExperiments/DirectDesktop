@@ -467,8 +467,8 @@ void DisplayShutdownDialog() {
 	delete[] cBuffer;
 	TitlebarText->SetContentString(caption.c_str());
 	HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-	HBITMAP colorBMP = IconToBitmap(dummyi);
-	HBITMAP colorBMP2 = IconToBitmap(dummyi);
+	HBITMAP colorBMP = IconToBitmap(dummyi, 16, 16);
+	HBITMAP colorBMP2 = IconToBitmap(dummyi, 16, 16);
 	COLORREF separator = theme ? RGB(0, 0, 0) : RGB(255, 255, 255);
 	float bodyalpha = theme ? 0.4 : 0.05;
 	IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, 0, 0.125, separator);
