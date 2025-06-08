@@ -1,6 +1,6 @@
 #include "framework.h"
-#include "DirectUI/DirectUI.h"
-#include "DUser/DUser.h"
+#include "Include\dui70\DirectUI\DirectUI.h"
+#include "Include\dui70\DUser\DUser.h"
 #include "DirectDesktop.h"
 #include <string>
 #include "resource.h"
@@ -27,13 +27,6 @@
 #include "RenameCore.h"
 #include "SearchPage.h"
 #include "EditMode.h"
-#pragma comment (lib, "dwmapi.lib")
-#pragma comment (lib, "dui70.lib")
-#pragma comment (lib, "DUser.lib")
-#pragma comment (lib, "comctl32.lib")
-#pragma comment (lib, "Shcore.lib")
-#pragma comment (lib, "wtsapi32.lib")
-#pragma comment (lib, "powrprof.lib")
 
 using namespace DirectUI;
 using namespace std;

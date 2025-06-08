@@ -365,3 +365,4 @@ FodyWeavers.xsd
 
 DirectDesktop/x64/
 x64/Debug
+/build

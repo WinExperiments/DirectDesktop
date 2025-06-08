@@ -3,7 +3,7 @@
 
 #include "resource.h"
 #include <string>
-#include "DirectUI\DirectUI.h"
+#include "Include\dui70\DirectUI\DirectUI.h"
 
 using namespace DirectUI;
 

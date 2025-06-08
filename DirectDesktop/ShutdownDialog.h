@@ -2,7 +2,7 @@
 #pragma warning(disable:6258)
 #pragma warning(disable:28159)
 #include "framework.h"
-#include "DirectUI/DirectUI.h"
+#include "Include\dui70\DirectUI\DirectUI.h"
 #include "StyleModifier.h"
 #include <string>
 #include <strsafe.h>
