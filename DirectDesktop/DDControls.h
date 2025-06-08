@@ -2,7 +2,8 @@
 #pragma warning(disable:6258)
 #include <string>
 #include <vector>
-#include "DirectUI/DirectUI.h"
+
+#include "Include\dui70\DirectUI\DirectUI.h"
 
 using namespace std;
 using namespace DirectUI;

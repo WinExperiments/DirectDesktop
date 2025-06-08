@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
 #include "framework.h"
-#include "DirectUI/DirectUI.h"
+
+#include "Include\dui70\DirectUI\DirectUI.h"
 
 #define MIN_SHELL_ID 1
 #define MAX_SHELL_ID 30000

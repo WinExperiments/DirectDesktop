@@ -3,7 +3,7 @@
 #include <string>
 #include "Logger.h"
 #include "DDControls.h"
-#include "DirectUI/DirectUI.h"
+#include "Include\dui70\DirectUI\DirectUI.h"
 
 using namespace std;
 extern Logger MainLogger;

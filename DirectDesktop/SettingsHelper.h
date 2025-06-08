@@ -1,6 +1,6 @@
 #pragma once
 #include "framework.h"
-#include "DirectUI/DirectUI.h"
+#include "Include\dui70\DirectUI\DirectUI.h"
 
 using namespace DirectUI;
 
