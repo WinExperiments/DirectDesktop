@@ -16,6 +16,7 @@ extern DDScalableButton* fullscreeninner;
 IClassInfo* DDScalableElement::s_pClassInfo;
 IClassInfo* DDScalableButton::s_pClassInfo;
 IClassInfo* LVItem::s_pClassInfo;
+IClassInfo* DDLVActionButton::s_pClassInfo;
 IClassInfo* DDToggleButton::s_pClassInfo;
 IClassInfo* DDCheckBox::s_pClassInfo;
 IClassInfo* DDCheckBoxGlyph::s_pClassInfo;
@@ -202,8 +203,8 @@ void RedrawFontCore(DDScalableElement* pe) {
     }
 }
 void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-    if (pProp == DDScalableElement::FirstScaledImageProp() || pProp == DDScalableElement::AssociatedColorProp()) {
-        ((DDScalableElement*)elem)->InitDrawImage();
+    if (pProp == DDScalableElement::FirstScaledImageProp() || pProp == DDScalableElement::DrawTypeProp() || pProp == DDScalableElement::AssociatedColorProp()) {
+        if (elem) ((DDScalableElement*)elem)->InitDrawImage();
     }
 }
 void UpdateGlyphOnPress(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
@@ -226,34 +227,34 @@ void UpdateUICtrlColor(Element* elem, Event* iev) {
             SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
         }
         for (int i = 0; i < te.size(); i++) {
-            (te[i])->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
-            (te[i])->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
-            if (((DDColorPicker*)elem->GetParent())->GetThemeAwareness() == true) te[i]->SetGroupColor(((DDColorPickerButton*)elem)->GetOrder());
+            if (te[i]) {
+                (te[i])->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
+                (te[i])->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
+                if (((DDColorPicker*)elem->GetParent())->GetThemeAwareness() == true) te[i]->SetGroupColor(((DDColorPickerButton*)elem)->GetOrder());
+            }
         }
         te.clear();
     }
 }
 unsigned long DelayedDraw(LPVOID lpParam) {
-    //Sleep(50);
-    assignExtendedFn((Element*)lpParam, UpdateImageOnPropChange);
-    ((DDScalableElement*)lpParam)->InitDrawImage();
-    ((DDScalableElement*)lpParam)->InitDrawFont();
+    if (lpParam) {
+        assignExtendedFn((Element*)lpParam, UpdateImageOnPropChange);
+        ((DDScalableElement*)lpParam)->InitDrawImage();
+        ((DDScalableElement*)lpParam)->InitDrawFont();
+    }
     return 0;
 }
 unsigned long CreateCBInnerElements(LPVOID lpParam) {
-    //Sleep(50);
     PostMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)lpParam, NULL);
     assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
     return 0;
 }
 unsigned long ColorPickerLayout(LPVOID lpParam) {
-    //Sleep(50);
     PostMessageW(subviewwnd->GetHWND(), WM_USER + 4, (WPARAM)lpParam, NULL);
     return 0;
 }
 unsigned long PickerBtnFn(LPVOID lpParam) {
     InitThread(TSM_DESKTOP_DYNAMIC);
-    //Sleep(50);
     assignFn((Element*)lpParam, UpdateUICtrlColor);
     return 0;
 }
@@ -382,7 +383,7 @@ void DDScalableElement::InitDrawImage() {
 }
 void DDScalableElement::RedrawImages() {
     for (DDScalableElement* pe : _arrCreatedElements) {
-        RedrawImageCore(pe);
+        PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
     }
 }
 void DDScalableElement::InitDrawFont() {
@@ -390,7 +391,7 @@ void DDScalableElement::InitDrawFont() {
 }
 void DDScalableElement::RedrawFonts() {
     for (DDScalableElement* pe : _arrCreatedElements) {
-        RedrawFontCore(pe);
+        PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
     }
 }
 
@@ -507,16 +508,15 @@ void DDScalableButton::InitDrawImage() {
 }
 void DDScalableButton::RedrawImages() {
     for (DDScalableButton* pe : _arrCreatedButtons) {
-        RedrawImageCore((DDScalableElement*)pe);
+        PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
     }
 }
 void DDScalableButton::InitDrawFont() {
     PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
 }
 void DDScalableButton::RedrawFonts() {
-    Value* v;
     for (DDScalableButton* pe : _arrCreatedButtons) {
-        RedrawFontCore((DDScalableElement*)pe);
+        PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
     }
 }
 RegKeyValue DDScalableButton::GetRegKeyValue() {
@@ -547,6 +547,13 @@ void DDScalableButton::ExecAssociatedFn(void(*pfn)(bool, bool, bool), bool fnb1,
     pfn(fnb1, fnb2, fnb3);
 }
 
+LVItem::~LVItem() {
+    this->GetChildItems().clear();
+    this->GetChildIcons().clear();
+    this->GetChildShadows().clear();
+    this->GetChildShortcutArrows().clear();
+    this->GetChildFilenames().clear();
+}
 IClassInfo* LVItem::GetClassInfoPtr() {
     return s_pClassInfo;
 }
@@ -607,6 +614,12 @@ bool LVItem::GetColorLock() {
 bool LVItem::GetDragState() {
     return _dragged;
 }
+bool LVItem::GetRefreshState() {
+    return _refreshable;
+}
+bool LVItem::GetSizedFromGroup() {
+    return _sfg;
+}
 void LVItem::SetDirState(bool dirState) {
     _isDirectory = dirState;
 }
@@ -625,11 +638,86 @@ void LVItem::SetColorLock(bool colorLockState) {
 void LVItem::SetDragState(bool dragstate) {
     _dragged = dragstate;
 }
+void LVItem::SetRefreshState(bool refreshstate) {
+    _refreshable = refreshstate;
+}
+void LVItem::SetSizedFromGroup(bool sfg) {
+    _sfg = sfg;
+}
 unsigned short LVItem::GetPage() {
     return _page;
 }
 void LVItem::SetPage(unsigned short pageID) {
     _page = pageID;
+}
+LVItemGroupSize LVItem::GetGroupSize() {
+    return _groupsize;
+}
+void LVItem::SetGroupSize(LVItemGroupSize lvigs) {
+    _groupsize = lvigs;
+}
+vector<LVItem*> LVItem::GetChildItems() {
+    return _childItemss;
+}
+vector<DDScalableElement*> LVItem::GetChildIcons() {
+    return _childIcons;
+}
+vector<Element*> LVItem::GetChildShadows() {
+    return _childShadows;
+}
+vector<Element*> LVItem::GetChildShortcutArrows() {
+    return _childShortcutArrows;
+}
+vector<RichText*> LVItem::GetChildFilenames() {
+    return _childFilenames;
+}
+void LVItem::SetChildItems(vector<LVItem*> vpm) {
+    _childItemss = vpm;
+}
+void LVItem::SetChildIcons(vector<DDScalableElement*> vipm) {
+    _childIcons = vipm;
+}
+void LVItem::SetChildShadows(vector<Element*> vispm) {
+    _childShadows = vispm;
+}
+void LVItem::SetChildShortcutArrows(vector<Element*> vspm) {
+    _childShortcutArrows = vspm;
+}
+void LVItem::SetChildFilenames(vector<RichText*> vfpm) {
+    _childFilenames = vfpm;
+}
+void LVItem::SetListeners(vector<IElementListener*> pels) {
+    _pels = pels;
+}
+void LVItem::ClearAllListeners() {
+    for (auto pel : _pels) {
+        this->RemoveListener(pel);
+    }
+}
+
+IClassInfo* DDLVActionButton::GetClassInfoPtr() {
+    return s_pClassInfo;
+}
+void DDLVActionButton::SetClassInfoPtr(IClassInfo* pClass) {
+    s_pClassInfo = pClass;
+}
+IClassInfo* DDLVActionButton::GetClassInfoW() {
+    return s_pClassInfo;
+}
+HRESULT DDLVActionButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+    HRESULT hr = CreateAndInit<DDLVActionButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    DWORD dw;
+    HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+    return hr;
+}
+HRESULT DDLVActionButton::Register() {
+    return ClassInfo<DDLVActionButton, DDScalableButton, StandardCreator<DDLVActionButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDLVActionButton", nullptr, 0);
+}
+LVItem* DDLVActionButton::GetAssociatedItem() {
+    return _assocItem;
+}
+void DDLVActionButton::SetAssociatedItem(LVItem* lvi) {
+    _assocItem = lvi;
 }
 
 IClassInfo* DDToggleButton::GetClassInfoPtr() {
@@ -1012,10 +1100,11 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     pHostElement->SetVisible(true);
     pHostElement->EndDefer(keyN);
     notificationwnd->Host(pHostElement);
-    int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
+    int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+    int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
     MARGINS margins = { -1, -1, -1, -1 };
     DwmExtendFrameIntoClientArea(notificationwnd->GetHWND(), &margins);
-    if (WindowsBuild >= 22000) {
+    if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51) {
         DWORD cornerPreference = DWMWCP_ROUND;
         DwmSetWindowAttribute(notificationwnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
     }

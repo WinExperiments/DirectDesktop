@@ -235,11 +235,24 @@ wstring GetExplorerTooltipText(const wstring& filePath) {
     LPITEMIDLIST pidl = ILCreateFromPathW(filePath.c_str());
     if (!pidl) return L"";
 
+    LPITEMIDLIST parentPidl = ILClone(pidl);
+    if (!parentPidl) {
+        ILFree(pidl);
+        return L"";
+    }
+
+    if (!ILRemoveLastID(parentPidl)) {
+        ILFree(pidl);
+        ILFree(parentPidl);
+        return L"";
+    }
+
     IShellFolder* pDesktopFolder = nullptr;
-    if (SHGetDesktopFolder(&pDesktopFolder) == S_OK) {
+    if (SUCCEEDED(SHBindToObject(NULL, parentPidl, NULL, IID_IShellFolder, (void**)&pDesktopFolder))) {
+        LPCITEMIDLIST relativePidl = ILFindLastID(pidl);
         IQueryInfo* pQueryInfo = nullptr;
         if (SUCCEEDED(pDesktopFolder->GetUIObjectOf(
-            NULL, 1, (LPCITEMIDLIST*)&pidl, IID_IQueryInfo, NULL, (void**)&pQueryInfo))) {
+            NULL, 1, &relativePidl, IID_IQueryInfo, NULL, (void**)&pQueryInfo))) {
             wchar_t* pTip = nullptr;
             if (SUCCEEDED(pQueryInfo->GetInfoTip(0, &pTip)) && pTip) {
                 tooltipText = pTip;
@@ -251,6 +264,7 @@ wstring GetExplorerTooltipText(const wstring& filePath) {
     }
 
     ILFree(pidl);
+    ILFree(parentPidl);
     return tooltipText;
 }
 
@@ -434,7 +448,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigne
     pMalloc->Free(pidl);
 
     LPENUMIDLIST pEnumIDL = NULL;
-    hr = psfFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
+    if (psfFolder) hr = psfFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
     while (runs < limit) {
         if (pEnumIDL == nullptr) break;
         hr = pEnumIDL->Next(1, &pidl, NULL);
@@ -459,7 +473,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigne
                     }
                     (*pm)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                     (*pm)[*(count2)]->SetFilename(foundfilename);
-                    (*pm)[*(count2)]->SetAccDesc(GetExplorerTooltipText(fd.cFileName).c_str());
+                    (*pm)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
                 }
             }
             if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
@@ -480,7 +494,7 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigne
             (*count2)++;
             if (logging == IDYES) {
                 WCHAR details[320];
-                StringCchPrintfW(details, 320, L"\nNew item added, Item name: %s\nItem name to be shown on desktop: %s", foundfilename.c_str(), foundsimplefilename.c_str());
+                StringCchPrintfW(details, 320, L"\nNew item added, Item name: %s\nItem name to be shown on desktop: %s\nItems counted: %d", foundfilename.c_str(), foundsimplefilename.c_str(), *count2);
                 MainLogger.WriteLine(details);
             }
         }
@@ -489,11 +503,11 @@ void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigne
     if (pEnumIDL != nullptr) pEnumIDL->Release();
     if (psfFolder != nullptr) psfFolder->Release();
     if (pMalloc != nullptr) pMalloc->Release();
-    //if (logging == IDYES) {
-    //    WCHAR details[320];
-    //    StringCchPrintfW(details, 320, L"Information: Finished searching in %s.", path);
-    //    MainLogger.WriteLine(details);
-    //}
+    if (logging == IDYES) {
+        WCHAR details[320];
+        StringCchPrintfW(details, 320, L"Information: Finished searching in %s.", path);
+        MainLogger.WriteLine(details);
+    }
     if (bCountItems) *countedItems = runs;
 }
 
@@ -919,27 +933,53 @@ void GetPos2(bool full) {
         value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable");
         offset2 = 0;
         for (int i = 0; i < pm.size(); i++) {
-            unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-            offset2 += 2;
-            wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
-            offset2 += (namelen * 2);
-            bool match = false;
-            for (int j = 0; j < pm.size(); j++) {
-                if (pm[j]->GetFilename() == filename) {
-                    unsigned short colorID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                    offset2 += 2;
-                    iconpm[j]->SetGroupColor(colorID);
-                    iconpm[j]->SetAssociatedColor(colorPickerPalette[colorID]);
-                    unsigned short intensity = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                    offset2 += 2;
-                    iconpm[j]->SetDDCPIntensity(intensity);
-                    match = true;
-                    break;
+            if (pm[i]->GetDirState() == true) {
+                unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                offset2 += 2;
+                wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
+                offset2 += (namelen * 2);
+                bool match = false;
+                for (int j = 0; j < pm.size(); j++) {
+                    if (pm[j]->GetFilename() == filename) {
+                        unsigned short colorID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                        offset2 += 2;
+                        iconpm[j]->SetGroupColor(colorID);
+                        iconpm[j]->SetAssociatedColor(colorPickerPalette[colorID]);
+                        unsigned short intensity = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                        offset2 += 2;
+                        iconpm[j]->SetDDCPIntensity(intensity);
+                        match = true;
+                        break;
+                    }
                 }
+                if (!match) offset2 += 4;
             }
-            if (!match) offset2 += 4;
         }
     }
+    if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable")) {
+        value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable");
+        offset2 = 0;
+        for (int i = 0; i < pm.size(); i++) {
+            if (pm[i]->GetDirState() == true) {
+                unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                offset2 += 2;
+                wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
+                offset2 += (namelen * 2);
+                bool match = false;
+                for (int j = 0; j < pm.size(); j++) {
+                    if (pm[j]->GetFilename() == filename) {
+                        unsigned short size = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                        offset2 += 2;
+                        pm[j]->SetGroupSize(static_cast<LVItemGroupSize>(size));
+                        match = true;
+                        break;
+                    }
+                }
+                if (!match) offset2 += 2;
+            }
+        }
+    }
+    free(value2);
 }
 void SetPos(bool full) {
     vector<BYTE> DesktopLayout;
@@ -984,22 +1024,43 @@ void SetPos(bool full) {
         DesktopLayout.clear();
     }
     for (int i = 0; i < pm.size(); i++) {
-        wstring filename = pm[i]->GetFilename();
-        unsigned short temp = filename.length();
-        const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(namelen[0]);
-        DesktopLayout.push_back(namelen[1]);
-        const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
-        size_t len = (filename.length()) * sizeof(WCHAR);
-        DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
-        temp = iconpm[i]->GetGroupColor();
-        const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(colorBinary[0]);
-        DesktopLayout.push_back(colorBinary[1]);
-        temp = iconpm[i]->GetDDCPIntensity();
-        const BYTE* intensityBinary = reinterpret_cast<const BYTE*>(&temp);
-        DesktopLayout.push_back(intensityBinary[0]);
-        DesktopLayout.push_back(intensityBinary[1]);
+        if (pm[i]->GetDirState() == true) {
+            wstring filename = pm[i]->GetFilename();
+            unsigned short temp = filename.length();
+            const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(namelen[0]);
+            DesktopLayout.push_back(namelen[1]);
+            const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
+            size_t len = (filename.length()) * sizeof(WCHAR);
+            DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
+            temp = iconpm[i]->GetGroupColor();
+            const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(colorBinary[0]);
+            DesktopLayout.push_back(colorBinary[1]);
+            temp = iconpm[i]->GetDDCPIntensity();
+            const BYTE* intensityBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(intensityBinary[0]);
+            DesktopLayout.push_back(intensityBinary[1]);
+        }
     }
     SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
+    DesktopLayout.clear();
+    for (int i = 0; i < pm.size(); i++) {
+        if (pm[i]->GetDirState() == true) {
+            wstring filename = pm[i]->GetFilename();
+            unsigned short temp = filename.length();
+            const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(namelen[0]);
+            DesktopLayout.push_back(namelen[1]);
+            const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
+            size_t len = (filename.length()) * sizeof(WCHAR);
+            DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
+            temp = static_cast<unsigned short>(pm[i]->GetGroupSize());
+            const BYTE* sizeBinary = reinterpret_cast<const BYTE*>(&temp);
+            DesktopLayout.push_back(sizeBinary[0]);
+            DesktopLayout.push_back(sizeBinary[1]);
+        }
+    }
+    SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
+    DesktopLayout.clear();
 }

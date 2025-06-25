@@ -125,6 +125,8 @@
 #define IDS_STRING4050                  4050
 #define IDS_STRING4051                  4051
 #define IDS_STRING4052                  4052
+#define IDS_STRING4053                  4053
+#define IDS_STRING4054                  4054
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

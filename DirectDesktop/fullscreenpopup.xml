@@ -11,24 +11,29 @@
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
+			<Element layoutpos="right" layout="flowlayout(0,2,1,0)">
+				<DDLVActionButton id="atom(More)" content="resstr(153)" tooltip="true" accdesc="resstr(4054)" class="popupbuttonicon" visible="true" layoutpos="none"/>
+			</Element>
 			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
-				<DDScalableButton id="atom(Smaller)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
-				<DDScalableButton id="atom(Larger)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
-				<DDScalableButton id="atom(Pin)" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
-				<DDScalableButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
-				<DDScalableButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
+				<DDLVActionButton id="atom(Smaller)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
+				<DDLVActionButton id="atom(Larger)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
+				<Element layout="filllayout()">
+					<DDLVActionButton id="atom(Pin)" layoutpos="client" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Unpin)" layoutpos="client" content="resstr(150)" tooltip="true" accdesc="resstr(4053)" class="popupbuttonicon"/>
+				</Element>
+				<DDLVActionButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
+				<DDLVActionButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
 			</Element>
 			<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,2,0,0)" margin="rect(0,0,6rp,0)">
-				<DDScalableButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)"
-								  tooltip="true" accdesc="resstr(8711, library(Windows.UI.Immersive.dll))" class="popupbuttonicon"/>
+				<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)" tooltip="true" class="popupbuttonicon"/>
 			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="400rp">
 				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
-				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
 			</Element>
 		</Element>
 		<TouchScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
-			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
+			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 		</TouchScrollViewer>
 	</Element>
 	<Element resid="customizegroup" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
@@ -47,9 +52,9 @@
 			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
 			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
 		</Element>
-		<ScrollViewer id="atom(settingslist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded">
-			<RichText id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont"/>
-		</ScrollViewer>
+		<TouchScrollViewer id="atom(settingslist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
+			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
+		</TouchScrollViewer>
 	</Element>
 	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element class="togglecontainer" layout="borderlayout()">
@@ -135,7 +140,7 @@
 			</if>
 			<if class="popuptext">
 				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
-				<RichText foreground="black"/>
+				<DDScalableButton foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
@@ -153,7 +158,7 @@
 			</if>
 			<if class="popuptext">
 				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
-				<RichText foreground="white"/>
+				<DDScalableButton foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>

@@ -1,6 +1,8 @@
 #include "BitmapHelper.h"
 #include "BlurCore.h"
 #include <wincodec.h>
+#include <gdiplus.h>
+#pragma comment(lib, "gdiplus.lib")
 #pragma comment (lib, "WindowsCodecs.lib")
 
 // https://faithlife.codes/blog/2008/09/displaying_a_splash_screen_with_c_part_i/
@@ -182,6 +184,42 @@ HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int pL, int pT, int pR, int 
     ReleaseDC(NULL, hdcScreen);
 
     return hNewBitmap;
+}
+
+HBITMAP CaptureWallpaperFromProgman(RECT rc) {
+    WCHAR path[MAX_PATH];
+    if (!SystemParametersInfoW(SPI_GETDESKWALLPAPER, MAX_PATH, path, 0)) return nullptr;
+
+    Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+    ULONG_PTR gdiplusToken;
+    if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL) != Gdiplus::Status::Ok) return nullptr;
+
+    Gdiplus::Bitmap* bmp = Gdiplus::Bitmap::FromFile(path, false);
+    if (!bmp) return nullptr;
+
+    HBITMAP hbmOld;
+    bmp->GetHBITMAP(Gdiplus::Color(0, 0, 0), &hbmOld);
+
+    HDC hdcScreen = GetDC(NULL);
+    HDC hdcSrc = CreateCompatibleDC(hdcScreen);
+    HDC hdcDst = CreateCompatibleDC(hdcScreen);
+    HBITMAP hOldSrc = (HBITMAP)SelectObject(hdcSrc, hbmOld);
+
+    HBITMAP hRegionBmp = CreateCompatibleBitmap(hdcScreen, rc.right, rc.bottom);
+    HBITMAP hOldDst = (HBITMAP)SelectObject(hdcDst, hRegionBmp);
+
+    BitBlt(hdcDst, 0, 0, rc.right, rc.bottom, hdcSrc, rc.left, rc.top, SRCCOPY);
+
+    SelectObject(hdcSrc, hOldSrc);
+    SelectObject(hdcDst, hOldDst);
+    DeleteDC(hdcSrc);
+    DeleteDC(hdcDst);
+    ReleaseDC(NULL, hdcScreen);
+    delete bmp;
+    DeleteObject(hbmOld);
+    Gdiplus::GdiplusShutdown(gdiplusToken);
+
+    return hRegionBmp;
 }
 
 bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alphaValue, COLORREF crOpt) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
@@ -433,4 +471,7 @@ bool CompositeBitmaps(HBITMAP hbmBg, HBITMAP hbmFg, bool hardLight, float hlCoef
 
 void BlurBackground(HWND hwnd, bool blur, bool fullscreen) {
     ToggleAcrylicBlur(hwnd, blur, fullscreen);
+}
+void BlurBackground2(HWND hwnd, bool blur, bool fullscreen) {
+    ToggleAcrylicBlur2(hwnd, blur, fullscreen);
 }

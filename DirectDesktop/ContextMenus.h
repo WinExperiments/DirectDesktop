@@ -22,4 +22,3 @@ extern NativeHWNDHost* wnd;
 void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);
 void DesktopRightClick(Element* elem, Event* iev);
 void ItemRightClick(Element* elem, Event* iev);
-void SubItemRightClick(Element* elem, Event* iev);

@@ -11,6 +11,7 @@ extern bool lockiconpos;
 extern bool isColorized;
 extern bool isDarkIconsEnabled;
 extern bool automaticDark;
+extern bool isGlass;
 extern BYTE iconColorID;
 extern COLORREF IconColorizationColor;
 extern bool atleastonesetting;

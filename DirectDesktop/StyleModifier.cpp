@@ -139,6 +139,20 @@ void DesaturateWhiten(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
     b = 255.0;
 }
 
+void DesaturateWhitenGlass(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    rgb_t rgbSrc = { GetRValue(crOpt), GetGValue(crOpt), GetBValue(crOpt) };
+    hsl_t hslSrc = rgb2hsl(rgbSrc);
+    rgb_t rgbVal = { r, g, b };
+    hsl_t hslVal = rgb2hsl(rgbVal);
+
+    hslVal.l += (255.0 - hslSrc.l);
+
+    a = hslVal.l * (a / 255.0);
+    r = 255.0;
+    g = 255.0;
+    b = 255.0;
+}
+
 void ColorToAlpha(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
     // https://stackoverflow.com/a/40862635
     int r1 = GetRValue(crOpt);
@@ -209,6 +223,20 @@ struct BUCKET {
         _dpa.Create(16);
     }
 };
+
+void IncreaseBrightness(COLORREF& cr) {
+    rgb_t rgbVal = { GetRValue(cr), GetGValue(cr), GetBValue(cr) };
+    hsl_t hslVal = rgb2hsl(rgbVal);
+    hslVal.l = (sqrt(hslVal.l / 255.0)) * 255;
+    hslVal.s *= 1.33;
+    rgbVal = hsl2rgb(hslVal);
+    cr = RGB(rgbVal.r, rgbVal.g, rgbVal.b);
+}
+
+COLORREF GetColorFromPixel(HDC hdc, POINT pt) {
+    COLORREF cr = GetPixel(hdc, pt.x, pt.y);
+    return cr;
+}
 
 COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold) {
     COLORREF outDominantColor = isColorized ? IconColorizationColor : isDarkIconsEnabled ? RGB(72, 76, 80) : RGB(128, 136, 144);
@@ -309,7 +337,7 @@ COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThres
 }
 
 COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize) {
-    COLORREF outDominantColor = RGB(136, 136, 136);
+    COLORREF outFrequentColor = RGB(136, 136, 136);
 
     HDC hMemDC = CreateCompatibleDC(nullptr);
     HDC hMemDC2 = CreateCompatibleDC(nullptr);
@@ -355,13 +383,53 @@ COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize) {
             }
         }
 
-        outDominantColor = RGB(lightVal, lightVal, lightVal);
+        outFrequentColor = RGB(lightVal, lightVal, lightVal);
 
+        lightValues.clear();
+        lightMap.clear();
         EndBufferedPaint(hBufferedPaint, FALSE);
         DeleteObject(hOldBitmap);
         DeleteDC(hMemDC);
         DeleteDC(hMemDC2);
     }
 
-    return outDominantColor;
+    return outFrequentColor;
+}
+
+COLORREF GetLightestPixel(HBITMAP hbm) {
+    COLORREF outLightestColor = RGB(255, 255, 255);
+    BITMAP bm;
+    GetObject(hbm, sizeof(bm), &bm);
+
+    if (!hbm || bm.bmBitsPixel != 32) {
+        return outLightestColor;
+    }
+
+    int bmBits = (bm.bmWidth) * (bm.bmHeight) * 4;
+
+    BYTE* pBits = new BYTE[bmBits];
+    GetBitmapBits(hbm, bmBits, pBits);
+
+    BYTE* pPixel;
+    int x, y;
+    vector<BYTE> lightValues;
+
+    for (y = 0; y < bm.bmHeight; y++) {
+        pPixel = pBits + bm.bmWidth * 4 * y;
+        for (x = 0; x < bm.bmWidth; x++) {
+            rgb_t rgbVal = { pPixel[2] & 0xFFFFFF, pPixel[1] & 0xFFFFFF, pPixel[0] & 0xFFFFFF };
+            hsl_t hslVal = rgb2hsl(rgbVal);
+            lightValues.push_back((BYTE)hslVal.l);
+            pPixel += 4;
+        }
+    }
+    BYTE lightestPixel{};
+    for (auto b : lightValues) {
+        if (b > lightestPixel) {
+            lightestPixel = b;
+        }
+    }
+    outLightestColor = (lightestPixel, lightestPixel, lightestPixel);
+
+    return outLightestColor;
 }

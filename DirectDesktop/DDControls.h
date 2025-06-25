@@ -118,14 +118,20 @@ private:
     static IClassInfo* s_pClassInfo;
 };
 
+enum LVItemGroupSize {
+    LVIGS_NORMAL = 0,
+    LVIGS_SMALL = 1,
+    LVIGS_MEDIUM = 2,
+    LVIGS_WIDE = 3,
+    LVIGS_LARGE = 4
+};
+
 class LVItem final : public DDScalableButton {
 public:
     LVItem() {
 
     }
-    virtual ~LVItem() {
-
-    }
+    ~LVItem();
     static IClassInfo* GetClassInfoPtr();
     static void SetClassInfoPtr(IClassInfo* pClass);
     IClassInfo* GetClassInfoW() override;
@@ -145,14 +151,32 @@ public:
     bool GetShortcutState();
     bool GetColorLock();
     bool GetDragState();
+    bool GetRefreshState();
+    bool GetSizedFromGroup();
     void SetDirState(bool dirState);
     void SetHiddenState(bool hiddenState);
     void SetMemorySelected(bool mem_isSelectedState);
     void SetShortcutState(bool shortcutState);
     void SetColorLock(bool colorLockState);
     void SetDragState(bool dragstate);
+    void SetRefreshState(bool refreshstate);
+    void SetSizedFromGroup(bool sfg);
     unsigned short GetPage();
     void SetPage(unsigned short pageID);
+    LVItemGroupSize GetGroupSize();
+    void SetGroupSize(LVItemGroupSize lvigs);
+    vector<LVItem*> GetChildItems();
+    vector<DDScalableElement*> GetChildIcons();
+    vector<Element*> GetChildShadows();
+    vector<Element*> GetChildShortcutArrows();
+    vector<RichText*> GetChildFilenames();
+    void SetChildItems(vector<LVItem*> vpm);
+    void SetChildIcons(vector<DDScalableElement*> vipm);
+    void SetChildShadows(vector<Element*> vispm);
+    void SetChildShortcutArrows(vector<Element*> vspm);
+    void SetChildFilenames(vector<RichText*> vfpm);
+    void SetListeners(vector<IElementListener*> pels);
+    void ClearAllListeners();
 private:
     static IClassInfo* s_pClassInfo;
     wstring _filename{};
@@ -163,9 +187,38 @@ private:
     bool _isShortcut = false;
     bool _colorLock = false;
     bool _dragged = false;
-    unsigned short _xPos = 999;
-    unsigned short _yPos = 999;
+    bool _refreshable = false;
+    bool _sfg = false;
+    unsigned short _xPos = 65535;
+    unsigned short _yPos = 65535;
     unsigned short _page{};
+    LVItemGroupSize _groupsize = LVIGS_NORMAL;
+    vector<LVItem*> _childItemss;
+    vector<DDScalableElement*> _childIcons;
+    vector<Element*> _childShadows;
+    vector<Element*> _childShortcutArrows;
+    vector<RichText*> _childFilenames;
+    vector<IElementListener*> _pels;
+};
+
+class DDLVActionButton final : public DDScalableButton {
+public:
+    DDLVActionButton() {
+
+    }
+    virtual ~DDLVActionButton() {
+
+    }
+    static IClassInfo* GetClassInfoPtr();
+    static void SetClassInfoPtr(IClassInfo* pClass);
+    IClassInfo* GetClassInfoW() override;
+    static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+    static HRESULT Register();
+    LVItem* GetAssociatedItem();
+    void SetAssociatedItem(LVItem* lvi);
+private:
+    static IClassInfo* s_pClassInfo;
+    LVItem* _assocItem{};
 };
 
 class DDToggleButton final : public DDScalableButton {

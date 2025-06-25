@@ -35,9 +35,21 @@ struct DialogValues {
 	int delay{};
 };
 
-wstring GetDialogCaption(HMODULE hDLL, int id) {
+void SkipDlgSection(const BYTE*& p, const BYTE*& pEnd) {
+	if (p + 2 > pEnd) return;
+	if (*((const WORD*)p) == 0xFFFF) {
+		p += 4;
+		if (p > pEnd) return;
+	}
+	else {
+		while (p < pEnd && *((const wchar_t*)p)) p += 2;
+		p += 2;
+		if (p > pEnd) return;
+	}
+}
+wstring GetDialogString(UINT id, LPCWSTR dllName, UINT optCtrlID) {
+	HMODULE hDLL = LoadLibraryW(dllName);
 	HRSRC hRes = FindResourceW(hDLL, MAKEINTRESOURCE(id), RT_DIALOG);
-	wstring caption;
 	if (!hRes) return L"";
 	DWORD resSize = SizeofResource(hDLL, hRes);
 	if (resSize < 24) return L""; // DIALOGEX header size (24)
@@ -48,39 +60,72 @@ wstring GetDialogCaption(HMODULE hDLL, int id) {
 	if (!pData) return L"";
 	const BYTE* pEnd = pData + resSize;
 	const BYTE* pCurrent = pData;
-	if (pCurrent + 24 > pEnd) return L""; // Check header
-	pCurrent += 24; // DIALOGEX offset
+	WORD itemCount = *(WORD*)(pCurrent + 0x10);
+	if (pCurrent + 26 > pEnd) return L""; // Check header
+	pCurrent += 26; // DIALOGEX offset
 
 	// Skip menu
-	if (pCurrent + 2 > pEnd) return L"";
-	if (*((const WORD*)pCurrent) == 0xFFFF) {
-		pCurrent += 4;
-		if (pCurrent > pEnd) return L"";
-	}
-	else {
-		while (pCurrent < pEnd && *((const wchar_t*)pCurrent)) pCurrent += 2;
-		pCurrent += 2;
-		if (pCurrent > pEnd) return L"";
-	}
+	SkipDlgSection(pCurrent, pEnd);
 
 	// Skip class
-	if (pCurrent + 2 > pEnd) return L"";
-	if (*((const WORD*)pCurrent) == 0xFFFF) {
-		pCurrent += 4;
-		if (pCurrent > pEnd) return L"";
+	SkipDlgSection(pCurrent, pEnd);
+
+	if (optCtrlID > 0) {
+		wstring caption;
+
+		// Skip caption
+		SkipDlgSection(pCurrent, pEnd);
+
+		// Skip font info
+		pCurrent += 2; // point size
+		pCurrent += 2; // weight
+		pCurrent += 1; // italic
+		pCurrent += 1; // charset
+
+		// Skip font face name
+		while (*(WCHAR*)pCurrent) {
+			pCurrent += 2;
+		}
+
+		pCurrent += 2;
+		for (int i = 0; i < itemCount && pCurrent < pEnd; ++i) {
+			// Align to DWORD
+			pCurrent = (const BYTE*)(((uintptr_t)pCurrent + 3) & ~3);
+			if (pCurrent + 20 > pEnd) break;
+
+			WORD ctrlID = *(WORD*)(pCurrent + 20);
+			pCurrent += 28; // DIALOGITEMTEMPLATEEX is 20 bytes + 8 till the string
+
+			if (*(WORD*)pCurrent == 0x0000) {
+				pCurrent += 4; // ordinal
+				continue;
+			}
+			else {
+				while (*(WCHAR*)pCurrent) {
+					if (ctrlID == optCtrlID) {
+						caption += *((const WCHAR*)pCurrent);
+					}
+					pCurrent += 2;
+				}
+				if (ctrlID == optCtrlID) return caption;
+			}
+
+			while (*(BYTE*)pCurrent != 0x40 && *(BYTE*)pCurrent != 0x50) {
+				pCurrent += 1; // Dialog resources usually end in those bytes (UNCONFIRMED)
+			}
+			pCurrent -= 11; // Go back 11 bytes so that the parsing continues normally
+		}
 	}
 	else {
-		while (pCurrent < pEnd && *((const wchar_t*)pCurrent)) pCurrent += 2;
-		pCurrent += 2;
-		if (pCurrent > pEnd) return L"";
+		wstring caption;
+		while (pCurrent < pEnd && *((const WCHAR*)pCurrent)) {
+			caption += *((const WCHAR*)pCurrent);
+			pCurrent += 2;
+			if (pCurrent > pEnd) return L"";
+		}
+		return caption;
 	}
-
-	while (pCurrent < pEnd && *((const wchar_t*)pCurrent)) {
-		caption += *((const wchar_t*)pCurrent);
-		pCurrent += 2;
-		if (pCurrent > pEnd) return L"";
-	}
-	return caption;
+	return L"";
 }
 
 void ShowNotification(wstring title, wstring content) {
@@ -361,9 +406,7 @@ void UpdateShutdownReasonCode(Element* elem, Event* iev) {
 }
 
 void DisplayShutdownDialog() {
-	HMODULE hDLL = LoadLibraryExW(L"ShutdownUX.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
-	wstring caption = GetDialogCaption(hDLL, 2000);
-	if (hDLL) FreeLibrary(hDLL);
+	wstring caption = GetDialogString(2000, L"shutdownux.dll", NULL);
 	HWND hWndShutdown = FindWindowW(L"DD_ShutdownHost", caption.c_str());
 	if (hWndShutdown) return;
 	unsigned long key3 = 0;
@@ -437,9 +480,7 @@ void DisplayShutdownDialog() {
 		parser3->CreateElement(L"ShutdownEventTracker", NULL, NULL, NULL, (Element**)&ShutdownEventTrackerResid);
 		ShutdownEventTracker->Add((Element**)&ShutdownEventTrackerResid, 1);
 		DDScalableElement* SETText = regElem<DDScalableElement*>(L"SETText", ShutdownEventTrackerResid);
-		HMODULE hDLL2 = LoadLibraryExW(L"shutdownext.dll", NULL, LOAD_LIBRARY_AS_DATAFILE);
-		SETText->SetContentString(GetDialogCaption(hDLL2, 2210).c_str());
-		if (hDLL2) FreeLibrary(hDLL2);
+		SETText->SetContentString(GetDialogString(2210, L"shutdownext.dll", NULL).c_str());
 		Combobox* SETReason = (Combobox*)ShutdownEventTracker->FindDescendent(StrToID(L"SETReason"));
 		for (short s = 8261; s <= 8262; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
 		for (short s = 8250; s <= 8253; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
@@ -487,7 +528,8 @@ void DisplayShutdownDialog() {
 	DeleteObject(dummyi);
 	DeleteObject(colorBMP2);
 	colorBMPV2->Release();
-	int WindowsBuild = _wtoi(GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber"));
+	int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+	int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
 	BOOL value = TRUE;
 	LPWSTR sheetName = (LPWSTR)L"shutdownstyle";
 	if (!theme) {
@@ -502,7 +544,7 @@ void DisplayShutdownDialog() {
 	//AnimateWindow(shutdownwnd->GetHWND(), 180, AW_BLEND);
 	shutdownwnd->ShowWindow(SW_SHOW);
 	//SetFocus(shutdownwnd->GetHWND());
-	if (WindowsBuild >= 22000) {
+	if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51) {
 		MARGINS margins = { -1, -1, -1, -1 };
 		DwmExtendFrameIntoClientArea(shutdownwnd->GetHWND(), &margins);
 		DwmSetWindowAttribute(shutdownwnd->GetHWND(), DWMWA_USE_HOSTBACKDROPBRUSH, &value, sizeof(value));

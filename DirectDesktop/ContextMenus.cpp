@@ -207,20 +207,6 @@ void RightClickCore(LPCWSTR folderPath) {
 
 void ItemRightClick(Element* elem, Event* iev) {
     if (iev->uidType == Button::Context) {
-        for (int items = 0; items < pm.size(); items++) {
-            if (pm[items] == elem) {
-                RightClickCore(RemoveQuotes2(pm[items]->GetFilename()).c_str());
-            }
-        }
-    }
-}
-
-void SubItemRightClick(Element* elem, Event* iev) {
-    if (iev->uidType == Button::Context) {
-        for (int items = 0; items < subpm.size(); items++) {
-            if (subpm[items] == elem) {
-                RightClickCore(RemoveQuotes2(subpm[items]->GetFilename()).c_str());
-            }
-        }
+        RightClickCore(RemoveQuotes2(((LVItem*)elem)->GetFilename()).c_str());
     }
 }

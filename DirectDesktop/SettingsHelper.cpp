@@ -14,6 +14,7 @@ bool lockiconpos;
 bool isColorized;
 bool isDarkIconsEnabled;
 bool automaticDark;
+bool isGlass;
 BYTE iconColorID;
 COLORREF IconColorizationColor;
 bool atleastonesetting{};

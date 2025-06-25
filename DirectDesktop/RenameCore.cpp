@@ -209,10 +209,11 @@ void ShowRename() {
                 itemHeight = pm[items]->GetHeight();
                 itemX = (localeType == 1) ? dimensions.right - pm[items]->GetX() - itemWidth : pm[items]->GetX();
                 itemY = pm[items]->GetY();
-                textWidth = textElement->GetWidth();
+                // 0.4.9: width, x, and y are hardcoded due to changing layoutpos of text from absolute to top in touchmode
+                textWidth = touchmode ? textElement->GetWidth() - 6 * flScaleFactor : textElement->GetWidth();
                 textHeight = textElement->GetHeight() + 4 * flScaleFactor;
-                textX = textElement->GetX();
-                textY = textElement->GetY();
+                textX = touchmode ? 7 * flScaleFactor : 0;
+                textY = touchmode ? 8 * flScaleFactor : 0;
                 unsigned long keyR{};
                 Value* v{};
                 parser->CreateElement(L"RenameBoxElement", NULL, NULL, NULL, &RenameBoxElement);

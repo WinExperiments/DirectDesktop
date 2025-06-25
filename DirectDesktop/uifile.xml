@@ -25,12 +25,13 @@
 	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
+	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>
 	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
-		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
-		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="1"/>
+		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" alpha ="0" animation="alpha|s|mediumslow|delayshort"/>
+		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" alpha ="0" animation="alpha|s|mediumslow|delayshort" contentalign="bottomleft"/>
-		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom"/>
+		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
 		<Element layout="ninegridlayout()" layoutpos="ninetopleft">
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
@@ -38,12 +39,12 @@
 	</LVItem>
 	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
-		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute" width="64rp" height="64rp"/>
-		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" width="48rp" height="48rp" DrawType="1"/>
+		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute"/>
+		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</LVItem>
-	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp">
+	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp">
 		<DDScalableElement id="atom(innerElem)" class="itemTouchInner"/>
 		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)">
 			<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()" background="argb(0,0,0,0)">
@@ -53,7 +54,9 @@
 				</Element>
 				<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="left" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)" alpha="0" animation="alpha|s|mediumslow|delayshort"/>
 			</Element>
-			<RichText id="atom(textElem)" layoutpos="absolute" x="8rp" y="8rp" width="112rp" height="56rp" background="argb(0,0,0,0)"/>
+			<Element layoutpos="top" layout="borderlayout()" padding="rect(4rp,4rp,4rp,0)">
+				<RichText id="atom(textElem)" layoutpos="top" width="112rp" height="56rp" background="argb(0,0,0,0)"/>
+			</Element>
 		</Element>
 		<Element layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
@@ -81,7 +84,7 @@
 				</if>
 			</if>
 			<if class="itemTouchOuter">
-				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1"/>
+				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7"/>
 			</if>
 			<if class="itemTouchInner">
 				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
@@ -121,6 +124,9 @@
 			</if>
 			<if class="doubleclicked">
 				<LVItem cursor="arrow"/>
+			</if>
+			<if class="groupbackground">
+				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)" animation="rectangle|log|fast"/>
 			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -143,7 +149,7 @@
 				</if>
 			</if>
 			<if class="itemTouchOuter">
-				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1"/>
+				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7"/>
 			</if>
 			<if class="itemTouchInner">
 				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
@@ -183,6 +189,9 @@
 			</if>
 			<if class="doubleclicked">
 				<LVItem cursor="arrow"/>
+			</if>
+			<if class="groupbackground">
+				<DDScalableElement FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)" animation="rectangle|log|veryfast"/>
 			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
