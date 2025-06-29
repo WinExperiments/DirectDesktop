@@ -2,6 +2,8 @@
 #pragma warning(disable:28159)
 
 #include "resource.h"
+#include "DDControls.h"
+#include <vector>
 #include <string>
 #include "Include\dui70\DirectUI\DirectUI.h"
 
@@ -16,6 +18,38 @@ using namespace DirectUI;
 
 extern float flScaleFactor;
 extern unsigned short defWidth, defHeight, lastWidth, lastHeight;
+extern int globaliconsz, globalshiconsz, globalgpiconsz;
+extern int currentPageID, maxPageID, homePageID;
+
+struct yValue {
+    int y{};
+    float innerSizeX{};
+    float innerSizeY{};
+};
+struct yValueEx {
+    int y{};
+    float innerSizeX{};
+    float innerSizeY{};
+    std::vector<LVItem*>* vpm{};
+    std::vector<DDScalableElement*>* vipm{};
+    std::vector<Element*>* vispm{};
+    std::vector<Element*>* vspm{};
+    std::vector<RichText*>* vfpm{};
+    Element* peOptionalTarget{};
+};
+struct yValuePtrs {
+    void* ptr1{};
+    void* ptr2{};
+};
+struct DesktopIcon {
+    HBITMAP icon{};
+    HBITMAP iconshadow{};
+    HBITMAP iconshortcut{};
+    HBITMAP text{};
+    HBITMAP textshadow{};
+    COLORREF crDominantTile{};
+    HBITMAP dominantTile{};
+};
 
 // Common functions
 std::wstring LoadStrFromRes(UINT id);

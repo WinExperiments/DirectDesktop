@@ -200,6 +200,9 @@ void RedrawFontCore(DDScalableElement* pe) {
             wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
             pe->SetFont(fontNew.c_str());
         }
+        else if (pe->GetFontSize() > 0) {
+            pe->SetFontSize(pe->GetFontSize() * flScaleFactor);
+        }
     }
 }
 void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
@@ -1029,7 +1032,7 @@ void GetLongestLine(HDC hdc, const wstring& textStr, RECT* rcText) {
 }
 unsigned long AutoSizeFont(LPVOID lpParam) {
     InitThread(TSM_DESKTOP_DYNAMIC);
-    Sleep(50);
+    Sleep(20);
     Element* ppeTemp = (Element*)lpParam;
     if (!ppeTemp || notificationwnd == nullptr) return 1;
     SendMessageW(notificationwnd->GetHWND(), WM_USER + 2, (WPARAM)ppeTemp, NULL);

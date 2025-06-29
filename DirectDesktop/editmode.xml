@@ -2,39 +2,94 @@
 	<HWNDElement resid="editmodeblur" layout="filllayout()" background="rgb(0,0,0)"/>
 	<HWNDElement resid="editmode" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="edit">
 		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
-			<Element id="atom(popupbg)" class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client"/>
+			<Element class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client"/>
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client">
-				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
+				<Element id="atom(centered)" layout="filllayout()" background="argb(255,0,0,0)" animation="position|log|fast"/>
 			</Element>
-			//<TouchButton id="atom(newpage)" layoutpos="none" background="sgraphic(264,7,-1,0,0,1,1)" foreground="lime" content="New page" contentalign="middlecenter" font="iconfont;160%" visible="false"/>
-			<TouchButton id="atom(prevpage)" class="pageselectoreditmode" content="resstr(140)" alpha="0" animation="alpha|s|veryfast|delayshort"/>
-			<TouchButton id="atom(nextpage)" class="pageselectoreditmode" content="resstr(141)" alpha="0" animation="alpha|s|veryfast|delayshort"/>
+			<TouchButton id="atom(prevpage)" layout="filllayout()" class="pageselectoreditmode" alpha="0" animation="alpha|s|veryfast|delayshort">
+				<DDScalableElement layoutpos="client" class="pageselectoreditmode"/>
+			</TouchButton>
+			<TouchButton id="atom(nextpage)" layout="filllayout()" class="pageselectoreditmode" alpha="0" animation="alpha|s|veryfast|delayshort">
+				<DDScalableElement layoutpos="client" class="pageselectoreditmode"/>
+			</TouchButton>
 			<Element layoutpos="top" layout="filllayout()" id="atom(SimpleViewTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
-				// minsize="size(0,128rp)"
 				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
 				<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
 					<Button id="atom(SimpleViewPower)" width="64rp" height="64rp" content="resstr(144)" font="resstr(135)" class="simpleview" margin="rect(0,0,8rp,0)"/>
 					<Button id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
 				</Element>
 			</Element>
-			<Element layoutpos="bottom" layout="borderlayout()" id="atom(SimpleViewBottom)" height="128rp" padding="rect(16rp,16rp,16rp,16rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
-				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
-					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-					<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-				</Button>
-				<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+			<Element layoutpos="bottom" layout="flowlayout(0,2,1,0)" id="atom(SimpleViewBottom)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
+				<Button id="atom(SimpleViewClose)" layoutpos="right" width="96rp" height="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
 					<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 					<RichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+				</Button>
+				<Button id="atom(SimpleViewPages)" layoutpos="right" width="96rp" height="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+					<RichText content="resstr(155)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+					<RichText content="resstr(4055)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+				</Button>
+				<Button id="atom(SimpleViewSettings)" layoutpos="right" width="96rp" height="96rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+					<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+					<RichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 				</Button>
 			</Element>
 		</TouchButton>
 	</HWNDElement>
 	<DDScalableElement resid="fullscreeninner" layoutpos="absolute" background="black" animation="size|log|fast"/>
 	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1" animation="size|log|fast"/>
-	<Element resid="deskpreview" layoutpos="absolute" background="argb(0,0,0,0)" alpha="255" animation="size|log|fast"/>
-	<Element resid="deskpreviewmask" layoutpos="absolute" background="argb(255,0,255,255)" animation="size|log|fast"/>
+	<Button resid="PageViewer" background="black" layoutpos="client" layout="filllayout()">
+		<Element class="popupbg" layout="flowlayout(0,2,2,0)" layoutpos="client"/>
+		<Element id="atom(pagecontainer)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,3,2)" layoutpos="client">
+			<Element id="atom(pagesrow1)" layout="flowlayout(0,2,2,2)"/>
+			<Element id="atom(pagesrow2)" layout="flowlayout(0,2,2,2)"/>
+		</Element>
+		<Element id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client" visible="false">
+			<DDScalableElement content="resstr(4059)" font="28pt;Normal;None;Segoe UI Semilight" compositedtext="true" textglowsize="0" NeedsFontResize="true"/>
+			<Element height="80rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
+				<TouchEdit2 id="atom(PV_EnterPage)" font="28pt;Normal;None;Segoe UI Semilight" layoutpos="client"/>
+				<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="28pt;Normal;None;Segoe UI Semilight" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
+				<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="absolute" x="248rp" y="8rp" class="enterbutton" font="resstr(156)" content="resstr(157)"/>
+			</Element>
+			<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
+				<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
+				<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
+			</Element>
+		</Element>
+		<Element layoutpos="top" layout="filllayout()" id="atom(PageViewerTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
+			<Element layout="flowlayout(0,2,0,0)" layoutpos="left">
+				<Button id="atom(PV_Back)" width="64rp" height="64rp" content="resstr(160)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(49858, library(shell32.dll))" padding="rect(0,2rp,0,0)"/>
+			</Element>
+			<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
+				<Button id="atom(PV_Add)" width="64rp" height="64rp" content="resstr(161)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(4056)"/>
+			</Element>
+		</Element>
+	</Button>
+	<LVItem resid="PV_Page" background="black" layout="filllayout()"/>
+	<DDScalableElement resid="PV_IconShadowPreview" layoutpos="absolute" contentalign="bottomcenter" background="argb(0,0,0,0)"/>
+	<DDScalableElement resid="PV_IconPreview" layoutpos="absolute" contentalign="bottomcenter" background="argb(0,0,0,0)" DrawType="1" layout="filllayout()">
+		<Element id="atom(PV_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
+	</DDScalableElement>
+	<Element resid="PV_IconShortcutPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
+	<DDScalableElement resid="PV_IconShadowTouchPreview" layoutpos="absolute" contentalign="middlecenter" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+	<DDScalableElement resid="PV_IconTouchPreview" layoutpos="absolute" contentalign="middlecenter" background="argb(0,0,0,0)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"  padding="rect(-8rp,-8rp,-8rp,-8rp)" layout="filllayout()">
+		<Element id="atom(PV_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
+	</DDScalableElement>
+	<Element resid="PV_IconShortcutTouchPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
+	<DDScalableElement resid="PV_PageInner" class="roundoverlay" DrawType="1" layoutpos="client" layout="flowlayout(0,2,2,0)">
+		<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1"
+						   font="36pt;None;None;Segoe UI Light" compositedtext="true" textglowsize="0" borderthickness="rect(8rp,8rp,8rp,8rp)" width="72rp" height="72rp" padding="rect(0,0,0,4rp)"/>
+	</DDScalableElement>
+	<Element resid="pagetasks" layoutpos="top" layout="borderlayout()" height="56rp" background="argb(0,0,0,0)" padding="rect(8rp,8rp,8rp,8rp)">
+		<Element layout="filllayout()" layoutpos="right" width="40rp" height="40rp">
+			<Element id="atom(PV_HomeBadge)" layoutpos="right" font="resstr(162)" foreground="rgb(255,102,0)" contentalign="middlecenter" width="40rp" height="40rp" compositedtext="true" textglowsize="0"/>
+			<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" tooltip="true" accdesc="resstr(4058)"/>
+		</Element>
+		<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" content="resstr(165)" tooltip="true" accdesc="resstr(4057)" margin="rect(0,0,8rp,0)"/>
+	</Element>
 	<stylesheets>
 		<style resid="edit" base="ressheet(31, DDBase)">
+			<Element foreground="black"/>
+			<DDScalableElement foreground="black"/>
 			<if class="roundoverlay">
 				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
@@ -43,19 +98,56 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>
-				<Button background="argb(0,0,0,0)" foreground="black" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+				<Button background="argb(0,0,0,0)" foreground="black" compositedtext="true" textglowsize="0" contentalign="middlecenter" animation="alpha|linear|veryfast"/>
 				<if mousefocused="true">
 					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 					<if Pressed="true">
 						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 					</if>
+					<if Enabled="false">
+						<Button alpha="96"/>
+					</if>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="sgraphic(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+				<TouchButton layoutpos="absolute" width="0" background="black"/>
+				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+			</if>
+			<if class="groupthumbnail">
+				<DDScalableElement FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+			</if>
+			<if id="atom(PV_FolderGroup)">
+				<Element foreground="black" font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
+			</if>
+			<TouchEditInner padding="rect(0,0,72rp,0)"/>
+			<if class="enterbutton">
+				<LVItem width="64rp" height="64rp" foreground="black" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
+				<if mousefocused="true">
+					<LVItem alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+				</if>
+				<if Pressed="true">
+					<LVItem alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+				</if>
+			</if>
+			<if class="PVActionButton">
+				<DDLVActionButton layoutpos="right" font="resstr(162)" contentalign="middlecenter" width="40rp" height="40rp" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" visible="false" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
+			</if>
+			<if id="atom(PV_Home)">
+				<DDLVActionButton content="resstr(163)"/>
+				<if selected="true">
+					<DDLVActionButton content="resstr(164)"/>
+				</if>
+			</if>
+			<if id="atom(PV_HomeBadge)">
+				<Element content=""/>
+				<if selected="true">
+					<Element content="resstr(164)"/>
+				</if>
 			</if>
 		</style>
 		<style resid="editdark" base="ressheet(31, DDBaseDark)">
+			<Element foreground="white"/>
+			<DDScalableElement foreground="white"/>
 			<if class="roundoverlay">
 				<DDScalableElement FirstScaledImage="265" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
@@ -64,16 +156,51 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
-				<Button background="argb(0,0,0,0)" foreground="white" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+				<Button background="argb(0,0,0,0)" foreground="white" compositedtext="true" textglowsize="0" contentalign="middlecenter" animation="alpha|linear|veryfast"/>
 				<if mousefocused="true">
 					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 					<if Pressed="true">
 						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 					</if>
+					<if Enabled="false">
+						<Button alpha="96"/>
+					</if>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
-				<TouchButton layoutpos="absolute" width="0" background="sgraphic(264,7,-1,0,0,1,1)" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+				<TouchButton layoutpos="absolute" width="0" background="black"/>
+				<DDScalableElement FirstScaledImage="265" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+			</if>
+			<if class="groupthumbnail">
+				<DDScalableElement FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+			</if>
+			<if id="atom(PV_FolderGroup)">
+				<Element foreground="white" font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
+			</if>
+			<TouchEditInner padding="rect(0,0,72rp,0)"/>
+			<if class="enterbutton">
+				<LVItem width="64rp" height="64rp" foreground="white" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
+				<if mousefocused="true">
+					<LVItem alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+				</if>
+				<if Pressed="true">
+					<LVItem alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+				</if>
+			</if>
+			<if class="PVActionButton">
+				<DDLVActionButton layoutpos="right" foreground="white" font="resstr(162)" contentalign="middlecenter" width="40rp" height="40rp" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" visible="false" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
+			</if>
+			<if id="atom(PV_Home)">
+				<DDLVActionButton content="resstr(163)"/>
+				<if selected="true">
+					<DDLVActionButton content="resstr(164)"/>
+				</if>
+			</if>
+			<if id="atom(PV_HomeBadge)">
+				<Element content=""/>
+				<if selected="true">
+					<Element content="resstr(164)"/>
+				</if>
 			</if>
 		</style>
 	</stylesheets>

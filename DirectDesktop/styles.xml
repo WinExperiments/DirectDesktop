@@ -206,7 +206,7 @@
 			<if id="atom(TCB_Label)">
 				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)" constrainlayout="narrow"/>
 			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(AB::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" cursor="ibeam"/>
+			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(AB::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" foreground="rgb(0,0,0)" cursor="ibeam"/>
 			<if mousewithin="true">
 				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
 			</if>
@@ -493,7 +493,7 @@
 			<if id="atom(TCB_Label)">
 				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)" constrainlayout="narrow"/>
 			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" cursor="ibeam"/>
+			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" foreground="rgb(255,255,255)" cursor="ibeam"/>
 			<if mousewithin="true">
 				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
 			</if>

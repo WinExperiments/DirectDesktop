@@ -22,7 +22,7 @@ void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch) {
     globalgpiconsz = gpiconsz;
     bool touchmodeMem = touchmode;
     touchmode = touch;
-    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
+    if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
     if (touchmodeMem == !touch) {
         InitLayout(false, false, false);
         return;
@@ -111,7 +111,7 @@ void DesktopRightClick(Element* elem, Event* iev) {
                 InitLayout(false, false, true);
                 break;
             case 2003:
-                ShowSimpleView(true);
+                ShowSimpleView(false);
                 break;
             case 1001:
                 SetView(144, 64, 48, false);

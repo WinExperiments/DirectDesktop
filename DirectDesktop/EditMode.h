@@ -6,6 +6,12 @@ using namespace DirectUI;
 
 extern bool editmode;
 extern bool invokedpagechange;
+extern bool hiddenIcons;
+extern std::vector<LVItem*> pm;
+extern std::vector<DDScalableElement*> iconpm;
+extern std::vector<Element*> shadowpm, shortpm;
+extern struct DesktopIcon;
+extern DUIXmlParser* parser;
 extern NativeHWNDHost* wnd;
 extern NativeHWNDHost* editwnd;
 extern NativeHWNDHost* editbgwnd;
@@ -15,6 +21,8 @@ extern int localeType;
 extern int currentPageID, maxPageID;
 extern void PlaySimpleViewAnimation(Element* elem, int width, int height, int animation, float startscale);
 extern void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
+extern HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height);
+extern void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id, float scale);
 extern TouchButton* nextpage, *prevpage;
 extern RichText* pageinfo;
 

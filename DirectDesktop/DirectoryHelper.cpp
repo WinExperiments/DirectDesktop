@@ -903,6 +903,12 @@ void GetPos2(bool full) {
     };
     BYTE* value2 = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize);
     size_t offset2 = 0;
+    if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) {
+        maxPageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+        offset2 += 2;
+        homePageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+        offset2 += 2;
+    }
     if (full) {
         for (int i = 0; i < pm.size(); i++) {
             unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
@@ -986,6 +992,14 @@ void SetPos(bool full) {
     if (full) {
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+        unsigned short page = maxPageID;
+        const BYTE* minpageBinary = reinterpret_cast<const BYTE*>(&page);
+        DesktopLayout.push_back(minpageBinary[0]);
+        DesktopLayout.push_back(minpageBinary[1]);
+        page = homePageID;
+        const BYTE* homepageBinary = reinterpret_cast<const BYTE*>(&page);
+        DesktopLayout.push_back(homepageBinary[0]);
+        DesktopLayout.push_back(homepageBinary[1]);
         for (int i = 0; i < pm.size(); i++) {
             unsigned short xPos = (localeType == 1) ? dimensions.right - pm[i]->GetX() - pm[i]->GetWidth() : pm[i]->GetX();
             wstring filename = pm[i]->GetFilename();

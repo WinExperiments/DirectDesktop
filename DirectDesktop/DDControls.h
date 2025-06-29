@@ -13,6 +13,8 @@ extern NativeHWNDHost* subviewwnd;
 extern int GetCurrentScaleInterval();
 extern struct yValue;
 
+HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT(*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
+
 struct RegKeyValue {
     HKEY _hKeyName;
     LPCWSTR _path;

@@ -12,7 +12,6 @@ extern bool touchmode;
 extern int logging;
 extern int localeType;
 extern int globaliconsz;
-extern int maxPageID;
 extern vector<LVItem*> pm;
 extern vector<DirectUI::Element*> shortpm;
 extern vector<DDScalableElement*> iconpm;

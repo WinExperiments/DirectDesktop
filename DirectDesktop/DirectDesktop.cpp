@@ -2,7 +2,6 @@
 #include "Include\dui70\DirectUI\DirectUI.h"
 #include "Include\dui70\DUser\DUser.h"
 #include "DirectDesktop.h"
-#include <string>
 #include "resource.h"
 #include <propkey.h>
 #include "strsafe.h"
@@ -63,7 +62,7 @@ HWND hWndTaskbar = FindWindowW(L"Shell_TrayWnd", NULL);
 Logger MainLogger;
 
 DWORD shutdownReason = SHTDN_REASON_UNKNOWN;
-int maxPageID = 1, currentPageID = 1;
+int maxPageID = 1, currentPageID = 1, homePageID = 1;
 int popupframe, dframe, tframe;
 int localeType{};
 int touchSizeX, touchSizeY;
@@ -198,39 +197,9 @@ EventListener2* assignExtendedFn(Element* elemName, void(*fnName)(Element* elem,
     return nullptr;
 }
 
-struct yValue {
-    int y{};
-    int innerSizeX{};
-    int innerSizeY{};
-};
-struct yValueEx {
-    int y{};
-    int innerSizeX{};
-    int innerSizeY{};
-    vector<LVItem*>* vpm{};
-    vector<DDScalableElement*>* vipm{};
-    vector<Element*>* vispm{};
-    vector<Element*>* vspm{};
-    vector<RichText*>* vfpm{};
-};
-struct yValuePtrs {
-    void* ptr1{};
-    void* ptr2{};
-};
-
 struct FileInfo {
     wstring filepath;
     wstring filename;
-};
-
-struct DesktopIcon {
-    HBITMAP icon{};
-    HBITMAP iconshadow{};
-    HBITMAP iconshortcut{};
-    HBITMAP text{};
-    HBITMAP textshadow{};
-    COLORREF crDominantTile{};
-    HBITMAP dominantTile{};
 };
 
 struct ThumbnailIcon {
@@ -295,7 +264,7 @@ bool ensureNoRefresh = 0;
 void fullscreenAnimation(int width, int height, float animstartscale);
 void HidePopupCore(bool WinDInvoked);
 void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
-void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id);
+void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id, float scale);
 void IconThumbHelper(int id);
 unsigned long CreateIndividualThumbnail(LPVOID lpParam);
 unsigned long InitDesktopGroup(LPVOID lpParam);
@@ -309,6 +278,7 @@ void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* 
 HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
 
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    if (FAILED(hr)) return nullptr;
 
     IShellItem2* pShellItem{};
     hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
@@ -318,11 +288,17 @@ HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height) {
         IShellItemImageFactory* pImageFactory{};
         hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
         pShellItem->Release();
-
-        SIZE size = { width * flScaleFactor, height * flScaleFactor };
-        if (pImageFactory) {
-            hr = pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap);
-            pImageFactory->Release();
+        if (SUCCEEDED(hr)) {
+            SIZE size = { width * flScaleFactor, height * flScaleFactor };
+            if (pImageFactory) {
+                hr = pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap);
+                pImageFactory->Release();
+            }
+        }
+        else {
+            HICON fallback = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, width * flScaleFactor, height * flScaleFactor, LR_SHARED);
+            hBitmap = IconToBitmap(fallback, width * flScaleFactor, height * flScaleFactor);
+            DestroyIcon(fallback);
         }
     }
     else {
@@ -888,8 +864,8 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 15: {
-        if (!editmode || lParam == 0) ShowSimpleView(lParam);
-        else HideSimpleView(true);
+        if (!editmode || lParam == 0) ShowSimpleView(false);
+        else HideSimpleView(false);
         break;
     }
     case WM_USER + 16: {
@@ -909,14 +885,58 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         break;
     }
     case WM_USER + 17: {
+        static int dragToPrev{}, dragToNext{};
+        Value* v;
         POINT ppt;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
         static const int dragWidth = 0;
         static const int dragHeight = 0;
+        static const int savedanim = UIContainer->GetAnimation();
+        vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
         if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight) {
-            (*(vector<LVItem*>*)wParam)[0]->SetDragState(true);
+            internalselectedLVItems[0]->SetDragState(true);
             dragpreview->SetVisible(true);
+        }
+        if (ppt.x < 16 * flScaleFactor) dragToPrev++; else dragToPrev = 0;
+        if (ppt.x > dimensions.right - 16 * flScaleFactor) dragToNext++; else dragToNext = 0;
+        if (dragToPrev > 40 && currentPageID > 1) {
+            currentPageID--;
+            for (int i = 0; i < internalselectedLVItems.size(); i++) {
+                internalselectedLVItems[i]->SetPage(currentPageID);
+                internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetX() + dimensions.right);
+            }
+            for (int items = 0; items < pm.size(); items++) {
+                if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(!hiddenIcons);
+                else pm[items]->SetVisible(false);
+            }
+            UIContainer->SetAnimation(NULL);
+            short animSrc = (localeType == 1) ? 1 : -1;
+            UIContainer->SetX((dimensions.right - dimensions.left) * animSrc);
+            UIContainer->SetAnimation(savedanim);
+            UIContainer->SetX(0);
+            nextpageMain->SetVisible(true);
+            if (currentPageID == 1) prevpageMain->SetVisible(false);
+            dragToPrev = 0;
+        }
+        if (dragToNext > 40 && currentPageID < maxPageID) {
+            currentPageID++;
+            for (int i = 0; i < internalselectedLVItems.size(); i++) {
+                internalselectedLVItems[i]->SetPage(currentPageID);
+                internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetX() - dimensions.right);
+            }
+            for (int items = 0; items < pm.size(); items++) {
+                if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(!hiddenIcons);
+                else pm[items]->SetVisible(false);
+            }
+            UIContainer->SetAnimation(NULL);
+            short animSrc = (localeType == 1) ? -1 : 1;
+            UIContainer->SetX((dimensions.right - dimensions.left) * animSrc);
+            UIContainer->SetAnimation(savedanim);
+            UIContainer->SetX(0);
+            prevpageMain->SetVisible(true);
+            if (currentPageID == maxPageID) nextpageMain->SetVisible(false);
+            dragToNext = 0;
         }
         if (localeType == 1) ppt.x = dimensions.right - ppt.x;
         dragpreview->SetX(ppt.x - origX);
@@ -929,6 +949,7 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             if (wParam != 0) {
                 vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
                 POINT ppt;
+                Value* v;
                 GetCursorPos(&ppt);
                 ScreenToClient(wnd->GetHWND(), &ppt);
                 int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, dpi) + (globaliconsz - 44) * flScaleFactor;
@@ -1301,9 +1322,13 @@ unsigned long fastin(LPVOID lpParam) {
         HBITMAP capturedBitmap{};
         capturedBitmap = CreateTextBitmap(pm[yV->y]->GetSimpleFilename().c_str(), yV->innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, alignment, touchmode);
         DesktopIcon di;
-        ApplyIcons(pm, iconpm, &di, false, yV->y);
+        ApplyIcons(pm, iconpm, &di, false, yV->y, 1);
         if (touchmode) {
             di.crDominantTile = GetDominantColorFromIcon(di.icon, globaliconsz, 48);
+            if (treatdirasgroup && pm[yV->y]->GetDirState() == true) {
+                COLORREF crDefault = theme ? RGB(208, 208, 208) : RGB(48, 48, 48);
+                di.crDominantTile = iconpm[yV->y]->GetAssociatedColor() == -1 ? crDefault : iconpm[yV->y]->GetAssociatedColor();
+            }
             rgb_t saturatedColor = { GetRValue(di.crDominantTile), GetGValue(di.crDominantTile), GetBValue(di.crDominantTile) };
             hsl_t saturatedColor2 = rgb2hsl(saturatedColor);
             saturatedColor2.l /= 4;
@@ -1349,7 +1374,7 @@ unsigned long subfastin(LPVOID lpParam) {
     if (touchmode) capturedBitmap = CreateTextBitmap((*l_pm)[yV->y]->GetSimpleFilename().c_str(), yV2->innerSizeX - 4 * flScaleFactor, lines_basedOnEllipsis, alignment, touchmode);
     else capturedBitmap = CreateTextBitmap((*l_pm)[yV->y]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, touchmode);
     DesktopIcon di;
-    ApplyIcons(*l_pm, *(yV->vipm), &di, false, yV->y);
+    ApplyIcons(*l_pm, *(yV->vipm), &di, false, yV->y, 1);
     if (touchmode) {
         di.crDominantTile = GetDominantColorFromIcon(di.icon, globaliconsz, 48);
         rgb_t saturatedColor = { GetRValue(di.crDominantTile), GetGValue(di.crDominantTile), GetBValue(di.crDominantTile) };
@@ -1660,12 +1685,6 @@ void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, 
     StringCchPrintfW(currentPage, 64, LoadStrFromRes(4026).c_str(), currentPageID, maxPageID);
     pageinfo->SetContentString(currentPage);
 }
-unsigned long LoadOtherPageThumbnail(LPVOID lpParam) {
-    PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
-    Sleep(35);
-    PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
-    return 0;
-}
 void GoToPrevPage(Element* elem, Event* iev) {
     static const int savedanim = UIContainer->GetAnimation();
     static RECT dimensions;
@@ -1678,12 +1697,8 @@ void GoToPrevPage(Element* elem, Event* iev) {
         }
         if (editmode) {
             invokedpagechange = true;
-            float xLoc = (localeType == 1) ? 0 : 0.9;
-            float xLoc2 = (localeType == 1) ? 0.9 : 0;
-            TogglePage(nextpage, xLoc, 0.2, 0.1, 0.6);
-            if (currentPageID == 1) TogglePage(prevpage, xLoc2, 0.2, 0, 0.6);
-            DWORD dd;
-            HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
+            PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
+            PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         }
         else {
             UIContainer->SetAnimation(NULL);
@@ -1692,6 +1707,22 @@ void GoToPrevPage(Element* elem, Event* iev) {
             UIContainer->SetAnimation(savedanim);
             UIContainer->SetX(0);
         }
+        nextpageMain->SetVisible(true);
+        if (currentPageID == 1) prevpageMain->SetVisible(false);
+    }
+    if (iev->uidType == LVItem::Click && elem->GetMouseFocused() == true) {
+        currentPageID = ((LVItem*)elem)->GetPage();
+        for (int items = 0; items < pm.size(); items++) {
+            if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(!hiddenIcons);
+            else pm[items]->SetVisible(false);
+        }
+        invokedpagechange = true;
+        float xLoc = (localeType == 1) ? -0.46 : 0.9;
+        float xLoc2 = (localeType == 1) ? 0.9 : -0.46;
+        TogglePage(nextpage, xLoc, 0.2, 0.56, 0.6);
+        if (currentPageID == 1) TogglePage(prevpage, xLoc2, 0.2, 0, 0.6);
+        PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
+        PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         nextpageMain->SetVisible(true);
         if (currentPageID == 1) prevpageMain->SetVisible(false);
     }
@@ -1708,12 +1739,8 @@ void GoToNextPage(Element* elem, Event* iev) {
         }
         if (editmode) {
             invokedpagechange = true;
-            float xLoc = (localeType == 1) ? 0 : 0.9;
-            float xLoc2 = (localeType == 1) ? 0.9 : 0;
-            TogglePage(prevpage, xLoc, 0.2, 0.1, 0.6);
-            if (currentPageID == maxPageID) TogglePage(nextpage, xLoc2, 0.2, 0, 0.6);
-            DWORD dd;
-            HANDLE thumbnailThread = CreateThread(0, 0, LoadOtherPageThumbnail, NULL, 0, &dd);
+            PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
+            PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         }
         else {
             UIContainer->SetAnimation(NULL);
@@ -1722,6 +1749,22 @@ void GoToNextPage(Element* elem, Event* iev) {
             UIContainer->SetAnimation(savedanim);
             UIContainer->SetX(0);
         }
+        prevpageMain->SetVisible(true);
+        if (currentPageID == maxPageID) nextpageMain->SetVisible(false);
+    }
+    if (iev->uidType == LVItem::Click && elem->GetMouseFocused() == true) {
+        currentPageID = ((LVItem*)elem)->GetPage();
+        for (int items = 0; items < pm.size(); items++) {
+            if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(!hiddenIcons);
+            else pm[items]->SetVisible(false);
+        }
+        invokedpagechange = true;
+        float xLoc = (localeType == 1) ? -0.46 : 0.9;
+        float xLoc2 = (localeType == 1) ? 0.9 : -0.46;
+        TogglePage(prevpage, xLoc, 0.2, 0.56, 0.6);
+        if (currentPageID == maxPageID) TogglePage(nextpage, xLoc2, 0.2, 0, 0.6);
+        PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
+        PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         prevpageMain->SetVisible(true);
         if (currentPageID == maxPageID) nextpageMain->SetVisible(false);
     }
@@ -1796,7 +1839,7 @@ unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
     return 0;
 }
 
-void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id) {
+void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id, float scale) {
     wstring dllName{}, iconID, iconFinal;
     bool customExists = EnsureRegValueExists(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons", L"29");
     if (customExists) {
@@ -1821,38 +1864,38 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, Des
     }
     bool isCustomPath = (iconFinal.length() > 1);
     HICON icoShortcut{};
-    if (isCustomPath) icoShortcut = (HICON)LoadImageW(NULL, iconFinal.c_str(), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_LOADFROMFILE);
-    else icoShortcut = (HICON)LoadImageW(LoadLibraryW(dllName.c_str()), MAKEINTRESOURCE(_wtoi(iconID.c_str())), IMAGE_ICON, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor, LR_SHARED);
+    if (isCustomPath) icoShortcut = (HICON)LoadImageW(NULL, iconFinal.c_str(), IMAGE_ICON, globalshiconsz * scale * flScaleFactor, globalshiconsz * scale * flScaleFactor, LR_LOADFROMFILE);
+    else icoShortcut = (HICON)LoadImageW(LoadLibraryW(dllName.c_str()), MAKEINTRESOURCE(_wtoi(iconID.c_str())), IMAGE_ICON, globalshiconsz * scale * flScaleFactor, globalshiconsz * scale * flScaleFactor, LR_SHARED);
     // The use of the 3 lines below is because we can't use a fully transparent bitmap
     static const HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
     HBITMAP dummyii = IconToBitmap(dummyi, 16, 16);
     IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005, NULL);
     HBITMAP bmp{};
     if (id < pm.size()) {
-        if (pm[id]->GetDirState() == false || treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz, globaliconsz);
+        if (pm[id]->GetDirState() == false || treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz * scale, globaliconsz * scale);
         else bmp = dummyii;
     }
-    else if (treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz, globaliconsz);
+    else if (treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz * scale, globaliconsz * scale);
     else bmp = dummyii;
-    HBITMAP bmpShortcut = IconToBitmap(icoShortcut, globalshiconsz * flScaleFactor, globalshiconsz * flScaleFactor);
+    HBITMAP bmpShortcut = IconToBitmap(icoShortcut, globalshiconsz * scale * flScaleFactor, globalshiconsz * scale * flScaleFactor);
     DestroyIcon(icoShortcut);
     IterateBitmap(bmpShortcut, UndoPremultiplication, 1, 0, 1, NULL);
     if (bmp != dummyii) {
         float shadowintensity = touchmode ? 0.8 : 0.33;
-        HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * flScaleFactor, 8 * flScaleFactor, 8 * flScaleFactor, 8 * flScaleFactor);
-        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * flScaleFactor), shadowintensity, NULL);
+        HBITMAP bmpShadow = AddPaddingToBitmap(bmp, 8 * scale * flScaleFactor, 8 * scale * flScaleFactor, 8 * scale * flScaleFactor, 8 * scale * flScaleFactor);
+        IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * scale * flScaleFactor), shadowintensity, NULL);
         if (!isGlass || pmLVItem == pm) di->iconshadow = bmpShadow;
         if (isDarkIconsEnabled) {
             if (pmLVItem[id]->GetColorLock() == false) {
                 HBITMAP bmpOverlay = AddPaddingToBitmap(bmp, 0, 0, 0, 0);
-                COLORREF lightness = GetMostFrequentLightnessFromIcon(bmp, globaliconsz * flScaleFactor);
+                COLORREF lightness = GetMostFrequentLightnessFromIcon(bmp, globaliconsz * scale * flScaleFactor);
                 if (bmp != dummyii) IterateBitmap(bmp, UndoPremultiplication, 3, 0, 1, RGB(18, 18, 18));
                 bool compEffects = (GetGValue(lightness) < 208);
                 IterateBitmap(bmpOverlay, ColorToAlpha, 1, 0, 1, lightness);
                 CompositeBitmaps(bmp, bmpOverlay, compEffects, 0.44);
                 DeleteObject(bmpOverlay);
             }
-            if (GetGValue(GetMostFrequentLightnessFromIcon(bmpShortcut, globaliconsz * flScaleFactor)) > 208) IterateBitmap(bmpShortcut, InvertConstHue, 1, 0, 1, NULL);
+            if (GetGValue(GetMostFrequentLightnessFromIcon(bmpShortcut, globaliconsz * scale * flScaleFactor)) > 208) IterateBitmap(bmpShortcut, InvertConstHue, 1, 0, 1, NULL);
         }
     }
     if (isGlass && !isDarkIconsEnabled && !isColorized && pmLVItem[id]->GetColorLock() == false) {
@@ -1868,7 +1911,7 @@ void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, Des
             DeleteObject(bmpOverlay2);
             HBITMAP bmpOverlay3 = AddPaddingToBitmap(bmp, 0, 0, 0, 0);
             IterateBitmap(bmpOverlay3, DesaturateWhitenGlass, 1, 0, 0.4, 16777215);
-            POINT iconmidpoint = { pm[id]->GetX() + iconpm[id]->GetX() + globaliconsz / 2, pm[id]->GetY() + iconpm[id]->GetY() + globaliconsz / 2 };
+            POINT iconmidpoint = { pm[id]->GetX() + iconpm[id]->GetX() + globaliconsz * scale * flScaleFactor / 2, pm[id]->GetY() + iconpm[id]->GetY() + globaliconsz * scale * flScaleFactor / 2 };
             IterateBitmap(bmp, DesaturateWhitenGlass, 1, 0, 1, GetLightestPixel(bmp));
             COLORREF glassColor = GetColorFromPixel(hdc, iconmidpoint);
             IncreaseBrightness(glassColor);
@@ -1917,6 +1960,16 @@ void IconThumbHelper(int id) {
             iconpm[id]->SetWidth(globaliconsz * flScaleFactor);
             iconpm[id]->SetHeight(globaliconsz * flScaleFactor);
         }
+    }
+}
+void UpdateTileOnColorChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+    if (pProp == DDScalableElement::AssociatedColorProp()) {
+        int i;
+        for (i = 0; i < pm.size(); i++) {
+            if (elem == iconpm[i]) break;
+        }
+        COLORREF crDefault = theme ? RGB(208, 208, 208) : RGB(48, 48, 48);
+        pm[i]->SetAssociatedColor(((DDScalableElement*)elem)->GetAssociatedColor() == -1 ? crDefault : ((DDScalableElement*)elem)->GetAssociatedColor());
     }
 }
 
@@ -2387,8 +2440,6 @@ void ShowSettings(Element* elem, Event* iev) {
     if (iev->uidType == Button::Click) {
         ShowPopupCore();
         BlurBackground(subviewwnd->GetHWND(), true, true);
-        nextpage->SetWidth(0);
-        prevpage->SetWidth(0);
         issubviewopen = true;
         issettingsopen = true;
         Element* settingsview{};
@@ -2701,8 +2752,10 @@ void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value*
         }
         isIconPressed = 1;
     }
-    else if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
-        if (isIconPressed) isIconPressed = 0;
+    if (pProp == Button::CapturedProp()) {
+        if (((Button*)elem)->GetCaptured() == false && isIconPressed) {
+            isIconPressed = 0;
+        }
     }
 }
 
@@ -2737,7 +2790,6 @@ void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
     RECT dimensions;
     GetClientRect(wnd->GetHWND(), &dimensions);
     if (bAlreadyOpen) SetPos(isDefaultRes());
-    maxPageID = 1;
     prevpageMain->SetVisible(false);
     nextpageMain->SetVisible(false);
     WCHAR DesktopLayoutWithSize[24];
@@ -2778,6 +2830,8 @@ void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
         }
         int largestXPos = dimensions.right / outerSizeX;
         int largestYPos = (dimensions.bottom - (2 * desktoppadding_y)) / outerSizeY;
+        if (largestXPos == 0) largestXPos = 1;
+        if (largestYPos == 0) largestYPos = 1;
         vector<bool> positions{};
         positions.resize(maxPageID * largestXPos * largestYPos - 1);
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
@@ -2921,7 +2975,7 @@ void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
         if (currentPageID > maxPageID) currentPageID = maxPageID;
         if (currentPageID != 1) prevpageMain->SetVisible(true);
         for (int j = 0; j < count; j++) {
-            yValue* yV = new yValue{ j, innerSizeX, innerSizeY };
+            yValue* yV = new yValue{ j, (float)innerSizeX, (float)innerSizeY };
             animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
             animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV, 0, &(animThread2[j]));
         }
@@ -2982,6 +3036,7 @@ void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
         RichText* textElem = regElem<RichText*>(L"textElem", outerElem);
         RichText* textElemShadow = regElem<RichText*>(L"textElemShadow", outerElem);
         Button* checkboxElem = regElem<Button*>(L"checkboxElem", outerElem);
+        if (touchmode) assignExtendedFn(iconElem, UpdateTileOnColorChange);
         pm.push_back(outerElem);
         iconpm.push_back(iconElem);
         shortpm.push_back(shortcutElem);
@@ -3406,6 +3461,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (globaliconsz > 96) globalgpiconsz = 48;
     else if (globaliconsz > 48) globalgpiconsz = 32;
     else if (globaliconsz > 32) globalgpiconsz = 16;
+    WCHAR DesktopLayoutWithSize[24];
+    if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+    else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+    if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
+        currentPageID = *reinterpret_cast<unsigned short*>(&GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)[2]);
     InitLayout(false, false, false);
 
     StartMonitorFileChanges(path1);

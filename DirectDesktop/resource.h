@@ -9,16 +9,14 @@
 #define IDR_UIFILE4                     34
 #define IDR_UIFILE5                     35
 #define IDR_UIFILE6                     36
-#define IDD_DUIAPPTEMPLATE_DIALOG       102
+#define IDD_DIRECTDESKTOP_DIALOG       102
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
 #define IDM_ABOUT                       104
 #define IDS_STRING104                   104
 #define IDM_EXIT                        105
-#define IDI_DUIAPPTEMPLATE              107
 #define IDI_DIRECTDESKTOP               107
 #define IDI_SMALL                       108
-#define IDC_DUIAPPTEMPLATE              109
 #define IDC_DIRECTDESKTOP               109
 #define IDR_MAINFRAME                   128
 #define IDB_BITMAP1                     130
@@ -49,6 +47,17 @@
 #define IDS_STRING152                   152
 #define IDS_STRING153                   153
 #define IDS_STRING154                   154
+#define IDS_STRING155                   155
+#define IDS_STRING156                   156
+#define IDS_STRING157                   157
+#define IDS_STRING158                   158
+#define IDS_STRING159                   159
+#define IDS_STRING160                   160
+#define IDS_STRING161                   161
+#define IDS_STRING162                   162
+#define IDS_STRING163                   163
+#define IDS_STRING164                   164
+#define IDS_STRING165                   165
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202
@@ -127,6 +136,15 @@
 #define IDS_STRING4052                  4052
 #define IDS_STRING4053                  4053
 #define IDS_STRING4054                  4054
+#define IDS_STRING4055                  4055
+#define IDS_STRING4056                  4056
+#define IDS_STRING4057                  4057
+#define IDS_STRING4058                  4058
+#define IDS_STRING4059                  4059
+#define IDS_STRING4060                  4060
+#define IDS_STRING4061                  4061
+#define IDS_STRING4062                  4062
+#define IDS_STRING4063                  4063
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

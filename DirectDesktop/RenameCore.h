@@ -11,8 +11,6 @@ extern bool renameactive;
 extern bool touchmode;
 extern std::vector<LVItem*> pm;
 extern std::wstring RemoveQuotes(const std::wstring& input);
-extern int globaliconsz;
-extern int currentPageID;
 extern int localeType;
 extern Element* pMain;
 extern DUIXmlParser* parser;
