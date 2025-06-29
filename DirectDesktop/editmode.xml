@@ -13,7 +13,10 @@
 				<DDScalableElement layoutpos="client" class="pageselectoreditmode"/>
 			</TouchButton>
 			<Element layoutpos="top" layout="filllayout()" id="atom(SimpleViewTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
-				<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" layoutpos="client" contentalign="middlecenter"/>
+				<Element layout="flowlayout(0,2,2,3)" layoutpos="client">
+					<RichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" contentalign="middlecenter"/>
+					<RichText id="atom(SimpleViewHomeBadge)" layoutpos="none" class="simpleview" content="resstr(164)" font="resstr(156)" contentalign="middlecenter" margin="rect(4rp,0,0,0)"/>
+				</Element>
 				<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
 					<Button id="atom(SimpleViewPower)" width="64rp" height="64rp" content="resstr(144)" font="resstr(135)" class="simpleview" margin="rect(0,0,8rp,0)"/>
 					<Button id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
@@ -48,7 +51,9 @@
 			<Element height="80rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
 				<TouchEdit2 id="atom(PV_EnterPage)" font="28pt;Normal;None;Segoe UI Semilight" layoutpos="client"/>
 				<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="28pt;Normal;None;Segoe UI Semilight" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
-				<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="absolute" x="248rp" y="8rp" class="enterbutton" font="resstr(156)" content="resstr(157)"/>
+				<Element padding="rect(0,8rp,8rp,8rp)" layoutpos="right" layout="borderlayout()" height="72rp">
+					<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="right" class="enterbutton" font="resstr(156)" content="resstr(157)"/>
+				</Element>
 			</Element>
 			<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
 				<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>

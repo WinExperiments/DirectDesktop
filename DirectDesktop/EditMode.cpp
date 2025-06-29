@@ -638,11 +638,11 @@ void ShowSimpleView(bool animate) {
         }
         else if (pm[j]->GetPage() == currentPageID - 1) {
             peContainer = prevpage;
-            peContainerScale = 0.56;
+            peContainerScale = 0.5;
         }
         else if (pm[j]->GetPage() == currentPageID + 1) {
             peContainer = nextpage;
-            peContainerScale = 0.56;
+            peContainerScale = 0.5;
         }
         else continue;
         yValueEx* yV = new yValueEx{ j, peContainerScale, NULL, NULL, NULL, NULL, NULL, NULL, peContainer };
@@ -654,15 +654,19 @@ void ShowSimpleView(bool animate) {
         WCHAR currentPage[64];
         StringCchPrintfW(currentPage, 64, LoadStrFromRes(4026).c_str(), currentPageID, maxPageID);
         pageinfo->SetContentString(currentPage);
+        if (currentPageID == homePageID) {
+            RichText* SimpleViewHomeBadge = regElem<RichText*>(L"SimpleViewHomeBadge", pEdit);
+            SimpleViewHomeBadge->SetLayoutPos(0);
+        }
     }
     else pageinfo->SetContentString(L" ");
     if (currentPageID != maxPageID) {
-        float xLoc = (localeType == 1) ? -0.46 : 0.9;
-        TogglePage(nextpage, xLoc, 0.2, 0.56, 0.6);
+        float xLoc = (localeType == 1) ? -0.4 : 0.9;
+        TogglePage(nextpage, xLoc, 0.25, 0.5, 0.5);
     }
     if (currentPageID != 1) {
-        float xLoc = (localeType == 1) ? 0.9 : -0.46;
-        TogglePage(prevpage, xLoc, 0.2, 0.56, 0.6);
+        float xLoc = (localeType == 1) ? 0.9 : -0.4;
+        TogglePage(prevpage, xLoc, 0.25, 0.5, 0.5);
     }
     if (!invokedpagechange) {
         mainContainer->SetAlpha(0);

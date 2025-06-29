@@ -1155,9 +1155,11 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     HFONT hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
     SelectObject(hdcMem, hFont);
     RECT rcText{}, rcText2{};
-    GetLongestLine(hdcMem, content, &rcText2);
-    GetTextMetricsW(hdcMem, &tm);
-    cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * flScaleFactor;
+    if (content) {
+        GetLongestLine(hdcMem, content, &rcText2);
+        GetTextMetricsW(hdcMem, &tm);
+        cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * flScaleFactor;
+    }
     ncm.lfMessageFont.lfWeight = 700;
     hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
     SelectObject(hdcMem, hFont);
@@ -1175,12 +1177,14 @@ void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParse
     HANDLE setFontStr = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
     peTemp->SetContentString(titleStr.c_str());
 
-    peTemp = pDDNB->GetContentElement();
-    CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
-    peTemp->SetID(L"DDNB_Content");
-    pHostElement->Add(&peTemp, 1);
-    HANDLE setFontStr2 = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
-    peTemp->SetContentString(content);
+    if (content) {
+        peTemp = pDDNB->GetContentElement();
+        CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+        peTemp->SetID(L"DDNB_Content");
+        pHostElement->Add(&peTemp, 1);
+        HANDLE setFontStr2 = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+        peTemp->SetContentString(content);
+    }
 
     LPWSTR sheetName = theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
     StyleSheet* sheet = pHostElement->GetSheet();

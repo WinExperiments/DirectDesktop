@@ -629,7 +629,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             iconpm[lParam]->SetX(iconPaddingX);
             iconpm[lParam]->SetY(round(iconPaddingY * 0.575));
             if (localeType == 1 && pm[lParam]->GetSizedFromGroup() == true) {
-                pm[lParam]->SetX(pm[lParam]->GetX() - innerSizeX);
                 pm[lParam]->SetSizedFromGroup(false);
             }
         }
@@ -637,7 +636,6 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
         }
         if (touchmode && pm[lParam]->GetSizedFromGroup() == true) {
-            if (localeType == 1) pm[lParam]->SetX(pm[lParam]->GetX() - touchSizeX);
             pm[lParam]->SetWidth(touchSizeX);
             pm[lParam]->SetHeight(touchSizeY);
             pm[lParam]->SetSizedFromGroup(false);
@@ -902,16 +900,16 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (ppt.x > dimensions.right - 16 * flScaleFactor) dragToNext++; else dragToNext = 0;
         if (dragToPrev > 40 && currentPageID > 1) {
             currentPageID--;
+            short animSrc = (localeType == 1) ? 1 : -1;
             for (int i = 0; i < internalselectedLVItems.size(); i++) {
                 internalselectedLVItems[i]->SetPage(currentPageID);
-                internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetX() + dimensions.right);
+                internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetX() - dimensions.right * animSrc);
             }
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(!hiddenIcons);
                 else pm[items]->SetVisible(false);
             }
             UIContainer->SetAnimation(NULL);
-            short animSrc = (localeType == 1) ? 1 : -1;
             UIContainer->SetX((dimensions.right - dimensions.left) * animSrc);
             UIContainer->SetAnimation(savedanim);
             UIContainer->SetX(0);
@@ -921,16 +919,16 @@ LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
         }
         if (dragToNext > 40 && currentPageID < maxPageID) {
             currentPageID++;
+            short animSrc = (localeType == 1) ? -1 : 1;
             for (int i = 0; i < internalselectedLVItems.size(); i++) {
                 internalselectedLVItems[i]->SetPage(currentPageID);
-                internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetX() - dimensions.right);
+                internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetX() - dimensions.right * animSrc);
             }
             for (int items = 0; items < pm.size(); items++) {
                 if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(!hiddenIcons);
                 else pm[items]->SetVisible(false);
             }
             UIContainer->SetAnimation(NULL);
-            short animSrc = (localeType == 1) ? -1 : 1;
             UIContainer->SetX((dimensions.right - dimensions.left) * animSrc);
             UIContainer->SetAnimation(savedanim);
             UIContainer->SetX(0);
@@ -1489,7 +1487,7 @@ void HidePopupCore(bool WinDInvoked) {
     }
     if (issettingsopen && atleastonesetting) {
         DDNotificationBanner* ddnb{};
-        DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_SUCCESS, L"DDNB", NULL, LoadStrFromRes(4042).c_str(), 3, false);
+        DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_SUCCESS, L"DDNB", LoadStrFromRes(4042).c_str(), NULL, 3, false);
     }
     issubviewopen = false;
     issettingsopen = false;
@@ -1717,10 +1715,10 @@ void GoToPrevPage(Element* elem, Event* iev) {
             else pm[items]->SetVisible(false);
         }
         invokedpagechange = true;
-        float xLoc = (localeType == 1) ? -0.46 : 0.9;
-        float xLoc2 = (localeType == 1) ? 0.9 : -0.46;
-        TogglePage(nextpage, xLoc, 0.2, 0.56, 0.6);
-        if (currentPageID == 1) TogglePage(prevpage, xLoc2, 0.2, 0, 0.6);
+        float xLoc = (localeType == 1) ? -0.4 : 0.9;
+        float xLoc2 = (localeType == 1) ? 0.9 : -0.4;
+        TogglePage(nextpage, xLoc, 0.25, 0.5, 0.5);
+        if (currentPageID == 1) TogglePage(prevpage, xLoc2, 0.25, 0, 0.5);
         PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
         PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         nextpageMain->SetVisible(true);
@@ -1759,10 +1757,10 @@ void GoToNextPage(Element* elem, Event* iev) {
             else pm[items]->SetVisible(false);
         }
         invokedpagechange = true;
-        float xLoc = (localeType == 1) ? -0.46 : 0.9;
-        float xLoc2 = (localeType == 1) ? 0.9 : -0.46;
-        TogglePage(prevpage, xLoc, 0.2, 0.56, 0.6);
-        if (currentPageID == maxPageID) TogglePage(nextpage, xLoc2, 0.2, 0, 0.6);
+        float xLoc = (localeType == 1) ? -0.4 : 0.9;
+        float xLoc2 = (localeType == 1) ? 0.9 : -0.4;
+        TogglePage(prevpage, xLoc, 0.25, 0.5, 0.5);
+        if (currentPageID == maxPageID) TogglePage(nextpage, xLoc2, 0.25, 0, 0.5);
         PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
         PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         prevpageMain->SetVisible(true);
@@ -3415,6 +3413,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     assignFn(nextpageMain, GoToNextPage);
 
     AdjustWindowSizes(true);
+    WCHAR DesktopLayoutWithSize[24];
+    if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+    else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+    if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
+        currentPageID = *reinterpret_cast<unsigned short*>(&GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)[2]);
     showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
     hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
     globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
@@ -3461,11 +3464,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (globaliconsz > 96) globalgpiconsz = 48;
     else if (globaliconsz > 48) globalgpiconsz = 32;
     else if (globaliconsz > 32) globalgpiconsz = 16;
-    WCHAR DesktopLayoutWithSize[24];
-    if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
-    else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
-    if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
-        currentPageID = *reinterpret_cast<unsigned short*>(&GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)[2]);
     InitLayout(false, false, false);
 
     StartMonitorFileChanges(path1);
