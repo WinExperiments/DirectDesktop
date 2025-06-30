@@ -9,14 +9,17 @@
 
 using namespace DirectUI;
 
-extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
-extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
-extern bool hiddenIcons;
-extern bool touchmode;
-extern int localeType;
-extern NativeHWNDHost* wnd;
+namespace DirectDesktop
+{
+	extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
+	extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
+	extern bool hiddenIcons;
+	extern bool touchmode;
+	extern int localeType;
+	extern NativeHWNDHost* wnd;
 
 
-void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);
-void DesktopRightClick(Element* elem, Event* iev);
-void ItemRightClick(Element* elem, Event* iev);
+	void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);
+	void DesktopRightClick(Element* elem, Event* iev);
+	void ItemRightClick(Element* elem, Event* iev);
+}

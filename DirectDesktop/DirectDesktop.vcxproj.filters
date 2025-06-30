@@ -75,6 +75,9 @@
     <ClInclude Include="EditMode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DirectDesktop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
