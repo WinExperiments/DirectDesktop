@@ -45,11 +45,11 @@ namespace DirectDesktop
     wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm);
     void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result);
     bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind);
-    int GetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
-    void SetRegistryValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, DWORD dwValue, bool find, bool* isNewValue);
-    wchar_t* GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
-    BYTE* GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToFind);
-    void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, const wchar_t* valueToSet, BYTE* bValue, DWORD length, bool find, bool* isNewValue);
+    int GetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName);
+    void SetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, DWORD dwValue, bool find, bool* isNewValue);
+    bool GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, WCHAR** outStr);
+    bool GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE** outBytes);
+    void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE* bValue, DWORD length, bool find, bool* isNewValue);
     wstring GetExplorerTooltipText(const wstring& filePath);
     void StartMonitorFileChanges(const wstring& path);
     void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigned short* countedItems = nullptr, int* count2 = nullptr, unsigned short limit = 65535);

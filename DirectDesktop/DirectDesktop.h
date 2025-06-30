@@ -60,8 +60,8 @@ namespace DirectDesktop
 
     extern bool isDefaultRes();
 
-    unsigned long animate(LPVOID lpParam);
-    unsigned long fastin(LPVOID lpParam);
+    DWORD WINAPI animate(LPVOID lpParam);
+    DWORD WINAPI fastin(LPVOID lpParam);
 
     template <typename elemType>
     extern elemType regElem(const wchar_t* elemName, Element* peParent);

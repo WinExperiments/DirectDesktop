@@ -9,7 +9,7 @@
 #define IDR_UIFILE4                     34
 #define IDR_UIFILE5                     35
 #define IDR_UIFILE6                     36
-#define IDD_DIRECTDESKTOP_DIALOG       102
+#define IDD_DIRECTDESKTOP_DIALOG        102
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
 #define IDM_ABOUT                       104
@@ -82,6 +82,7 @@
 #define IDB_PNG9                        387
 #define IDB_PNG15                       430
 #define IDB_PNG8                        438
+#define IDB_PNG24                       469
 #define IDS_STRING4001                  4001
 #define IDS_STRING4002                  4002
 #define IDS_STRING4003                  4003
@@ -152,7 +153,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        449
+#define _APS_NEXT_RESOURCE_VALUE        470
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

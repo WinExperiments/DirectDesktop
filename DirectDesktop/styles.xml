@@ -43,35 +43,35 @@
 				<viewer layoutpos="nineclient" />
 			</if>
 			<if class="pilltab">
-				<DDScalableButton FirstScaledImage="172" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
+				<DDScalableButton FirstScaledImage="1072" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
 					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(0,0,0)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="179" foreground="rgb(0,0,0)"/>
+					<DDScalableButton FirstScaledImage="1079" foreground="rgb(0,0,0)"/>
 				</if>
 				<if selected="true">
-					<DDScalableButton FirstScaledImage="186" foreground="rgb(255,255,255)"/>
+					<DDScalableButton FirstScaledImage="1086" foreground="rgb(255,255,255)"/>
 				</if>
 			</if>
-			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="108" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
+			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
 			<if mousefocused="true">
-				<DDToggleButton FirstScaledImage="115"/>
+				<DDToggleButton FirstScaledImage="1015"/>
 			</if>
 			<if Pressed="true">
-				<DDToggleButton FirstScaledImage="122"/>
+				<DDToggleButton FirstScaledImage="1022"/>
 			</if>
 			<if Enabled="false">
-				<DDToggleButton FirstScaledImage="129"/>
+				<DDToggleButton FirstScaledImage="1029"/>
 			</if>
 			<if checkedstate="true">
-				<DDToggleButton FirstScaledImage="136"/>
+				<DDToggleButton FirstScaledImage="1036"/>
 				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="143"/>
+					<DDToggleButton FirstScaledImage="1043"/>
 				</if>
 				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="150"/>
+					<DDToggleButton FirstScaledImage="1050"/>
 				</if>
 				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="157"/>
+					<DDToggleButton FirstScaledImage="1057"/>
 				</if>
 			</if>
 			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
@@ -281,7 +281,7 @@
 
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="193" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="1093" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="72"/>
 				</if>
@@ -330,35 +330,35 @@
 				<viewer layoutpos="nineclient" />
 			</if>
 			<if class="pilltab">
-				<DDScalableButton FirstScaledImage="272" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
+				<DDScalableButton FirstScaledImage="2072" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
 					contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="279" foreground="rgb(255,255,255)"/>
+					<DDScalableButton FirstScaledImage="2079" foreground="rgb(255,255,255)"/>
 				</if>
 				<if selected="true">
-					<DDScalableButton FirstScaledImage="286" foreground="rgb(0,0,0)"/>
+					<DDScalableButton FirstScaledImage="2086" foreground="rgb(0,0,0)"/>
 				</if>
 			</if>
-			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="208" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
+			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
 			<if mousefocused="true">
-				<DDToggleButton FirstScaledImage="215"/>
+				<DDToggleButton FirstScaledImage="2015"/>
 			</if>
 			<if Pressed="true">
-				<DDToggleButton FirstScaledImage="222"/>
+				<DDToggleButton FirstScaledImage="2022"/>
 			</if>
 			<if Enabled="false">
-				<DDToggleButton FirstScaledImage="229"/>
+				<DDToggleButton FirstScaledImage="2029"/>
 			</if>
 			<if checkedstate="true">
-				<DDToggleButton FirstScaledImage="236"/>
+				<DDToggleButton FirstScaledImage="2036"/>
 				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="243"/>
+					<DDToggleButton FirstScaledImage="2043"/>
 				</if>
 				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="250"/>
+					<DDToggleButton FirstScaledImage="2050"/>
 				</if>
 				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="257"/>
+					<DDToggleButton FirstScaledImage="2057"/>
 				</if>
 			</if>
 			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
@@ -568,7 +568,7 @@
 
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="293" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="2093" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="96"/>
 				</if>

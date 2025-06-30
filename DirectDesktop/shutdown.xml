@@ -103,6 +103,18 @@
 	<stylesheets>
 		<style resid="shutdownstyle" base="ressheet(31, DDBase)">
 			<HWNDElement background="rgb(243,243,243)"/>
+			<if accdesc="Windows 10">
+				<DDScalableElement FirstScaledImage="11101" EnableAccent="false"/>
+			</if>
+			<if accdesc="Windows 11">
+				<DDScalableElement FirstScaledImage="11108" EnableAccent="false"/>
+			</if>
+			<if accdesc="Windows Server 2022">
+				<DDScalableElement FirstScaledImage="11301" EnableAccent="false"/>
+			</if>
+			<if accdesc="Windows Server 2025">
+				<DDScalableElement FirstScaledImage="11308" EnableAccent="false"/>
+			</if>
 			<if id="atom(TitlebarIcon)">
 				<Element foreground="black"/>
 			</if>
@@ -161,6 +173,18 @@
 		</style>
 		<style resid="shutdownstyledark" base="ressheet(31, DDBaseDark)">
 			<HWNDElement background="rgb(32,32,32)"/>
+			<if accdesc="Windows 10">
+				<DDScalableElement FirstScaledImage="11201" EnableAccent="false"/>
+			</if>
+			<if accdesc="Windows 11">
+				<DDScalableElement FirstScaledImage="11208" EnableAccent="false"/>
+			</if>
+			<if accdesc="Windows Server 2022">
+				<DDScalableElement FirstScaledImage="11401" EnableAccent="false"/>
+			</if>
+			<if accdesc="Windows Server 2025">
+				<DDScalableElement FirstScaledImage="11308" EnableAccent="false"/>
+			</if>
 			<if id="atom(TitlebarIcon)">
 				<Element foreground="white"/>
 			</if>

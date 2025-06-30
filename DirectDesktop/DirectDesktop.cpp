@@ -118,10 +118,6 @@ namespace DirectDesktop
 		dpi = GetDpiForWindow(hWnd);
 		isDpiPreviouslyChanged = true;
 		flScaleFactor = dpi / 96.0;
-		//DDScalableElement::RedrawImages();
-		//DDScalableButton::RedrawImages();
-		//DDScalableElement::RedrawFonts();
-		//DDScalableButton::RedrawFonts();
 		touchSizeX *= static_cast<float>(dpi) / dpiOld;
 		touchSizeY *= static_cast<float>(dpi) / dpiOld;
 	}
@@ -268,8 +264,8 @@ namespace DirectDesktop
 	void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
 	void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id, float scale);
 	void IconThumbHelper(int id);
-	unsigned long CreateIndividualThumbnail(LPVOID lpParam);
-	unsigned long InitDesktopGroup(LPVOID lpParam);
+	DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam);
+	DWORD WINAPI InitDesktopGroup(LPVOID lpParam);
 	void ShowDirAsGroupDesktop(LVItem* lvi);
 	void SelectItem(Element* elem, Event* iev);
 	void SelectItem2(Element* elem, Event* iev);
@@ -383,7 +379,7 @@ namespace DirectDesktop
 		elem->SetHeight(height);
 	}
 
-	unsigned long EndExplorer(LPVOID lpParam) {
+	DWORD WINAPI EndExplorer(LPVOID lpParam) {
 		Sleep(250);
 		HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
 		DWORD pid{};
@@ -419,7 +415,7 @@ namespace DirectDesktop
 		SetWindowPos(hWndTaskbar, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	}
 
-	unsigned long WallpaperHelper24H2(LPVOID lpParam) {
+	DWORD WINAPI WallpaperHelper24H2(LPVOID lpParam) {
 		yValue* yV = (yValue*)lpParam;
 		Sleep(yV->innerSizeX);
 		HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
@@ -703,8 +699,11 @@ namespace DirectDesktop
 			break;
 		}
 		case WM_USER + 5: {
-			static const int dragWidth = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth"));
-			static const int dragHeight = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight"));
+			WCHAR* cxDragStr{}, *cyDragStr{};
+			GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
+			GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
+			static const int dragWidth = _wtoi(cxDragStr);
+			static const int dragHeight = _wtoi(cyDragStr);
 			POINT ppt;
 			GetCursorPos(&ppt);
 			ScreenToClient(wnd->GetHWND(), &ppt);
@@ -1072,7 +1071,12 @@ namespace DirectDesktop
 			wstring foundfilename = (wstring)L"\"" + fi->filepath + (wstring)L"\\" + fi->filename + (wstring)L"\"";
 			DWORD attr = GetFileAttributesW(RemoveQuotes(foundfilename).c_str());
 			wstring foundsimplefilename = hideExt((wstring)fi->filename, isFileExtHidden, (attr & 16), outerElem);
-			if (attr & 16) outerElem->SetDirState(true);
+			if (attr & 16) {
+				outerElem->SetDirState(true);
+				unsigned short itemsInside{};
+				EnumerateFolder((LPWSTR)RemoveQuotes(foundfilename).c_str(), nullptr, true, &itemsInside);
+				if (itemsInside <= 192) outerElem->SetGroupedDirState(true);
+			}
 			else outerElem->SetDirState(false);
 			if (attr & 2) outerElem->SetHiddenState(true);
 			else outerElem->SetHiddenState(false);
@@ -1296,21 +1300,21 @@ namespace DirectDesktop
 		return CallWindowProc(WndProc2, hWnd, uMsg, wParam, lParam);
 	}
 
-	unsigned long animate(LPVOID lpParam) {
+	DWORD WINAPI animate(LPVOID lpParam) {
 		Sleep(150);
 		yValue* yV = (yValue*)lpParam;
 		SendMessageW(wnd->GetHWND(), WM_USER + 1, NULL, yV->y);
 		return 0;
 	}
 
-	unsigned long subanimate(LPVOID lpParam) {
+	DWORD WINAPI subanimate(LPVOID lpParam) {
 		Sleep(150);
 		yValueEx* yV = (yValueEx*)lpParam;
 		SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, (LPARAM)yV);
 		return 0;
 	}
 
-	unsigned long fastin(LPVOID lpParam) {
+	DWORD WINAPI fastin(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		Sleep(25);
 		yValue* yV = (yValue*)lpParam;
@@ -1325,7 +1329,7 @@ namespace DirectDesktop
 			ApplyIcons(pm, iconpm, &di, false, yV->y, 1);
 			if (touchmode) {
 				di.crDominantTile = GetDominantColorFromIcon(di.icon, globaliconsz, 48);
-				if (treatdirasgroup && pm[yV->y]->GetDirState() == true) {
+				if (treatdirasgroup && pm[yV->y]->GetGroupedDirState() == true) {
 					COLORREF crDefault = theme ? RGB(208, 208, 208) : RGB(48, 48, 48);
 					di.crDominantTile = iconpm[yV->y]->GetAssociatedColor() == -1 ? crDefault : iconpm[yV->y]->GetAssociatedColor();
 				}
@@ -1357,7 +1361,7 @@ namespace DirectDesktop
 		return 0;
 	}
 
-	unsigned long subfastin(LPVOID lpParam) {
+	DWORD WINAPI subfastin(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		Sleep(25);
 		yValueEx* yV = (yValueEx*)lpParam;
@@ -1406,7 +1410,7 @@ namespace DirectDesktop
 		return 0;
 	}
 
-	unsigned long InitDesktopGroup(LPVOID lpParam) {
+	DWORD WINAPI InitDesktopGroup(LPVOID lpParam) {
 		int itemID = *((int*)lpParam);
 		if (pm[itemID]->GetGroupSize() == LVIGS_NORMAL) return 1;
 		if (touchmode) Sleep(500);
@@ -1417,7 +1421,7 @@ namespace DirectDesktop
 		return 0;
 	}
 
-	unsigned long animate6(LPVOID lpParam) {
+	DWORD WINAPI animate6(LPVOID lpParam) {
 		Sleep(350);
 		AnimateWindow(subviewwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
 		BlurBackground(subviewwnd->GetHWND(), false, true);
@@ -1425,13 +1429,13 @@ namespace DirectDesktop
 		return 0;
 	}
 
-	unsigned long AnimateWindowWrapper2(LPVOID lpParam) {
+	DWORD WINAPI AnimateWindowWrapper2(LPVOID lpParam) {
 		subviewwnd->ShowWindow(SW_SHOW);
 		//AnimateWindow(subviewwnd->GetHWND(), 180, AW_BLEND);
 		return 0;
 	}
 
-	unsigned long grouptitlebaranimation(LPVOID lpParam) {
+	DWORD WINAPI grouptitlebaranimation(LPVOID lpParam) {
 		Sleep(750);
 		for (int m = 1; m <= 32; m++) {
 			dframe = m;
@@ -1440,7 +1444,7 @@ namespace DirectDesktop
 		}
 		return 0;
 	}
-	unsigned long grouptasksanimation(LPVOID lpParam) {
+	DWORD WINAPI grouptasksanimation(LPVOID lpParam) {
 		for (int m = 1; m <= 32; m++) {
 			tframe = m;
 			SendMessageW(wnd->GetHWND(), WM_USER + 13, NULL, NULL);
@@ -1499,7 +1503,7 @@ namespace DirectDesktop
 		fullscreenAnimation2();
 	}
 
-	unsigned long PositionCheckCircle(LPVOID lpParam) {
+	DWORD WINAPI PositionCheckCircle(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		Sleep(250);
 		yValuePtrs* yV = (yValuePtrs*)lpParam;
@@ -1515,8 +1519,8 @@ namespace DirectDesktop
 		if (iev->uidType == Button::Click) {
 			Element* groupdirectory = elem->GetParent()->GetParent()->GetParent();
 			Element* customizegroup = regElem<Element*>(L"customizegroup", groupdirectory);
-			DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
-			DDScalableElement* dirdetails = regElem<DDScalableElement*>(L"dirdetails", groupdirectory);
+			DDScalableRichText* dirname = regElem<DDScalableRichText*>(L"dirname", groupdirectory);
+			DDScalableRichText* dirdetails = regElem<DDScalableRichText*>(L"dirdetails", groupdirectory);
 			Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
 			DDScalableButton* More = regElem<DDScalableButton*>(L"More", groupdirectory);
 			TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
@@ -1633,7 +1637,7 @@ namespace DirectDesktop
 		}
 	}
 
-	unsigned long AutoHideMoreOptions(LPVOID lpParam) {
+	DWORD WINAPI AutoHideMoreOptions(LPVOID lpParam) {
 		Element* tasksOld = regElem<Element*>(L"tasks", (LVItem*)lpParam);
 		Sleep(5000);
 		if (ensureNoRefresh && ((LVItem*)lpParam)->GetGroupSize() != LVIGS_NORMAL) {
@@ -1667,8 +1671,9 @@ namespace DirectDesktop
 		}
 	}
 
-	unsigned long DoubleClickHandler(LPVOID lpParam) {
-		wchar_t* dcms = GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed");
+	DWORD WINAPI DoubleClickHandler(LPVOID lpParam) {
+		wchar_t* dcms{};
+		GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed", &dcms);
 		Sleep(_wtoi(dcms));
 		*((int*)lpParam) = 1;
 		return 0;
@@ -1770,13 +1775,13 @@ namespace DirectDesktop
 		}
 	}
 
-	unsigned long ApplyThumbnailIcons(LPVOID lpParam) {
+	DWORD WINAPI ApplyThumbnailIcons(LPVOID lpParam) {
 		Sleep(150);
 		PostMessageW(wnd->GetHWND(), WM_USER + 14, NULL, NULL);
 		return 0;
 	}
 
-	unsigned long CreateIndividualThumbnail(LPVOID lpParam) {
+	DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam) {
 		yValue* yV = (yValue*)lpParam;
 		if (!treatdirasgroup || pm[yV->y]->GetGroupSize() != LVIGS_NORMAL) {
 			return 1;
@@ -1794,7 +1799,7 @@ namespace DirectDesktop
 			padding = 6;
 			paddingInner = 4;
 		}
-		if (pm[yV->y]->GetDirState() == true && treatdirasgroup == true) {
+		if (pm[yV->y]->GetGroupedDirState() == true && treatdirasgroup == true) {
 			int x = padding * flScaleFactor, y = padding * flScaleFactor;
 			vector<ThumbIcons> strs;
 			unsigned short count = 0;
@@ -1843,7 +1848,9 @@ namespace DirectDesktop
 		wstring dllName{}, iconID, iconFinal;
 		bool customExists = EnsureRegValueExists(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons", L"29");
 		if (customExists) {
-			wstring customIcon = GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons", L"29");
+			WCHAR* customIconStr{};
+			GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Icons", L"29", &customIconStr);
+			wstring customIcon = customIconStr;
 			size_t pathEnd = customIcon.find_last_of(L"\\");
 			size_t idStart = customIcon.find(L",-");
 			if (idStart == wstring::npos) {
@@ -1872,7 +1879,7 @@ namespace DirectDesktop
 		IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005, NULL);
 		HBITMAP bmp{};
 		if (id < pm.size()) {
-			if (pm[id]->GetDirState() == false || treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz * scale, globaliconsz * scale);
+			if (pm[id]->GetGroupedDirState() == false || treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz * scale, globaliconsz * scale);
 			else bmp = dummyii;
 		}
 		else if (treatdirasgroup == false || pmIcon != iconpm) bmp = GetShellItemImage(RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), globaliconsz * scale, globaliconsz * scale);
@@ -1950,7 +1957,7 @@ namespace DirectDesktop
 			iconpm[id]->SetHeight(globaliconsz * flScaleFactor + 2 * groupspace);
 		}
 		Element* iconcontainer = regElem<Element*>(L"iconcontainer", pm[id]);
-		if (pm[id]->GetDirState() == true && treatdirasgroup == true) {
+		if (pm[id]->GetGroupedDirState() == true && treatdirasgroup == true) {
 			if (pm[id]->GetGroupSize() == LVIGS_NORMAL) iconpm[id]->SetClass(L"groupthumbnail");
 			else iconpm[id]->SetClass(L"groupbackground");
 			shadowpm[id]->SetVisible(false);
@@ -2009,7 +2016,7 @@ namespace DirectDesktop
 		int count2{};
 		EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
 		CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
-		if (lviCount <= 192 && lviCount > 0) {
+		if (lviCount > 0) {
 			vector<LVItem*>* subpm = new vector<LVItem*>;
 			vector<DDScalableElement*>* subiconpm = new vector<DDScalableElement*>;
 			vector<Element*>* subshadowpm = new vector<Element*>;
@@ -2098,10 +2105,9 @@ namespace DirectDesktop
 			lvi->SetChildFilenames((*subfilepm));
 		}
 		else {
-			if (lviCount > 128) {
-				lvi_SubUIContainer->SetContentString(LoadStrFromRes(4030).c_str());
-			}
-			else lvi_SubUIContainer->SetContentString(LoadStrFromRes(4029).c_str());
+			Element* emptyview{};
+			parser2->CreateElement(L"emptyview", NULL, groupdirectory, NULL, &emptyview);
+			groupdirectory->Add(&emptyview, 1);
 		}
 		dirnameanimator = regElem<Element*>(L"dirnameanimator", groupdirectory);
 		tasksanimator = regElem<Element*>(L"tasksanimator", groupdirectory);
@@ -2150,7 +2156,7 @@ namespace DirectDesktop
 		unsigned short lviCount = 0;
 		int count2{};
 		EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
-		if (lviCount <= 192 && lviCount > 0) {
+		if (lviCount > 0) {
 			vector<LVItem*>* d_subpm = new vector<LVItem*>;
 			vector<DDScalableElement*>* d_subiconpm = new vector<DDScalableElement*>;
 			vector<Element*>* d_subshadowpm = new vector<Element*>;
@@ -2239,10 +2245,9 @@ namespace DirectDesktop
 			lvi->SetChildFilenames((*d_subfilepm));
 		}
 		else {
-			if (lviCount > 128) {
-				lvi_SubUIContainer->SetContentString(LoadStrFromRes(4030).c_str());
-			}
-			else lvi_SubUIContainer->SetContentString(LoadStrFromRes(4029).c_str());
+			Element* emptyview{};
+			parser2->CreateElement(L"emptyview", NULL, groupdirectory, NULL, &emptyview);
+			groupdirectory->Add(&emptyview, 1);
 		}
 		DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
 		dirname->SetContentString(lvi->GetSimpleFilename().c_str());
@@ -2456,7 +2461,7 @@ namespace DirectDesktop
 			ShowPage1(elem, iev);
 			CubicBezier(32, px, py, 0.1, 0.9, 0.2, 1.0);
 			dirnameanimator = regElem<Element*>(L"dirnameanimator", settingsview);
-			DDScalableElement* name = regElem<DDScalableElement*>(L"name", settingsview);
+			DDScalableRichText* name = regElem<DDScalableRichText*>(L"name", settingsview);
 			name->SetAlpha(255);
 			checkifelemexists = true;
 			DWORD animThread3;
@@ -2500,7 +2505,7 @@ namespace DirectDesktop
 				execInfo.nShow = SW_SHOWNORMAL;
 				execInfo.lpFile = temp.c_str();
 				fileopened = true;
-				if (((LVItem*)elem)->GetDirState() == true && treatdirasgroup == true) {
+				if (((LVItem*)elem)->GetGroupedDirState() == true && treatdirasgroup == true) {
 					ShowDirAsGroup((LVItem*)elem);
 				}
 				else ShellExecuteExW(&execInfo);
@@ -2591,7 +2596,7 @@ namespace DirectDesktop
 	}
 
 	bool isPressed = 0, isIconPressed = 0;
-	unsigned long UpdateMarqueeSelectorPosition(LPVOID lpParam) {
+	DWORD WINAPI UpdateMarqueeSelectorPosition(LPVOID lpParam) {
 		while (true) {
 			if (!isPressed) break;
 			Sleep(10);
@@ -2599,13 +2604,16 @@ namespace DirectDesktop
 		}
 		return 0;
 	}
-	unsigned long UpdateIconPosition(LPVOID lpParam) {
+	DWORD WINAPI UpdateIconPosition(LPVOID lpParam) {
 		if (fileopened) return 0;
 		POINT ppt, ppt2;
 		GetCursorPos(&ppt);
 		ScreenToClient(wnd->GetHWND(), &ppt);
-		static const int dragWidth = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth"));
-		static const int dragHeight = _wtoi(GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight"));
+		WCHAR* cxDragStr{}, *cyDragStr{};
+		GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
+		GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
+		static const int dragWidth = _wtoi(cxDragStr);
+		static const int dragHeight = _wtoi(cyDragStr);
 		while (true) {
 			GetCursorPos(&ppt2);
 			ScreenToClient(wnd->GetHWND(), &ppt2);
@@ -3006,11 +3014,13 @@ namespace DirectDesktop
 		cbpm.clear();
 		GetFontHeight();
 		if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 6 complete: Prepared DirectDesktop to receive desktop data.");
-		LPWSTR path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
+		LPWSTR path{};
+		GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
 		wchar_t* secondaryPath = new wchar_t[260];
 		wchar_t* cBuffer = new wchar_t[260];
 
-		BYTE* value = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconLayouts");
+		BYTE* value{};
+		GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconLayouts", &value);
 		size_t offset = 0x10;
 		vector<uint16_t> head;
 		for (int i = 0; i < 4; ++i) {
@@ -3121,7 +3131,7 @@ namespace DirectDesktop
 		}
 	}
 
-	unsigned long FinishedLogging(LPVOID lpParam) {
+	DWORD WINAPI FinishedLogging(LPVOID lpParam) {
 		int logresponse{};
 		TaskDialog(NULL, NULL, LoadStrFromRes(4024).c_str(), LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), TDCBF_OK_BUTTON | TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, &logresponse);
 		if (logresponse == IDCLOSE) SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
@@ -3295,6 +3305,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	RegisterAllControls();
 	DDScalableElement::Register();
 	DDScalableButton::Register();
+	DDScalableRichText::Register();
 	LVItem::Register();
 	DDLVActionButton::Register();
 	DDToggleButton::Register();
@@ -3422,12 +3433,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	WCHAR DesktopLayoutWithSize[24];
 	if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
 	else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
-	if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
-		currentPageID = *reinterpret_cast<unsigned short*>(&GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)[2]);
+	if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) {
+		BYTE* value2;
+		GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
+		currentPageID = *reinterpret_cast<unsigned short*>(&value2[2]);
+	}
 	showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
 	hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
 	globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
-	shellstate = GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState");
+	GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
 	RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\DirectDesktop", NULL, NULL };
 	if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultWidth")) {
 		defWidth = dimensions.right / flScaleFactor;
@@ -3475,6 +3489,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	StartMonitorFileChanges(path1);
 	StartMonitorFileChanges(path2);
 	StartMonitorFileChanges(path3);
+
+	DDNotificationBanner* ddnb{};
+	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M1",
+		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone1\nCompiled on 2025-06-30",
+		15, false);
 
 	if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
 

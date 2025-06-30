@@ -1,5 +1,6 @@
 #include "SearchPage.h"
 #include "DirectDesktop.h"
+#include "DDControls.h"
 //#include "EverythingSearch/Everything.h"
 #include "resource.h"
 #include <strsafe.h>
@@ -48,7 +49,8 @@ namespace DirectDesktop
 	}
 
 	void DisplayResults(Element* elem, Event* iev) {
-		static LPCWSTR path = GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop");
+		static LPWSTR path{};
+		GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
 		if (iev->uidType == Button::Click) {
 			MessageBeep(MB_OK);
 			//Value* v{};
@@ -61,7 +63,7 @@ namespace DirectDesktop
 			//d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
 			//StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
 			Element* rescontainer = regElem<Element*>(L"rescontainer", pSearch);
-			rescontainer->DestroyAll(true);
+			//rescontainer->DestroyAll(true);
 			//WCHAR* searchquery = new WCHAR[1024];
 			//StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
 			//Everything_SetSearchW(searchquery);
@@ -77,7 +79,9 @@ namespace DirectDesktop
 			rescontainer->Add((Element**)&ResultCount, 1);
 			//WCHAR* resultc = new WCHAR[64];
 			//StringCchPrintfW(resultc, 64, L"%d items", Everything_GetNumResults());
-			ResultCount->SetContentString(L"Search will be functional by version 0.6");
+			MessageBeep(MB_OK);
+			DDNotificationBanner* ddnb{};
+			DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_INFO, L"DDNB", NULL, L"Search will be available by version 0.6", 5, false);
 			//rescontainer->SetHeight(Everything_GetNumResults() * SearchResultPlaceholder->GetHeight() + 40);
 			//for (int i = 0; i < Everything_GetNumResults(); i++) {
 			//	WCHAR* nameStr = new WCHAR[256];

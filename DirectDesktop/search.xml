@@ -7,7 +7,10 @@
 				<TouchEdit2 id="atom(searchbox)" layoutpos="left" background="white" height="64rp" foreground="black" padding="rect(4rp,4rp,4rp,4rp)"/>
 			</Element>
 			<TouchScrollViewer id="atom(SearchResults)" layoutpos="client" background="argb(255,16,16,16)" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
-				<Element id="atom(rescontainer)" layoutpos="client" layout="borderlayout()"/>
+				<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
+					<DDScalableElement FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
+					<DDScalableElement content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize="true" foreground="white"/>
+				</Element>
 			</TouchScrollViewer>
 		</Element>
 	</HWNDElement>

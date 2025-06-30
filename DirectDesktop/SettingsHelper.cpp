@@ -60,7 +60,7 @@ namespace DirectDesktop
         return iFinal;
     }
 
-    unsigned long TempDisableToggle(LPVOID lpParam) {
+    DWORD WINAPI TempDisableToggle(LPVOID lpParam) {
         SendMessageW(wnd->GetHWND(), WM_USER + 11, (WPARAM)lpParam, NULL);
         Sleep(700);
         SendMessageW(wnd->GetHWND(), WM_USER + 11, (WPARAM)lpParam, 1);

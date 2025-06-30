@@ -17,6 +17,7 @@ namespace DirectDesktop
 
 	IClassInfo* DDScalableElement::s_pClassInfo;
 	IClassInfo* DDScalableButton::s_pClassInfo;
+	IClassInfo* DDScalableRichText::s_pClassInfo;
 	IClassInfo* LVItem::s_pClassInfo;
 	IClassInfo* DDLVActionButton::s_pClassInfo;
 	IClassInfo* DDToggleButton::s_pClassInfo;
@@ -101,6 +102,18 @@ namespace DirectDesktop
 		nullptr,
 		Value::GetBoolFalse,
 		&dataimpNeedsFontResizeProp
+	};
+	static const int vvimpNeedsFontResize2Prop[] = { 2, -1 };
+	static PropertyInfoData dataimpNeedsFontResize2Prop;
+	static const PropertyInfo impNeedsFontResize2Prop =
+	{
+		L"NeedsFontResize2",
+		0x2 | 0x4,
+		0x1,
+		vvimpNeedsFontResize2Prop,
+		nullptr,
+		Value::GetBoolFalse,
+		&dataimpNeedsFontResize2Prop
 	};
 	static const int vvimpCheckedStateProp[] = { 2, -1 };
 	static PropertyInfoData dataimpCheckedStateProp;
@@ -198,12 +211,28 @@ namespace DirectDesktop
 				wstring fontIntermediate = fontOld.substr(0, modifier + 1);
 				wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
 				wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-				int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+				int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / static_cast<float>(dpiLaunch);
 				wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
 				pe->SetFont(fontNew.c_str());
 			}
 			else if (pe->GetFontSize() > 0) {
 				pe->SetFontSize(pe->GetFontSize() * flScaleFactor);
+			}
+		}
+		else if (pe->GetNeedsFontResize2() && dpiLaunch != 96 && dpi == 96) {
+			if (pe->GetFont(&v) == nullptr) return;
+			wstring fontOld = pe->GetFont(&v);
+			wregex fontRegex(L".*font;.*\%.*");
+			bool isSysmetricFont = regex_match(fontOld, fontRegex);
+			if (isSysmetricFont) {
+				size_t modifier = fontOld.find(L";");
+				size_t modifier2 = fontOld.find(L"%");
+				wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+				wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+				wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
+				int newFontSize = _wtoi(fontIntermediate2.c_str()) * 1;
+				wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
+				pe->SetFont(fontNew.c_str());
 			}
 		}
 	}
@@ -241,7 +270,7 @@ namespace DirectDesktop
 			te.clear();
 		}
 	}
-	unsigned long DelayedDraw(LPVOID lpParam) {
+	DWORD WINAPI DelayedDraw(LPVOID lpParam) {
 		if (lpParam) {
 			assignExtendedFn((Element*)lpParam, UpdateImageOnPropChange);
 			((DDScalableElement*)lpParam)->InitDrawImage();
@@ -249,16 +278,16 @@ namespace DirectDesktop
 		}
 		return 0;
 	}
-	unsigned long CreateCBInnerElements(LPVOID lpParam) {
+	DWORD WINAPI CreateCBInnerElements(LPVOID lpParam) {
 		PostMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)lpParam, NULL);
 		assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
 		return 0;
 	}
-	unsigned long ColorPickerLayout(LPVOID lpParam) {
+	DWORD WINAPI ColorPickerLayout(LPVOID lpParam) {
 		PostMessageW(subviewwnd->GetHWND(), WM_USER + 4, (WPARAM)lpParam, NULL);
 		return 0;
 	}
-	unsigned long PickerBtnFn(LPVOID lpParam) {
+	DWORD WINAPI PickerBtnFn(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		assignFn((Element*)lpParam, UpdateUICtrlColor);
 		return 0;
@@ -296,6 +325,7 @@ namespace DirectDesktop
 			&impDrawTypeProp,
 			&impEnableAccentProp,
 			&impNeedsFontResizeProp,
+			&impNeedsFontResize2Prop,
 			&impAssociatedColorProp
 		};
 		return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
@@ -361,6 +391,15 @@ namespace DirectDesktop
 	}
 	void DDScalableElement::SetNeedsFontResize(bool bNeedsFontResize) {
 		this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
+	}
+	const PropertyInfo* WINAPI DDScalableElement::NeedsFontResize2Prop() {
+		return &impNeedsFontResize2Prop;
+	}
+	bool DDScalableElement::GetNeedsFontResize2() {
+		return this->GetPropCommon(NeedsFontResize2Prop, false);
+	}
+	void DDScalableElement::SetNeedsFontResize2(bool bNeedsFontResize2) {
+		this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
 	}
 	const PropertyInfo* WINAPI DDScalableElement::AssociatedColorProp() {
 		return &impAssociatedColorProp;
@@ -433,6 +472,7 @@ namespace DirectDesktop
 			&impDrawTypeProp,
 			&impEnableAccentProp,
 			&impNeedsFontResizeProp,
+			&impNeedsFontResize2Prop,
 			&impAssociatedColorProp
 		};
 		return ClassInfo<DDScalableButton, Button, StandardCreator<DDScalableButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
@@ -499,6 +539,15 @@ namespace DirectDesktop
 	void DDScalableButton::SetNeedsFontResize(bool bNeedsFontResize) {
 		this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
 	}
+	const PropertyInfo* WINAPI DDScalableButton::NeedsFontResize2Prop() {
+		return &impNeedsFontResize2Prop;
+	}
+	bool DDScalableButton::GetNeedsFontResize2() {
+		return this->GetPropCommon(NeedsFontResize2Prop, false);
+	}
+	void DDScalableButton::SetNeedsFontResize2(bool bNeedsFontResize2) {
+		this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
+	}
 	const PropertyInfo* WINAPI DDScalableButton::AssociatedColorProp() {
 		return &impAssociatedColorProp;
 	}
@@ -550,6 +599,140 @@ namespace DirectDesktop
 	}
 	void DDScalableButton::ExecAssociatedFn(void(*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3) {
 		pfn(fnb1, fnb2, fnb3);
+	}
+
+	vector<DDScalableRichText*> DDScalableRichText::_arrCreatedTexts;
+	DDScalableRichText::DDScalableRichText() {
+		_arrCreatedTexts.push_back(this);
+	}
+	DDScalableRichText::~DDScalableRichText() {
+		auto toRemove = find(_arrCreatedTexts.begin(), _arrCreatedTexts.end(), this);
+		if (toRemove != _arrCreatedTexts.end()) {
+			_arrCreatedTexts.erase(toRemove);
+		}
+	}
+	IClassInfo* DDScalableRichText::GetClassInfoPtr() {
+		return s_pClassInfo;
+	}
+	void DDScalableRichText::SetClassInfoPtr(IClassInfo* pClass) {
+		s_pClassInfo = pClass;
+	}
+	IClassInfo* DDScalableRichText::GetClassInfoW() {
+		return s_pClassInfo;
+	}
+	HRESULT DDScalableRichText::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+		HRESULT hr = CreateAndInit<DDScalableRichText>(pParent, pdwDeferCookie, ppElement);
+		DWORD dw;
+		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		return hr;
+	}
+	HRESULT DDScalableRichText::Register() {
+		static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+		{
+			&impFirstScaledImageProp,
+			&impScaledImageIntervalsProp,
+			&impDrawTypeProp,
+			&impEnableAccentProp,
+			&impNeedsFontResizeProp,
+			&impNeedsFontResize2Prop,
+			&impAssociatedColorProp
+		};
+		return ClassInfo<DDScalableRichText, Element, StandardCreator<DDScalableRichText>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+	}
+	auto DDScalableRichText::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
+		Value* pv = GetValue(pPropertyProc, 2, nullptr);
+		auto v = useInt ? pv->GetInt() : pv->GetBool();
+		pv->Release();
+		return v;
+	}
+	void DDScalableRichText::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt) {
+		Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
+		HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+		if (SUCCEEDED(hr)) {
+			hr = SetValue(pPropertyProc, 1, pv);
+			pv->Release();
+		}
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::FirstScaledImageProp() {
+		return &impFirstScaledImageProp;
+	}
+	int DDScalableRichText::GetFirstScaledImage() {
+		return this->GetPropCommon(FirstScaledImageProp, true);
+	}
+	void DDScalableRichText::SetFirstScaledImage(int iFirstImage) {
+		this->SetPropCommon(FirstScaledImageProp, iFirstImage, true);
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::ScaledImageIntervalsProp() {
+		return &impScaledImageIntervalsProp;
+	}
+	int DDScalableRichText::GetScaledImageIntervals() {
+		int v = this->GetPropCommon(ScaledImageIntervalsProp, true);
+		if (v < 1) v = 1;
+		return v;
+	}
+	void DDScalableRichText::SetScaledImageIntervals(int iScaleIntervals) {
+		this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::DrawTypeProp() {
+		return &impDrawTypeProp;
+	}
+	int DDScalableRichText::GetDrawType() {
+		return this->GetPropCommon(DrawTypeProp, true);
+	}
+	void DDScalableRichText::SetDrawType(int iDrawType) {
+		this->SetPropCommon(DrawTypeProp, iDrawType, true);
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::EnableAccentProp() {
+		return &impEnableAccentProp;
+	}
+	bool DDScalableRichText::GetEnableAccent() {
+		return this->GetPropCommon(EnableAccentProp, false);
+	}
+	void DDScalableRichText::SetEnableAccent(bool bEnableAccent) {
+		this->SetPropCommon(EnableAccentProp, bEnableAccent, false);
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::NeedsFontResizeProp() {
+		return &impNeedsFontResizeProp;
+	}
+	bool DDScalableRichText::GetNeedsFontResize() {
+		return this->GetPropCommon(NeedsFontResizeProp, false);
+	}
+	void DDScalableRichText::SetNeedsFontResize(bool bNeedsFontResize) {
+		this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::NeedsFontResize2Prop() {
+		return &impNeedsFontResize2Prop;
+	}
+	bool DDScalableRichText::GetNeedsFontResize2() {
+		return this->GetPropCommon(NeedsFontResize2Prop, false);
+	}
+	void DDScalableRichText::SetNeedsFontResize2(bool bNeedsFontResize2) {
+		this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
+	}
+	const PropertyInfo* WINAPI DDScalableRichText::AssociatedColorProp() {
+		return &impAssociatedColorProp;
+	}
+	int DDScalableRichText::GetAssociatedColor() {
+		return this->GetPropCommon(AssociatedColorProp, true);
+	}
+	void DDScalableRichText::SetAssociatedColor(int iAssociatedColor) {
+		this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
+	}
+	void DDScalableRichText::InitDrawImage() {
+		PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+	}
+	void DDScalableRichText::RedrawImages() {
+		for (DDScalableRichText* pe : _arrCreatedTexts) {
+			PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
+		}
+	}
+	void DDScalableRichText::InitDrawFont() {
+		PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+	}
+	void DDScalableRichText::RedrawFonts() {
+		for (DDScalableRichText* pe : _arrCreatedTexts) {
+			PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
+		}
 	}
 
 	LVItem::~LVItem() {
@@ -604,6 +787,9 @@ namespace DirectDesktop
 	bool LVItem::GetDirState() {
 		return _isDirectory;
 	}
+	bool LVItem::GetGroupedDirState() {
+		return _isGrouped;
+	}
 	bool LVItem::GetHiddenState() {
 		return _isHidden;
 	}
@@ -627,6 +813,9 @@ namespace DirectDesktop
 	}
 	void LVItem::SetDirState(bool dirState) {
 		_isDirectory = dirState;
+	}
+	void LVItem::SetGroupedDirState(bool groupedDirState) {
+		_isGrouped = groupedDirState;
 	}
 	void LVItem::SetHiddenState(bool hiddenState) {
 		_isHidden = hiddenState;
@@ -994,13 +1183,13 @@ namespace DirectDesktop
 		}
 		return CallWindowProc(WndProc4, hWnd, uMsg, wParam, lParam);
 	}
-	unsigned long AnimateWindowWrapper(LPVOID lpParam) {
+	DWORD WINAPI AnimateWindowWrapper(LPVOID lpParam) {
 		Sleep(50);
 		AnimateWindow(notificationwnd->GetHWND(), 180, AW_BLEND);
 		notificationwnd->ShowWindow(SW_SHOW);
 		return 0;
 	}
-	unsigned long AutoCloseNotification(LPVOID lpParam) {
+	DWORD WINAPI AutoCloseNotification(LPVOID lpParam) {
 		IntegerWrapper* iwTemp = (IntegerWrapper*)lpParam;
 		Sleep(iwTemp->val * 1000);
 		SendMessageW(notificationwnd->GetHWND(), WM_USER + 3, NULL, NULL);
@@ -1023,16 +1212,15 @@ namespace DirectDesktop
 		return lines;
 	}
 	void GetLongestLine(HDC hdc, const wstring& textStr, RECT* rcText) {
-		static int lines = CalcLines(textStr);
 		vector<wstring> divided = SplitLineBreaks(textStr);
 		int saved{};
-		for (int i = 0; i < lines; i++) {
+		for (int i = 0; i < divided.size(); i++) {
 			DrawTextW(hdc, divided[i].c_str(), -1, rcText, DT_CALCRECT | DT_SINGLELINE);
 			if (rcText->right > saved) saved = rcText->right;
 		}
 		rcText->right = saved;
 	}
-	unsigned long AutoSizeFont(LPVOID lpParam) {
+	DWORD WINAPI AutoSizeFont(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		Sleep(20);
 		Element* ppeTemp = (Element*)lpParam;

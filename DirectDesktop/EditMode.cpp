@@ -28,7 +28,7 @@ namespace DirectDesktop
     TouchButton* SimpleViewTop, * SimpleViewBottom;
     Button* SimpleViewPower, * SimpleViewSearch, * SimpleViewSettings, * SimpleViewPages, * SimpleViewClose;
     TouchButton* nextpage, * prevpage;
-    RichText* pageinfo;
+    DDScalableRichText* pageinfo;
     Button* PageViewer;
     TouchEdit2* PV_EnterPage;
 
@@ -39,7 +39,7 @@ namespace DirectDesktop
     void RemoveSelectedPage(Element* elem, Event* iev);
     void SetSelectedPageHome(Element* elem, Event* iev);
     bool ValidateStrDigits(const WCHAR* str);
-    unsigned long ReloadPV(LPVOID lpParam);
+    DWORD WINAPI ReloadPV(LPVOID lpParam);
 
     LRESULT CALLBACK EditModeWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         switch (uMsg) {
@@ -80,7 +80,7 @@ namespace DirectDesktop
                             if (items != 0 && i == removedPage) {
                                 MessageBeep(MB_OK);
                                 DDNotificationBanner* ddnb{};
-                                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_ERROR, L"DDNB", LoadStrFromRes(4062).c_str(), LoadStrFromRes(4063).c_str(), 5, false);
+                                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_INFO, L"DDNB", LoadStrFromRes(4062).c_str(), LoadStrFromRes(4063).c_str(), 5, false);
                                 return 0;
                             }
                         }
@@ -176,7 +176,7 @@ namespace DirectDesktop
                 PV_IconPreview->SetWidth(iconpm[yV->y]->GetWidth() * yV->innerSizeX);
                 PV_IconPreview->SetHeight(iconpm[yV->y]->GetHeight() * yV->innerSizeX);
             }
-            if (treatdirasgroup && pm[yV->y]->GetDirState() == true) {
+            if (treatdirasgroup && pm[yV->y]->GetGroupedDirState() == true) {
                 if (!touchmode) {
                     if (PV_IconPreview->GetWidth() < 16 * flScaleFactor) PV_IconPreview->SetWidth(16 * flScaleFactor);
                     if (PV_IconPreview->GetHeight() < 16 * flScaleFactor) PV_IconPreview->SetHeight(16 * flScaleFactor);
@@ -260,7 +260,7 @@ namespace DirectDesktop
         return CallWindowProc(WndProc7, hWnd, uMsg, wParam, lParam);
     }
 
-    unsigned long CreateDesktopPreview(LPVOID lpParam) {
+    DWORD WINAPI CreateDesktopPreview(LPVOID lpParam) {
         InitThread(TSM_DESKTOP_DYNAMIC);
         yValueEx* yV = (yValueEx*)lpParam;
         DesktopIcon di;
@@ -284,7 +284,7 @@ namespace DirectDesktop
         return true;
     }
 
-    unsigned long animate7(LPVOID lpParam) {
+    DWORD WINAPI animate7(LPVOID lpParam) {
         SendMessageW(hWndTaskbar, WM_COMMAND, 416, 0);
         Sleep(350);
         editwnd->DestroyWindow();
@@ -368,13 +368,13 @@ namespace DirectDesktop
         }
     }
 
-    unsigned long LoadNewPages(LPVOID lpParam) {
+    DWORD WINAPI LoadNewPages(LPVOID lpParam) {
         Sleep(25);
         PostMessageW(wnd->GetHWND(), WM_USER + 7, NULL, 1);
         PostMessageW(wnd->GetHWND(), WM_USER + 15, NULL, 0);
         return 0;
     }
-    unsigned long ReloadPV(LPVOID lpParam) {
+    DWORD WINAPI ReloadPV(LPVOID lpParam) {
         Sleep(100);
         SendMessageW(editwnd->GetHWND(), WM_USER + 3, NULL, NULL);
         return 0;
@@ -599,7 +599,7 @@ namespace DirectDesktop
         SimpleViewClose = regElem<Button*>(L"SimpleViewClose", pEdit);
         prevpage = regElem<TouchButton*>(L"prevpage", pEdit);
         nextpage = regElem<TouchButton*>(L"nextpage", pEdit);
-        pageinfo = regElem<RichText*>(L"pageinfo", pEdit);
+        pageinfo = regElem<DDScalableRichText*>(L"pageinfo", pEdit);
 
         assignFn(prevpage, GoToPrevPage);
         assignFn(nextpage, GoToNextPage);

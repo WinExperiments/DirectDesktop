@@ -26,13 +26,13 @@ namespace DirectDesktop
 	extern HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height);
 	extern void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id, float scale);
 	extern TouchButton* nextpage, * prevpage;
-	extern RichText* pageinfo;
+	extern DDScalableRichText* pageinfo;
 
 	extern void testEventListener3(Element* elem, Event* iev);
 	extern void ShowSettings(Element* elem, Event* iev);
 	extern void GoToPrevPage(Element* elem, Event* iev);
 	extern void GoToNextPage(Element* elem, Event* iev);
-	extern unsigned long AnimateWindowWrapper2(LPVOID lpParam);
+	extern DWORD WINAPI AnimateWindowWrapper2(LPVOID lpParam);
 
 	void ShowSimpleView(bool animate);
 	void HideSimpleView(bool animate);

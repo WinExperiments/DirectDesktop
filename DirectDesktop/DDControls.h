@@ -38,18 +38,21 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
+        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
+        bool GetNeedsFontResize2();
         int GetAssociatedColor();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
+        void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         int GetDDCPIntensity();
         unsigned short GetGroupColor();
@@ -83,18 +86,21 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
+        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
+        bool GetNeedsFontResize2();
         int GetAssociatedColor();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
+        void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void InitDrawImage();
         static void RedrawImages();
@@ -116,6 +122,48 @@ namespace DirectDesktop
         void(*_assocFn)(bool, bool, bool) = nullptr;
         bool* _assocBool = nullptr;
         int _intensity = 255;
+        auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+    private:
+        static IClassInfo* s_pClassInfo;
+    };
+
+    class DDScalableRichText : public RichText {
+    public:
+        DDScalableRichText();
+        ~DDScalableRichText();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI FirstScaledImageProp();
+        static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI DrawTypeProp();
+        static const PropertyInfo* WINAPI EnableAccentProp();
+        static const PropertyInfo* WINAPI NeedsFontResizeProp();
+        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
+        static const PropertyInfo* WINAPI AssociatedColorProp();
+        int GetFirstScaledImage();
+        int GetScaledImageIntervals();
+        int GetDrawType();
+        bool GetEnableAccent();
+        bool GetNeedsFontResize();
+        bool GetNeedsFontResize2();
+        int GetAssociatedColor();
+        void SetFirstScaledImage(int iFirstImage);
+        void SetScaledImageIntervals(int iScaleIntervals);
+        void SetDrawType(int iDrawType);
+        void SetEnableAccent(bool bEnableAccent);
+        void SetNeedsFontResize(bool bNeedsFontResize);
+        void SetNeedsFontResize2(bool bNeedsFontResize2);
+        void SetAssociatedColor(int iAssociatedColor);
+        void InitDrawImage();
+        static void RedrawImages();
+        void InitDrawFont();
+        static void RedrawFonts();
+    protected:
+        static vector<DDScalableRichText*> _arrCreatedTexts;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
     private:
@@ -150,6 +198,7 @@ namespace DirectDesktop
         void SetFilename(const wstring& wsFilename);
         void SetSimpleFilename(const wstring& wsSimpleFilename);
         bool GetDirState();
+        bool GetGroupedDirState();
         bool GetHiddenState();
         bool GetMemorySelected();
         bool GetShortcutState();
@@ -158,6 +207,7 @@ namespace DirectDesktop
         bool GetRefreshState();
         bool GetSizedFromGroup();
         void SetDirState(bool dirState);
+        void SetGroupedDirState(bool groupedDirState);
         void SetHiddenState(bool hiddenState);
         void SetMemorySelected(bool mem_isSelectedState);
         void SetShortcutState(bool shortcutState);
@@ -186,6 +236,7 @@ namespace DirectDesktop
         wstring _filename{};
         wstring _simplefilename{};
         bool _isDirectory = false;
+        bool _isGrouped = false;
         bool _isHidden = false;
         bool _mem_isSelected = false;
         bool _isShortcut = false;

@@ -28,13 +28,17 @@
 				<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)" tooltip="true" class="popupbuttonicon"/>
 			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="400rp">
-				<DDScalableElement id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
-				<DDScalableElement id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+				<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true"/>
+				<DDScalableRichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont;100%" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true"/>
 			</Element>
 		</Element>
 		<TouchScrollViewer id="atom(groupdirlist)" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
 			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 		</TouchScrollViewer>
+	</Element>
+	<Element resid="emptyview" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
+		<DDScalableElement FirstScaledImage="3038" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
+		<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
 	</Element>
 	<Element resid="customizegroup" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
@@ -45,7 +49,7 @@
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<DDScalableElement id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%" alpha="0" animation="alpha|linear|mediumfast|delaymedium"/>
+			<DDScalableRichText id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%;semibold" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true"/>
 		</Element>
 		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,8rp,0,8rp)" layout="flowlayout()">
 			<DDScalableButton id="atom(PageTab1)" content="resstr(4011)" class="pilltab"/>
@@ -136,11 +140,12 @@
 	<stylesheets>
 		<style resid="popup" base="ressheet(31, DDBase)">
 			<if class="popupwindow">
-				<DDScalableButton FirstScaledImage="101" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<DDScalableButton FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
 				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableButton foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
+				<DDScalableRichText foreground="black"/>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>
@@ -154,11 +159,12 @@
 		</style>
 		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
 			<if class="popupwindow">
-				<DDScalableButton FirstScaledImage="201" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<DDScalableButton FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
 				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableButton foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
+				<DDScalableRichText foreground="white"/>
 			</if>
 			<if class="togglecontainer">
 				<Element layoutpos="top" padding="rect(0,8rp,0,8rp)"/>

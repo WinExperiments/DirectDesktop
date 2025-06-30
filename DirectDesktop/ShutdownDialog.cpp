@@ -128,6 +128,11 @@ namespace DirectDesktop
 		}
 		return L"";
 	}
+	bool IsServer() {
+		wchar_t* productType = nullptr;
+		GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\ProductOptions", L"ProductType", &productType);
+		return (wcscmp(productType, L"ServerNT") == 0);
+	}
 
 	void ShowNotification(wstring title, wstring content) {
 		NOTIFYICONDATA nid = { sizeof(nid) };
@@ -191,7 +196,7 @@ namespace DirectDesktop
 		return CallWindowProc(WndProc3, hWnd, uMsg, wParam, lParam);
 	}
 
-	unsigned long ShowTimerStatus(LPVOID lpParam) {
+	DWORD WINAPI ShowTimerStatus(LPVOID lpParam) {
 		DialogValues* dv = (DialogValues*)lpParam;
 		int id = dv->buttonID;
 		int remaining = dv->delay;
@@ -204,7 +209,7 @@ namespace DirectDesktop
 		return 0;
 	}
 
-	unsigned long DelayedAction(LPVOID lpParam) {
+	DWORD WINAPI DelayedAction(LPVOID lpParam) {
 		DialogValues* dv = (DialogValues*)lpParam;
 		delayedshutdownstatuses[dv->buttonID - 1] = true;
 		int seconds = dv->delay;
@@ -556,10 +561,21 @@ namespace DirectDesktop
 			pShutdown->SetBackgroundStdColor(7);
 		}
 		if (WindowsBuild < 21996) {
-			Logo->SetEnableAccent(1);
-			Logo->SetFirstScaledImage(theme ? 1101 : 1201);
+			if (IsServer()) {
+				Logo->SetAccDesc(L"Windows Server 2022");
+			}
+			else {
+				Logo->SetAccDesc(L"Windows 10");
+			}
 		}
-		else Logo->SetFirstScaledImage(theme ? 1108 : 1208);
+		else {
+			if (IsServer()) {
+				Logo->SetAccDesc(L"Windows Server 2025");
+			}
+			else {
+				Logo->SetAccDesc(L"Windows 11");
+			}
+		}
 		SwitchUser = regElem<Button*>(L"SwitchUser", pShutdown), SignOut = regElem<Button*>(L"SignOut", pShutdown), SleepButton = regElem<Button*>(L"SleepButton", pShutdown),
 			Hibernate = regElem<Button*>(L"Hibernate", pShutdown), Shutdown = regElem<Button*>(L"Shutdown", pShutdown), Restart = regElem<Button*>(L"Restart", pShutdown);
 		SUInner = regElem<Button*>(L"SUInner", pShutdown), SOInner = regElem<Button*>(L"SOInner", pShutdown), SlInner = regElem<Button*>(L"SlInner", pShutdown),
