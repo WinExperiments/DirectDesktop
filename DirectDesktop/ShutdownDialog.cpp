@@ -297,12 +297,12 @@ namespace DirectDesktop
 	}
 
 	void ToggleDelayOption(Element* elem, Event* iev) {
-		if (iev->uidType == TouchButton::Click) {
+		if (iev->uidType == Button::Click) {
 			Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
-			CheckedStateFlags newChecked = (((TouchCheckBox*)elem)->GetCheckedState() == CSF_Unchecked) ? CSF_Checked : CSF_Unchecked;
-			((TouchCheckBox*)elem)->SetCheckedState(newChecked);
-			delayseconds->SetEnabled((newChecked == CSF_Checked) ? true : false);
-			delaysecondspreview->SetVisible((newChecked == CSF_Checked) ? true : false);
+			bool newChecked = (((DDCheckBox*)elem)->GetCheckedState() == false) ? true : false;
+			((DDCheckBox*)elem)->SetCheckedState(newChecked);
+			delayseconds->SetEnabled((newChecked == true) ? true : false);
+			delaysecondspreview->SetVisible((newChecked == true) ? true : false);
 			if (newChecked == CSF_Unchecked) {
 				delayseconds->SetContentString(L"0");
 				delaysecondspreview->SetContentString(L"0");
@@ -582,7 +582,7 @@ namespace DirectDesktop
 			HiInner = regElem<Button*>(L"HiInner", pShutdown), ShInner = regElem<Button*>(L"ShInner", pShutdown), ReInner = regElem<Button*>(L"ReInner", pShutdown);
 		Button* buttons[6] = { SwitchUser, SignOut, SleepButton, Hibernate, Shutdown, Restart };
 		Button* innerbuttons[6] = { SUInner, SOInner, SlInner, HiInner, ShInner, ReInner };
-		TouchCheckBox* delaytoggle = (TouchCheckBox*)pShutdown->FindDescendent(StrToID(L"delaytoggle"));
+		DDCheckBox* delaytoggle = (DDCheckBox*)pShutdown->FindDescendent(StrToID(L"delaytoggle"));
 		delayseconds = (TouchEdit2*)pShutdown->FindDescendent(StrToID(L"delayseconds"));
 		Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
 		delayseconds->SetContentString(L"0");

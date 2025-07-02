@@ -124,6 +124,11 @@ namespace DirectDesktop
 		pSearch->EndDefer(key4);
 		searchwnd->Host(pSearch);
 		BlurBackground(searchwnd->GetHWND(), true, true);
+		LPWSTR sheetName = theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
+		StyleSheet* sheet = pSearch->GetSheet();
+		Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+		parser4->GetSheet(sheetName, &sheetStorage);
+		pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
 		searchwnd->ShowWindow(SW_SHOW);
 		searchbox = (TouchEdit2*)pSearch->FindDescendent(StrToID(L"searchbox"));
 		Button* searchbutton = regElem<Button*>(L"searchbutton", pSearch);

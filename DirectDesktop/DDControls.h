@@ -170,6 +170,45 @@ namespace DirectDesktop
         static IClassInfo* s_pClassInfo;
     };
 
+    class DDScalableTouchEdit : public TouchEdit2 {
+    public:
+        DDScalableTouchEdit();
+        ~DDScalableTouchEdit();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI FirstScaledImageProp();
+        static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI DrawTypeProp();
+        static const PropertyInfo* WINAPI EnableAccentProp();
+        static const PropertyInfo* WINAPI NeedsFontResizeProp();
+        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
+        int GetFirstScaledImage();
+        int GetScaledImageIntervals();
+        int GetDrawType();
+        bool GetEnableAccent();
+        bool GetNeedsFontResize();
+        bool GetNeedsFontResize2();
+        void SetFirstScaledImage(int iFirstImage);
+        void SetScaledImageIntervals(int iScaleIntervals);
+        void SetDrawType(int iDrawType);
+        void SetEnableAccent(bool bEnableAccent);
+        void SetNeedsFontResize(bool bNeedsFontResize);
+        void SetNeedsFontResize2(bool bNeedsFontResize2);
+        void InitDrawImage();
+        static void RedrawImages();
+        void InitDrawFont();
+        static void RedrawFonts();
+    protected:
+        static vector<DDScalableTouchEdit*> _arrCreatedBoxes;
+        auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+    private:
+        static IClassInfo* s_pClassInfo;
+    };
+
     enum LVItemGroupSize {
         LVIGS_NORMAL = 0,
         LVIGS_SMALL = 1,
@@ -439,4 +478,5 @@ namespace DirectDesktop
 
     void RedrawImageCore(DDScalableElement* pe);
     void RedrawFontCore(DDScalableElement* pe);
+    void ShowHoverCircle(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 }

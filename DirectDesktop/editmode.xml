@@ -6,10 +6,10 @@
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(255,0,0,0)" animation="position|log|fast"/>
 			</Element>
-			<TouchButton id="atom(prevpage)" layout="filllayout()" class="pageselectoreditmode" alpha="0" animation="alpha|s|veryfast|delayshort">
+			<TouchButton id="atom(prevpage)" layout="filllayout()" class="pageselectoreditmode">
 				<DDScalableElement layoutpos="client" class="pageselectoreditmode"/>
 			</TouchButton>
-			<TouchButton id="atom(nextpage)" layout="filllayout()" class="pageselectoreditmode" alpha="0" animation="alpha|s|veryfast|delayshort">
+			<TouchButton id="atom(nextpage)" layout="filllayout()" class="pageselectoreditmode">
 				<DDScalableElement layoutpos="client" class="pageselectoreditmode"/>
 			</TouchButton>
 			<Element layoutpos="top" layout="filllayout()" id="atom(SimpleViewTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
@@ -48,7 +48,7 @@
 		</Element>
 		<Element id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client" visible="false">
 			<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
-			<DDScalableElement content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize="true"/>
+			<DDScalableRichText content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
 			<Element height="80rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
 				<TouchEdit2 id="atom(PV_EnterPage)" font="28pt;Normal;None;Segoe UI Semilight" layoutpos="client"/>
 				<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="28pt;Normal;None;Segoe UI Semilight" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
@@ -57,8 +57,8 @@
 				</Element>
 			</Element>
 			<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
-				<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
-				<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
+				<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" foreground="white" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
+				<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" foreground="white" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
 			</Element>
 		</Element>
 		<Element layoutpos="top" layout="filllayout()" id="atom(PageViewerTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
@@ -88,16 +88,16 @@
 	<Element resid="pagetasks" layoutpos="top" layout="borderlayout()" height="56rp" background="argb(0,0,0,0)" padding="rect(8rp,8rp,8rp,8rp)">
 		<Element layout="filllayout()" layoutpos="right" width="40rp" height="40rp">
 			<Element id="atom(PV_HomeBadge)" layoutpos="right" font="resstr(162)" foreground="rgb(255,102,0)" contentalign="middlecenter" width="40rp" height="40rp" compositedtext="true" textglowsize="0"/>
-			<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" tooltip="true" accdesc="resstr(4058)"/>
+			<DDLVActionButton id="atom(PV_Home)" foreground="white" class="PVActionButton" tooltip="true" accdesc="resstr(4058)"/>
 		</Element>
-		<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" content="resstr(165)" tooltip="true" accdesc="resstr(4057)" margin="rect(0,0,8rp,0)"/>
+		<DDLVActionButton id="atom(PV_Remove)" foreground="white" class="PVActionButton" content="resstr(165)" tooltip="true" accdesc="resstr(4057)" margin="rect(0,0,8rp,0)"/>
 	</Element>
 	<stylesheets>
 		<style resid="edit" base="ressheet(31, DDBase)">
 			<Element foreground="black"/>
 			<DDScalableElement foreground="black"/>
 			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="165" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableElement FirstScaledImage="1065" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
 				<Element background="sgraphic(1064,7,-1,0,0,1,1)"/>

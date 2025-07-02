@@ -3,13 +3,13 @@
 		<Element layout="borderlayout()" layoutpos="client" padding="rect(48rp,48rp,48rp,48rp)">
 			<Element layout="borderlayout()" layoutpos="top" font="24pt;Normal;None;Segoe UI">
 				<Button id="atom(closebutton)" layoutpos="right" background="white" height="64rp" foreground="black" borderthickness="rect(16rp,0,0,0)" compositedtext="true" textglowsize="0" content="X"/>
-				<Button id="atom(searchbutton)" layoutpos="right" background="white" height="64rp" foreground="gray" borderthickness="rect(16rp,0,0,0)" compositedtext="true" textglowsize="0" content="SEARCH"/>
-				<TouchEdit2 id="atom(searchbox)" layoutpos="left" background="white" height="64rp" foreground="black" padding="rect(4rp,4rp,4rp,4rp)"/>
+				<Button id="atom(searchbutton)" layoutpos="right" background="white" height="64rp" foreground="gray" borderthickness="rect(16rp,0,0,0)" compositedtext="true" textglowsize="0" content="Search"/>
+				<TouchEdit2 id="atom(searchbox)" layoutpos="left" background="white" height="64rp" padding="rect(4rp,4rp,4rp,4rp)"/>
 			</Element>
-			<TouchScrollViewer id="atom(SearchResults)" layoutpos="client" background="argb(255,16,16,16)" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
-				<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
-					<DDScalableElement FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
-					<DDScalableElement content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize="true" foreground="white"/>
+			<TouchScrollViewer id="atom(SearchResults)" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
+				<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" class="searchview">
+					<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
+					<DDScalableRichText background="argb(0,0,0,0)" content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
 				</Element>
 			</TouchScrollViewer>
 		</Element>
@@ -22,6 +22,7 @@
 	<stylesheets>
 		<style resid="searchstyle" base="ressheet(31, DDBase)">
 			<HWNDElement background="rgb(0,0,0)"/>
+			<DDScalableRichText foreground="black"/>
 			<if class="Thumb_Mouse">
 				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
 				<if mousewithin="true">
@@ -31,9 +32,13 @@
 					<Thumb background="argb(255,255,255,255)" bordercolor="20769"/>
 				</if>
 			</if>
+			<if class="searchview">
+				<Element background="sgraphic(1064,7,-1,0,0,1,1)"/>
+			</if>
 		</style>
 		<style resid="searchstyledark" base="ressheet(31, DDBaseDark)">
 			<HWNDElement background="rgb(0,0,0)"/>
+			<DDScalableRichText foreground="white"/>
 			<if class="Thumb_Mouse">
 				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
 				<if mousewithin="true">
@@ -42,6 +47,9 @@
 				<if captured="true">
 					<Thumb background="argb(255,255,255,255)" bordercolor="20769"/>
 				</if>
+			</if>
+			<if class="searchview">
+				<Element background="sgraphic(2064,7,-1,0,0,1,1)"/>
 			</if>
 		</style>
 	</stylesheets>

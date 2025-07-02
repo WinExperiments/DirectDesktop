@@ -282,10 +282,9 @@ namespace DirectDesktop
 		hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
 
 		HBITMAP hBitmap{};
-		if (pShellItem != nullptr) {
+		if (SUCCEEDED(hr) && pShellItem) {
 			IShellItemImageFactory* pImageFactory{};
 			hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
-			pShellItem->Release();
 			if (SUCCEEDED(hr)) {
 				SIZE size = { width * flScaleFactor, height * flScaleFactor };
 				if (pImageFactory) {
@@ -298,6 +297,7 @@ namespace DirectDesktop
 				hBitmap = IconToBitmap(fallback, width * flScaleFactor, height * flScaleFactor);
 				DestroyIcon(fallback);
 			}
+			pShellItem->Release();
 		}
 		else {
 			HICON fallback = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, width * flScaleFactor, height * flScaleFactor, LR_SHARED);
@@ -1274,6 +1274,7 @@ namespace DirectDesktop
 				peTemp->SetOrder(i);
 				peTemp->SetTargetElements(((DDColorPicker*)wParam)->GetTargetElements());
 				DeleteObject(hbmPickerBtn);
+				assignExtendedFn(peTemp, ShowHoverCircle);
 			}
 			if (newImage) DeleteObject(newImage);
 			DeleteDC(hdcSrc);
@@ -1284,9 +1285,13 @@ namespace DirectDesktop
 			int order = GetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind) * btnX;
 			int checkedBtnX = (localeType == 1) ? ((Element*)wParam)->GetWidth() - order - btnWidth : order;
 			DDScalableElement* peCircle;
-			//DDScalableElement::Create((Element*)wParam, 0, (Element**)&peCircle);
-			//((Element*)wParam)->Add((Element**)&peCircle, 1);
-			//peCircle->SetID(L"DDColorPicker_HoverCircle");
+			DDScalableElement::Create((Element*)wParam, 0, (Element**)&peCircle);
+			((Element*)wParam)->Add((Element**)&peCircle, 1);
+			peCircle->SetLayoutPos(-2);
+			peCircle->SetX(-9999);
+			peCircle->SetWidth(bm.bmWidth / 8);
+			peCircle->SetHeight(btnHeight);
+			peCircle->SetID(L"DDColorPicker_HoverCircle");
 			DDScalableElement::Create((Element*)wParam, 0, (Element**)&peCircle);
 			((Element*)wParam)->Add((Element**)&peCircle, 1);
 			peCircle->SetLayoutPos(-2);
@@ -1526,6 +1531,8 @@ namespace DirectDesktop
 			TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
 			Element* Group_BackContainer = regElem<Element*>(L"Group_BackContainer", groupdirectory);
 			DDScalableButton* Group_Back = regElem<DDScalableButton*>(L"Group_Back", groupdirectory);
+			Element* emptyview = regElem<Element*>(L"emptyview", groupdirectory);
+			if (emptyview) emptyview->SetVisible(true);
 			Group_BackContainer->SetLayoutPos(-3);
 			Group_Back->SetVisible(false);
 			dirname->SetContentString((((DDLVActionButton*)elem)->GetAssociatedItem())->GetSimpleFilename().c_str());
@@ -1550,6 +1557,8 @@ namespace DirectDesktop
 			Element* Group_BackContainer = regElem<Element*>(L"Group_BackContainer", groupdirectory);
 			DDLVActionButton* Group_Back = regElem<DDLVActionButton*>(L"Group_Back", groupdirectory);
 			DDScalableButton* More = regElem<DDScalableButton*>(L"More", groupdirectory);
+			Element* emptyview = regElem<Element*>(L"emptyview", groupdirectory);
+			if (emptyview) emptyview->SetVisible(false);
 			Group_BackContainer->SetLayoutPos(0);
 			WCHAR backTo[256];
 			StringCchPrintfW(backTo, 256, LoadStrFromRes(49856, L"shell32.dll").c_str(), ((DDLVActionButton*)elem)->GetAssociatedItem()->GetSimpleFilename().c_str());
@@ -1564,7 +1573,6 @@ namespace DirectDesktop
 			groupdirlist->SetLayoutPos(-3);
 			parser2->CreateElement(L"customizegroup", NULL, groupdirectory, NULL, &customizegroup);
 			groupdirectory->Add(&customizegroup, 1);
-			customizegroup->SetID(L"customizegroup");
 			DDColorPicker* DDCP_Group = regElem<DDColorPicker*>(L"DDCP_Group", customizegroup);
 			DDCP_Group->SetThemeAwareness(true);
 			vector<DDScalableElement*> btnTargets{};
@@ -2106,8 +2114,8 @@ namespace DirectDesktop
 		}
 		else {
 			Element* emptyview{};
-			parser2->CreateElement(L"emptyview", NULL, groupdirectory, NULL, &emptyview);
-			groupdirectory->Add(&emptyview, 1);
+			parser2->CreateElement(L"emptyview", NULL, lvi_SubUIContainer, NULL, &emptyview);
+			lvi_SubUIContainer->Add(&emptyview, 1);
 		}
 		dirnameanimator = regElem<Element*>(L"dirnameanimator", groupdirectory);
 		tasksanimator = regElem<Element*>(L"tasksanimator", groupdirectory);
@@ -2246,8 +2254,8 @@ namespace DirectDesktop
 		}
 		else {
 			Element* emptyview{};
-			parser2->CreateElement(L"emptyview", NULL, groupdirectory, NULL, &emptyview);
-			groupdirectory->Add(&emptyview, 1);
+			parser2->CreateElement(L"emptyview", NULL, lvi_SubUIContainer, NULL, &emptyview);
+			lvi_SubUIContainer->Add(&emptyview, 1);
 		}
 		DDScalableElement* dirname = regElem<DDScalableElement*>(L"dirname", groupdirectory);
 		dirname->SetContentString(lvi->GetSimpleFilename().c_str());
@@ -3306,6 +3314,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	DDScalableElement::Register();
 	DDScalableButton::Register();
 	DDScalableRichText::Register();
+	DDScalableTouchEdit::Register();
 	LVItem::Register();
 	DDLVActionButton::Register();
 	DDToggleButton::Register();
@@ -3430,6 +3439,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	assignFn(nextpageMain, GoToNextPage);
 
 	AdjustWindowSizes(true);
+	showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
+	hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
+	globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
+	GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
 	WCHAR DesktopLayoutWithSize[24];
 	if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
 	else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
@@ -3438,10 +3451,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
 		currentPageID = *reinterpret_cast<unsigned short*>(&value2[2]);
 	}
-	showcheckboxes = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"AutoCheckSelect");
-	hiddenIcons = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons");
-	globaliconsz = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
-	GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
 	RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\DirectDesktop", NULL, NULL };
 	if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultWidth")) {
 		defWidth = dimensions.right / flScaleFactor;
@@ -3491,8 +3500,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	StartMonitorFileChanges(path3);
 
 	DDNotificationBanner* ddnb{};
-	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M1",
-		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone1\nCompiled on 2025-06-30",
+	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M2",
+		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone2\nCompiled on 2025-07-02",
 		15, false);
 
 	if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");

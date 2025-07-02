@@ -67,7 +67,7 @@
 		<Element id="atom(SeparatorLine2)" layoutpos="bottom" height="1rp"/>
 		<Element id="atom(AdvancedOptions)" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)" height="108rp">
 			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
-				<TouchCheckBox id="atom(delaytoggle)" accessible="true" layoutpos="left" padding="rect(0,4rp,0,0)" active="mouse | keyboard" content="resstr(4035)" height="32rp"/>
+				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,4rp,0,0)" content="resstr(4035)" layout="flowlayout(0,2,0,2)"/>
 				<Element layout="filllayout()" layoutpos="left" width="80rp" height="32rp" background="argb(0,0,0,0)">
 					<TouchEdit2 id="atom(delayseconds)" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" Enabled="false" behaviors="Windows.UI.Popups::TouchEditContextMenu();PVL::EnsureLayered()"/>
 					<Element id="atom(delaysecondspreview)" visible="false" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
@@ -154,6 +154,12 @@
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)"/>
 			</if>
+			<if id="atom(DDCB_Text)">
+				<DDScalableElement padding="rect(6rp,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'messagefont;115%')" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<if Enabled="false">
+					<DDScalableElement foreground="rgb(128,128,128)"/>
+				</if>
+			</if>
 			<if id="atom(StatusIcon)">
 				<RichText foreground="20006"/>
 			</if>
@@ -223,6 +229,12 @@
 			</if>
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)"/>
+			</if>
+			<if id="atom(DDCB_Text)">
+				<DDScalableElement padding="rect(6rp,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'messagefont;115%')" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<if Enabled="false">
+					<DDScalableElement foreground="rgb(160,160,160)"/>
+				</if>
 			</if>
 			<if id="atom(StatusIcon)">
 				<RichText foreground="20003"/>

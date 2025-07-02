@@ -18,6 +18,7 @@ namespace DirectDesktop
 	IClassInfo* DDScalableElement::s_pClassInfo;
 	IClassInfo* DDScalableButton::s_pClassInfo;
 	IClassInfo* DDScalableRichText::s_pClassInfo;
+	IClassInfo* DDScalableTouchEdit::s_pClassInfo;
 	IClassInfo* LVItem::s_pClassInfo;
 	IClassInfo* DDLVActionButton::s_pClassInfo;
 	IClassInfo* DDToggleButton::s_pClassInfo;
@@ -270,6 +271,13 @@ namespace DirectDesktop
 			te.clear();
 		}
 	}
+	void ShowHoverCircle(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+		if (pProp == Button::MouseFocusedProp()) {
+			DDScalableElement* DDCPHC = regElem<DDScalableElement*>(L"DDColorPicker_HoverCircle", elem->GetParent());
+			DDCPHC->SetVisible(elem->GetMouseFocused());
+			DDCPHC->SetX(elem->GetX());
+		}
+	}
 	DWORD WINAPI DelayedDraw(LPVOID lpParam) {
 		if (lpParam) {
 			assignExtendedFn((Element*)lpParam, UpdateImageOnPropChange);
@@ -290,6 +298,10 @@ namespace DirectDesktop
 	DWORD WINAPI PickerBtnFn(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		assignFn((Element*)lpParam, UpdateUICtrlColor);
+		return 0;
+	}
+	DWORD WINAPI CreateTEVisual(LPVOID lpParam) {
+		PostMessageW(subviewwnd->GetHWND(), WM_USER + 5, (WPARAM)lpParam, NULL);
 		return 0;
 	}
 	vector<DDScalableElement*> DDScalableElement::_arrCreatedElements;
@@ -460,8 +472,10 @@ namespace DirectDesktop
 	}
 	HRESULT DDScalableButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDScalableButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-		DWORD dw;
-		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		}
 		return hr;
 	}
 	HRESULT DDScalableButton::Register() {
@@ -622,8 +636,10 @@ namespace DirectDesktop
 	}
 	HRESULT DDScalableRichText::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDScalableRichText>(pParent, pdwDeferCookie, ppElement);
-		DWORD dw;
-		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		}
 		return hr;
 	}
 	HRESULT DDScalableRichText::Register() {
@@ -637,7 +653,7 @@ namespace DirectDesktop
 			&impNeedsFontResize2Prop,
 			&impAssociatedColorProp
 		};
-		return ClassInfo<DDScalableRichText, Element, StandardCreator<DDScalableRichText>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+		return ClassInfo<DDScalableRichText, RichText, StandardCreator<DDScalableRichText>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
 	}
 	auto DDScalableRichText::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
 		Value* pv = GetValue(pPropertyProc, 2, nullptr);
@@ -735,6 +751,134 @@ namespace DirectDesktop
 		}
 	}
 
+	vector<DDScalableTouchEdit*> DDScalableTouchEdit::_arrCreatedBoxes;
+	DDScalableTouchEdit::DDScalableTouchEdit() {
+		_arrCreatedBoxes.push_back(this);
+	}
+	DDScalableTouchEdit::~DDScalableTouchEdit() {
+		auto toRemove = find(_arrCreatedBoxes.begin(), _arrCreatedBoxes.end(), this);
+		if (toRemove != _arrCreatedBoxes.end()) {
+			_arrCreatedBoxes.erase(toRemove);
+		}
+	}
+	IClassInfo* DDScalableTouchEdit::GetClassInfoPtr() {
+		return s_pClassInfo;
+	}
+	void DDScalableTouchEdit::SetClassInfoPtr(IClassInfo* pClass) {
+		s_pClassInfo = pClass;
+	}
+	IClassInfo* DDScalableTouchEdit::GetClassInfoW() {
+		return s_pClassInfo;
+	}
+	HRESULT DDScalableTouchEdit::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
+		HRESULT hr = CreateAndInit<DDScalableTouchEdit>(pParent, pdwDeferCookie, ppElement);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			DWORD dw2;
+			HANDLE drawingHandle2 = CreateThread(0, 0, CreateTEVisual, (LPVOID)*ppElement, NULL, &dw2);
+		}
+		return hr;
+	}
+	HRESULT DDScalableTouchEdit::Register() {
+		static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+		{
+			&impFirstScaledImageProp,
+			&impScaledImageIntervalsProp,
+			&impDrawTypeProp,
+			&impEnableAccentProp,
+			&impNeedsFontResizeProp,
+			&impNeedsFontResize2Prop
+		};
+		return ClassInfo<DDScalableTouchEdit, TouchEdit2, StandardCreator<DDScalableTouchEdit>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+	}
+	auto DDScalableTouchEdit::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
+		Value* pv = GetValue(pPropertyProc, 2, nullptr);
+		auto v = useInt ? pv->GetInt() : pv->GetBool();
+		pv->Release();
+		return v;
+	}
+	void DDScalableTouchEdit::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt) {
+		Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
+		HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+		if (SUCCEEDED(hr)) {
+			hr = SetValue(pPropertyProc, 1, pv);
+			pv->Release();
+		}
+	}
+	const PropertyInfo* WINAPI DDScalableTouchEdit::FirstScaledImageProp() {
+		return &impFirstScaledImageProp;
+	}
+	int DDScalableTouchEdit::GetFirstScaledImage() {
+		return this->GetPropCommon(FirstScaledImageProp, true);
+	}
+	void DDScalableTouchEdit::SetFirstScaledImage(int iFirstImage) {
+		this->SetPropCommon(FirstScaledImageProp, iFirstImage, true);
+	}
+	const PropertyInfo* WINAPI DDScalableTouchEdit::ScaledImageIntervalsProp() {
+		return &impScaledImageIntervalsProp;
+	}
+	int DDScalableTouchEdit::GetScaledImageIntervals() {
+		int v = this->GetPropCommon(ScaledImageIntervalsProp, true);
+		if (v < 1) v = 1;
+		return v;
+	}
+	void DDScalableTouchEdit::SetScaledImageIntervals(int iScaleIntervals) {
+		this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+	}
+	const PropertyInfo* WINAPI DDScalableTouchEdit::DrawTypeProp() {
+		return &impDrawTypeProp;
+	}
+	int DDScalableTouchEdit::GetDrawType() {
+		return this->GetPropCommon(DrawTypeProp, true);
+	}
+	void DDScalableTouchEdit::SetDrawType(int iDrawType) {
+		this->SetPropCommon(DrawTypeProp, iDrawType, true);
+	}
+	const PropertyInfo* WINAPI DDScalableTouchEdit::EnableAccentProp() {
+		return &impEnableAccentProp;
+	}
+	bool DDScalableTouchEdit::GetEnableAccent() {
+		return this->GetPropCommon(EnableAccentProp, false);
+	}
+	void DDScalableTouchEdit::SetEnableAccent(bool bEnableAccent) {
+		this->SetPropCommon(EnableAccentProp, bEnableAccent, false);
+	}
+	const PropertyInfo* WINAPI DDScalableTouchEdit::NeedsFontResizeProp() {
+		return &impNeedsFontResizeProp;
+	}
+	bool DDScalableTouchEdit::GetNeedsFontResize() {
+		return this->GetPropCommon(NeedsFontResizeProp, false);
+	}
+	void DDScalableTouchEdit::SetNeedsFontResize(bool bNeedsFontResize) {
+		this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
+	}
+	const PropertyInfo* WINAPI DDScalableTouchEdit::NeedsFontResize2Prop() {
+		return &impNeedsFontResize2Prop;
+	}
+	bool DDScalableTouchEdit::GetNeedsFontResize2() {
+		return this->GetPropCommon(NeedsFontResize2Prop, false);
+	}
+	void DDScalableTouchEdit::SetNeedsFontResize2(bool bNeedsFontResize2) {
+		this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
+	}
+	void DDScalableTouchEdit::InitDrawImage() {
+		PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+	}
+	void DDScalableTouchEdit::RedrawImages() {
+		for (DDScalableTouchEdit* pe : _arrCreatedBoxes) {
+			PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
+		}
+	}
+	void DDScalableTouchEdit::InitDrawFont() {
+		PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+	}
+	void DDScalableTouchEdit::RedrawFonts() {
+		for (DDScalableTouchEdit* pe : _arrCreatedBoxes) {
+			PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
+		}
+	}
+
 	LVItem::~LVItem() {
 		this->GetChildItems().clear();
 		this->GetChildIcons().clear();
@@ -753,8 +897,10 @@ namespace DirectDesktop
 	}
 	HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-		DWORD dw;
-		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		}
 		return hr;
 	}
 	HRESULT LVItem::Register() {
@@ -900,8 +1046,10 @@ namespace DirectDesktop
 	}
 	HRESULT DDLVActionButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDLVActionButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-		DWORD dw;
-		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		}
 		return hr;
 	}
 	HRESULT DDLVActionButton::Register() {
@@ -925,8 +1073,10 @@ namespace DirectDesktop
 	}
 	HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-		DWORD dw;
-		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		}
 		return hr;
 	}
 	HRESULT DDToggleButton::Register() {
@@ -991,6 +1141,10 @@ namespace DirectDesktop
 	}
 	HRESULT DDCheckBoxGlyph::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDCheckBoxGlyph, int>(0, pParent, pdwDeferCookie, ppElement);
+		if (SUCCEEDED(hr)) {
+			DWORD dw;
+			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		}
 		return hr;
 	}
 	HRESULT DDCheckBoxGlyph::Register() {
@@ -1185,8 +1339,10 @@ namespace DirectDesktop
 	}
 	DWORD WINAPI AnimateWindowWrapper(LPVOID lpParam) {
 		Sleep(50);
-		AnimateWindow(notificationwnd->GetHWND(), 180, AW_BLEND);
-		notificationwnd->ShowWindow(SW_SHOW);
+		if (notificationwnd) {
+			AnimateWindow(notificationwnd->GetHWND(), 180, AW_BLEND);
+			notificationwnd->ShowWindow(SW_SHOW);
+		}
 		return 0;
 	}
 	DWORD WINAPI AutoCloseNotification(LPVOID lpParam) {

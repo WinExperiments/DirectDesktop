@@ -5,6 +5,7 @@
 
 namespace DirectDesktop
 {
+	extern bool theme;
 	extern DirectUI::DUIXmlParser* parser;
 	void CreateSearchPage();
 }

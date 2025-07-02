@@ -30,7 +30,7 @@ namespace DirectDesktop
     TouchButton* nextpage, * prevpage;
     DDScalableRichText* pageinfo;
     Button* PageViewer;
-    TouchEdit2* PV_EnterPage;
+    DDScalableTouchEdit* PV_EnterPage;
 
     LPVOID timerPtr;
 
@@ -233,7 +233,7 @@ namespace DirectDesktop
             break;
         }
         case WM_USER + 3: {
-            RearrangeIcons(false, false, true);
+            RearrangeIcons(true, false, true);
             PageViewer->DestroyAll(true);
             PageViewer->Destroy(true);
             Event* iev = new Event{ SimpleViewPages, Button::Click };
@@ -307,15 +307,11 @@ namespace DirectDesktop
         fullscreeninnerE->SetVisible(true);
         SimpleViewTop->SetAlpha(255);
         SimpleViewBottom->SetAlpha(255);
-        prevpage->SetAlpha(255);
-        nextpage->SetAlpha(255);
     }
 
     void fullscreenAnimation4() {
         SimpleViewTop->SetAlpha(0);
         SimpleViewBottom->SetAlpha(0);
-        prevpage->SetAlpha(255);
-        nextpage->SetAlpha(255);
         DWORD animThread;
         HANDLE animThreadHandle = CreateThread(0, 0, animate7, NULL, 0, &animThread);
     }
@@ -482,7 +478,7 @@ namespace DirectDesktop
             else {
                 Element* overflow = regElem<Element*>(L"overflow", PageViewer);
                 overflow->SetVisible(true);
-                PV_EnterPage = (TouchEdit2*)PageViewer->FindDescendent(StrToID(L"PV_EnterPage"));
+                PV_EnterPage = (DDScalableTouchEdit*)PageViewer->FindDescendent(StrToID(L"PV_EnterPage"));
                 DDScalableButton* PV_ConfirmEnterPage = regElem<DDScalableButton*>(L"PV_ConfirmEnterPage", PageViewer);
                 assignFn(PV_ConfirmEnterPage, EnterSelectedPage);
                 Element* PV_EnterPagePreview = regElem<Element*>(L"delaysecondspreview", PageViewer);
@@ -507,20 +503,20 @@ namespace DirectDesktop
             maxPageID++;
             PageViewer->DestroyAll(true);
             PageViewer->Destroy(true);
-            RearrangeIcons(false, false, true);
+            RearrangeIcons(true, false, true);
             ShowPageViewer(elem, iev);
         }
     }
     void RemoveSelectedPage(Element* elem, Event* iev) {
         if (iev->uidType == Button::Click) {
             timerPtr = elem;
-            SetTimer(editwnd->GetHWND(), 1, 150, NULL);
+            SetTimer(editwnd->GetHWND(), 1, 50, NULL);
         }
     }
     void SetSelectedPageHome(Element* elem, Event* iev) {
         if (iev->uidType == Button::Click) {
             timerPtr = elem;
-            SetTimer(editwnd->GetHWND(), 2, 150, NULL);
+            SetTimer(editwnd->GetHWND(), 2, 50, NULL);
         }
     }
     void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pv1, Value* pV2) {

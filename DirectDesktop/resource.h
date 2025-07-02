@@ -58,6 +58,12 @@
 #define IDS_STRING163                   163
 #define IDS_STRING164                   164
 #define IDS_STRING165                   165
+#define IDS_STRING166                   166
+#define IDS_STRING167                   167
+#define IDS_STRING168                   168
+#define IDS_STRING169                   169
+#define IDS_STRING170                   170
+#define IDS_STRING171                   171
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202
@@ -79,10 +85,7 @@
 #define IDS_STRING218                   218
 #define IDS_STRING219                   219
 #define IDS_STRING220                   220
-#define IDB_PNG9                        387
-#define IDB_PNG15                       430
-#define IDB_PNG8                        438
-#define IDB_PNG24                       469
+#define IDB_PNG14                       693
 #define IDS_STRING4001                  4001
 #define IDS_STRING4002                  4002
 #define IDS_STRING4003                  4003
@@ -153,7 +156,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        470
+#define _APS_NEXT_RESOURCE_VALUE        694
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

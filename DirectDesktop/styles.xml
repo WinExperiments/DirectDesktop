@@ -2,7 +2,7 @@
 	<stylesheets>
 		<style resid="DDBase">
 			<if class="popupbutton">
-				<DDScalableButton foreground="20007" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20007" visible="false" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -14,7 +14,7 @@
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="black" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton foreground="black" visible="false" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
 					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -26,7 +26,7 @@
 				</if>
 			</if>
 			<if class="hyperlink">
-				<DDScalableButton foreground="20007" alpha="224" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20007" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -52,7 +52,7 @@
 					<DDScalableButton FirstScaledImage="1086" foreground="rgb(255,255,255)"/>
 				</if>
 			</if>
-			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
+			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 			<if mousefocused="true">
 				<DDToggleButton FirstScaledImage="1015"/>
 			</if>
@@ -160,52 +160,6 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<TouchCheckBox contentalign="endellipsis" background="20575" accessible="true" accrole="checkbutton" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" minsize="size(100,32rp)" padding="rect(0,0,0,0)"/>
-			<if checkedstate="unchecked">
-				<TouchCheckBox accdefaction="resstr(105, library(dui70.dll))"/>
-			</if>
-			<if checkedstate="checked">
-				<TouchCheckBox accdefaction="resstr(106, library(dui70.dll))"/>
-			</if>
-			<if Enabled="false">
-				<TouchCheckBox foreground="20629"/>
-			</if>
-			<if id="atom(TCB_Glyph)">
-				<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))" constrainlayout="NarrowClip" font="0pt;;;"/>
-				<if keyfocused="true">
-					<TouchCheckBoxGlyph contentalign="middlecenter|focusrect"/>
-				</if>
-				<if mousefocused="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
-				</if>
-				<if captured="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,3), argb(0,0,0,0))"/>
-				</if>
-				<if Enabled="false">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,4), argb(0,0,0,0))"/>
-				</if>
-				<if checkedstate="checked">
-					<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))" constrainlayout="NarrowClip" font="themeable(0pt;;;, 8pt;Normal;None;Marlett)" content="themeable(' ', 'b')"/>
-					<if mousefocused="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
-					</if>
-					<if captured="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
-					</if>
-					<if Pressed="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,7), argb(0,0,0,0))"/>
-					</if>
-					<if Enabled="false">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,8), argb(0,0,0,0))"/>
-					</if>
-				</if>
-			</if>
-			<if id="atom(TCB_Label)">
-				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)" constrainlayout="narrow"/>
-			</if>
 			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(AB::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" foreground="rgb(0,0,0)" cursor="ibeam"/>
 			<if mousewithin="true">
 				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
@@ -241,28 +195,28 @@
 			<if class="DDNB_Icon_Error">
 				<Element content="resstr(216)" foreground="rgb(196, 43, 28)"/>
 			</if>
-			<DDCheckBox height="32rp"/>
+			<DDCheckBox height="32rp" background="argb(0,0,0,0)"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" content="themeable(dtb(DirectUI::Button,3,1), '')" contentalign="middlecenter" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="1107" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 				<if mousefocused="true">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,2), '')"/>
+					<DDCheckBoxGlyph FirstScaledImage="1114"/>
 				</if>
 				<if selected="true">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,3), '')"/>
+					<DDCheckBoxGlyph FirstScaledImage="1121"/>
 				</if>
 				<if Enabled="false">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,4), '')"/>
+					<DDCheckBoxGlyph FirstScaledImage="1128"/>
 				</if>
 				<if checkedstate="true">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
+					<DDCheckBoxGlyph FirstScaledImage="1135"/>
 					<if mousefocused="true">
-						<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+						<DDCheckBoxGlyph FirstScaledImage="1142"/>
 					</if>
 					<if selected="true">
-						<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,7), 'b')"/>
+						<DDCheckBoxGlyph FirstScaledImage="1149"/>
 					</if>
 					<if Enabled="false">
-						<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+						<DDCheckBoxGlyph FirstScaledImage="1156"/>
 					</if>
 				</if>
 			</if>
@@ -272,24 +226,37 @@
 					<DDScalableElement foreground="rgb(128,128,128)"/>
 				</if>
 			</if>
+			<DDColorPicker background="argb(0,0,0,0)"/>
 			<DDColorPickerButton direction="ltr"/>
 			<if Enabled="false">
 				<DDColorPicker alpha="96"/>
 				<DDColorPickerButton alpha="96"/>
 			</if>
 			<if id="atom(DDColorPicker_HoverCircle)">
-
-			</if>
-			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="1093" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="1093" ScaledImageIntervals="7" DrawType="2" visible="false"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="72"/>
 				</if>
 			</if>
+			<if id="atom(DDColorPicker_CheckedCircle)">
+				<DDScalableElement direction="ltr" FirstScaledImage="1100" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<if Enabled="false">
+					<DDScalableElement alpha="72"/>
+				</if>
+			</if>
+			<if class="TopSection">
+				<DDScalableElement FirstScaledImage="1191" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+			</if>
+			<if class="MiddleSection">
+				<DDScalableElement FirstScaledImage="1198" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+			</if>
+			<if class="BottomSection">
+				<DDScalableElement FirstScaledImage="1205" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+			</if>
 		</style>
 		<style resid="DDBaseDark">
 			<if class="popupbutton">
-				<DDScalableButton foreground="20002" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20002" visible="false" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
@@ -301,7 +268,7 @@
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="white" visible="false" alpha="224" animation="alpha|s|veryfast" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton foreground="white" visible="false" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
 					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -313,7 +280,7 @@
 				</if>
 			</if>
 			<if class="hyperlink">
-				<DDScalableButton foreground="20002" alpha="224" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20002" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -339,7 +306,7 @@
 					<DDScalableButton FirstScaledImage="2086" foreground="rgb(0,0,0)"/>
 				</if>
 			</if>
-			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
+			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 			<if mousefocused="true">
 				<DDToggleButton FirstScaledImage="2015"/>
 			</if>
@@ -447,52 +414,6 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<TouchCheckBox contentalign="endellipsis" background="20575" accessible="true" accrole="checkbutton" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" minsize="size(100,32rp)" padding="rect(0,0,0,0)"/>
-			<if checkedstate="unchecked">
-				<TouchCheckBox accdefaction="resstr(105, library(dui70.dll))"/>
-			</if>
-			<if checkedstate="checked">
-				<TouchCheckBox accdefaction="resstr(106, library(dui70.dll))"/>
-			</if>
-			<if Enabled="false">
-				<TouchCheckBox foreground="20629"/>
-			</if>
-			<if id="atom(TCB_Glyph)">
-				<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))" constrainlayout="NarrowClip" font="0pt;;;"/>
-				<if keyfocused="true">
-					<TouchCheckBoxGlyph contentalign="middlecenter|focusrect"/>
-				</if>
-				<if mousefocused="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,2), argb(0,0,0,0))"/>
-				</if>
-				<if captured="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,1), argb(0,0,0,0))"/>
-				</if>
-				<if Pressed="true">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,3), argb(0,0,0,0))"/>
-				</if>
-				<if Enabled="false">
-					<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,4), argb(0,0,0,0))"/>
-				</if>
-				<if checkedstate="checked">
-					<TouchCheckBoxGlyph contentalign="middlecenter" height="20rp" width="20rp" background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))" constrainlayout="NarrowClip" font="themeable(0pt;;;, 8pt;Normal;None;Marlett)" content="themeable(' ', 'b')"/>
-					<if mousefocused="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,6), argb(0,0,0,0))"/>
-					</if>
-					<if captured="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,5), argb(0,0,0,0))"/>
-					</if>
-					<if Pressed="true">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,7), argb(0,0,0,0))"/>
-					</if>
-					<if Enabled="false">
-						<TouchCheckBoxGlyph background="themeable(dtb(DirectUI::Button,3,8), argb(0,0,0,0))"/>
-					</if>
-				</if>
-			</if>
-			<if id="atom(TCB_Label)">
-				<RichText contentalign="wrapleft|endellipsis" padding="rect(8rp,0,0,0)" background="20575" foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)" constrainlayout="narrow"/>
-			</if>
 			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" foreground="rgb(255,255,255)" cursor="ibeam"/>
 			<if mousewithin="true">
 				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
@@ -528,28 +449,28 @@
 			<if class="DDNB_Icon_Error">
 				<Element content="resstr(216)" foreground="rgb(255, 153, 164)"/>
 			</if>
-			<DDCheckBox height="32rp"/>
+			<DDCheckBox height="32rp" background="argb(0,0,0,0)"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" content="themeable(dtb(DirectUI::Button,3,1), '')" contentalign="middlecenter" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="2107" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 				<if mousefocused="true">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,2), '')"/>
+					<DDCheckBoxGlyph FirstScaledImage="2114"/>
 				</if>
 				<if selected="true">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,3), '')"/>
+					<DDCheckBoxGlyph FirstScaledImage="2121"/>
 				</if>
 				<if Enabled="false">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,4), '')"/>
+					<DDCheckBoxGlyph FirstScaledImage="2128"/>
 				</if>
 				<if checkedstate="true">
-					<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
+					<DDCheckBoxGlyph FirstScaledImage="2135"/>
 					<if mousefocused="true">
-						<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+						<DDCheckBoxGlyph FirstScaledImage="2142"/>
 					</if>
 					<if selected="true">
-						<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,7), 'b')"/>
+						<DDCheckBoxGlyph FirstScaledImage="2149"/>
 					</if>
 					<if Enabled="false">
-						<DDCheckBoxGlyph content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+						<DDCheckBoxGlyph FirstScaledImage="2156"/>
 					</if>
 				</if>
 			</if>
@@ -559,19 +480,32 @@
 					<DDScalableElement foreground="rgb(160,160,160)"/>
 				</if>
 			</if>
+			<DDColorPicker background="argb(0,0,0,0)"/>
 			<DDColorPickerButton direction="ltr"/>
 			<if Enabled="false">
 				<DDColorPicker alpha="128"/>
 				<DDColorPickerButton alpha="128"/>
 			</if>
 			<if id="atom(DDColorPicker_HoverCircle)">
-
-			</if>
-			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="2093" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="2093" ScaledImageIntervals="7" DrawType="2" visible="false"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="96"/>
 				</if>
+			</if>
+			<if id="atom(DDColorPicker_CheckedCircle)">
+				<DDScalableElement direction="ltr" FirstScaledImage="2100" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<if Enabled="false">
+					<DDScalableElement alpha="96"/>
+				</if>
+			</if>
+			<if class="TopSection">
+				<DDScalableElement FirstScaledImage="2191" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+			</if>
+			<if class="MiddleSection">
+				<DDScalableElement FirstScaledImage="2198" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+			</if>
+			<if class="BottomSection">
+				<DDScalableElement FirstScaledImage="2205" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
 			</if>
 		</style>
 	</stylesheets>

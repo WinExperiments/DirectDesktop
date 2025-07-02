@@ -422,18 +422,22 @@ namespace DirectDesktop
 			filestructs.clear();
 			HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
 			HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
-			wchar_t* ThisPC;
-			GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &ThisPC);
-			if (ThisPC == NULL) {
-				ThisPC = new wchar_t[260];
+			wchar_t* ThisPC = new wchar_t[260], *ThisPCBuf{};
+			GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &ThisPCBuf);
+			if (ThisPCBuf == NULL) {
 				LoadStringW(WinStorageDLL, 9216, ThisPC, 260);
+				FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
+				delete[] ThisPC;
 			}
-			wchar_t* RecycleBin;
-			GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &RecycleBin);
-			if (RecycleBin == NULL) {
-				RecycleBin = new wchar_t[260];
+			else FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPCBuf, count2);
+			wchar_t* RecycleBin = new wchar_t[260], *RecycleBinBuf{};
+			GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &RecycleBinBuf);
+			if (RecycleBinBuf == NULL) {
 				LoadStringW(WinStorageDLL, 8964, RecycleBin, 260);
+				FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
+				delete[] RecycleBin;
 			}
+			else FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBinBuf, count2);
 			wchar_t* UserFiles = new wchar_t[260];
 			DWORD d = GetEnvironmentVariableW(L"userprofile", UserFiles, 260);
 			wstring UserFiless = UserFiles;
@@ -444,12 +448,12 @@ namespace DirectDesktop
 			LoadStringW(WinStorageDLL, 9217, Network, 260);
 			wchar_t* LearnAbout = new wchar_t[260];
 			LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
-			FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
-			FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
 			FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), count2);
 			FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, count2);
 			FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, count2);
 			FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2);
+			free(ThisPCBuf);
+			free(RecycleBinBuf);
 			delete[] UserFiles;
 			delete[] ControlPanel;
 			delete[] Network;
@@ -725,25 +729,29 @@ namespace DirectDesktop
 				reinterpret_cast<const wchar_t*>(&value[offset]),
 				name_len / sizeof(wchar_t)
 			), isFileExtHidden);
-			wchar_t* nameBuffer = new wchar_t[260];
+			wchar_t* nameBuffer = new wchar_t[260], *nameBuffer2{};
 			if (item.name == L"::{20D04FE0-3AEA-1069-A2D8-08002B30309D}") {
-				GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &nameBuffer);
-				if (nameBuffer == NULL) {
+				GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &nameBuffer2);
+				if (nameBuffer2 == NULL) {
 					delete[] nameBuffer;
 					nameBuffer = new wchar_t[260];
 					LoadStringW(WinStorageDLL, 9216, nameBuffer, 260);
+					item.name = nameBuffer;
 				}
-				item.name = nameBuffer;
+				else item.name = nameBuffer2;
 			}
+			if (nameBuffer2) free(nameBuffer2);
 			if (item.name == L"::{645FF040-5081-101B-9F08-00AA002F954E}") {
-				GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &nameBuffer);
-				if (nameBuffer == NULL) {
+				GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &nameBuffer2);
+				if (nameBuffer2 == NULL) {
 					delete[] nameBuffer;
 					nameBuffer = new wchar_t[260];
 					LoadStringW(WinStorageDLL, 8964, nameBuffer, 260);
+					item.name = nameBuffer;
 				}
-				item.name = nameBuffer;
+				else item.name = nameBuffer2;
 			}
+			if (nameBuffer2) free(nameBuffer2);
 			if (item.name == L"::{59031A47-3F72-44A7-89C5-5595FE6B30EE}") {
 				DWORD d = GetEnvironmentVariableW(L"userprofile", nameBuffer, 260);
 				wstring UserFiless = nameBuffer;
@@ -970,6 +978,7 @@ namespace DirectDesktop
 		}
 		if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable")) {
 			free(value2);
+			value2 = 0;
 			GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", &value2);
 			offset2 = 0;
 			for (int i = 0; i < pm.size(); i++) {
@@ -998,6 +1007,7 @@ namespace DirectDesktop
 		}
 		if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable")) {
 			free(value2);
+			value2 = 0;
 			GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", &value2);
 			offset2 = 0;
 			for (int i = 0; i < pm.size(); i++) {
