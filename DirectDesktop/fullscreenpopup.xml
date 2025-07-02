@@ -27,7 +27,7 @@
 			<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,2,0,0)" margin="rect(0,0,6rp,0)">
 				<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)" tooltip="true" class="popupbuttonicon"/>
 			</Element>
-			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="400rp">
+			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="600rp">
 				<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true"/>
 				<DDScalableRichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont;100%" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true" padding="rect(2rp,0,0,0)"/>
 			</Element>
@@ -37,13 +37,13 @@
 		</TouchScrollViewer>
 	</Element>
 	<Element resid="emptyview" id="atom(emptyview)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)" padding="rect(0,0,0,36rp)">
-		<DDScalableElement FirstScaledImage="3038" ScaledImageIntervals="7" DrawType="2" EnableAccent="true"/>
+		<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true"/>
 		<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
 			<DDScalableElement content="resstr(4046)" class="toggletext"/>
-			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
+			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
 		</Element>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
@@ -51,7 +51,7 @@
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
 			<DDScalableRichText id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%;semibold" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true"/>
 		</Element>
-		<Element id="atom(PageNavigator)" layoutpos="top" height="56rp" padding="rect(0,4rp,0,20rp)" layout="flowlayout()">
+		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,0,0,16rp)" layout="flowlayout()">
 			<DDScalableButton id="atom(PageTab1)" content="resstr(4011)" class="pilltab"/>
 			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
 			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
@@ -86,7 +86,7 @@
 				<DDToggleButton id="atom(FilenameExts)"/>
 			</Element>
 		</DDScalableElement>
-		<Element height="20rp" layoutpos="top"/>
+		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(168)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
@@ -124,7 +124,7 @@
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(0,0,0,16rp)">
 				<DDScalableElement content="resstr(4047)" class="toggletext"/>
-				<DDColorPicker id="atom(DDCP_Icons)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="255" DefaultColor="0x909090" height="32rp" width="352rp"/>
+				<DDColorPicker id="atom(DDCP_Icons)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="255" DefaultColor="0x909090" height="32rp" width="352rp"/>
 			</Element>
 			<DDScalableElement content="resstr(4015)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
@@ -144,7 +144,7 @@
 				<DDToggleButton id="atom(IconThumbnails)"/>
 			</Element>
 		</DDScalableElement>
-		<Element height="20rp" layoutpos="top"/>
+		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content=""/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
@@ -198,6 +198,9 @@
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right" background="argb(0,0,0,0)"/>
 			</if>
+			<if class="separator">
+				<Element height="16rp" layoutpos="top"/>
+			</if>
 		</style>
 		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
 			<if class="popupwindow">
@@ -222,6 +225,9 @@
 			</if>
 			<if class="togglebuttoncontainer">
 				<Element layoutpos="right" background="argb(0,0,0,0)"/>
+			</if>
+			<if class="separator">
+				<Element height="16rp" layoutpos="top"/>
 			</if>
 		</style>
 	</stylesheets>

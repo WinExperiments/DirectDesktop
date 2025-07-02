@@ -47,7 +47,7 @@
 			<Element id="atom(pagesrow2)" layout="flowlayout(0,2,2,2)"/>
 		</Element>
 		<Element id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client" visible="false">
-			<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
+			<DDScalableElement FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
 			<DDScalableRichText content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
 			<Element height="80rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
 				<TouchEdit2 id="atom(PV_EnterPage)" font="28pt;Normal;None;Segoe UI Semilight" layoutpos="client"/>
@@ -77,7 +77,7 @@
 	</DDScalableElement>
 	<Element resid="PV_IconShortcutPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
 	<DDScalableElement resid="PV_IconShadowTouchPreview" layoutpos="absolute" contentalign="middlecenter" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
-	<DDScalableElement resid="PV_IconTouchPreview" layoutpos="absolute" contentalign="middlecenter" background="argb(0,0,0,0)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"  padding="rect(-8rp,-8rp,-8rp,-8rp)" layout="filllayout()">
+	<DDScalableElement resid="PV_IconTouchPreview" layoutpos="absolute" contentalign="middlecenter" background="argb(0,0,0,0)" FirstScaledImage="3031" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"  padding="rect(-8rp,-8rp,-8rp,-8rp)" layout="filllayout()">
 		<Element id="atom(PV_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
 	</DDScalableElement>
 	<Element resid="PV_IconShortcutTouchPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>

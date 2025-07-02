@@ -1588,7 +1588,6 @@ namespace DirectDesktop
 
 	void PinGroup(Element* elem, Event* iev) {
 		static int i{};
-		//static BYTE lp_inner = -5, lp_cb{}, lp_file{}, lp_shadow{};
 		if (iev->uidType == Button::Click) {
 			LVItem* lviTarget = ((DDLVActionButton*)elem)->GetAssociatedItem();
 			for (i = 0; i < pm.size(); i++) {
@@ -1596,10 +1595,6 @@ namespace DirectDesktop
 			}
 			Element* innerElem = regElem<Element*>(L"innerElem", lviTarget);
 			if (lviTarget->GetGroupSize() == LVIGS_NORMAL) {
-				//lp_inner = innerElem->GetLayoutPos();
-				//lp_cb = cbpm[i]->GetLayoutPos();
-				//lp_file = filepm[i]->GetLayoutPos();
-				//lp_shadow = fileshadowpm[i]->GetLayoutPos();
 				HidePopupCore(false);
 				lviTarget->SetGroupSize(LVIGS_MEDIUM);
 			}
@@ -1608,15 +1603,6 @@ namespace DirectDesktop
 				lviTarget->SetSizedFromGroup(true);
 				if (touchmode) lviTarget->SetDrawType(1);
 				if (localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth());
-				//if (lp_inner == -5) {
-				//    Element* g_innerElem = regElem<Element*>(L"innerElem", g_outerElem);
-				//    Element* checkboxElem = regElem<Element*>(L"checkboxElem", g_outerElem);
-				//    innerElem->SetLayoutPos(g_innerElem->GetLayoutPos()), cbpm[i]->SetLayoutPos(checkboxElem->GetLayoutPos());
-				//}
-				//else {
-				//    innerElem->SetLayoutPos(lp_inner), cbpm[i]->SetLayoutPos(lp_cb);
-				//    filepm[i]->SetLayoutPos(lp_file), fileshadowpm[i]->SetLayoutPos(lp_shadow);
-				//}
 				lviTarget->SetTooltip(true);
 				yValue* yV = new yValue{ i };
 				HANDLE smThumbnailThreadHandle = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
@@ -2128,7 +2114,7 @@ namespace DirectDesktop
 		else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), lviCount);
 		dirdetails->SetContentString(itemCount);
 		dirdetails->SetAlpha(theme ? 108 : 144);
-		if (lviCount == 0) dirdetails->SetLayoutPos(-3);
+		if (lviCount == 0) dirdetails->SetContentString(L"");
 		Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
 		checkifelemexists = true;
 		DWORD animThread3;
@@ -2266,7 +2252,7 @@ namespace DirectDesktop
 		else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), lviCount);
 		dirdetails->SetContentString(itemCount);
 		dirdetails->SetAlpha(theme ? 108 : 144);
-		if (lviCount == 0) dirdetails->SetLayoutPos(-3);
+		if (lviCount == 0) dirdetails->SetContentString(L"");
 		DDLVActionButton* More = regElem<DDLVActionButton*>(L"More", groupdirectory);
 		Element* tasks = regElem<Element*>(L"tasks", groupdirectory);
 		tasks->SetLayoutPos(-3);
@@ -3470,7 +3456,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoDarkIcons", 0, true, nullptr);
 	SetRegistryValues(DDKey._hKeyName, DDKey._path, L"GlassIcons", 0, true, nullptr);
 	SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TouchView", 0, true, nullptr);
-	SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID", 0, true, nullptr);
+	SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID", 1, true, nullptr);
 	SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorizationColor", 0, true, nullptr);
 	treatdirasgroup = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TreatDirAsGroup");
 	tripleclickandhide = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TripleClickAndHide");
@@ -3500,8 +3486,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	StartMonitorFileChanges(path3);
 
 	DDNotificationBanner* ddnb{};
-	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M2",
-		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone2\nCompiled on 2025-07-02",
+	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Post-M2",
+		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_post_milestone2\nCompiled on 2025-07-02",
 		15, false);
 
 	if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");

@@ -8,7 +8,7 @@
 			</Element>
 			<TouchScrollViewer id="atom(SearchResults)" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered(0x00000001)" InteractionMode="TranslateY|Inertia">
 				<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" class="searchview">
-					<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
+					<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3059" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
 					<DDScalableRichText background="argb(0,0,0,0)" content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
 				</Element>
 			</TouchScrollViewer>
