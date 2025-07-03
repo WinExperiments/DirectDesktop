@@ -35,12 +35,9 @@ namespace DirectDesktop
 
 	HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT(*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams) {
 		HRESULT hr{};
-		Value* pvLayout{};
-		hr = pfnCreate(dNumParams, pParams, &pvLayout);
-		if (SUCCEEDED(hr)) {
-			hr = pe->SetValue(Element::LayoutProp, 1, pvLayout);
-			pvLayout->Release();
-		}
+		CValuePtr spvLayout{};
+		hr = pfnCreate(dNumParams, pParams, &spvLayout);
+		if (SUCCEEDED(hr)) hr = pe->SetValue(Element::LayoutProp, 1, spvLayout);
 		return hr;
 	}
 
@@ -180,19 +177,13 @@ namespace DirectDesktop
 		else if (pe->GetEnableAccent()) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1, ImmersiveColor);
 		switch (pe->GetDrawType()) {
 		case 1: {
-			Value* vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
-			if (vImage) {
-				pe->SetValue(Element::BackgroundProp, 1, vImage);
-				vImage->Release();
-			}
+			CValuePtr vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
+			if (vImage)	pe->SetValue(Element::BackgroundProp, 1, vImage);
 			break;
 		}
 		case 2: {
-			Value* vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
-			if (vImage) {
-				pe->SetValue(Element::ContentProp, 1, vImage);
-				vImage->Release();
-			}
+			CValuePtr vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
+			if (vImage)	pe->SetValue(Element::ContentProp, 1, vImage);
 			break;
 		}
 		}
@@ -200,7 +191,7 @@ namespace DirectDesktop
 	}
 	void RedrawFontCore(DDScalableElement* pe) {
 		if (!pe) return;
-		Value* v;
+		CValuePtr v;
 		if (pe->GetNeedsFontResize()) {
 			if (pe->GetFont(&v) == nullptr) return;
 			wstring fontOld = pe->GetFont(&v);
@@ -1303,7 +1294,7 @@ namespace DirectDesktop
 	}
 
 	LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-		Value* v{};
+		CValuePtr v;
 		Element* ppeTemp;
 		wstring fontOld;
 		wregex fontRegex(L".*font;.*\%.*");
@@ -1459,7 +1450,7 @@ namespace DirectDesktop
 		}
 		BlurBackground(notificationwnd->GetHWND(), true, false);
 		pHostElement->SetBackgroundStdColor(7);
-		Value* v{};
+		CValuePtr v;
 		pDDNB->GetPadding(&v);
 		pHostElement->SetValue(Element::PaddingProp, 1, v);
 		SetForegroundWindow(notificationwnd->GetHWND());
@@ -1534,7 +1525,7 @@ namespace DirectDesktop
 
 		LPWSTR sheetName = theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
 		StyleSheet* sheet = pHostElement->GetSheet();
-		Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
 		pParser->GetSheet(sheetName, &sheetStorage);
 		pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
 
@@ -1542,14 +1533,16 @@ namespace DirectDesktop
 		cx += (round(flScaleFactor)) * 2;
 		cy += (round(flScaleFactor)) * 2;
 
-		SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * flScaleFactor, cx, cy, SWP_FRAMECHANGED);
-		notificationopen = true;
-		IntegerWrapper* iw = new IntegerWrapper{ timeout };
-		HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper, &notificationopen, NULL, NULL);
-		if (timeout > 0) {
-			TerminateThread(AutoCloseHandle, 1);
-			DWORD dwAutoClose;
-			AutoCloseHandle = CreateThread(0, 0, AutoCloseNotification, iw, NULL, &dwAutoClose);
+		if (notificationwnd) {
+			SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * flScaleFactor, cx, cy, SWP_FRAMECHANGED);
+			notificationopen = true;
+			IntegerWrapper* iw = new IntegerWrapper{ timeout };
+			HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper, &notificationopen, NULL, NULL);
+			if (timeout > 0) {
+				TerminateThread(AutoCloseHandle, 1);
+				DWORD dwAutoClose;
+				AutoCloseHandle = CreateThread(0, 0, AutoCloseNotification, iw, NULL, &dwAutoClose);
+			}
 		}
 	}
 	void DDNotificationBanner::DestroyBanner(bool* notificationopen) {

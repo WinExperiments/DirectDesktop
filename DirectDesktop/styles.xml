@@ -160,15 +160,21 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(AB::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" foreground="rgb(0,0,0)" cursor="ibeam"/>
-			<if mousewithin="true">
-				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
-			<if Enabled="false">
-				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,3), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
+			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" foreground="rgb(0,0,0)" cursor="ibeam"/>
 			<if keywithin="true">
-				<TouchEdit2 background="themeable(dtb(AB::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))" padding="rect(4rp,4rp,4rp,4rp)"/>
+				<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
+			</if>
+			<if class="Ver0_5_editbg">
+				<DDScalableElement FirstScaledImage="1163" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
+				<if overhang="true">
+					<DDScalableElement FirstScaledImage="1170"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableElement FirstScaledImage="1177"/>
+				</if>
+				<if selected="true">
+					<DDScalableElement FirstScaledImage="1184"/>
+				</if>
 			</if>
 			<if id="atom(TouchEdit_TextContainer)">
 				<Element background="white" padding="rect(0,0,0,0)"/>
@@ -414,15 +420,21 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,1), dfc(4, 0x0010 | 0x0200))" foreground="rgb(255,255,255)" cursor="ibeam"/>
-			<if mousewithin="true">
-				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,2), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
-			<if Enabled="false">
-				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,3), dfc(4, 0x0010 | 0x0200))"/>
-			</if>
+			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" foreground="rgb(255,255,255)" cursor="ibeam"/>
 			<if keywithin="true">
-				<TouchEdit2 background="themeable(dtb(DarkMode_ABComposited::AddressBand,1,4), dfc(4, 0x0010 | 0x0200))" padding="rect(4rp,4rp,4rp,4rp)"/>
+				<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
+			</if>
+			<if class="Ver0_5_editbg">
+				<DDScalableElement FirstScaledImage="2163" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
+				<if overhang="true">
+					<DDScalableElement FirstScaledImage="2170"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableElement FirstScaledImage="2177"/>
+				</if>
+				<if selected="true">
+					<DDScalableElement FirstScaledImage="2184"/>
+				</if>
 			</if>
 			<if id="atom(TouchEdit_TextContainer)">
 				<Element background="rgb(32,32,32)" padding="rect(0,0,0,0)"/>

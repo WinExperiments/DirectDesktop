@@ -47,19 +47,22 @@
 			<Element id="atom(pagesrow2)" layout="flowlayout(0,2,2,2)"/>
 		</Element>
 		<Element id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client" visible="false">
-			<DDScalableElement FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,8rp)"/>
-			<DDScalableRichText content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
-			<Element height="80rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
-				<TouchEdit2 id="atom(PV_EnterPage)" font="28pt;Normal;None;Segoe UI Semilight" layoutpos="client"/>
-				<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="28pt;Normal;None;Segoe UI Semilight" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
-				<Element padding="rect(0,8rp,8rp,8rp)" layoutpos="right" layout="borderlayout()" height="72rp">
-					<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="right" class="enterbutton" font="resstr(156)" content="resstr(157)"/>
+			<DDScalableElement class="popupwindow" layout="verticalflowlayout(0,2,2,2)">
+				<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true"/>
+				<DDScalableRichText background="argb(0,0,0,0)" content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
+				<Element background="argb(0,0,0,0)" height="48rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
+					<DDScalableElement id="atom(PV_EnterPageBackground)" class="Ver0_5_editbg"/>
+					<TouchEdit2 id="atom(PV_EnterPage)" font="iconfont;133%" layoutpos="client"/>
+					<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="iconfont;133%" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
+					<Element padding="rect(0,4rp,4rp,4rp)" layoutpos="right" layout="borderlayout()" height="48rp">
+						<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="right" class="enterbutton" font="resstr(156)" content="resstr(157)"/>
+					</Element>
 				</Element>
-			</Element>
-			<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
-				<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" foreground="white" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
-				<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" foreground="white" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
-			</Element>
+				<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
+					<DDLVActionButton id="atom(PV_Remove)" class="PVActionButton" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
+					<DDLVActionButton id="atom(PV_Home)" class="PVActionButton" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
+				</Element>
+			</DDScalableElement>
 		</Element>
 		<Element layoutpos="top" layout="filllayout()" id="atom(PageViewerTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)" alpha="0" animation="alpha|s|veryfast|delayshort">
 			<Element layout="flowlayout(0,2,0,0)" layoutpos="left">
@@ -82,7 +85,7 @@
 	</DDScalableElement>
 	<Element resid="PV_IconShortcutTouchPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
 	<DDScalableElement resid="PV_PageInner" class="roundoverlay" DrawType="1" layoutpos="client" layout="flowlayout(0,2,2,0)">
-		<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1"
+		<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3066" ScaledImageIntervals="7" DrawType="1"
 						   font="36pt;None;None;Segoe UI Light" compositedtext="true" textglowsize="0" borderthickness="rect(8rp,8rp,8rp,8rp)" width="72rp" height="72rp" padding="rect(0,0,0,4rp)"/>
 	</DDScalableElement>
 	<Element resid="pagetasks" layoutpos="top" layout="borderlayout()" height="56rp" background="argb(0,0,0,0)" padding="rect(8rp,8rp,8rp,8rp)">
@@ -125,9 +128,12 @@
 			<if id="atom(PV_FolderGroup)">
 				<Element foreground="black" font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
 			</if>
-			<TouchEditInner padding="rect(0,0,72rp,0)"/>
+			<if class="popupwindow">
+				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(8rp,8rp,8rp,8rp)"/>
+			</if>
+			<TouchEditInner padding="rect(0,0,44rp,0)"/>
 			<if class="enterbutton">
-				<LVItem width="64rp" height="64rp" foreground="black" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
+				<LVItem width="40rp" height="40rp" foreground="black" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
 					<LVItem alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -136,7 +142,7 @@
 				</if>
 			</if>
 			<if class="PVActionButton">
-				<DDLVActionButton layoutpos="right" font="resstr(162)" contentalign="middlecenter" width="40rp" height="40rp" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" visible="false" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton layoutpos="right" font="resstr(162)" contentalign="middlecenter" width="40rp" height="40rp" FirstScaledImage="3066" ScaledImageIntervals="7" DrawType="1" visible="false" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if id="atom(PV_Home)">
 				<DDLVActionButton content="resstr(163)"/>
@@ -183,9 +189,12 @@
 			<if id="atom(PV_FolderGroup)">
 				<Element foreground="white" font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
 			</if>
-			<TouchEditInner padding="rect(0,0,72rp,0)"/>
+			<if class="popupwindow">
+				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(8rp,8rp,8rp,8rp)"/>
+			</if>
+			<TouchEditInner padding="rect(0,0,44rp,0)"/>
 			<if class="enterbutton">
-				<LVItem width="64rp" height="64rp" foreground="white" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
+				<LVItem width="40rp" height="40rp" foreground="white" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
 					<LVItem alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
@@ -194,7 +203,7 @@
 				</if>
 			</if>
 			<if class="PVActionButton">
-				<DDLVActionButton layoutpos="right" foreground="white" font="resstr(162)" contentalign="middlecenter" width="40rp" height="40rp" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" visible="false" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton layoutpos="right" foreground="white" font="resstr(162)" contentalign="middlecenter" width="40rp" height="40rp" FirstScaledImage="3066" ScaledImageIntervals="7" DrawType="1" visible="false" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if id="atom(PV_Home)">
 				<DDLVActionButton content="resstr(163)"/>

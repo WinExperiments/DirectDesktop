@@ -43,6 +43,11 @@ namespace DirectDesktop
         WCHAR* buffer = new WCHAR[256];
         wstring newText{};
         GetWindowTextW(hRichEdit, buffer, 256);
+        if (wcscmp(buffer, selectedElement->GetSimpleFilename().c_str()) == 0) {
+            delete[] buffer;
+            renameactive = false;
+            return;
+        }
         if (!buffer) hr = E_FAIL;
         else newText = RemoveEndingSpaces(buffer);
         wstring newFilenameBuffer = RenameHelper(selectedElement->GetFilename(), selectedElement->GetSimpleFilename());
@@ -77,7 +82,7 @@ namespace DirectDesktop
         return (lineCount * lineHeight);
     }
     void ResizeToContent(HWND hRichEdit, HWNDElement* hDUIParent) {
-        Value* v{};
+        CValuePtr v;
         Element* DUIElem = ((HWNDElement*)hDUIParent)->GetParent();
         RECT rc, rcPadding;
         rcPadding = *(DUIElem->GetPadding(&v));
@@ -217,7 +222,7 @@ namespace DirectDesktop
                     textX = touchmode ? 7 * flScaleFactor : 0;
                     textY = touchmode ? 8 * flScaleFactor : 0;
                     unsigned long keyR{};
-                    Value* v{};
+                    CValuePtr v;
                     parser->CreateElement(L"RenameBoxElement", NULL, NULL, NULL, &RenameBoxElement);
                     RenameBoxElement->SetLayoutPos(textElement->GetLayoutPos());
                     pm[items]->Add((Element**)&RenameBoxElement, 1);
@@ -237,10 +242,9 @@ namespace DirectDesktop
                     }
                     LPWSTR sheetName = theme ? (LPWSTR)L"renamestyle" : (LPWSTR)L"renamestyledark";
                     StyleSheet* sheet = pMain->GetSheet();
-                    Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+                    CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
                     parser->GetSheet(sheetName, &sheetStorage);
                     RenameBox->SetValue(Element::SheetProp, 1, sheetStorage);
-                    sheetStorage->Release();
                     DWORD alignment = touchmode ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
                     HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, pm[items]->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
                         ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, RenameBox->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, NULL);

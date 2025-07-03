@@ -716,6 +716,13 @@
     <Image Include="ImageResources\3063.png" />
     <Image Include="ImageResources\3064.png" />
     <Image Include="ImageResources\3065.png" />
+    <Image Include="ImageResources\3066.png" />
+    <Image Include="ImageResources\3067.png" />
+    <Image Include="ImageResources\3068.png" />
+    <Image Include="ImageResources\3069.png" />
+    <Image Include="ImageResources\3070.png" />
+    <Image Include="ImageResources\3071.png" />
+    <Image Include="ImageResources\3072.png" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>

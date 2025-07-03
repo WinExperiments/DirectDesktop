@@ -53,7 +53,7 @@ namespace DirectDesktop
 		GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
 		if (iev->uidType == Button::Click) {
 			MessageBeep(MB_OK);
-			//Value* v{};
+			//CValuePtr v;
 			//if (wcslen(searchbox->GetContentString(&v)) < 2) return;
 			//WCHAR* PublicPath = new WCHAR[260];
 			//WCHAR* OneDrivePath = new WCHAR[260];
@@ -126,7 +126,7 @@ namespace DirectDesktop
 		BlurBackground(searchwnd->GetHWND(), true, true);
 		LPWSTR sheetName = theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
 		StyleSheet* sheet = pSearch->GetSheet();
-		Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
 		parser4->GetSheet(sheetName, &sheetStorage);
 		pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
 		searchwnd->ShowWindow(SW_SHOW);

@@ -1675,6 +1675,27 @@
     <Image Include="ImageResources\3065.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\3066.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3067.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3068.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3069.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3070.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3071.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\3072.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="imageresources\uifile5.bin">

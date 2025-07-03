@@ -34,7 +34,7 @@ namespace DirectDesktop
 
     LPVOID timerPtr;
 
-    void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pv1, Value* pV2);
+    void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ShowPageViewer(Element* elem, Event* iev);
     void RemoveSelectedPage(Element* elem, Event* iev);
     void SetSelectedPageHome(Element* elem, Event* iev);
@@ -55,7 +55,7 @@ namespace DirectDesktop
             switch (wParam) {
             case 1:
                 if (timerPtr) {
-                    Value* v;
+                    CValuePtr v;
                     int removedPage{};
                     if (((DDLVActionButton*)timerPtr)->GetAssociatedItem()) {
                         removedPage = ((DDLVActionButton*)timerPtr)->GetAssociatedItem()->GetPage();
@@ -102,7 +102,7 @@ namespace DirectDesktop
                 break;
             case 2:
                 if (timerPtr) {
-                    Value* v;
+                    CValuePtr v;
                     int page{};
                     if (((DDLVActionButton*)timerPtr)->GetAssociatedItem()) {
                         page = ((DDLVActionButton*)timerPtr)->GetAssociatedItem()->GetPage();
@@ -190,31 +190,22 @@ namespace DirectDesktop
             }
             if (pm[yV->y]->GetHiddenState() == false) {
                 HBITMAP iconshadowbmp = di->iconshadow;
-                Value* bitmapShadow = DirectUI::Value::CreateGraphic(iconshadowbmp, 2, 0xffffffff, false, false, false);
+                CValuePtr spvBitmapShadow = DirectUI::Value::CreateGraphic(iconshadowbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(iconshadowbmp);
-                if (bitmapShadow != nullptr) {
-                    PV_IconShadowPreview->SetValue(Element::ContentProp, 1, bitmapShadow);
-                    bitmapShadow->Release();
-                }
+                if (spvBitmapShadow != nullptr) PV_IconShadowPreview->SetValue(Element::ContentProp, 1, spvBitmapShadow);
             }
             HBITMAP iconbmp = di->icon;
-            Value* bitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
+            CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
             DeleteObject(iconbmp);
-            if (bitmap != nullptr) {
-                PV_IconPreview->SetValue(Element::ContentProp, 1, bitmap);
-                bitmap->Release();
-            }
+            if (spvBitmap != nullptr) PV_IconPreview->SetValue(Element::ContentProp, 1, spvBitmap);
             HBITMAP iconshortcutbmp = di->iconshortcut;
-            Value* bitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
+            CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
             DeleteObject(iconshortcutbmp);
-            if (bitmapShortcut != nullptr) {
-                if (pm[yV->y]->GetShortcutState() == true) PV_IconShortcutPreview->SetValue(Element::ContentProp, 1, bitmapShortcut);
-                bitmapShortcut->Release();
-            }
+            if (spvBitmapShortcut != nullptr && pm[yV->y]->GetShortcutState() == true) PV_IconShortcutPreview->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
             break;
         }
         case WM_USER + 2: {
-            Value* v;
+            CValuePtr v;
             DDScalableElement* PV_PageInner{};
             parser5->CreateElement(L"PV_PageInner", NULL, NULL, NULL, (Element**)&PV_PageInner);
             ((Element*)wParam)->Add((Element**)&PV_PageInner, 1);
@@ -377,16 +368,27 @@ namespace DirectDesktop
     }
 
     void UpdateEnterPagePreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+        UpdateCache* uc{};
         if (pProp == Element::KeyWithinProp()) {
+            DDScalableElement* PV_EnterPageBackground = regElem<DDScalableElement*>(L"PV_EnterPageBackground", PageViewer);
             Element* PV_EnterPagePreview = regElem<Element*>(L"PV_EnterPagePreview", PageViewer);
-            Value* v;
+            CValuePtr v;
             PV_EnterPagePreview->SetVisible(!elem->GetKeyWithin());
             PV_EnterPagePreview->SetContentString(elem->GetContentString(&v));
+            PV_EnterPageBackground->SetSelected(elem->GetKeyWithin());
+        }
+        if (pProp == Element::MouseWithinProp()) {
+            DDScalableElement* PV_EnterPageBackground = regElem<DDScalableElement*>(L"PV_EnterPageBackground", PageViewer);
+            PV_EnterPageBackground->SetOverhang(elem->GetMouseWithin());
+        }
+        if (pProp == Element::EnabledProp()) {
+            DDScalableElement* PV_EnterPageBackground = regElem<DDScalableElement*>(L"PV_EnterPageBackground", PageViewer);
+            PV_EnterPageBackground->SetEnabled(elem->GetEnabled());
         }
     }
     void EnterSelectedPage(Element* elem, Event* iev) {
         if (iev->uidType == Button::Click) {
-            Value* v;
+            CValuePtr v;
             int page{};
             if (PV_EnterPage->GetContentString(&v) != nullptr) page = _wtoi(PV_EnterPage->GetContentString(&v));
             if (!ValidateStrDigits(PV_EnterPage->GetContentString(&v)) || page < 1 || page > maxPageID) {
@@ -519,9 +521,9 @@ namespace DirectDesktop
             SetTimer(editwnd->GetHWND(), 2, 50, NULL);
         }
     }
-    void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pv1, Value* pV2) {
+    void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
         if (pProp == Element::MouseWithinProp()) {
-            static Value* v;
+            CValuePtr v;
             DynamicArray<Element*>* Children = elem->GetChildren(&v);
             if (Children->GetSize() == 2) {
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", elem);
@@ -613,7 +615,7 @@ namespace DirectDesktop
 
         LPWSTR sheetName = theme ? (LPWSTR)L"edit" : (LPWSTR)L"editdark";
         StyleSheet* sheet = pEdit->GetSheet();
-        Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+        CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
         parser5->GetSheet(sheetName, &sheetStorage);
         pEdit->SetValue(Element::SheetProp, 1, sheetStorage);
 

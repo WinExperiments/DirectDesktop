@@ -225,7 +225,7 @@ namespace DirectDesktop
 			static bool validation{};
 			validation = !validation;
 			if (validation) {
-				Value* v;
+				CValuePtr v;
 				int pressedID{};
 				if (delayseconds->GetContentString(&v) == nullptr) delayseconds->SetContentString(L"0");
 				StatusText = nullptr;
@@ -326,9 +326,19 @@ namespace DirectDesktop
 	void UpdateDelaySecondsPreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
 		if (pProp == Element::KeyWithinProp()) {
 			Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
-			Value* v;
+			DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+			CValuePtr v;
 			delaysecondspreview->SetVisible(!elem->GetKeyWithin());
 			delaysecondspreview->SetContentString(elem->GetContentString(&v));
+			if (delaysecondsbackground) delaysecondsbackground->SetSelected(elem->GetKeyWithin());
+		}
+		if (pProp == Element::MouseWithinProp()) {
+			DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+			if (delaysecondsbackground) delaysecondsbackground->SetOverhang(elem->GetMouseWithin());
+		}
+		if (pProp == Element::EnabledProp()) {
+			DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+			if (delaysecondsbackground) delaysecondsbackground->SetEnabled(elem->GetEnabled());
 		}
 	}
 
@@ -519,21 +529,19 @@ namespace DirectDesktop
 		COLORREF separator = theme ? RGB(0, 0, 0) : RGB(255, 255, 255);
 		float bodyalpha = theme ? 0.4 : 0.05;
 		IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, 0, 0.125, separator);
-		Value* colorBMPV = DirectUI::Value::CreateGraphic(colorBMP, 7, 0xffffffff, false, false, false);
-		SeparatorLine->SetValue(Element::BackgroundProp, 1, colorBMPV);
-		SeparatorLine2->SetValue(Element::BackgroundProp, 1, colorBMPV);
+		CValuePtr spvColorBMP = DirectUI::Value::CreateGraphic(colorBMP, 7, 0xffffffff, false, false, false);
+		SeparatorLine->SetValue(Element::BackgroundProp, 1, spvColorBMP);
+		SeparatorLine2->SetValue(Element::BackgroundProp, 1, spvColorBMP);
 		DeleteObject(colorBMP);
-		colorBMPV->Release();
 		COLORREF white = RGB(255, 255, 255);
 		IterateBitmap(colorBMP2, SimpleBitmapPixelHandler, 3, 0, bodyalpha, white);
-		Value* colorBMPV2 = DirectUI::Value::CreateGraphic(colorBMP2, 7, 0xffffffff, false, false, false);
-		ShutdownActions->SetValue(Element::BackgroundProp, 1, colorBMPV2);
-		AdvancedOptions->SetValue(Element::BackgroundProp, 1, colorBMPV2);
-		StatusBar->SetValue(Element::BackgroundProp, 1, colorBMPV2);
-		ShutdownEventTracker->SetValue(Element::BackgroundProp, 1, colorBMPV2);
+		CValuePtr spvColorBMP2 = DirectUI::Value::CreateGraphic(colorBMP2, 7, 0xffffffff, false, false, false);
+		ShutdownActions->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
+		AdvancedOptions->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
+		StatusBar->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
+		ShutdownEventTracker->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
 		DeleteObject(dummyi);
 		DeleteObject(colorBMP2);
-		colorBMPV2->Release();
 		int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
 		int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
 		BOOL value = TRUE;
@@ -543,10 +551,9 @@ namespace DirectDesktop
 			DwmSetWindowAttribute(shutdownwnd->GetHWND(), DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 		}
 		StyleSheet* sheet = pShutdown->GetSheet();
-		Value* sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
 		parser3->GetSheet(sheetName, &sheetStorage);
 		pShutdown->SetValue(Element::SheetProp, 1, sheetStorage);
-		sheetStorage->Release();
 		//AnimateWindow(shutdownwnd->GetHWND(), 180, AW_BLEND);
 		shutdownwnd->ShowWindow(SW_SHOW);
 		//SetFocus(shutdownwnd->GetHWND());
@@ -600,6 +607,8 @@ namespace DirectDesktop
 		assignFn(RestartBIOS, AdvancedShutdown);
 	}
 	void DestroyShutdownDialog() {
+		DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+		if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
 		//AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
 		shutdownwnd->DestroyWindow();
 		dialogopen = false;
