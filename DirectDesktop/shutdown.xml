@@ -70,7 +70,7 @@
 				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,4rp,0,0)" content="resstr(4035)" layout="flowlayout(0,2,0,2)"/>
 				<Element layout="filllayout()" layoutpos="left" width="80rp" height="32rp" background="argb(0,0,0,0)">
 					<DDScalableElement id="atom(delaysecondsbackground)" class="Ver0_5_editbg" Enabled="false"/>
-					<TouchEdit2 id="atom(delayseconds)" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" Enabled="false" behaviors="Windows.UI.Popups::TouchEditContextMenu();PVL::EnsureLayered()"/>
+					<TouchEdit2 id="atom(delayseconds)" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" Enabled="false" behaviors="Windows.UI.Popups::TouchEditContextMenu()"/>
 					<Element id="atom(delaysecondspreview)" visible="false" layoutpos="client" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 				</Element>
 				<RichText content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>

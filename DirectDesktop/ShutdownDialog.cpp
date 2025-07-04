@@ -433,7 +433,7 @@ namespace DirectDesktop
 		RECT dimensions;
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
 		NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), NULL, NULL, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, NULL, 0, &shutdownwnd);
-		DUIXmlParser::Create(&parser3, NULL, NULL, NULL, NULL);
+		DUIXmlParser::Create(&parser3, NULL, NULL, DUI_ParserErrorCB, NULL);
 		parser3->SetXMLFromResource(IDR_UIFILE4, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 		HWNDElement::Create(shutdownwnd->GetHWND(), true, NULL, NULL, &key3, (Element**)&parent2);
 		ITaskbarList* pTaskbarList = nullptr;

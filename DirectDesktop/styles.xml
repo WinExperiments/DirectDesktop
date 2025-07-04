@@ -74,8 +74,8 @@
 					<DDToggleButton FirstScaledImage="1057"/>
 				</if>
 			</if>
-			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
-			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
+			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(255,240,240,240)"/>
+			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(255,240,240,240)"/>
 			<if vertical="true">
 				<TouchScrollBar width="16rp" layoutpos="nineright"/>
 			</if>
@@ -83,7 +83,7 @@
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
 			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(255,0,0,0)" font="resstr(130)"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(255,240,240,240)" foreground="argb(255,0,0,0)" font="resstr(130)"/>
 				<if mousewithin="true">
 					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,64,64,64)"/>
 				</if>
@@ -334,8 +334,8 @@
 					<DDToggleButton FirstScaledImage="2057"/>
 				</if>
 			</if>
-			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
-			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
+			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(255,40,40,40)"/>
+			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(255,40,40,40)"/>
 			<if vertical="true">
 				<TouchScrollBar width="16rp" layoutpos="nineright"/>
 			</if>
@@ -343,7 +343,7 @@
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
 			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(255,255,255,255)" font="resstr(130)"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(255,40,40,40)" foreground="argb(255,255,255,255)" font="resstr(130)"/>
 				<if mousewithin="true">
 					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,224,224,224)"/>
 				</if>

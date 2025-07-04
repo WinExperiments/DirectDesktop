@@ -14,6 +14,7 @@ namespace DirectDesktop
 	extern std::vector<Element*> shadowpm, shortpm;
 	extern struct DesktopIcon;
 	extern DUIXmlParser* parser;
+	extern Element* pEdit;
 	extern NativeHWNDHost* wnd;
 	extern NativeHWNDHost* editwnd;
 	extern NativeHWNDHost* editbgwnd;

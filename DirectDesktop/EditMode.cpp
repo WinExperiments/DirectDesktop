@@ -566,7 +566,7 @@ namespace DirectDesktop
         NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Edit Mode", NULL, NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
             dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_NOINHERITLAYOUT, WS_POPUP, NULL, 0, &editwnd);
         HWNDElement::Create(editwnd->GetHWND(), true, NULL, NULL, &key5, (Element**)&editparent);
-        DUIXmlParser::Create(&parser5, NULL, NULL, NULL, NULL);
+        DUIXmlParser::Create(&parser5, NULL, NULL, DUI_ParserErrorCB, NULL);
         parser5->SetXMLFromResource(IDR_UIFILE6, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 
         parser5->CreateElement(L"editmode", editparent, NULL, NULL, &pEdit);
@@ -577,12 +577,8 @@ namespace DirectDesktop
         //SetParent(editbgwnd->GetHWND(), NULL);
 
         pEdit->SetVisible(true);
-        AddLayeredRef(pEdit->GetDisplayNode());
-        SetGadgetFlags(pEdit->GetDisplayNode(), 0x1, 0x1);
         pEdit->EndDefer(key5);
         //pEditBG->SetVisible(true);
-        //AddLayeredRef(pEditBG->GetDisplayNode());
-        //SetGadgetFlags(pEditBG->GetDisplayNode(), 0x1, 0x1);
         //pEditBG->EndDefer(key6);
 
         fullscreenpopupbaseE = regElem<TouchButton*>(L"fullscreenpopupbase", pEdit);

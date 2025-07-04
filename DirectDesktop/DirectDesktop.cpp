@@ -12,6 +12,7 @@
 #include <WinUser.h>
 #include <ShObjIdl.h>
 #include <shellapi.h>
+#include <shlwapi.h>
 #include <uxtheme.h>
 #include <dwmapi.h>
 #include <wtsapi32.h>
@@ -45,7 +46,7 @@ namespace DirectDesktop
 	Button* fullscreenpopupbase, * centered;
 	Button* emptyspace;
 	LVItem* g_outerElem;
-	Element* selector, * selector2;
+	Element* selector;
 	Element* dirnameanimator;
 	Element* tasksanimator;
 	DDScalableButton* PageTab1, * PageTab2, * PageTab3;
@@ -277,8 +278,8 @@ namespace DirectDesktop
 		HBITMAP hBitmap = IconToBitmap(fallback, width * flScaleFactor, height * flScaleFactor);
 		DestroyIcon(fallback);
 
-		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-		if (FAILED(hr)) return hBitmap;
+		HRESULT hr{};// = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+		//if (FAILED(hr)) return hBitmap;
 
 		IShellItem2* pShellItem{};
 		hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
@@ -503,6 +504,10 @@ namespace DirectDesktop
 			DWORD dwTermination{};
 			HANDLE termThread = CreateThread(0, 0, EndExplorer, NULL, 0, &dwTermination);
 			Sleep(500);
+			pMain->Destroy(true);
+			pSubview->Destroy(true);
+			if (pEdit) pEdit->Destroy(true);
+			StopMessagePump();
 			break;
 		}
 		case WM_COMMAND: {
@@ -693,10 +698,6 @@ namespace DirectDesktop
 			selector->SetX(borders.cxLeftWidth);
 			selector->SetHeight(borders.cyBottomHeight);
 			selector->SetY(borders.cyTopHeight);
-			selector2->SetWidth(borders.cxRightWidth);
-			selector2->SetX(borders.cxLeftWidth);
-			selector2->SetHeight(borders.cyBottomHeight);
-			selector2->SetY(borders.cyTopHeight);
 			for (int items = 0; items < pm.size(); items++) {
 				MARGINS iconborders = { pm[items]->GetX(), pm[items]->GetX() + pm[items]->GetWidth(), pm[items]->GetY(), pm[items]->GetY() + pm[items]->GetHeight() };
 				bool selectstate = (borders.cxRightWidth + borders.cxLeftWidth > iconborders.cxLeftWidth &&
@@ -1198,12 +1199,12 @@ namespace DirectDesktop
 			{
 				((DDColorPicker*)wParam)->GetDefaultColor(),
 				*pImmersiveColor,
-				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(96, 205, 255) : RGB(0, 95, 184) : RGB(0, 120, 215),
-				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(216, 141, 225) : RGB(158, 58, 176) : RGB(177, 70, 194),
-				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(244, 103, 98) : RGB(210, 14, 30) : RGB(232, 17, 35),
-				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(251, 154, 68) : RGB(224, 83, 7) : RGB(247, 99, 12),
-				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(255, 213, 42) : RGB(225, 157, 0) : RGB(255, 185, 0),
-				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(38, 255, 142) : RGB(0, 178, 90) : RGB(0, 204, 106)
+				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(96, 205, 255) + 4278190080 : RGB(0, 95, 184) + 4278190080 : RGB(0, 120, 215),
+				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(216, 141, 225) + 4278190080 : RGB(158, 58, 176) + 4278190080 : RGB(177, 70, 194),
+				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(244, 103, 98) + 4278190080 : RGB(210, 14, 30) + 4278190080 : RGB(232, 17, 35),
+				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(251, 154, 68) + 4278190080 : RGB(224, 83, 7) + 4278190080 : RGB(247, 99, 12),
+				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(255, 213, 42) + 4278190080 : RGB(225, 157, 0) + 4278190080 : RGB(255, 185, 0),
+				((DDColorPicker*)wParam)->GetThemeAwareness() ? theme ? RGB(38, 255, 142) + 4278190080 : RGB(0, 178, 90) + 4278190080 : RGB(0, 204, 106)
 			};
 			BITMAP bm{};
 			GetObject(newImage, sizeof(BITMAP), &bm);
@@ -1500,6 +1501,7 @@ namespace DirectDesktop
 			tasks->SetVisible(true);
 			More->SetVisible(true);
 			groupdirlist->SetLayoutPos(4);
+			groupdirlist->SetKeyFocus();
 			if (customizegroup) { // this probably causes memory leak
 				customizegroup->SetLayoutPos(-3);
 				customizegroup->Destroy(true);
@@ -1964,7 +1966,9 @@ namespace DirectDesktop
 		((DDScalableElement*)fullscreeninner)->SetAssociatedColor(iconElement->GetAssociatedColor());
 		TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
 		DDScalableButton* lvi_SubUIContainer = regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist);
-		SetGadgetFlags(groupdirlist->GetDisplayNode(), 0x1, 0x1);
+		COLORREF crDefault = theme ? 4293980400 : 4280821800;
+		groupdirlist->SetBackgroundColor(iconElement->GetAssociatedColor() == -1 ? crDefault : iconElement->GetAssociatedColor());
+		groupdirlist->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
 		unsigned short lviCount = 0;
 		int count2{};
 		EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
@@ -2101,9 +2105,12 @@ namespace DirectDesktop
 		groupdirectory->SetValue(Element::SheetProp, 1, sheetStorage);
 		groupdirectory->SetID(L"groupdirectory");
 		lvi->Add((Element**)&groupdirectory, 1);
+		DDScalableElement* iconElement = regElem<DDScalableElement*>(L"iconElem", lvi);
 		TouchScrollViewer* groupdirlist = regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory);
 		DDScalableButton* lvi_SubUIContainer = regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist);
-		SetGadgetFlags(groupdirlist->GetDisplayNode(), 0x1, 0x1);
+		COLORREF crDefault = theme ? 4293980400 : 4280821800;
+		groupdirlist->SetBackgroundColor(iconElement->GetAssociatedColor() == -1 ? crDefault : iconElement->GetAssociatedColor());
+		groupdirlist->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
 		unsigned short lviCount = 0;
 		int count2{};
 		EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
@@ -2314,6 +2321,7 @@ namespace DirectDesktop
 			assignFn(TreatDirAsGroup, ToggleSetting);
 			assignFn(TripleClickAndHide, ToggleSetting);
 			assignFn(LockIconPos, ToggleSetting);
+			SubUIContainer->GetParent()->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
 		}
 	}
 	void ShowPage2(Element* elem, Event* iev) {
@@ -2368,6 +2376,7 @@ namespace DirectDesktop
 			assignFn(IconThumbnails, ToggleSetting);
 			assignFn(DesktopIconSettings, OpenDeskCpl);
 			tempElem = (void*)SettingsPage2;
+			SubUIContainer->GetParent()->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
 		}
 	}
 	void ShowPage3(Element* elem, Event* iev) {
@@ -2387,6 +2396,7 @@ namespace DirectDesktop
 			EnableLogging->SetRegKeyValue(rkvTemp);
 			assignFn(EnableLogging, ToggleSetting);
 			assignFn(ViewLastLog, OpenLog);
+			SubUIContainer->GetParent()->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
 		}
 	}
 
@@ -2399,7 +2409,8 @@ namespace DirectDesktop
 			Element* settingsview{};
 			parser2->CreateElement(L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
 			fullscreeninner->Add((Element**)&settingsview, 1);
-			TouchScrollViewer* settingslist = regElem<TouchScrollViewer*>(L"SettingsList", settingsview);
+			TouchScrollViewer* settingslist = regElem<TouchScrollViewer*>(L"settingslist", settingsview);
+			settingslist->SetBackgroundColor(theme ? 4293980400 : 4280821800);
 			SubUIContainer = regElem<DDScalableButton*>(L"SubUIContainer", settingsview);
 			PageTab1 = regElem<DDScalableButton*>(L"PageTab1", settingsview);
 			PageTab2 = regElem<DDScalableButton*>(L"PageTab2", settingsview);
@@ -2424,6 +2435,10 @@ namespace DirectDesktop
 		static int clicks = 1;
 		static int validation = 0;
 		if (iev->uidType == Button::Click) {
+			if (elem == emptyspace) {
+				selector->SetWidth(0);
+				selector->SetHeight(0);
+			}
 			validation++;
 			Button* checkbox = regElem<Button*>(L"checkboxElem", elem);
 			if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false) {
@@ -2575,8 +2590,6 @@ namespace DirectDesktop
 	void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2) {
 		DWORD marqueeThread;
 		HANDLE marqueeThreadHandle;
-		static const HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-		static const HBITMAP selectorBmp = IconToBitmap(dummyi, 16, 16);
 		if (pProp == Button::CapturedProp()) {
 			if (tripleclickandhide == true && ((Button*)elem)->GetCaptured() == true) {
 				emptyclicks++;
@@ -2612,12 +2625,7 @@ namespace DirectDesktop
 				selector->SetY(origY);
 				selector->SetVisible(true);
 				selector->SetLayoutPos(-2);
-				IterateBitmap(selectorBmp, SimpleBitmapPixelHandler, 3, 0, 0.33, ImmersiveColor);
-				CValuePtr spvSelectorBmp = DirectUI::Value::CreateGraphic(selectorBmp, 7, 0xffffffff, false, false, false);
-				selector2->SetVisible(true);
-				selector2->SetLayoutPos(-2);
 				marqueeThreadHandle = CreateThread(0, 0, UpdateMarqueeSelectorPosition, NULL, 0, &marqueeThread);
-				if (spvSelectorBmp) selector2->SetValue(Element::BackgroundProp, 1, spvSelectorBmp);
 			}
 			isPressed = 1;
 		}
@@ -2626,8 +2634,6 @@ namespace DirectDesktop
 				emptyspace->SetLayoutPos(4);
 				selector->SetVisible(false);
 				selector->SetLayoutPos(-3);
-				selector2->SetVisible(false);
-				selector2->SetLayoutPos(-3);
 				isPressed = 0;
 			}
 		}
@@ -3172,36 +3178,61 @@ namespace DirectDesktop
 		}
 		return CallNextHookEx(KeyHook, nCode, wParam, lParam);
 	}
-}
 
-// Windows.UI.Immersive.dll ordinal 100
-typedef HRESULT(WINAPI* RegisterImmersiveBehaviors_t)();
-HRESULT RegisterImmersiveBehaviors()
-{
-	static RegisterImmersiveBehaviors_t fn = nullptr;
-	if (!fn)
-	{
-		HMODULE h = LoadLibraryW(L"Windows.UI.Immersive.dll");
-		if (h)
-			fn = (RegisterImmersiveBehaviors_t)GetProcAddress(h, MAKEINTRESOURCEA(100));
+	// Windows.UI.Immersive.dll ordinal 100
+	typedef HRESULT(WINAPI* RegisterImmersiveBehaviors_t)();
+	HRESULT RegisterImmersiveBehaviors() {
+		static RegisterImmersiveBehaviors_t fn = nullptr;
+		if (!fn) {
+			HMODULE h = LoadLibraryW(L"Windows.UI.Immersive.dll");
+			if (h) fn = (RegisterImmersiveBehaviors_t)GetProcAddress(h, MAKEINTRESOURCEA(100));
+		}
+		if (fn == nullptr) return E_FAIL;
+		else return fn();
 	}
-	if (fn == nullptr) return E_FAIL;
-	else return fn();
-}
 
-// Windows.UI.Immersive.dll ordinal 101
-typedef void (WINAPI* UnregisterImmersiveBehaviors_t)();
-void UnregisterImmersiveBehaviors()
-{
-	static UnregisterImmersiveBehaviors_t fn = nullptr;
-	if (!fn)
-	{
-		HMODULE h = LoadLibraryW(L"Windows.UI.Immersive.dll");
-		if (h)
-			fn = (UnregisterImmersiveBehaviors_t)GetProcAddress(h, MAKEINTRESOURCEA(101));
+	// Windows.UI.Immersive.dll ordinal 101
+	typedef void (WINAPI* UnregisterImmersiveBehaviors_t)();
+	void UnregisterImmersiveBehaviors() {
+		static UnregisterImmersiveBehaviors_t fn = nullptr;
+		if (!fn) {
+			HMODULE h = LoadLibraryW(L"Windows.UI.Immersive.dll");
+			if (h) fn = (UnregisterImmersiveBehaviors_t)GetProcAddress(h, MAKEINTRESOURCEA(101));
+		}
+		if (fn == nullptr) return;
+		else return fn();
 	}
-	if (fn == nullptr) return;
-	else return fn();
+
+	HRESULT WINAPI InitializeImmersive() {
+		HRESULT hr = RegisterPVLBehaviorFactory();
+		if (SUCCEEDED(hr)) {
+			hr = RegisterImmersiveBehaviors();
+			if (FAILED(hr))	UnregisterImmersiveBehaviors();
+		}
+		return hr;
+	}
+
+	HMODULE g_hModTWinUI = GetModuleHandleW(L"twinui.dll");
+	static HRESULT WINAPI s_InitializeDUI(HMODULE hModule = g_hModTWinUI) {
+		LoadLibraryW(L"twinui.dll");
+		HRESULT hr = InitProcessPriv(DUI_VERSION, hModule, true, true, true);
+		if (SUCCEEDED(hr)) {
+			hr = InitThread(TSM_IMMERSIVE);
+			if (SUCCEEDED(hr)) {
+				hr = InitializeImmersive();
+				if (FAILED(hr))	hr = UnInitProcess();
+			}
+		}
+		return hr;
+	}
+
+	void CALLBACK DUI_ParserErrorCB(const WCHAR* pszError, const WCHAR* pszToken, int dLine, void* pContext) {
+		if (pszError != nullptr) {
+			TaskDialog(NULL, NULL, L"DUIXMLPARSER FAILED", L"Error while parsing DirectUI", pszError, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+			OutputDebugString(pszError);
+			DebugBreak();
+		}
+	}
 }
 
 using namespace DirectDesktop;
@@ -3233,8 +3264,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 	AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
 
-	InitProcessPriv(14, HINST_THISCOMPONENT, true, true, true);
-	InitThread(TSM_IMMERSIVE);
+	s_InitializeDUI();
 	RegisterAllControls();
 	DDScalableElement::Register();
 	DDScalableButton::Register();
@@ -3248,9 +3278,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	DDColorPicker::Register();
 	DDColorPickerButton::Register();
 	DDNotificationBanner::Register();
-	RegisterImmersiveBehaviors();
-	RegisterPVLBehaviorFactory();
-	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
 	WCHAR localeName[256]{};
 	ULONG numLanguages{};
@@ -3300,10 +3328,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
 	NativeHWNDHost::Create(L"DD_DesktopHost", L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, NULL, 0, &wnd);
 	NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &subviewwnd);
-	DUIXmlParser::Create(&parser, NULL, NULL, NULL, NULL);
-	DUIXmlParser::Create(&parser2, NULL, NULL, NULL, NULL);
-	parser->SetXMLFromResource(IDR_UIFILE2, hInstance, hInstance);
-	parser2->SetXMLFromResource(IDR_UIFILE3, hInstance, hInstance);
+	DUIXmlParser::Create(&parser, NULL, NULL, DUI_ParserErrorCB, NULL);
+	DUIXmlParser::Create(&parser2, NULL, NULL, DUI_ParserErrorCB, NULL);
+	parser->SetXMLFromResourceWithTheme(IDR_UIFILE2, hInstance, HINST_THISCOMPONENT, g_hModTWinUI);
+	parser2->SetXMLFromResourceWithTheme(IDR_UIFILE3, hInstance, HINST_THISCOMPONENT, g_hModTWinUI);
 	HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
 	HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, NULL, &key2, (Element**)&subviewparent);
 	WTSRegisterSessionNotification(wnd->GetHWND(), NOTIFY_FOR_THIS_SESSION);
@@ -3326,13 +3354,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
 	pMain->SetVisible(true);
-	AddLayeredRef(pMain->GetDisplayNode());
-	SetGadgetFlags(pMain->GetDisplayNode(), 0x1, 0x1);
 	pMain->EndDefer(key);
 	parser2->CreateElement(L"fullscreenpopup", subviewparent, NULL, NULL, &pSubview);
 	pSubview->SetVisible(true);
-	AddLayeredRef(pSubview->GetDisplayNode());
-	SetGadgetFlags(pSubview->GetDisplayNode(), 0x1, 0x1);
 	pSubview->EndDefer(key2);
 
 	LVItem* outerElemTouch;
@@ -3354,7 +3378,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	popupcontainer = regElem<Button*>(L"popupcontainer", pSubview);
 	centered = regElem<Button*>(L"centered", pSubview);
 	selector = regElem<Element*>(L"selector", pMain);
-	selector2 = regElem<Element*>(L"selector2", pMain);
 	prevpageMain = regElem<TouchButton*>(L"prevpageMain", pMain);
 	nextpageMain = regElem<TouchButton*>(L"nextpageMain", pMain);
 	dragpreview = regElem<Element*>(L"dragpreview", pMain);
@@ -3425,8 +3448,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	StartMonitorFileChanges(path3);
 
 	DDNotificationBanner* ddnb{};
-	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M3",
-		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone3\nCompiled on 2025-07-03",
+	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M4",
+		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone4\nCompiled on 2025-07-04",
 		15, false);
 
 	if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
@@ -3445,7 +3468,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 	logging = IDNO;
 	StartMessagePump();
-	UnInitProcessPriv(HINST_THISCOMPONENT);
+	UnInitProcess();
 	WTSUnRegisterSessionNotification(wnd->GetHWND());
 	CoUninitialize();
 	if (KeyHook) {

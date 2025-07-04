@@ -52,7 +52,7 @@
 				<DDScalableRichText background="argb(0,0,0,0)" content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
 				<Element background="argb(0,0,0,0)" height="48rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
 					<DDScalableElement id="atom(PV_EnterPageBackground)" class="Ver0_5_editbg"/>
-					<TouchEdit2 id="atom(PV_EnterPage)" font="iconfont;133%" layoutpos="client"/>
+					<TouchEdit2 id="atom(PV_EnterPage)" font="iconfont;133%" layoutpos="client" behaviors="Windows.UI.Popups::TouchEditContextMenu()"/>
 					<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="iconfont;133%" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 					<Element padding="rect(0,4rp,4rp,4rp)" layoutpos="right" layout="borderlayout()" height="48rp">
 						<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="right" class="enterbutton" font="resstr(156)" content="resstr(157)"/>

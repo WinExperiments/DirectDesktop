@@ -1,7 +1,7 @@
 <duixml>
 	<HWNDElement resid="main" layoutpos="client" layout="borderlayout()" sheet="default" background="rgb(0,0,0)">
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
-		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
+		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp" background="argb(0,0,0,0)">
 			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
 				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" animation="position|s|fast">
 
@@ -12,8 +12,7 @@
 				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" class="pageselector">
 					<RichText layoutpos="right" background="sgraphic(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
 				</TouchButton>
-				<Element id="atom(selector)" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="ImmersiveControlTransparent" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered(0x00000001)"/>
-				<Element id="atom(selector2)" class="selector" animation="alpha|s|mediumfast" layoutpos="none"/>
+				<Element id="atom(selector)" layout="borderlayout()" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered()"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="flowlayout(0,2,2,0)">
 					<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
 							 foreground="themeable(gtc(DragDrop,8,0,3803), black)" padding="themeable(gtmar(DragDrop,8,0,3602), rect(5rp,1rp,5rp,1rp))" compositedtext="true" textglowsize="0"/>

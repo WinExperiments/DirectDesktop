@@ -104,6 +104,24 @@ namespace DirectDesktop
 			//free(SearchResultPlaceholder);
 		}
 	}
+	void UpdateSearchBox(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
+		if (pProp == Element::KeyWithinProp()) {
+			Element* searchboxtext = regElem<Element*>(L"searchboxtext", pSearch);
+			DDScalableElement* searchboxbackground = regElem<DDScalableElement*>(L"searchboxbackground", pSearch);
+			CValuePtr v;
+			searchboxtext->SetVisible(!elem->GetKeyWithin());
+			searchboxtext->SetContentString(elem->GetContentString(&v));
+			if (searchboxbackground) searchboxbackground->SetSelected(elem->GetKeyWithin());
+		}
+		if (pProp == Element::MouseWithinProp()) {
+			DDScalableElement* searchboxbackground = regElem<DDScalableElement*>(L"searchboxbackground", pSearch);
+			if (searchboxbackground) searchboxbackground->SetOverhang(elem->GetMouseWithin());
+		}
+		if (pProp == Element::EnabledProp()) {
+			DDScalableElement* searchboxbackground = regElem<DDScalableElement*>(L"searchboxbackground", pSearch);
+			if (searchboxbackground) searchboxbackground->SetEnabled(elem->GetEnabled());
+		}
+	}
 	void CloseSearch(Element* elem, Event* iev) {
 		if (iev->uidType == Button::Click) {
 			DestroySearchPage();
@@ -115,7 +133,7 @@ namespace DirectDesktop
 		RECT dimensions;
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
 		NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", NULL, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &searchwnd);
-		DUIXmlParser::Create(&parser4, NULL, NULL, NULL, NULL);
+		DUIXmlParser::Create(&parser4, NULL, NULL, DUI_ParserErrorCB, NULL);
 		parser4->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 		HWNDElement::Create(searchwnd->GetHWND(), true, NULL, NULL, &key4, (Element**)&parent3);
 		parser4->CreateElement(L"SearchUI", parent3, NULL, NULL, &pSearch);
@@ -135,6 +153,9 @@ namespace DirectDesktop
 		assignFn(searchbutton, DisplayResults);
 		Button* closebutton = regElem<Button*>(L"closebutton", pSearch);
 		assignFn(closebutton, CloseSearch);
+		assignExtendedFn(searchbox, UpdateSearchBox);
+		TouchScrollViewer* SearchResults = regElem<TouchScrollViewer*>(L"SearchResults", pSearch);
+		SearchResults->SetBackgroundColor(theme ? 4293980400 : 4280821800);
 	}
 
 	void DestroySearchPage()

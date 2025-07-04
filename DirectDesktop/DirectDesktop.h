@@ -57,6 +57,7 @@ namespace DirectDesktop
     std::wstring LoadStrFromRes(UINT id);
     std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
     std::wstring RemoveQuotes(const std::wstring& input);
+    extern void CALLBACK DUI_ParserErrorCB(const WCHAR* pszError, const WCHAR* pszToken, int dLine, void* pContext);
 
     extern bool isDefaultRes();
 
