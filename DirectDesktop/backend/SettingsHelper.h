@@ -1,22 +1,22 @@
 #pragma once
-#include "framework.h"
-#include "Include\dui70\DirectUI\DirectUI.h"
+#include "..\framework.h"
+#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 using namespace DirectUI;
 
 namespace DirectDesktop
 {
-	extern bool showcheckboxes;
-	extern bool treatdirasgroup;
-	extern bool tripleclickandhide;
-	extern bool lockiconpos;
-	extern bool isColorized;
-	extern bool isDarkIconsEnabled;
-	extern bool automaticDark;
-	extern bool isGlass;
+	extern bool g_showcheckboxes;
+	extern bool g_treatdirasgroup;
+	extern bool g_tripleclickandhide;
+	extern bool g_lockiconpos;
+	extern bool g_isColorized;
+	extern bool g_isDarkIconsEnabled;
+	extern bool g_automaticDark;
+	extern bool g_isGlass;
 	extern BYTE iconColorID;
 	extern COLORREF IconColorizationColor;
-	extern bool atleastonesetting;
+	extern bool g_atleastonesetting;
 	extern int localeType;
 
 	extern Element* UIContainer;

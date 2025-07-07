@@ -130,7 +130,7 @@ namespace DirectDesktop
 
         memset(pBitmapData, 0, width * height * 4);
         LOGFONTW lf{};
-        SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, dpi);
+        SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
         if (touch) lf.lfHeight *= 1.25;
         HFONT hFont = CreateFontIndirectW(&lf);
         HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);

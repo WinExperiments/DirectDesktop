@@ -2,7 +2,7 @@
 #pragma warning(disable:28159)
 
 #include "resource.h"
-#include "DDControls.h"
+#include "ui\DDControls.h"
 #include <vector>
 #include <string>
 #include "Include\dui70\DirectUI\DirectUI.h"
@@ -18,10 +18,10 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-    extern float flScaleFactor;
-    extern unsigned short defWidth, defHeight, lastWidth, lastHeight;
-    extern int globaliconsz, globalshiconsz, globalgpiconsz;
-    extern int currentPageID, maxPageID, homePageID;
+    extern float g_flScaleFactor;
+    extern unsigned short g_defWidth, g_defHeight, g_lastWidth, g_lastHeight;
+    extern int g_iconsz, g_shiconsz, g_gpiconsz;
+    extern int g_currentPageID, g_maxPageID, g_homePageID;
 
     struct yValue {
         int y{};

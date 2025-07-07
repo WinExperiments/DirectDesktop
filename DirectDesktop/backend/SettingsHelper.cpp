@@ -9,17 +9,17 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-    bool showcheckboxes;
-    bool treatdirasgroup;
-    bool tripleclickandhide;
-    bool lockiconpos;
-    bool isColorized;
-    bool isDarkIconsEnabled;
-    bool automaticDark;
-    bool isGlass;
+    bool g_showcheckboxes;
+    bool g_treatdirasgroup;
+    bool g_tripleclickandhide;
+    bool g_lockiconpos;
+    bool g_isColorized;
+    bool g_isDarkIconsEnabled;
+    bool g_automaticDark;
+    bool g_isGlass;
     BYTE iconColorID;
     COLORREF IconColorizationColor;
-    bool atleastonesetting{};
+    bool g_atleastonesetting{};
     Element* UIContainer;
 
     BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
@@ -87,7 +87,7 @@ namespace DirectDesktop
             }
             if (ddtb->GetAssociatedFn() != nullptr)
                 ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn(), false, true, true);
-            atleastonesetting = true;
+            g_atleastonesetting = true;
         }
     }
 }

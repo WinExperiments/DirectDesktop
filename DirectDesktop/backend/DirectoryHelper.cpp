@@ -1,7 +1,7 @@
 #include "DirectoryHelper.h"
 #include "strsafe.h"
-#include "DirectDesktop.h"
-#include "StyleModifier.h"
+#include "..\DirectDesktop.h"
+#include "..\coreui\StyleModifier.h"
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <exdisp.h>
@@ -927,27 +927,27 @@ namespace DirectDesktop
 	}
 	void GetPos2(bool full) {
 		WCHAR DesktopLayoutWithSize[24];
-		if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+		if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
 		else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
-		COLORREF* pImmersiveColor = theme ? &ImmersiveColorL : &ImmersiveColorD;
+		COLORREF* pImmersiveColor = g_theme ? &ImmersiveColorL : &ImmersiveColorD;
 		COLORREF colorPickerPalette[8] =
 		{
 			-1,
 			*pImmersiveColor,
-			theme ? RGB(96, 205, 255) : RGB(0, 95, 184),
-			theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
-			theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
-			theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
-			theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
-			theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
+			g_theme ? RGB(96, 205, 255) : RGB(0, 95, 184),
+			g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
+			g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
+			g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
+			g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
+			g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
 		};
 		BYTE* value2{};
 		GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
 		size_t offset2 = 0;
 		if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) {
-			maxPageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+			g_maxPageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
 			offset2 += 2;
-			homePageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+			g_homePageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
 			offset2 += 2;
 		}
 		if (full) {
@@ -968,7 +968,7 @@ namespace DirectDesktop
 						unsigned short page = *reinterpret_cast<unsigned short*>(&value2[offset2]);
 						offset2 += 2;
 						pm[j]->SetPage(page);
-						if (page > maxPageID) maxPageID = page;
+						if (page > g_maxPageID) g_maxPageID = page;
 						match = true;
 						break;
 					}
@@ -1037,11 +1037,11 @@ namespace DirectDesktop
 		if (full) {
 			RECT dimensions;
 			SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-			unsigned short page = maxPageID;
+			unsigned short page = g_maxPageID;
 			const BYTE* minpageBinary = reinterpret_cast<const BYTE*>(&page);
 			DesktopLayout.push_back(minpageBinary[0]);
 			DesktopLayout.push_back(minpageBinary[1]);
-			page = homePageID;
+			page = g_homePageID;
 			const BYTE* homepageBinary = reinterpret_cast<const BYTE*>(&page);
 			DesktopLayout.push_back(homepageBinary[0]);
 			DesktopLayout.push_back(homepageBinary[1]);
@@ -1077,7 +1077,7 @@ namespace DirectDesktop
 				DesktopLayout.push_back(pageBinary[1]);
 			}
 			WCHAR DesktopLayoutWithSize[24];
-			if (!touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", globaliconsz);
+			if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
 			else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
 			SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
 			DesktopLayout.clear();

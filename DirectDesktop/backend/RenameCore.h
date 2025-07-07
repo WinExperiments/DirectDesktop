@@ -1,7 +1,7 @@
 #pragma once
-#include "framework.h"
+#include "..\framework.h"
 
-#include "DDControls.h"
+#include "..\ui\DDControls.h"
 
 #include <string>
 #include <vector>
@@ -10,8 +10,8 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-	extern bool renameactive;
-	extern bool touchmode;
+	extern bool g_renameactive;
+	extern bool g_touchmode;
 	extern std::vector<LVItem*> pm;
 	extern std::wstring RemoveQuotes(const std::wstring& input);
 	extern int localeType;

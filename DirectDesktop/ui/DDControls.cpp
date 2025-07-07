@@ -1,8 +1,8 @@
 #include "DDControls.h"
-#include "DirectDesktop.h"
-#include "BitmapHelper.h"
-#include "DirectoryHelper.h"
-#include "StyleModifier.h"
+#include "..\DirectDesktop.h"
+#include "..\coreui\BitmapHelper.h"
+#include "..\backend\DirectoryHelper.h"
+#include "..\coreui\StyleModifier.h"
 #include <regex>
 #include <algorithm>
 #include <uxtheme.h>
@@ -31,7 +31,7 @@ namespace DirectDesktop
 		int val;
 	};
 	NativeHWNDHost* notificationwnd{};
-	WNDPROC WndProc4;
+	WNDPROC WndProcNotification;
 
 	HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT(*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams) {
 		HRESULT hr{};
@@ -203,15 +203,15 @@ namespace DirectDesktop
 				wstring fontIntermediate = fontOld.substr(0, modifier + 1);
 				wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
 				wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-				int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / static_cast<float>(dpiLaunch);
+				int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_dpi / static_cast<float>(g_dpiLaunch);
 				wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
 				pe->SetFont(fontNew.c_str());
 			}
 			else if (pe->GetFontSize() > 0) {
-				pe->SetFontSize(pe->GetFontSize() * flScaleFactor);
+				pe->SetFontSize(pe->GetFontSize() * g_flScaleFactor);
 			}
 		}
-		else if (pe->GetNeedsFontResize2() && dpiLaunch != 96 && dpi == 96) {
+		else if (pe->GetNeedsFontResize2() && g_dpiLaunch != 96 && g_dpi == 96) {
 			if (pe->GetFont(&v) == nullptr) return;
 			wstring fontOld = pe->GetFont(&v);
 			wregex fontRegex(L".*font;.*\%.*");
@@ -1317,7 +1317,7 @@ namespace DirectDesktop
 				wstring fontIntermediate = fontOld.substr(0, modifier + 1);
 				wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
 				wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-				int newFontSize = _wtoi(fontIntermediate2.c_str()) * dpi / dpiLaunch;
+				int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_dpi / g_dpiLaunch;
 				wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
 				ppeTemp->SetFont(fontNew.c_str());
 			}
@@ -1326,7 +1326,7 @@ namespace DirectDesktop
 			DDNotificationBanner::DestroyBanner(nullptr);
 			break;
 		}
-		return CallWindowProc(WndProc4, hWnd, uMsg, wParam, lParam);
+		return CallWindowProc(WndProcNotification, hWnd, uMsg, wParam, lParam);
 	}
 	DWORD WINAPI AnimateWindowWrapper(LPVOID lpParam) {
 		Sleep(50);
@@ -1436,7 +1436,7 @@ namespace DirectDesktop
 			pTaskbarList->Release();
 		}
 		pParser->CreateElement(pszResID, pDDNB, NULL, NULL, &pHostElement);
-		WndProc4 = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
+		WndProcNotification = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
 		pHostElement->SetVisible(true);
 		pHostElement->EndDefer(keyN);
 		notificationwnd->Host(pHostElement);
@@ -1458,7 +1458,7 @@ namespace DirectDesktop
 
 		int cx{}, cy{};
 		RECT hostpadding = *(v->GetRect());
-		cx += (hostpadding.left + hostpadding.right + 48 * flScaleFactor); // 48: 28 is the icon width, 20 is extra padding
+		cx += (hostpadding.left + hostpadding.right + 48 * g_flScaleFactor); // 48: 28 is the icon width, 20 is extra padding
 		cy += (hostpadding.top + hostpadding.bottom);
 		Element* peTemp = pDDNB->GetIconElement();
 		CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
@@ -1488,22 +1488,22 @@ namespace DirectDesktop
 		HDC hdcMem = CreateCompatibleDC(NULL);
 		NONCLIENTMETRICSW ncm{};
 		TEXTMETRICW tm{};
-		SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, NULL, dpi);
+		SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, NULL, g_dpi);
 		HFONT hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
 		SelectObject(hdcMem, hFont);
 		RECT rcText{}, rcText2{};
 		if (content) {
 			GetLongestLine(hdcMem, content, &rcText2);
 			GetTextMetricsW(hdcMem, &tm);
-			cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * flScaleFactor;
+			cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * g_flScaleFactor;
 		}
 		ncm.lfMessageFont.lfWeight = 700;
 		hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
 		SelectObject(hdcMem, hFont);
 		DrawTextW(hdcMem, title, -1, &rcText, DT_CALCRECT | DT_SINGLELINE);
-		cx += (ceil(max(rcText.right, rcText2.right) * 1.15) * flScaleFactor);
+		cx += (ceil(max(rcText.right, rcText2.right) * 1.15) * g_flScaleFactor);
 		GetTextMetricsW(hdcMem, &tm);
-		cy += (ceil(tm.tmHeight * 1.15) + 6) * flScaleFactor;
+		cy += (ceil(tm.tmHeight * 1.15) + 6) * g_flScaleFactor;
 		DeleteObject(hFont);
 		DeleteDC(hdcMem);
 
@@ -1523,18 +1523,18 @@ namespace DirectDesktop
 			peTemp->SetContentString(content);
 		}
 
-		LPWSTR sheetName = theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+		LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
 		StyleSheet* sheet = pHostElement->GetSheet();
 		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
 		pParser->GetSheet(sheetName, &sheetStorage);
 		pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
 
 		// Window borders
-		cx += (round(flScaleFactor)) * 2;
-		cy += (round(flScaleFactor)) * 2;
+		cx += (round(g_flScaleFactor)) * 2;
+		cy += (round(g_flScaleFactor)) * 2;
 
 		if (notificationwnd) {
-			SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * flScaleFactor, cx, cy, SWP_FRAMECHANGED);
+			SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED);
 			notificationopen = true;
 			IntegerWrapper* iw = new IntegerWrapper{ timeout };
 			HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper, &notificationopen, NULL, NULL);

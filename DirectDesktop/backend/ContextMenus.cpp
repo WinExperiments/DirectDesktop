@@ -2,9 +2,9 @@
 #include <ShlGuid.h>
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
-#include "DirectDesktop.h"
-#include "EditMode.h"
-#include "resource.h"
+#include "..\DirectDesktop.h"
+#include "..\ui\EditMode.h"
+#include "..\resource.h"
 #include <propkey.h>
 
 namespace DirectDesktop
@@ -17,13 +17,13 @@ namespace DirectDesktop
     }
 
     void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch) {
-        if (iconsz == globaliconsz && touch == touchmode) return;
+        if (iconsz == g_iconsz && touch == g_touchmode) return;
         if (isDefaultRes()) SetPos(true);
-        globaliconsz = iconsz;
-        globalshiconsz = shiconsz;
-        globalgpiconsz = gpiconsz;
-        bool touchmodeMem = touchmode;
-        touchmode = touch;
+        g_iconsz = iconsz;
+        g_shiconsz = shiconsz;
+        g_gpiconsz = gpiconsz;
+        bool touchmodeMem = g_touchmode;
+        g_touchmode = touch;
         if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
         if (touchmodeMem == !touch) {
             InitLayout(false, false, false);
@@ -61,14 +61,14 @@ namespace DirectDesktop
                     SetMenuItemInfoW(hsm, menuitem, 0, &mii);
                 }
                 mii.fState = MFS_CHECKED;
-                if (touchmode) SetMenuItemInfoW(hsm, 1005, 0, &mii);
-                else if (globaliconsz <= 32) SetMenuItemInfoW(hsm, 1004, 0, &mii);
-                else if (globaliconsz <= 48) SetMenuItemInfoW(hsm, 1003, 0, &mii);
-                else if (globaliconsz <= 96) SetMenuItemInfoW(hsm, 1002, 0, &mii);
+                if (g_touchmode) SetMenuItemInfoW(hsm, 1005, 0, &mii);
+                else if (g_iconsz <= 32) SetMenuItemInfoW(hsm, 1004, 0, &mii);
+                else if (g_iconsz <= 48) SetMenuItemInfoW(hsm, 1003, 0, &mii);
+                else if (g_iconsz <= 96) SetMenuItemInfoW(hsm, 1002, 0, &mii);
                 else SetMenuItemInfoW(hsm, 1001, 0, &mii);
                 AppendMenuW(hsm, MF_SEPARATOR, 1006, L"_");
                 AppendMenuW(hsm, MF_STRING, 1007, LoadStrFromRes(4008).c_str());
-                mii.fState = hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
+                mii.fState = g_hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
                 SetMenuItemInfoW(hsm, 1007, 0, &mii);
                 AppendMenuW(hsm2, MF_STRING, 1008, L"Name");
                 AppendMenuW(hsm2, MF_STRING, 1009, L"Date modified");
@@ -132,17 +132,17 @@ namespace DirectDesktop
                     break;
                 case 1007:
                     for (int items = 0; items < pm.size(); items++) {
-                        switch (hiddenIcons) {
+                        switch (g_hiddenIcons) {
                         case 0:
                             pm[items]->SetVisible(false);
                             break;
                         case 1:
-                            if (pm[items]->GetPage() == currentPageID) pm[items]->SetVisible(true);
+                            if (pm[items]->GetPage() == g_currentPageID) pm[items]->SetVisible(true);
                             break;
                         }
                     }
-                    hiddenIcons = !hiddenIcons;
-                    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", hiddenIcons, false, nullptr);
+                    g_hiddenIcons = !g_hiddenIcons;
+                    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", g_hiddenIcons, false, nullptr);
                     break;
                     //case 1008:
                     //    break;
@@ -161,7 +161,7 @@ namespace DirectDesktop
                     pICv1->InvokeCommand(&ici);
                     break;
                 }
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", touchmode, false, nullptr);
+                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", g_touchmode, false, nullptr);
             }
             pShellFolder->Release();
         }

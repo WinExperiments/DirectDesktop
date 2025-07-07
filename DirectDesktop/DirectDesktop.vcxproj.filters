@@ -13,6 +13,24 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\backend">
+      <UniqueIdentifier>{74dd7bca-bab7-4a24-bd52-206dcc79a3b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\coreui">
+      <UniqueIdentifier>{4e07fafa-e38f-42fe-8e38-1577c8cebc1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ui">
+      <UniqueIdentifier>{3a6dae14-108f-4065-833c-57bbc00c0038}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\backend">
+      <UniqueIdentifier>{9e1acec3-f666-40ee-9894-79081b3730a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\coreui">
+      <UniqueIdentifier>{de39dce0-66d1-4aec-9ee1-f6f91262da56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ui">
+      <UniqueIdentifier>{23dbf62d-4241-44af-a796-177f7ea7e447}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -24,103 +42,103 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BitmapHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ColorHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ImmersiveColor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AccentColorHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BlurCore.cpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BlurCore.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectoryHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="StyleModifier.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SettingsHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ContextMenus.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Logger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DDControls.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ShutdownDialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cdpa.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RenameCore.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SearchPage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="EditMode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="DirectDesktop.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\BlurCore.cpp">
+      <Filter>Source Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\AccentColorHelper.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\StyleModifier.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\BitmapHelper.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\BlurCore.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\cdpa.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\ColorHelper.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="coreui\ImmersiveColor.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\ContextMenus.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\DirectoryHelper.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\Logger.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\RenameCore.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\SettingsHelper.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\DDControls.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\EditMode.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\SearchPage.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\ShutdownDialog.h">
+      <Filter>Header Files\ui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectDesktop.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StyleModifier.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="coreui\AccentColorHelper.cpp">
+      <Filter>Source Files\coreui</Filter>
     </ClCompile>
-    <ClCompile Include="BitmapHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="coreui\BitmapHelper.cpp">
+      <Filter>Source Files\coreui</Filter>
     </ClCompile>
-    <ClCompile Include="ColorHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="coreui\ColorHelper.cpp">
+      <Filter>Source Files\coreui</Filter>
     </ClCompile>
-    <ClCompile Include="AccentColorHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="coreui\StyleModifier.cpp">
+      <Filter>Source Files\coreui</Filter>
     </ClCompile>
-    <ClCompile Include="DirectoryHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="backend\ContextMenus.cpp">
+      <Filter>Source Files\backend</Filter>
     </ClCompile>
-    <ClCompile Include="SettingsHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="backend\DirectoryHelper.cpp">
+      <Filter>Source Files\backend</Filter>
     </ClCompile>
-    <ClCompile Include="ContextMenus.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="backend\Logger.cpp">
+      <Filter>Source Files\backend</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="backend\RenameCore.cpp">
+      <Filter>Source Files\backend</Filter>
     </ClCompile>
-    <ClCompile Include="DDControls.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="backend\SettingsHelper.cpp">
+      <Filter>Source Files\backend</Filter>
     </ClCompile>
-    <ClCompile Include="ShutdownDialog.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ui\DDControls.cpp">
+      <Filter>Source Files\ui</Filter>
     </ClCompile>
-    <ClCompile Include="RenameCore.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ui\EditMode.cpp">
+      <Filter>Source Files\ui</Filter>
     </ClCompile>
-    <ClCompile Include="SearchPage.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ui\SearchPage.cpp">
+      <Filter>Source Files\ui</Filter>
     </ClCompile>
-    <ClCompile Include="EditMode.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ui\ShutdownDialog.cpp">
+      <Filter>Source Files\ui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1712,12 +1730,24 @@
     <Library Include="dui70.lib" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="uifile.xml" />
-    <Xml Include="shutdown.xml" />
-    <Xml Include="fullscreenpopup.xml" />
-    <Xml Include="styles.xml" />
-    <Xml Include="search.xml" />
-    <Xml Include="editmode.xml" />
+    <Xml Include="ui\editmode.xml">
+      <Filter>Source Files\ui</Filter>
+    </Xml>
+    <Xml Include="ui\fullscreenpopup.xml">
+      <Filter>Source Files\ui</Filter>
+    </Xml>
+    <Xml Include="ui\shutdown.xml">
+      <Filter>Source Files\ui</Filter>
+    </Xml>
+    <Xml Include="ui\search.xml">
+      <Filter>Source Files\ui</Filter>
+    </Xml>
+    <Xml Include="ui\styles.xml">
+      <Filter>Source Files\ui</Filter>
+    </Xml>
+    <Xml Include="ui\uifile.xml">
+      <Filter>Source Files\ui</Filter>
+    </Xml>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DirectDesktop.manifest">

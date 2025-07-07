@@ -1,5 +1,5 @@
 #pragma once
-#include "framework.h"
+#include "..\framework.h"
 
 #define DT_LVICON (DT_WORDBREAK | DT_NOFULLWIDTHCHARBREAK | DT_NOPREFIX | DT_EDITCONTROL)
 
@@ -17,5 +17,5 @@ namespace DirectDesktop
 	void BlurBackground2(HWND hwnd, bool blur, bool fullscreen);
 
 	extern TEXTMETRICW textm;
-	extern int dpi;
+	extern int g_dpi;
 }

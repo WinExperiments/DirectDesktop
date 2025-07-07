@@ -32,7 +32,7 @@
 				<DDScalableRichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont;100%" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true" padding="rect(2rp,0,0,0)"/>
 			</Element>
 		</Element>
-		<TouchScrollViewer id="atom(groupdirlist)" active="mouse|pointer" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
+		<TouchScrollViewer id="atom(groupdirlist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
 			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 		</TouchScrollViewer>
 	</Element>
@@ -56,7 +56,7 @@
 			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
 			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
 		</Element>
-		<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
+		<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
 			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 		</TouchScrollViewer>
 	</Element>

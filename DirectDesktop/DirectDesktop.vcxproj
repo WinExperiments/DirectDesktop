@@ -158,43 +158,43 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AccentColorHelper.h" />
-    <ClInclude Include="BitmapHelper.h" />
-    <ClInclude Include="BlurCore.cpp" />
-    <ClInclude Include="BlurCore.h" />
-    <ClInclude Include="cdpa.h" />
-    <ClInclude Include="ColorHelper.h" />
-    <ClInclude Include="ContextMenus.h" />
+    <ClInclude Include="coreui\AccentColorHelper.h" />
+    <ClInclude Include="coreui\BitmapHelper.h" />
+    <ClInclude Include="coreui\BlurCore.cpp" />
+    <ClInclude Include="coreui\BlurCore.h" />
+    <ClInclude Include="coreui\cdpa.h" />
+    <ClInclude Include="coreui\ColorHelper.h" />
+    <ClInclude Include="backend\ContextMenus.h" />
     <ClInclude Include="DirectDesktop.h" />
-    <ClInclude Include="DirectoryHelper.h" />
-    <ClInclude Include="EditMode.h" />
+    <ClInclude Include="backend\DirectoryHelper.h" />
+    <ClInclude Include="ui\EditMode.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="ImmersiveColor.h" />
-    <ClInclude Include="Logger.h" />
-    <ClInclude Include="DDControls.h" />
-    <ClInclude Include="RenameCore.h" />
+    <ClInclude Include="coreui\ImmersiveColor.h" />
+    <ClInclude Include="backend\Logger.h" />
+    <ClInclude Include="ui\DDControls.h" />
+    <ClInclude Include="backend\RenameCore.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="SearchPage.h" />
-    <ClInclude Include="SettingsHelper.h" />
-    <ClInclude Include="ShutdownDialog.h" />
-    <ClInclude Include="StyleModifier.h" />
+    <ClInclude Include="ui\SearchPage.h" />
+    <ClInclude Include="backend\SettingsHelper.h" />
+    <ClInclude Include="ui\ShutdownDialog.h" />
+    <ClInclude Include="coreui\StyleModifier.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AccentColorHelper.cpp" />
-    <ClCompile Include="BitmapHelper.cpp" />
-    <ClCompile Include="ColorHelper.cpp" />
-    <ClCompile Include="ContextMenus.cpp" />
+    <ClCompile Include="coreui\AccentColorHelper.cpp" />
+    <ClCompile Include="coreui\BitmapHelper.cpp" />
+    <ClCompile Include="coreui\ColorHelper.cpp" />
+    <ClCompile Include="backend\ContextMenus.cpp" />
     <ClCompile Include="DirectDesktop.cpp" />
-    <ClCompile Include="DirectoryHelper.cpp" />
-    <ClCompile Include="EditMode.cpp" />
-    <ClCompile Include="Logger.cpp" />
-    <ClCompile Include="DDControls.cpp" />
-    <ClCompile Include="RenameCore.cpp" />
-    <ClCompile Include="SearchPage.cpp" />
-    <ClCompile Include="SettingsHelper.cpp" />
-    <ClCompile Include="ShutdownDialog.cpp" />
-    <ClCompile Include="StyleModifier.cpp" />
+    <ClCompile Include="backend\DirectoryHelper.cpp" />
+    <ClCompile Include="ui\EditMode.cpp" />
+    <ClCompile Include="backend\Logger.cpp" />
+    <ClCompile Include="ui\DDControls.cpp" />
+    <ClCompile Include="backend\RenameCore.cpp" />
+    <ClCompile Include="ui\SearchPage.cpp" />
+    <ClCompile Include="backend\SettingsHelper.cpp" />
+    <ClCompile Include="ui\ShutdownDialog.cpp" />
+    <ClCompile Include="coreui\StyleModifier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DirectDesktop.rc" />
@@ -734,12 +734,12 @@
     <Library Include="dui70.lib" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="editmode.xml" />
-    <Xml Include="fullscreenpopup.xml" />
-    <Xml Include="search.xml" />
-    <Xml Include="shutdown.xml" />
-    <Xml Include="styles.xml" />
-    <Xml Include="uifile.xml" />
+    <Xml Include="ui\editmode.xml" />
+    <Xml Include="ui\fullscreenpopup.xml" />
+    <Xml Include="ui\search.xml" />
+    <Xml Include="ui\shutdown.xml" />
+    <Xml Include="ui\styles.xml" />
+    <Xml Include="ui\uifile.xml" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DirectDesktop.manifest" />

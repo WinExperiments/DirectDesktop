@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
-#include "framework.h"
+#include "..\framework.h"
 
-#include "Include\dui70\DirectUI\DirectUI.h"
+#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 #define MIN_SHELL_ID 1
 #define MAX_SHELL_ID 30000
@@ -13,8 +13,8 @@ namespace DirectDesktop
 {
 	extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
 	extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
-	extern bool hiddenIcons;
-	extern bool touchmode;
+	extern bool g_hiddenIcons;
+	extern bool g_touchmode;
 	extern int localeType;
 	extern NativeHWNDHost* wnd;
 

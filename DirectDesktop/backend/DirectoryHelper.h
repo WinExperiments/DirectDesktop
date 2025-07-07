@@ -2,8 +2,8 @@
 #include <vector>
 #include <string>
 #include "Logger.h"
-#include "DDControls.h"
-#include "Include\dui70\DirectUI\DirectUI.h"
+#include "..\ui\DDControls.h"
+#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 using namespace std;
 
@@ -11,10 +11,10 @@ namespace DirectDesktop
 {
     extern Logger MainLogger;
 
-    extern bool touchmode;
+    extern bool g_touchmode;
     extern int logging;
     extern int localeType;
-    extern int globaliconsz;
+    extern int g_iconsz;
     extern vector<LVItem*> pm;
     extern vector<DirectUI::Element*> shortpm;
     extern vector<DDScalableElement*> iconpm;

@@ -3,14 +3,14 @@
 #include <string>
 #include <vector>
 
-#include "Include\dui70\DirectUI\DirectUI.h"
+#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 using namespace std;
 using namespace DirectUI;
 
 namespace DirectDesktop
 {
-    extern int dpi, dpiLaunch;
+    extern int g_dpi, g_dpiLaunch;
     extern NativeHWNDHost* subviewwnd;
     extern int GetCurrentScaleInterval();
     extern struct yValue;

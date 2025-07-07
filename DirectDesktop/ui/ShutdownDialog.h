@@ -2,11 +2,11 @@
 #pragma warning(disable:6258)
 #pragma warning(disable:28159)
 
-#include "framework.h"
+#include "..\framework.h"
 
-#include "Include\dui70\DirectUI\DirectUI.h"
+#include "..\Include\dui70\DirectUI\DirectUI.h"
 
-#include "StyleModifier.h"
+#include "..\coreui\StyleModifier.h"
 
 #include <string>
 #include <strsafe.h>
@@ -19,9 +19,9 @@ namespace DirectDesktop
 	extern DWORD shutdownReason;
 	extern NativeHWNDHost* wnd;
 	extern NativeHWNDHost* shutdownwnd;
-	extern int dpi, dpiLaunch;
-	extern bool dialogopen;
-	extern bool theme;
+	extern int g_dpi, g_dpiLaunch;
+	extern bool g_dialogopen;
+	extern bool g_theme;
 	extern bool delayedshutdownstatuses[6];
 
 	void DisplayShutdownDialog();

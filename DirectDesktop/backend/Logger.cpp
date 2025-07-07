@@ -1,6 +1,6 @@
 #include "Logger.h"
 #include <string>
-#include "framework.h"
+#include "..\framework.h"
 using namespace std;
 
 namespace DirectDesktop

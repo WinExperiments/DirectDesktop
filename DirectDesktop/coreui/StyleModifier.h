@@ -1,5 +1,5 @@
 #pragma once
-#include "framework.h"
+#include "..\framework.h"
 
 namespace DirectDesktop
 {
@@ -7,10 +7,10 @@ namespace DirectDesktop
 	extern COLORREF ImmersiveColorL;
 	extern COLORREF ImmersiveColorD;
 	extern COLORREF IconColorizationColor;
-	extern bool theme;
-	extern bool touchmode;
-	extern bool isColorized;
-	extern bool isDarkIconsEnabled;
+	extern bool g_theme;
+	extern bool g_touchmode;
+	extern bool g_isColorized;
+	extern bool g_isDarkIconsEnabled;
 	extern BYTE iconColorID;
 	extern const wchar_t* sheetName;
 

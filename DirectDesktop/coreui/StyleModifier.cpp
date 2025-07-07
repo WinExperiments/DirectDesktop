@@ -3,7 +3,7 @@
 #include "ColorHelper.h"
 #include "AccentColorHelper.h"
 #include "ImmersiveColor.h"
-#include "DirectoryHelper.h"
+#include "..\backend\DirectoryHelper.h"
 #include "cdpa.h"
 #include <vector>
 #include <map>
@@ -12,7 +12,7 @@
 namespace DirectDesktop
 {
     COLORREF ImmersiveColor, ImmersiveColorL, ImmersiveColorD;
-    bool theme;
+    bool g_theme;
     const wchar_t* sheetName;
     rgb_t WhiteText;
 
@@ -55,7 +55,7 @@ namespace DirectDesktop
     }
 
     void UpdateModeInfo() {
-        theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
+        g_theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
         ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
         ImmersiveColorL = CImmersiveColor::GetColor(IMCLR_SystemAccentLight2);
         ImmersiveColorD = CImmersiveColor::GetColor(IMCLR_SystemAccentDark1);
@@ -241,7 +241,7 @@ namespace DirectDesktop
     }
 
     COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold) {
-        COLORREF outDominantColor = isColorized ? IconColorizationColor : isDarkIconsEnabled ? RGB(72, 76, 80) : RGB(128, 136, 144);
+        COLORREF outDominantColor = g_isColorized ? IconColorizationColor : g_isDarkIconsEnabled ? RGB(72, 76, 80) : RGB(128, 136, 144);
 
         HDC hMemDC = CreateCompatibleDC(nullptr);
         HDC hMemDC2 = CreateCompatibleDC(nullptr);

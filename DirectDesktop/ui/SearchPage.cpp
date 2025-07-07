@@ -1,11 +1,11 @@
 #include "SearchPage.h"
-#include "DirectDesktop.h"
+#include "..\DirectDesktop.h"
 #include "DDControls.h"
 //#include "EverythingSearch/Everything.h"
-#include "resource.h"
+#include "..\resource.h"
 #include <strsafe.h>
-#include "BitmapHelper.h"
-#include "DirectoryHelper.h"
+#include "..\coreui\BitmapHelper.h"
+#include "..\backend\DirectoryHelper.h"
 #include <shellapi.h>
 
 //#pragma comment (lib, "Everything64.lib")
@@ -15,11 +15,11 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
 	NativeHWNDHost* searchwnd;
-	DUIXmlParser* parser4;
-	HWNDElement* parent3;
+	DUIXmlParser* parserSearch;
+	HWNDElement* parentSearch;
 	Element* pSearch;
 	TouchEdit2* searchbox;
-	WNDPROC WndProc5;
+	WNDPROC WndProcSearch;
 
 	void DestroySearchPage();
 
@@ -33,7 +33,7 @@ namespace DirectDesktop
 			return 0;
 			break;
 		}
-		return CallWindowProc(WndProc5, hWnd, uMsg, wParam, lParam);
+		return CallWindowProc(WndProcSearch, hWnd, uMsg, wParam, lParam);
 	}
 
 	void LaunchSearchResult(Element* elem, Event* iev) {
@@ -73,9 +73,9 @@ namespace DirectDesktop
 			//delete[] PublicPath;
 			//delete[] OneDrivePath;
 			//LVItem* SearchResultPlaceholder{};
-			//parser4->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
+			//parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
 			RichText* ResultCount{};
-			parser4->CreateElement(L"ResultCount", NULL, NULL, NULL, (Element**)&ResultCount);
+			parserSearch->CreateElement(L"ResultCount", NULL, NULL, NULL, (Element**)&ResultCount);
 			rescontainer->Add((Element**)&ResultCount, 1);
 			//WCHAR* resultc = new WCHAR[64];
 			//StringCchPrintfW(resultc, 64, L"%d items", Everything_GetNumResults());
@@ -89,7 +89,7 @@ namespace DirectDesktop
 			//	StringCchPrintfW(nameStr, 256, L"NAME: %s", Everything_GetResultFileNameW(i));
 			//	StringCchPrintfW(pathStr, 256, L"PATH: %s", Everything_GetResultPathW(i));
 			//	LVItem* SearchResult{};
-			//	parser4->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResult);
+			//	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResult);
 			//	rescontainer->Add((Element**)&SearchResult, 1);
 			//	RichText* name = regElem<RichText*>(L"name", SearchResult);
 			//	RichText* path = regElem<RichText*>(L"path", SearchResult);
@@ -133,19 +133,19 @@ namespace DirectDesktop
 		RECT dimensions;
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
 		NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", NULL, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &searchwnd);
-		DUIXmlParser::Create(&parser4, NULL, NULL, DUI_ParserErrorCB, NULL);
-		parser4->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
-		HWNDElement::Create(searchwnd->GetHWND(), true, NULL, NULL, &key4, (Element**)&parent3);
-		parser4->CreateElement(L"SearchUI", parent3, NULL, NULL, &pSearch);
-		WndProc5 = (WNDPROC)SetWindowLongPtrW(searchwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SearchWindowProc);
+		DUIXmlParser::Create(&parserSearch, NULL, NULL, DUI_ParserErrorCB, NULL);
+		parserSearch->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
+		HWNDElement::Create(searchwnd->GetHWND(), true, NULL, NULL, &key4, (Element**)&parentSearch);
+		parserSearch->CreateElement(L"SearchUI", parentSearch, NULL, NULL, &pSearch);
+		WndProcSearch = (WNDPROC)SetWindowLongPtrW(searchwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SearchWindowProc);
 		pSearch->SetVisible(true);
 		pSearch->EndDefer(key4);
 		searchwnd->Host(pSearch);
 		BlurBackground(searchwnd->GetHWND(), true, true);
-		LPWSTR sheetName = theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
+		LPWSTR sheetName = g_theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
 		StyleSheet* sheet = pSearch->GetSheet();
 		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-		parser4->GetSheet(sheetName, &sheetStorage);
+		parserSearch->GetSheet(sheetName, &sheetStorage);
 		pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
 		searchwnd->ShowWindow(SW_SHOW);
 		searchbox = (TouchEdit2*)pSearch->FindDescendent(StrToID(L"searchbox"));
@@ -155,7 +155,7 @@ namespace DirectDesktop
 		assignFn(closebutton, CloseSearch);
 		assignExtendedFn(searchbox, UpdateSearchBox);
 		TouchScrollViewer* SearchResults = regElem<TouchScrollViewer*>(L"SearchResults", pSearch);
-		SearchResults->SetBackgroundColor(theme ? 4293980400 : 4280821800);
+		SearchResults->SetBackgroundColor(g_theme ? 4293980400 : 4280821800);
 	}
 
 	void DestroySearchPage()
