@@ -5,6 +5,7 @@
 #include "..\coreui\StyleModifier.h"
 #include <regex>
 #include <algorithm>
+#include <wrl.h>
 #include <uxtheme.h>
 #include <dwmapi.h>
 
@@ -170,7 +171,7 @@ namespace DirectDesktop
 		int imageID = pe->GetFirstScaledImage() + scaleInterval;
 		HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
 		if (newImage == nullptr) {
-			newImage = LoadPNGAsBitmap(imageID);
+			LoadPNGAsBitmap(newImage, imageID);
 			IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
 		}
 		if (pe->GetAssociatedColor() != -1) IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
@@ -234,7 +235,7 @@ namespace DirectDesktop
 		}
 	}
 	void UpdateGlyphOnPress(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-		DDScalableElement* glyph = regElem<DDScalableElement*>(L"DDCB_Glyph", elem->GetParent());
+		CSafeElementPtr<DDCheckBoxGlyph> glyph; glyph.Assign((DDCheckBoxGlyph*)elem->GetParent()->FindDescendent(StrToID(L"DDCB_Glyph")));
 		if ((pProp == Button::PressedProp() || pProp == Button::MouseWithinProp()) && glyph) {
 			glyph->SetSelected(((Button*)elem)->GetPressed());
 		}
@@ -244,7 +245,7 @@ namespace DirectDesktop
 	}
 	void UpdateUICtrlColor(Element* elem, Event* iev) {
 		if (iev->uidType == Button::Click) {
-			DDScalableElement* DDCPCC = regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", elem->GetParent());
+			CSafeElementPtr<DDScalableElement> DDCPCC; DDCPCC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", elem->GetParent()));
 			DDCPCC->SetX(elem->GetX());
 			vector<DDScalableElement*> te = ((DDColorPickerButton*)elem)->GetTargetElements();
 			RegKeyValue rkv = ((DDColorPicker*)elem->GetParent())->GetRegKeyValue();
@@ -264,7 +265,7 @@ namespace DirectDesktop
 	}
 	void ShowHoverCircle(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
 		if (pProp == Button::MouseFocusedProp()) {
-			DDScalableElement* DDCPHC = regElem<DDScalableElement*>(L"DDColorPicker_HoverCircle", elem->GetParent());
+			CSafeElementPtr<DDScalableElement> DDCPHC; DDCPHC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_HoverCircle", elem->GetParent()));
 			DDCPHC->SetVisible(elem->GetMouseFocused());
 			DDCPHC->SetX(elem->GetX());
 		}
@@ -304,6 +305,7 @@ namespace DirectDesktop
 		if (toRemove != _arrCreatedElements.end()) {
 			_arrCreatedElements.erase(toRemove);
 		}
+		this->DestroyAll(true);
 	}
 	IClassInfo* DDScalableElement::GetClassInfoPtr() {
 		return s_pClassInfo;
@@ -451,6 +453,7 @@ namespace DirectDesktop
 		if (toRemove != _arrCreatedButtons.end()) {
 			_arrCreatedButtons.erase(toRemove);
 		}
+		this->DestroyAll(true);
 	}
 	IClassInfo* DDScalableButton::GetClassInfoPtr() {
 		return s_pClassInfo;
@@ -615,6 +618,7 @@ namespace DirectDesktop
 		if (toRemove != _arrCreatedTexts.end()) {
 			_arrCreatedTexts.erase(toRemove);
 		}
+		this->DestroyAll(true);
 	}
 	IClassInfo* DDScalableRichText::GetClassInfoPtr() {
 		return s_pClassInfo;
@@ -751,6 +755,7 @@ namespace DirectDesktop
 		if (toRemove != _arrCreatedBoxes.end()) {
 			_arrCreatedBoxes.erase(toRemove);
 		}
+		this->DestroyAll(true);
 	}
 	IClassInfo* DDScalableTouchEdit::GetClassInfoPtr() {
 		return s_pClassInfo;
@@ -871,11 +876,13 @@ namespace DirectDesktop
 	}
 
 	LVItem::~LVItem() {
-		this->GetChildItems().clear();
-		this->GetChildIcons().clear();
-		this->GetChildShadows().clear();
-		this->GetChildShortcutArrows().clear();
-		this->GetChildFilenames().clear();
+		_childItemss.clear();
+		_childIcons.clear();
+		_childShadows.clear();
+		_childShortcutArrows.clear();
+		_childFilenames.clear();
+		this->ClearAllListeners();
+		this->DestroyAll(true);
 	}
 	IClassInfo* LVItem::GetClassInfoPtr() {
 		return s_pClassInfo;
@@ -1155,6 +1162,9 @@ namespace DirectDesktop
 		this->SetPropCommon(CheckedStateProp, bChecked, false);
 	}
 
+	DDColorPicker::~DDColorPicker() {
+		this->DestroyAll(true);
+	}
 	IClassInfo* DDColorPicker::GetClassInfoPtr() {
 		return s_pClassInfo;
 	}
@@ -1254,6 +1264,9 @@ namespace DirectDesktop
 		_themeAwareness = ta;
 	}
 
+	DDColorPickerButton::~DDColorPickerButton() {
+		this->DestroyAll(true);
+	}
 	IClassInfo* DDColorPickerButton::GetClassInfoPtr() {
 		return s_pClassInfo;
 	}
@@ -1375,6 +1388,9 @@ namespace DirectDesktop
 		SendMessageW(notificationwnd->GetHWND(), WM_USER + 2, (WPARAM)ppeTemp, NULL);
 		return 0;
 	}
+	DDNotificationBanner::~DDNotificationBanner() {
+		this->DestroyAll(true);
+	}
 	IClassInfo* DDNotificationBanner::GetClassInfoPtr() {
 		return s_pClassInfo;
 	}
@@ -1427,13 +1443,12 @@ namespace DirectDesktop
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
 		NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", NULL, NULL, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwnd);
 		HWNDElement::Create(notificationwnd->GetHWND(), true, NULL, NULL, &keyN, (Element**)&pDDNB);
-		ITaskbarList* pTaskbarList = nullptr;
+		Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList;
 		if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
 			IID_ITaskbarList, (void**)&pTaskbarList))) {
 			if (SUCCEEDED(pTaskbarList->HrInit())) {
 				pTaskbarList->DeleteTab(notificationwnd->GetHWND());
 			}
-			pTaskbarList->Release();
 		}
 		pParser->CreateElement(pszResID, pDDNB, NULL, NULL, &pHostElement);
 		WndProcNotification = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
@@ -1448,7 +1463,7 @@ namespace DirectDesktop
 			DWORD cornerPreference = DWMWCP_ROUND;
 			DwmSetWindowAttribute(notificationwnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
 		}
-		BlurBackground(notificationwnd->GetHWND(), true, false);
+		BlurBackground(notificationwnd->GetHWND(), true, false, nullptr);
 		pHostElement->SetBackgroundStdColor(7);
 		CValuePtr v;
 		pDDNB->GetPadding(&v);

@@ -7,6 +7,8 @@
 #include "..\coreui\BitmapHelper.h"
 #include "..\backend\DirectoryHelper.h"
 #include <shellapi.h>
+#include <uxtheme.h>
+#include <dwmapi.h>
 
 //#pragma comment (lib, "Everything64.lib")
 
@@ -62,7 +64,7 @@ namespace DirectDesktop
 			//StringCchPrintfW(PublicPath, 260, L"%s\\Desktop", cBuffer);
 			//d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
 			//StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
-			Element* rescontainer = regElem<Element*>(L"rescontainer", pSearch);
+			CSafeElementPtr<Element> rescontainer; rescontainer.Assign(regElem<Element*>(L"rescontainer", pSearch));
 			//rescontainer->DestroyAll(true);
 			//WCHAR* searchquery = new WCHAR[1024];
 			//StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
@@ -106,19 +108,19 @@ namespace DirectDesktop
 	}
 	void UpdateSearchBox(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
 		if (pProp == Element::KeyWithinProp()) {
-			Element* searchboxtext = regElem<Element*>(L"searchboxtext", pSearch);
-			DDScalableElement* searchboxbackground = regElem<DDScalableElement*>(L"searchboxbackground", pSearch);
+			CSafeElementPtr<Element> searchboxtext; searchboxtext.Assign(regElem<Element*>(L"searchboxtext", pSearch));
+			CSafeElementPtr<DDScalableElement> searchboxbackground; searchboxbackground.Assign(regElem<DDScalableElement*>(L"searchboxbackground", pSearch));
 			CValuePtr v;
 			searchboxtext->SetVisible(!elem->GetKeyWithin());
 			searchboxtext->SetContentString(elem->GetContentString(&v));
 			if (searchboxbackground) searchboxbackground->SetSelected(elem->GetKeyWithin());
 		}
 		if (pProp == Element::MouseWithinProp()) {
-			DDScalableElement* searchboxbackground = regElem<DDScalableElement*>(L"searchboxbackground", pSearch);
+			CSafeElementPtr<DDScalableElement> searchboxbackground; searchboxbackground.Assign(regElem<DDScalableElement*>(L"searchboxbackground", pSearch));
 			if (searchboxbackground) searchboxbackground->SetOverhang(elem->GetMouseWithin());
 		}
 		if (pProp == Element::EnabledProp()) {
-			DDScalableElement* searchboxbackground = regElem<DDScalableElement*>(L"searchboxbackground", pSearch);
+			CSafeElementPtr<DDScalableElement> searchboxbackground; searchboxbackground.Assign(regElem<DDScalableElement*>(L"searchboxbackground", pSearch));
 			if (searchboxbackground) searchboxbackground->SetEnabled(elem->GetEnabled());
 		}
 	}
@@ -132,7 +134,7 @@ namespace DirectDesktop
 		unsigned long key4 = 0;
 		RECT dimensions;
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-		NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", NULL, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0, &searchwnd);
+		NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", NULL, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0x43, &searchwnd);
 		DUIXmlParser::Create(&parserSearch, NULL, NULL, DUI_ParserErrorCB, NULL);
 		parserSearch->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 		HWNDElement::Create(searchwnd->GetHWND(), true, NULL, NULL, &key4, (Element**)&parentSearch);
@@ -141,7 +143,10 @@ namespace DirectDesktop
 		pSearch->SetVisible(true);
 		pSearch->EndDefer(key4);
 		searchwnd->Host(pSearch);
-		BlurBackground(searchwnd->GetHWND(), true, true);
+		CSafeElementPtr<Element> searchbase; searchbase.Assign(regElem<Element*>(L"searchbase", pSearch));
+		MARGINS m = { -1, -1, -1, -1 };
+		DwmExtendFrameIntoClientArea(searchwnd->GetHWND(), &m);
+		BlurBackground(searchwnd->GetHWND(), true, true, searchbase);
 		LPWSTR sheetName = g_theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
 		StyleSheet* sheet = pSearch->GetSheet();
 		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
@@ -149,17 +154,17 @@ namespace DirectDesktop
 		pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
 		searchwnd->ShowWindow(SW_SHOW);
 		searchbox = (TouchEdit2*)pSearch->FindDescendent(StrToID(L"searchbox"));
-		Button* searchbutton = regElem<Button*>(L"searchbutton", pSearch);
+		CSafeElementPtr<Button> searchbutton; searchbutton.Assign(regElem<Button*>(L"searchbutton", pSearch));
 		assignFn(searchbutton, DisplayResults);
-		Button* closebutton = regElem<Button*>(L"closebutton", pSearch);
+		CSafeElementPtr<Button> closebutton; closebutton.Assign(regElem<Button*>(L"closebutton", pSearch));
 		assignFn(closebutton, CloseSearch);
 		assignExtendedFn(searchbox, UpdateSearchBox);
-		TouchScrollViewer* SearchResults = regElem<TouchScrollViewer*>(L"SearchResults", pSearch);
+		CSafeElementPtr<TouchScrollViewer> SearchResults; SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
 		SearchResults->SetBackgroundColor(g_theme ? 4293980400 : 4280821800);
 	}
 
-	void DestroySearchPage()
-	{
+	void DestroySearchPage() {
+		pSearch->DestroyAll(true);
 		searchwnd->DestroyWindow();
 	}
 }

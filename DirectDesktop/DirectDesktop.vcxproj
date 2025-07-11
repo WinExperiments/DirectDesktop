@@ -160,7 +160,6 @@
   <ItemGroup>
     <ClInclude Include="coreui\AccentColorHelper.h" />
     <ClInclude Include="coreui\BitmapHelper.h" />
-    <ClInclude Include="coreui\BlurCore.cpp" />
     <ClInclude Include="coreui\BlurCore.h" />
     <ClInclude Include="coreui\cdpa.h" />
     <ClInclude Include="coreui\ColorHelper.h" />

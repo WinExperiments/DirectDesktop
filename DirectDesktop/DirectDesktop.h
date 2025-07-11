@@ -24,14 +24,14 @@ namespace DirectDesktop
     extern int g_currentPageID, g_maxPageID, g_homePageID;
 
     struct yValue {
-        int y{};
-        float innerSizeX{};
-        float innerSizeY{};
+        int num{};
+        float fl1{};
+        float fl2{};
     };
     struct yValueEx {
-        int y{};
-        float innerSizeX{};
-        float innerSizeY{};
+        int num{};
+        float fl1{};
+        float fl2{};
         std::vector<LVItem*>* vpm{};
         std::vector<DDScalableElement*>* vipm{};
         std::vector<Element*>* vispm{};

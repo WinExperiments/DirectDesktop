@@ -7,7 +7,7 @@
 		</Button>
 	</HWNDElement>
 	<DDScalableButton resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" animation="size|log|fast"/>
-	<Element resid="groupdirectory" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
+	<Element resid="groupdirectory" id="atom(groupdirectory)" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
@@ -32,13 +32,19 @@
 				<DDScalableRichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont;100%" alpha="0" animation="alpha|linear|mediumfast|delaymedium" NeedsFontResize2="true" padding="rect(2rp,0,0,0)"/>
 			</Element>
 		</Element>
-		<TouchScrollViewer id="atom(groupdirlist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
-			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
-		</TouchScrollViewer>
-	</Element>
-	<Element resid="emptyview" id="atom(emptyview)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)" padding="rect(0,0,0,36rp)">
-		<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr"/>
-		<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
+		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
+			<TouchScrollViewer id="atom(groupdirlist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
+				<DDScalableButton id="atom(SubUIContainer)" visible="false" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
+			</TouchScrollViewer>
+			<Element id="atom(emptyview)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
+				<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr"/>
+				<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
+			</Element>
+			<LVItem id="atom(PendingContainer)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
+				<ModernProgressRing width="72rp" height="72rp" margin="rect(12rp,12rp,12rp,12rp)"/>
+				<DDScalableRichText content="Loading" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
+			</LVItem>
+		</Element>
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
@@ -175,6 +181,14 @@
 	</Element>
 	<stylesheets>
 		<style resid="popup" base="ressheet(31, DDBase)">
+			<if id="atom(fullscreenpopupbase)">
+				<if class="TransparentEnabled">
+					<Button background="rgb(0,0,0)"/>
+				</if>
+				<if class="TransparentDisabled">
+					<Button background="sgraphic(1064,7,-1,0,0,1,1)"/>
+				</if>
+			</if>
 			<if class="popupwindow">
 				<DDScalableButton FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
@@ -183,6 +197,7 @@
 				<DDScalableButton foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableRichText foreground="black"/>
 			</if>
+			<ModernProgressRing foreground="black"/>
 			<if class="SettingsIcon">
 				<RichText layoutpos="left" background="argb(0,0,0,0)" foreground="black" font="resstr(166)" contentalign="middlecenter" width="56rp"/>
 			</if>
@@ -203,6 +218,14 @@
 			</if>
 		</style>
 		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
+			<if id="atom(fullscreenpopupbase)">
+				<if class="TransparentEnabled">
+					<Button background="rgb(0,0,0)"/>
+				</if>
+				<if class="TransparentDisabled">
+					<Button background="sgraphic(2064,7,-1,0,0,1,1)"/>
+				</if>
+			</if>
 			<if class="popupwindow">
 				<DDScalableButton FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
@@ -211,6 +234,7 @@
 				<DDScalableButton foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableRichText foreground="white"/>
 			</if>
+			<ModernProgressRing foreground="white"/>
 			<if class="SettingsIcon">
 				<RichText layoutpos="left" background="argb(0,0,0,0)" foreground="white" font="resstr(166)" contentalign="middlecenter" width="56rp"/>
 			</if>

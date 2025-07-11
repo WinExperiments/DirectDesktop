@@ -4,6 +4,7 @@
 #include "..\resource.h"
 #include "..\coreui\BitmapHelper.h"
 #include "..\DirectDesktop.h"
+#include <wrl.h>
 #include <shellapi.h>
 #include <uxtheme.h>
 #include <dwmapi.h>
@@ -279,7 +280,7 @@ namespace DirectDesktop
 			short pos = expanded & 2 ? 3 : -3;
 			bool arrowselection = expanded & 2 ? true : false;
 			AdvancedOptions->SetLayoutPos(pos);
-			RichText* AdvancedOptionsArrow = regElem<RichText*>(L"AdvancedOptionsArrow", elem);
+			CSafeElementPtr<RichText> AdvancedOptionsArrow; AdvancedOptionsArrow.Assign(regElem<RichText*>(L"AdvancedOptionsArrow", elem));
 			AdvancedOptionsArrow->SetSelected(arrowselection);
 			int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
 			int sizeX = 500 * g_flScaleFactor;
@@ -298,7 +299,7 @@ namespace DirectDesktop
 
 	void ToggleDelayOption(Element* elem, Event* iev) {
 		if (iev->uidType == Button::Click) {
-			Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
+			CSafeElementPtr<Element> delaysecondspreview; delaysecondspreview.Assign(regElem<Element*>(L"delaysecondspreview", pShutdown));
 			bool newChecked = (((DDCheckBox*)elem)->GetCheckedState() == false) ? true : false;
 			((DDCheckBox*)elem)->SetCheckedState(newChecked);
 			delayseconds->SetEnabled((newChecked == true) ? true : false);
@@ -325,19 +326,19 @@ namespace DirectDesktop
 
 	void UpdateDelaySecondsPreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
 		if (pProp == Element::KeyWithinProp()) {
-			Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
-			DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+			CSafeElementPtr<Element> delaysecondspreview; delaysecondspreview.Assign(regElem<Element*>(L"delaysecondspreview", pShutdown));
+			CSafeElementPtr<DDScalableElement> delaysecondsbackground; delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
 			CValuePtr v;
 			delaysecondspreview->SetVisible(!elem->GetKeyWithin());
 			delaysecondspreview->SetContentString(elem->GetContentString(&v));
 			if (delaysecondsbackground) delaysecondsbackground->SetSelected(elem->GetKeyWithin());
 		}
 		if (pProp == Element::MouseWithinProp()) {
-			DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+			CSafeElementPtr<DDScalableElement> delaysecondsbackground; delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
 			if (delaysecondsbackground) delaysecondsbackground->SetOverhang(elem->GetMouseWithin());
 		}
 		if (pProp == Element::EnabledProp()) {
-			DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+			CSafeElementPtr<DDScalableElement> delaysecondsbackground; delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
 			if (delaysecondsbackground) delaysecondsbackground->SetEnabled(elem->GetEnabled());
 		}
 	}
@@ -432,17 +433,16 @@ namespace DirectDesktop
 		if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * g_flScaleFactor;
 		RECT dimensions;
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-		NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), NULL, NULL, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, NULL, 0, &shutdownwnd);
+		NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), NULL, NULL, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, NULL, 0x43, &shutdownwnd);
 		DUIXmlParser::Create(&parserShutdown, NULL, NULL, DUI_ParserErrorCB, NULL);
 		parserShutdown->SetXMLFromResource(IDR_UIFILE4, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 		HWNDElement::Create(shutdownwnd->GetHWND(), true, NULL, NULL, &key3, (Element**)&parentShutdown);
-		ITaskbarList* pTaskbarList = nullptr;
+		Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList = nullptr;
 		if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
 			IID_ITaskbarList, (void**)&pTaskbarList))) {
 			if (SUCCEEDED(pTaskbarList->HrInit())) {
 				pTaskbarList->DeleteTab(shutdownwnd->GetHWND());
 			}
-			pTaskbarList->Release();
 		}
 		parserShutdown->CreateElement(L"ShutDownWindows", parentShutdown, NULL, NULL, &pShutdown);
 		WndProcShutdown = (WNDPROC)SetWindowLongPtrW(shutdownwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)ShutdownWindowProc);
@@ -450,37 +450,37 @@ namespace DirectDesktop
 		pShutdown->EndDefer(key3);
 		shutdownwnd->Host(pShutdown);
 		g_dialogopen = true;
-		DDScalableElement* FakeTitlebar = regElem<DDScalableElement*>(L"FakeTitlebar", pShutdown);
-		DDScalableElement* TitlebarText = regElem<DDScalableElement*>(L"TitlebarText", pShutdown);
-		DDScalableElement* Logo = regElem<DDScalableElement*>(L"Logo", pShutdown);
-		Element* StatusBar = regElem<Element*>(L"StatusBar", pShutdown);
-		Element* SeparatorLine = regElem<Element*>(L"SeparatorLine", pShutdown);
-		Element* SeparatorLine2 = regElem<Element*>(L"SeparatorLine2", pShutdown);
-		Element* ShutdownActions = regElem<Element*>(L"ShutdownActions", pShutdown);
-		Element* ShutdownEventTracker = regElem<Element*>(L"ShutdownEventTracker", pShutdown);
-		Element* AdvancedOptionsBar = regElem<Element*>(L"AdvancedOptionsBar", pShutdown);
+		CSafeElementPtr<DDScalableElement> FakeTitlebar; FakeTitlebar.Assign(regElem<DDScalableElement*>(L"FakeTitlebar", pShutdown));
+		CSafeElementPtr<DDScalableElement> TitlebarText; TitlebarText.Assign(regElem<DDScalableElement*>(L"TitlebarText", pShutdown));
+		CSafeElementPtr<DDScalableElement> Logo; Logo.Assign(regElem<DDScalableElement*>(L"Logo", pShutdown));
+		CSafeElementPtr<Element> StatusBar; StatusBar.Assign(regElem<Element*>(L"StatusBar", pShutdown));
+		CSafeElementPtr<Element> SeparatorLine; SeparatorLine.Assign(regElem<Element*>(L"SeparatorLine", pShutdown));
+		CSafeElementPtr<Element> SeparatorLine2; SeparatorLine2.Assign(regElem<Element*>(L"SeparatorLine2", pShutdown));
+		CSafeElementPtr<Element> ShutdownActions; ShutdownActions.Assign(regElem<Element*>(L"ShutdownActions", pShutdown));
+		CSafeElementPtr<Element> ShutdownEventTracker; ShutdownEventTracker.Assign(regElem<Element*>(L"ShutdownEventTracker", pShutdown));
+		CSafeElementPtr<Element> AdvancedOptionsBar; AdvancedOptionsBar.Assign(regElem<Element*>(L"AdvancedOptionsBar", pShutdown));
 		RestartWinRE = regElem<DDScalableButton*>(L"RestartWinRE", pShutdown);
 		RestartBIOS = regElem<DDScalableButton*>(L"RestartBIOS", pShutdown);
 		FIRMWARE_TYPE firmwareType{};
 		GetFirmwareType(&firmwareType);
 		if (firmwareType == FirmwareTypeUefi) RestartBIOS->SetLayoutPos(4);
 		AdvancedOptions = regElem<Element*>(L"AdvancedOptions", pShutdown);
-		RichText* moon = regElem<RichText*>(L"moon", pShutdown);
-		RichText* stars = regElem<RichText*>(L"stars", pShutdown);
+		CSafeElementPtr<RichText> moon; moon.Assign(regElem<RichText*>(L"moon", pShutdown));
+		CSafeElementPtr<RichText> stars; stars.Assign(regElem<RichText*>(L"stars", pShutdown));
 		for (int i = 0; i < 6; i++) {
 			if (delayedshutdownstatuses[i] == true) {
 				parserShutdown->CreateElement(L"StatusBar", NULL, NULL, NULL, (Element**)&StatusBarResid);
 				StatusBar->Add((Element**)&StatusBarResid, 1);
 				StatusText = regElem<DDScalableElement*>(L"StatusText", StatusBarResid);
 				StatusCancel = regElem<Button*>(L"StatusCancel", StatusBarResid);
-				Button* SCInner = regElem<Button*>(L"SCInner", StatusBarResid);
+				CSafeElementPtr<Button> SCInner; SCInner.Assign(regElem<Button*>(L"SCInner", StatusBarResid));
 				assignFn(StatusCancel, PerformOperation);
 				assignExtendedFn(SCInner, PressSync);
 				sizeY += StatusBarResid->GetHeight();
 				SetWindowPos(shutdownwnd->GetHWND(), NULL, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
 				StatusText->SetContentString(GetNotificationString(i + 1, savedremaining).c_str());
 				if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) {
-					DDScalableElement* ReasonText = regElem<DDScalableElement*>(L"ReasonText", StatusBarResid);
+					CSafeElementPtr<DDScalableElement> ReasonText; ReasonText.Assign(regElem<DDScalableElement*>(L"ReasonText", StatusBarResid));
 					ReasonText->SetLayoutPos(4);
 					WCHAR* cReason = new WCHAR[128];
 					StringCchPrintfW(cReason, 128, LoadStrFromRes(4038).c_str(), reasonStr.c_str());
@@ -495,7 +495,7 @@ namespace DirectDesktop
 			Element* ShutdownEventTrackerResid{};
 			parserShutdown->CreateElement(L"ShutdownEventTracker", NULL, NULL, NULL, (Element**)&ShutdownEventTrackerResid);
 			ShutdownEventTracker->Add((Element**)&ShutdownEventTrackerResid, 1);
-			DDScalableElement* SETText = regElem<DDScalableElement*>(L"SETText", ShutdownEventTrackerResid);
+			CSafeElementPtr<DDScalableElement> SETText; SETText.Assign(regElem<DDScalableElement*>(L"SETText", ShutdownEventTrackerResid));
 			SETText->SetContentString(GetDialogString(2210, L"shutdownext.dll", NULL).c_str());
 			Combobox* SETReason = (Combobox*)ShutdownEventTracker->FindDescendent(StrToID(L"SETReason"));
 			for (short s = 8261; s <= 8262; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
@@ -524,8 +524,9 @@ namespace DirectDesktop
 		delete[] cBuffer;
 		TitlebarText->SetContentString(caption.c_str());
 		HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-		HBITMAP colorBMP = IconToBitmap(dummyi, 16, 16);
-		HBITMAP colorBMP2 = IconToBitmap(dummyi, 16, 16);
+		HBITMAP colorBMP{}, colorBMP2{};
+		IconToBitmap(dummyi, colorBMP, 16, 16);
+		IconToBitmap(dummyi, colorBMP2, 16, 16);
 		COLORREF separator = g_theme ? RGB(0, 0, 0) : RGB(255, 255, 255);
 		float bodyalpha = g_theme ? 0.4 : 0.05;
 		IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, 0, 0.125, separator);
@@ -589,9 +590,9 @@ namespace DirectDesktop
 			HiInner = regElem<Button*>(L"HiInner", pShutdown), ShInner = regElem<Button*>(L"ShInner", pShutdown), ReInner = regElem<Button*>(L"ReInner", pShutdown);
 		Button* buttons[6] = { SwitchUser, SignOut, SleepButton, Hibernate, Shutdown, Restart };
 		Button* innerbuttons[6] = { SUInner, SOInner, SlInner, HiInner, ShInner, ReInner };
-		DDCheckBox* delaytoggle = (DDCheckBox*)pShutdown->FindDescendent(StrToID(L"delaytoggle"));
+		CSafeElementPtr<DDCheckBox> delaytoggle; delaytoggle.Assign((DDCheckBox*)pShutdown->FindDescendent(StrToID(L"delaytoggle")));
 		delayseconds = (TouchEdit2*)pShutdown->FindDescendent(StrToID(L"delayseconds"));
-		Element* delaysecondspreview = regElem<Element*>(L"delaysecondspreview", pShutdown);
+		CSafeElementPtr<Element> delaysecondspreview; delaysecondspreview.Assign(regElem<Element*>(L"delaysecondspreview", pShutdown));
 		delayseconds->SetContentString(L"0");
 		delaysecondspreview->SetContentString(L"0");
 		for (auto btn : buttons) {
@@ -607,7 +608,7 @@ namespace DirectDesktop
 		assignFn(RestartBIOS, AdvancedShutdown);
 	}
 	void DestroyShutdownDialog() {
-		DDScalableElement* delaysecondsbackground = regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown);
+		CSafeElementPtr<DDScalableElement> delaysecondsbackground; delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
 		if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
 		//AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
 		shutdownwnd->DestroyWindow();

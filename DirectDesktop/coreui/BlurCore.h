@@ -69,13 +69,14 @@ namespace DirectDesktop
 		boxBlur_4(scl, tcl, w, h, (bxs[2] - 1) / 2);
 	}
 
-	vector<BYTE> Blur(vector<BYTE>& source, int w, int h, int radius)
-	{
+	void Blur(vector<BYTE>& source, int w, int h, int radius) {
 		vector<BYTE> lowpass = source; // copy constructor
 		vector<BYTE> target(source.size(), 0);
 		gaussBlur_4(lowpass, target, w, h, radius);
 
-		return target;
+		source = target;
+		lowpass.clear();
+		target.clear();
 	}
 
 	// https://github.com/ALTaleX531/TranslucentFlyouts/blob/master/TFMain/EffectHelper.hpp
@@ -157,18 +158,15 @@ namespace DirectDesktop
 
 	typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
-	void ToggleAcrylicBlur(HWND hwnd, bool blur, bool fullscreen)
-	{
-		if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1 || !fullscreen)
-		{
+	void ToggleAcrylicBlur(HWND hwnd, bool blur, bool fullscreen, Element* peOptional) {
+		if (peOptional) peOptional->SetClass(L"TransparentDisabled");
+		if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1 || !fullscreen) {
 			HMODULE hUser = GetModuleHandleW(L"user32.dll");
-			if (hUser)
-			{
+			if (hUser) {
 				pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
 					(pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
 
-				if (SetWindowCompositionAttribute)
-				{
+				if (SetWindowCompositionAttribute) {
 					int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
 					int blurcolor = fullscreen ? g_theme ? 0x33D3D3D3 : 0x33202020 : WindowsBuild < 22523 ? g_theme ? 0xDCE4E4E4 : 0xCA1F1F1F : g_theme ? 0x00F8F8F8 : 0x00303030;
 					ACCENT_POLICY policy = { static_cast<DWORD>(ACCENT_STATE::ACCENT_DISABLED), fullscreen ? static_cast<DWORD>(ACCENT_FLAG::ACCENT_NONE) : static_cast<DWORD>(ACCENT_FLAG::ACCENT_ENABLE_BORDER), blurcolor, 0 };
@@ -177,11 +175,12 @@ namespace DirectDesktop
 					if (!fullscreen && WindowsBuild >= 22523)
 						policy.AccentFlags |= static_cast<DWORD>(ACCENT_FLAG::ACCENT_ENABLE_MODERN_ACRYLIC_RECIPE);
 					SetWindowCompositionAttribute(hwnd, &data);
+					if (peOptional) peOptional->SetClass(L"TransparentEnabled");
 				}
 			}
 		}
 	}
-	void ToggleAcrylicBlur2(HWND hwnd, bool blur, bool fullscreen)
+	void ToggleAcrylicBlur2(HWND hwnd, bool blur, bool fullscreen, Element* peOptional)
 	{
 	}
 }

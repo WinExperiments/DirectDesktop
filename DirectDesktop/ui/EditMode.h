@@ -24,7 +24,7 @@ namespace DirectDesktop
 	extern int g_currentPageID, g_maxPageID;
 	extern void PlaySimpleViewAnimation(Element* elem, int width, int height, int animation, float startscale);
 	extern void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
-	extern HBITMAP GetShellItemImage(LPCWSTR filePath, int width, int height);
+	extern bool GetShellItemImage(HBITMAP& hBitmap, LPCWSTR filePath, int width, int height);
 	extern void ApplyIcons(vector<LVItem*> pmLVItem, vector<DDScalableElement*> pmIcon, DesktopIcon* di, bool subdirectory, int id, float scale);
 	extern TouchButton* nextpage, *prevpage;
 	extern DDScalableRichText* pageinfo;

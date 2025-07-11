@@ -63,12 +63,11 @@ namespace DirectDesktop
         ipDecoder->Release();
         return ipBitmap;
     }
-    HBITMAP CreateHBITMAP(IWICBitmapSource* ipBitmap) {
-        HBITMAP hbmp = nullptr;
-
+    bool CreateHBITMAP(HBITMAP& hBitmap, IWICBitmapSource* ipBitmap) {
+        if (hBitmap) DeleteObject(hBitmap);
         UINT width = 0;
         UINT height = 0;
-        if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0) return hbmp;
+        if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0) return false;
 
         BITMAPINFO bminfo;
         ZeroMemory(&bminfo, sizeof(bminfo));
@@ -81,39 +80,42 @@ namespace DirectDesktop
 
         void* pvImageBits = nullptr;
         HDC hdcScreen = GetDC(NULL);
-        hbmp = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0);
+        HBITMAP hInternalBitmap = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0);
         ReleaseDC(NULL, hdcScreen);
-        if (hbmp == nullptr) return hbmp;
+        if (hInternalBitmap == nullptr) return false;
 
         const UINT cbStride = width * 4;
         const UINT cbImage = cbStride * height;
         if (FAILED(ipBitmap->CopyPixels(NULL, cbStride, cbImage, static_cast<BYTE*>(pvImageBits)))) {
-            DeleteObject(hbmp);
-            hbmp = nullptr;
+            DeleteObject(hInternalBitmap);
+            hInternalBitmap = nullptr;
         }
-        return hbmp;
+        hBitmap = hInternalBitmap;
+        return false;
     }
-    HBITMAP LoadPNGAsBitmap(int imageID) {
-        HBITMAP convertedPNG = nullptr;
-
+    bool LoadPNGAsBitmap(HBITMAP& hBitmap, int imageID) {
+        if (hBitmap) DeleteObject(hBitmap);
         IStream* ipImageStream{};
         ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(imageID), _T("PNG"));
-        if (ipImageStream == nullptr) return convertedPNG;
+        if (ipImageStream == nullptr) return false;
 
         IWICBitmapSource* ipBitmap = LoadBitmapFromStream(ipImageStream);
         if (ipBitmap == nullptr) {
             ipImageStream->Release();
-            return convertedPNG;
+            return false;
         }
 
-        convertedPNG = CreateHBITMAP(ipBitmap);
+        HBITMAP hInternalBitmap{};
+        CreateHBITMAP(hInternalBitmap, ipBitmap);
         ipBitmap->Release();
         ipImageStream->Release();
-        return convertedPNG;
+        hBitmap = hInternalBitmap;
+        return true;
     }
 
     TEXTMETRICW textm;
-    HBITMAP CreateTextBitmap(LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch) {
+    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch) {
+        if (hBitmap) DeleteObject(hBitmap);
         BITMAPINFO bmi = {};
         bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         bmi.bmiHeader.biWidth = width;
@@ -123,10 +125,15 @@ namespace DirectDesktop
         bmi.bmiHeader.biCompression = BI_RGB;
 
         void* pBitmapData = NULL;
-        HBITMAP hBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBitmapData, NULL, 0);
-        if (!hBitmap) return NULL;
+        HBITMAP hTextBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBitmapData, NULL, 0);
+        if (!hTextBitmap) return false;
         HDC hdcMem = CreateCompatibleDC(NULL);
-        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hTextBitmap);
+
+        if (!hdcMem) {
+            DeleteObject(hTextBitmap);
+            return false;
+        }
 
         memset(pBitmapData, 0, width * height * 4);
         LOGFONTW lf{};
@@ -134,6 +141,13 @@ namespace DirectDesktop
         if (touch) lf.lfHeight *= 1.25;
         HFONT hFont = CreateFontIndirectW(&lf);
         HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
+
+        if (!hFont) {
+            SelectObject(hdcMem, hOldBitmap);
+            DeleteDC(hdcMem);
+            DeleteObject(hTextBitmap);
+            return false;
+        }
 
         SetBkMode(hdcMem, TRANSPARENT);
         SetTextColor(hdcMem, RGB(255, 255, 255));
@@ -152,11 +166,12 @@ namespace DirectDesktop
         DeleteObject(hFont);
         DeleteDC(hdcMem);
 
-        return hBitmap;
+        hBitmap = hTextBitmap;
+        return true;
     }
 
-    HBITMAP AddPaddingToBitmap(HBITMAP hOriginalBitmap, int pL, int pT, int pR, int pB)
-    {
+    bool AddPaddingToBitmap(HBITMAP hOriginalBitmap, HBITMAP& hNewBitmap, int pL, int pT, int pR, int pB) {
+        if (hNewBitmap) DeleteObject(hNewBitmap);
         BITMAP bmp;
         GetObject(hOriginalBitmap, sizeof(BITMAP), &bmp);
 
@@ -167,8 +182,8 @@ namespace DirectDesktop
 
         HDC hdcScreen = GetDC(NULL);
         HDC hdcMem = CreateCompatibleDC(hdcScreen);
-        HBITMAP hNewBitmap = CreateCompatibleBitmap(hdcScreen, newWidth, newHeight);
-        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hNewBitmap);
+        HBITMAP hInternalNewBitmap = CreateCompatibleBitmap(hdcScreen, newWidth, newHeight);
+        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hInternalNewBitmap);
         HBRUSH hBrush = CreateSolidBrush(0);
 
         RECT rect = { 0, 0, newWidth, newHeight };
@@ -185,19 +200,21 @@ namespace DirectDesktop
         DeleteDC(hdcMem);
         ReleaseDC(NULL, hdcScreen);
 
-        return hNewBitmap;
+        hNewBitmap = hInternalNewBitmap;
+        return true;
     }
 
-    HBITMAP CaptureWallpaperFromProgman(RECT rc) {
+    bool CaptureWallpaperFromProgman(HBITMAP& hBitmap, RECT rc) {
+        if (hBitmap) DeleteObject(hBitmap);
         WCHAR path[MAX_PATH];
-        if (!SystemParametersInfoW(SPI_GETDESKWALLPAPER, MAX_PATH, path, 0)) return nullptr;
+        if (!SystemParametersInfoW(SPI_GETDESKWALLPAPER, MAX_PATH, path, 0)) return false;
 
         Gdiplus::GdiplusStartupInput gdiplusStartupInput;
         ULONG_PTR gdiplusToken;
-        if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL) != Gdiplus::Status::Ok) return nullptr;
+        if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL) != Gdiplus::Status::Ok) return false;
 
         Gdiplus::Bitmap* bmp = Gdiplus::Bitmap::FromFile(path, false);
-        if (!bmp) return nullptr;
+        if (!bmp) return false;
 
         HBITMAP hbmOld;
         bmp->GetHBITMAP(Gdiplus::Color(0, 0, 0), &hbmOld);
@@ -207,8 +224,8 @@ namespace DirectDesktop
         HDC hdcDst = CreateCompatibleDC(hdcScreen);
         HBITMAP hOldSrc = (HBITMAP)SelectObject(hdcSrc, hbmOld);
 
-        HBITMAP hRegionBmp = CreateCompatibleBitmap(hdcScreen, rc.right, rc.bottom);
-        HBITMAP hOldDst = (HBITMAP)SelectObject(hdcDst, hRegionBmp);
+        hBitmap = CreateCompatibleBitmap(hdcScreen, rc.right, rc.bottom);
+        HBITMAP hOldDst = (HBITMAP)SelectObject(hdcDst, hBitmap);
 
         BitBlt(hdcDst, 0, 0, rc.right, rc.bottom, hdcSrc, rc.left, rc.top, SRCCOPY);
 
@@ -220,8 +237,6 @@ namespace DirectDesktop
         delete bmp;
         DeleteObject(hbmOld);
         Gdiplus::GdiplusShutdown(gdiplusToken);
-
-        return hRegionBmp;
     }
 
     bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alphaValue, COLORREF crOpt) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color
@@ -306,12 +321,10 @@ namespace DirectDesktop
             for (int alpha = 3; alpha < bmBits; alpha += 4) {
                 vBits[channel++] = pBits[alpha];
             }
-            vector<BYTE> vResultBits;
-            if (blurradius >= 1) vResultBits = Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            else vResultBits = vBits;
+            if (blurradius >= 1) Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
             channel = 0;
             for (int alpha = 3; alpha < bmBits; alpha += 4) {
-                short tempAlpha = vResultBits[channel++] * alphaValue;
+                short tempAlpha = vBits[channel++] * alphaValue;
                 if (tempAlpha > 255) tempAlpha = 255;
                 pBits[alpha] = tempAlpha;
             }
@@ -319,7 +332,6 @@ namespace DirectDesktop
             SetBitmapBits(hbm, bmBits, pBits);
             delete[] pBits;
             vBits.clear();
-            vResultBits.clear();
             break;
         }
         case 2: {
@@ -347,25 +359,25 @@ namespace DirectDesktop
             for (int alpha = 3; alpha < bmBits; alpha += 4) {
                 vBitsA[channel++] = pBits[alpha];
             }
-            vector<BYTE> vResultBitsR = Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            vector<BYTE> vResultBitsG = Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            vector<BYTE> vResultBitsB = Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            vector<BYTE> vResultBitsA = Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
             channel = 0;
             for (int alpha = 0; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vResultBitsB[channel++];
+                pBits[alpha] = vBitsB[channel++];
             }
             channel = 0;
             for (int alpha = 1; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vResultBitsG[channel++];
+                pBits[alpha] = vBitsG[channel++];
             }
             channel = 0;
             for (int alpha = 2; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vResultBitsR[channel++];
+                pBits[alpha] = vBitsR[channel++];
             }
             channel = 0;
             for (int alpha = 3; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vResultBitsA[channel++];
+                pBits[alpha] = vBitsA[channel++];
             }
 
             SetBitmapBits(hbm, bmBits, pBits);
@@ -374,10 +386,6 @@ namespace DirectDesktop
             vBitsG.clear();
             vBitsB.clear();
             vBitsA.clear();
-            vResultBitsR.clear();
-            vResultBitsG.clear();
-            vResultBitsB.clear();
-            vResultBitsA.clear();
             break;
         }
         case 3: {
@@ -471,10 +479,10 @@ namespace DirectDesktop
         return true;
     }
 
-    void BlurBackground(HWND hwnd, bool blur, bool fullscreen) {
-        ToggleAcrylicBlur(hwnd, blur, fullscreen);
+    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, Element* peOptional) {
+        ToggleAcrylicBlur(hwnd, blur, fullscreen, peOptional);
     }
-    void BlurBackground2(HWND hwnd, bool blur, bool fullscreen) {
-        ToggleAcrylicBlur2(hwnd, blur, fullscreen);
+    void BlurBackground2(HWND hwnd, bool blur, bool fullscreen, Element* peOptional) {
+        ToggleAcrylicBlur2(hwnd, blur, fullscreen, peOptional);
     }
 }

@@ -16,7 +16,8 @@ namespace DirectDesktop
     const wchar_t* sheetName;
     rgb_t WhiteText;
 
-    HBITMAP IconToBitmap(HICON hIcon, int x, int y) {
+    bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y) {
+        if (hBitmap) DeleteObject(hBitmap);
         HDC hDC = GetDC(NULL);
         HDC hMemDC = CreateCompatibleDC(hDC);
 
@@ -33,7 +34,7 @@ namespace DirectDesktop
         if (!hResultBmp) {
             DeleteDC(hMemDC);
             ReleaseDC(NULL, hDC);
-            return NULL;
+            return false;
         }
 
         HGDIOBJ hOrgBMP = SelectObject(hMemDC, hResultBmp);
@@ -51,7 +52,8 @@ namespace DirectDesktop
         DeleteDC(hMemDC);
         ReleaseDC(NULL, hDC);
         DestroyIcon(hIcon);
-        return hResultBmp;
+        hBitmap = hResultBmp;
+        return true;
     }
 
     void UpdateModeInfo() {

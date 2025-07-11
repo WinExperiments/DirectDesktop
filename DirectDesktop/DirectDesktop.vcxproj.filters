@@ -45,9 +45,6 @@
     <ClInclude Include="DirectDesktop.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coreui\BlurCore.cpp">
-      <Filter>Source Files\coreui</Filter>
-    </ClInclude>
     <ClInclude Include="coreui\AccentColorHelper.h">
       <Filter>Header Files\coreui</Filter>
     </ClInclude>

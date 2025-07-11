@@ -17,7 +17,7 @@ namespace DirectDesktop
 	void UpdateScale();
 	void UpdateModeInfo();
 	void SetTheme();
-	extern HBITMAP IconToBitmap(HICON hIcon, int x = 48, int y = 48);
+	extern bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y);
 
 	void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt);
 	void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt);

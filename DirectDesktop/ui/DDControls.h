@@ -27,7 +27,7 @@ namespace DirectDesktop
     class DDScalableElement : public Element {
     public:
         DDScalableElement();
-        ~DDScalableElement();
+        virtual ~DDScalableElement();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -75,7 +75,7 @@ namespace DirectDesktop
     class DDScalableButton : public Button {
     public:
         DDScalableButton();
-        ~DDScalableButton();
+        virtual ~DDScalableButton();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -131,7 +131,7 @@ namespace DirectDesktop
     class DDScalableRichText : public RichText {
     public:
         DDScalableRichText();
-        ~DDScalableRichText();
+        virtual ~DDScalableRichText();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -173,7 +173,7 @@ namespace DirectDesktop
     class DDScalableTouchEdit : public TouchEdit2 {
     public:
         DDScalableTouchEdit();
-        ~DDScalableTouchEdit();
+        virtual ~DDScalableTouchEdit();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -300,7 +300,7 @@ namespace DirectDesktop
         DDLVActionButton() {
 
         }
-        virtual ~DDLVActionButton() {
+        ~DDLVActionButton() {
 
         }
         static IClassInfo* GetClassInfoPtr();
@@ -320,7 +320,7 @@ namespace DirectDesktop
         DDToggleButton() {
 
         }
-        virtual ~DDToggleButton() {
+        ~DDToggleButton() {
 
         }
         static IClassInfo* GetClassInfoPtr();
@@ -340,7 +340,7 @@ namespace DirectDesktop
         DDCheckBox() {
 
         }
-        virtual ~DDCheckBox() {
+        ~DDCheckBox() {
 
         }
         static IClassInfo* GetClassInfoPtr();
@@ -360,7 +360,7 @@ namespace DirectDesktop
         DDCheckBoxGlyph() {
 
         }
-        virtual ~DDCheckBoxGlyph() {
+        ~DDCheckBoxGlyph() {
 
         }
         static IClassInfo* GetClassInfoPtr();
@@ -380,9 +380,7 @@ namespace DirectDesktop
         DDColorPicker() {
 
         }
-        virtual ~DDColorPicker() {
-
-        }
+        ~DDColorPicker();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -420,9 +418,7 @@ namespace DirectDesktop
         DDColorPickerButton() {
 
         }
-        virtual ~DDColorPickerButton() {
-
-        }
+        ~DDColorPickerButton();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -453,9 +449,7 @@ namespace DirectDesktop
         DDNotificationBanner() {
 
         }
-        virtual ~DDNotificationBanner() {
-
-        }
+        ~DDNotificationBanner();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
