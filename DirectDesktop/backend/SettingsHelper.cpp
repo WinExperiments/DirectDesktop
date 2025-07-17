@@ -39,7 +39,7 @@ namespace DirectDesktop
     {
         vector<RECT> monitors{};
         POINT ptFinal{};
-        EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
+        EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
         sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b)
         {
             if (localeType != 1) return a.left < b.left;
@@ -58,7 +58,7 @@ namespace DirectDesktop
     {
         vector<RECT> monitors{};
         int iFinal{};
-        EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
+        EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
         sort(monitors.begin(), monitors.end(), [](const RECT& a, const RECT& b)
         {
             return a.right > b.right;
@@ -88,12 +88,12 @@ namespace DirectDesktop
             if (rkv._valueToFind == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
             if (rkv._valueToFind == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
             if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
-            SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, NULL, NULL);
-            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, NULL);
+            SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
+            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, nullptr);
             if (rkv._valueToFind == L"Hidden")
             {
                 DWORD dwDisableToggle;
-                HANDLE DisableToggleHandle = CreateThread(0, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
+                HANDLE DisableToggleHandle = CreateThread(nullptr, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
                 if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
                 return;
             }

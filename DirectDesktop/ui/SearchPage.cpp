@@ -81,13 +81,13 @@ namespace DirectDesktop
             //LVItem* SearchResultPlaceholder{};
             //parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
             RichText* ResultCount{};
-            parserSearch->CreateElement(L"ResultCount", NULL, NULL, NULL, (Element**)&ResultCount);
+            parserSearch->CreateElement(L"ResultCount", nullptr, nullptr, nullptr, (Element**)&ResultCount);
             rescontainer->Add((Element**)&ResultCount, 1);
             //WCHAR* resultc = new WCHAR[64];
             //StringCchPrintfW(resultc, 64, L"%d items", Everything_GetNumResults());
             MessageBeep(MB_OK);
             DDNotificationBanner* ddnb{};
-            DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_INFO, L"DDNB", NULL, L"Search will be available by version 0.6", 5, false);
+            DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_INFO, L"DDNB", nullptr, L"Search will be available by version 0.6", 5, false);
             //rescontainer->SetHeight(Everything_GetNumResults() * SearchResultPlaceholder->GetHeight() + 40);
             //for (int i = 0; i < Everything_GetNumResults(); i++) {
             //	WCHAR* nameStr = new WCHAR[256];
@@ -152,11 +152,11 @@ namespace DirectDesktop
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         static IElementListener *pel_DisplayResults, *pel_CloseSearch, *pel_UpdateSearchBox;
-        NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", NULL, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0x43, &searchwnd);
-        DUIXmlParser::Create(&parserSearch, NULL, NULL, DUI_ParserErrorCB, NULL);
+        NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, nullptr, 0x43, &searchwnd);
+        DUIXmlParser::Create(&parserSearch, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
         parserSearch->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
-        HWNDElement::Create(searchwnd->GetHWND(), true, NULL, NULL, &key4, (Element**)&parentSearch);
-        parserSearch->CreateElement(L"SearchUI", parentSearch, NULL, NULL, &pSearch);
+        HWNDElement::Create(searchwnd->GetHWND(), true, NULL, nullptr, &key4, (Element**)&parentSearch);
+        parserSearch->CreateElement(L"SearchUI", parentSearch, nullptr, nullptr, &pSearch);
         WndProcSearch = (WNDPROC)SetWindowLongPtrW(searchwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SearchWindowProc);
         pSearch->SetVisible(true);
         pSearch->EndDefer(key4);

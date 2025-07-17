@@ -183,11 +183,11 @@ namespace DirectDesktop
     {
         int result = -1;
         DWORD dwSize{};
-        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, NULL, NULL, &dwSize);
+        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, nullptr, &dwSize);
         if (lResult == ERROR_SUCCESS)
         {
             DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, NULL, dwValue, &dwSize);
+            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, dwValue, &dwSize);
             if (dwValue != nullptr)
             {
                 result = *dwValue;
@@ -202,11 +202,11 @@ namespace DirectDesktop
         int result{};
         DWORD dwSize{};
         HKEY hKey;
-        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, NULL, NULL, &dwSize);
+        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, nullptr, &dwSize);
         lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
         if (lResult == ERROR_FILE_NOT_FOUND)
         {
-            lResult = RegCreateKeyExW(hKeyName, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+            lResult = RegCreateKeyExW(hKeyName, path, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
             if (lResult == ERROR_SUCCESS)
             {
                 lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
@@ -216,7 +216,7 @@ namespace DirectDesktop
         else if (lResult == ERROR_SUCCESS)
         {
             DWORD* dwValueInternal = (DWORD*)malloc(dwSize);
-            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, NULL, dwValueInternal, &dwSize);
+            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, dwValueInternal, &dwSize);
             if (lResult == ERROR_SUCCESS && find == false)
             {
                 lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
@@ -265,7 +265,7 @@ namespace DirectDesktop
         if (!outBytes) return false;
 
         DWORD dwSize{};
-        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_REG_BINARY, NULL, NULL, &dwSize);
+        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_REG_BINARY, nullptr, nullptr, &dwSize);
         if (lResult != ERROR_SUCCESS)
         {
             return false;
@@ -277,7 +277,7 @@ namespace DirectDesktop
             return false;
         }
 
-        lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_REG_BINARY, NULL, buffer, &dwSize);
+        lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_REG_BINARY, nullptr, buffer, &dwSize);
         if (lResult != ERROR_SUCCESS)
         {
             free(buffer);
@@ -296,7 +296,7 @@ namespace DirectDesktop
         LONG lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
         if (lResult == ERROR_FILE_NOT_FOUND)
         {
-            lResult = RegCreateKeyExW(hKeyName, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+            lResult = RegCreateKeyExW(hKeyName, path, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
             if (lResult == ERROR_SUCCESS)
             {
                 lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
@@ -368,10 +368,10 @@ namespace DirectDesktop
     {
         WCHAR* path = static_cast<WCHAR*>(lpParam);
         HANDLE hDir = CreateFileW(path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                  NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+                                  nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
         if (hDir == INVALID_HANDLE_VALUE)
         {
-            TaskDialog(NULL, NULL, LoadStrFromRes(4025).c_str(), L"Failed to open directory handle", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+            TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to open directory handle", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
             return 1;
         }
 
@@ -380,7 +380,7 @@ namespace DirectDesktop
         while (true)
         {
             if (ReadDirectoryChangesW(hDir, &buffer, sizeof(buffer), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME
-                                      | FILE_NOTIFY_CHANGE_ATTRIBUTES, &bytesReturned, NULL, NULL))
+                                      | FILE_NOTIFY_CHANGE_ATTRIBUTES, &bytesReturned, nullptr, nullptr))
             {
                 FILE_NOTIFY_INFORMATION* pNotify = nullptr;
                 size_t offset = 0;
@@ -409,7 +409,7 @@ namespace DirectDesktop
             }
             else
             {
-                TaskDialog(NULL, NULL, LoadStrFromRes(4025).c_str(), L"Failed to read directory changes", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to read directory changes", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
                 break;
             }
         }
@@ -422,7 +422,7 @@ namespace DirectDesktop
     void StartMonitorFileChanges(const wstring& path)
     {
         if (!PathFileExistsW(path.c_str())) return;
-        HANDLE hThread = CreateThread(0, 0, MonitorFileChanges, (LPVOID)path.c_str(), NULL, NULL);
+        HANDLE hThread = CreateThread(nullptr, 0, MonitorFileChanges, (LPVOID)path.c_str(), NULL, nullptr);
         if (hThread) CloseHandle(hThread);
     }
 
@@ -516,8 +516,8 @@ namespace DirectDesktop
             HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
             HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
             wchar_t *ThisPC = new wchar_t[260], *ThisPCBuf{};
-            GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &ThisPCBuf);
-            if (ThisPCBuf == NULL)
+            GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", nullptr, &ThisPCBuf);
+            if (ThisPCBuf == nullptr)
             {
                 LoadStringW(WinStorageDLL, 9216, ThisPC, 260);
                 FindShellIcon(pmLVItem, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
@@ -525,8 +525,8 @@ namespace DirectDesktop
             }
             else FindShellIcon(pmLVItem, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPCBuf, count2);
             wchar_t *RecycleBin = new wchar_t[260], *RecycleBinBuf{};
-            GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &RecycleBinBuf);
-            if (RecycleBinBuf == NULL)
+            GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", nullptr, &RecycleBinBuf);
+            if (RecycleBinBuf == nullptr)
             {
                 LoadStringW(WinStorageDLL, 8964, RecycleBin, 260);
                 FindShellIcon(pmLVItem, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
@@ -560,10 +560,10 @@ namespace DirectDesktop
         }
         HRESULT hr;
 
-        LPMALLOC pMalloc = NULL;
+        LPMALLOC pMalloc = nullptr;
         hr = SHGetMalloc(&pMalloc);
 
-        LPSHELLFOLDER psfDesktop = NULL;
+        LPSHELLFOLDER psfDesktop = nullptr;
         hr = SHGetDesktopFolder(&psfDesktop);
 
         if (FAILED(hr) || pMalloc == nullptr || psfDesktop == nullptr)
@@ -573,20 +573,20 @@ namespace DirectDesktop
             return;
         }
 
-        LPITEMIDLIST pidl = NULL;
-        hr = psfDesktop->ParseDisplayName(NULL, NULL, path, NULL, &pidl, NULL);
+        LPITEMIDLIST pidl = nullptr;
+        hr = psfDesktop->ParseDisplayName(nullptr, nullptr, path, nullptr, &pidl, nullptr);
 
-        LPSHELLFOLDER psfFolder = NULL;
-        hr = psfDesktop->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&psfFolder);
+        LPSHELLFOLDER psfFolder = nullptr;
+        hr = psfDesktop->BindToObject(pidl, nullptr, IID_IShellFolder, (void**)&psfFolder);
         if (psfDesktop != nullptr) psfDesktop->Release();
         pMalloc->Free(pidl);
 
-        LPENUMIDLIST pEnumIDL = NULL;
-        if (psfFolder) hr = psfFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
+        LPENUMIDLIST pEnumIDL = nullptr;
+        if (psfFolder) hr = psfFolder->EnumObjects(nullptr, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
         while (runs < limit)
         {
             if (pEnumIDL == nullptr) break;
-            hr = pEnumIDL->Next(1, &pidl, NULL);
+            hr = pEnumIDL->Next(1, &pidl, nullptr);
             wstring foundsimplefilename{};
             wstring foundfilename{};
             if (hr == NOERROR)
@@ -671,26 +671,26 @@ namespace DirectDesktop
         int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
         HRESULT hr;
 
-        LPMALLOC pMalloc = NULL;
+        LPMALLOC pMalloc = nullptr;
         hr = SHGetMalloc(&pMalloc);
 
-        LPSHELLFOLDER psfDesktop = NULL;
+        LPSHELLFOLDER psfDesktop = nullptr;
         hr = SHGetDesktopFolder(&psfDesktop);
 
-        LPITEMIDLIST pidl = NULL;
-        hr = psfDesktop->ParseDisplayName(NULL, NULL, path, NULL, &pidl, NULL);
+        LPITEMIDLIST pidl = nullptr;
+        hr = psfDesktop->ParseDisplayName(nullptr, nullptr, path, nullptr, &pidl, nullptr);
 
-        LPSHELLFOLDER psfFolder = NULL;
-        hr = psfDesktop->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&psfFolder);
+        LPSHELLFOLDER psfFolder = nullptr;
+        hr = psfDesktop->BindToObject(pidl, nullptr, IID_IShellFolder, (void**)&psfFolder);
         if (psfDesktop != nullptr) psfDesktop->Release();
         pMalloc->Free(pidl);
 
-        LPENUMIDLIST pEnumIDL = NULL;
-        hr = psfFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
+        LPENUMIDLIST pEnumIDL = nullptr;
+        hr = psfFolder->EnumObjects(nullptr, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN | SHCONTF_INCLUDESUPERHIDDEN, &pEnumIDL);
         while (runs < limit)
         {
             if (pEnumIDL == nullptr) break;
-            hr = pEnumIDL->Next(1, &pidl, NULL);
+            hr = pEnumIDL->Next(1, &pidl, nullptr);
             if (hr == NOERROR)
             {
                 WIN32_FIND_DATAW fd;
@@ -736,7 +736,7 @@ namespace DirectDesktop
         GetClassNameW(hwnd, className, sizeof(className) / 2);
         if (wcscmp(className, L"WorkerW") == 0)
         {
-            HWND hSHELLDLL_DefView = FindWindowExW(hwnd, NULL, L"SHELLDLL_DefView", NULL);
+            HWND hSHELLDLL_DefView = FindWindowExW(hwnd, nullptr, L"SHELLDLL_DefView", nullptr);
             if (hSHELLDLL_DefView)
             {
                 *(HWND*)lParam = hwnd;
@@ -750,7 +750,7 @@ namespace DirectDesktop
     {
         WCHAR className[64];
         HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-        SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
+        SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, nullptr);
         GetClassNameW(hwnd, className, sizeof(className) / 2);
         if (wcscmp(className, L"WorkerW") == 0)
         {
@@ -775,14 +775,14 @@ namespace DirectDesktop
 
     HWND GetWorkerW()
     {
-        HWND hWorkerW = NULL;
+        HWND hWorkerW = nullptr;
         EnumWindows(EnumWindowsProc, (LPARAM)&hWorkerW);
         return hWorkerW;
     }
 
     HWND GetWorkerW2(int* x, int* y)
     {
-        HWND hWorkerW = NULL;
+        HWND hWorkerW = nullptr;
         EnumWindows(EnumWindowsProc2, (LPARAM)&hWorkerW);
         return hWorkerW;
     }
@@ -792,10 +792,10 @@ namespace DirectDesktop
         int x = 0, y = 0;
         HWND hWndResult{};
         if (*WindowsBuild < 26002) *hWorkerW = GetWorkerW2(&x, &y);
-        else *hWorkerW = FindWindowExW(*hWndProgman, NULL, L"WorkerW", NULL);
+        else *hWorkerW = FindWindowExW(*hWndProgman, nullptr, L"WorkerW", nullptr);
         if (hWorkerW)
         {
-            if (findSHELLDLL_DefView) *hSHELLDLL_DefView = FindWindowExW(*hWorkerW, NULL, L"SHELLDLL_DefView", NULL);
+            if (findSHELLDLL_DefView) *hSHELLDLL_DefView = FindWindowExW(*hWorkerW, nullptr, L"SHELLDLL_DefView", nullptr);
             if (logging == IDYES)
             {
                 if (*hSHELLDLL_DefView != nullptr) MainLogger.WriteLine(L"Information: Found WorkerW.");
@@ -877,8 +877,8 @@ namespace DirectDesktop
             wchar_t *nameBuffer = new wchar_t[260], *nameBuffer2{};
             if (item.name == L"::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")
             {
-                GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &nameBuffer2);
-                if (nameBuffer2 == NULL)
+                GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", nullptr, &nameBuffer2);
+                if (nameBuffer2 == nullptr)
                 {
                     delete[] nameBuffer;
                     nameBuffer = new wchar_t[260];
@@ -890,8 +890,8 @@ namespace DirectDesktop
             if (nameBuffer2) free(nameBuffer2);
             if (item.name == L"::{645FF040-5081-101B-9F08-00AA002F954E}")
             {
-                GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &nameBuffer2);
-                if (nameBuffer2 == NULL)
+                GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", nullptr, &nameBuffer2);
+                if (nameBuffer2 == nullptr)
                 {
                     delete[] nameBuffer;
                     nameBuffer = new wchar_t[260];
@@ -1167,7 +1167,7 @@ namespace DirectDesktop
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable"))
         {
             free(value2);
-            value2 = 0;
+            value2 = nullptr;
             GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", &value2);
             offset2 = 0;
             for (int i = 0; i < pm.size(); i++)
@@ -1201,7 +1201,7 @@ namespace DirectDesktop
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable"))
         {
             free(value2);
-            value2 = 0;
+            value2 = nullptr;
             GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", &value2);
             offset2 = 0;
             for (int i = 0; i < pm.size(); i++)

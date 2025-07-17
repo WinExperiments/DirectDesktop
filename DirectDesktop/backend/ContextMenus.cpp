@@ -39,13 +39,13 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Context)
         {
-            IShellView* pShellView = NULL;
-            IShellFolder* pShellFolder = NULL;
+            IShellView* pShellView = nullptr;
+            IShellFolder* pShellFolder = nullptr;
 
             HRESULT hr = SHGetDesktopFolder(&pShellFolder);
             pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
 
-            LPCONTEXTMENU3 pICv1 = NULL;
+            LPCONTEXTMENU3 pICv1 = nullptr;
             pShellView->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu3, (LPVOID*)&pICv1);
             if (pICv1)
             {
@@ -114,7 +114,7 @@ namespace DirectDesktop
 
                 POINT pt;
                 GetCursorPos(&pt);
-                int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
+                int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
                 bool touchmodeMem{};
                 switch (menuItemId)
                 {
@@ -180,15 +180,15 @@ namespace DirectDesktop
 
     void RightClickCore(LPCWSTR folderPath)
     {
-        LPITEMIDLIST pidl = NULL;
-        SHParseDisplayName(folderPath, NULL, &pidl, 0, NULL);
+        LPITEMIDLIST pidl = nullptr;
+        SHParseDisplayName(folderPath, nullptr, &pidl, 0, nullptr);
 
-        IShellFolder* ppFolder = NULL;
-        LPITEMIDLIST pidlChild = NULL;
+        IShellFolder* ppFolder = nullptr;
+        LPITEMIDLIST pidlChild = nullptr;
         HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
 
-        LPCONTEXTMENU pICv1 = NULL;
-        ppFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST*)&pidlChild, IID_IContextMenu, NULL, (void**)&pICv1);
+        LPCONTEXTMENU pICv1 = nullptr;
+        ppFolder->GetUIObjectOf(nullptr, 1, (LPCITEMIDLIST*)&pidlChild, IID_IContextMenu, nullptr, (void**)&pICv1);
         if (pICv1)
         {
             HMENU hm = CreatePopupMenu();
@@ -206,7 +206,7 @@ namespace DirectDesktop
 
             POINT pt;
             GetCursorPos(&pt);
-            int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
+            int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
             CMINVOKECOMMANDINFO ici;
             ZeroMemory(&ici, sizeof(ici));
             ici.cbSize = sizeof(CMINVOKECOMMANDINFO);

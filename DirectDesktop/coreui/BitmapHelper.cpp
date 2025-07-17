@@ -14,11 +14,11 @@ namespace DirectDesktop
     {
         IStream* ipStream = nullptr;
 
-        HRSRC hrsrc = FindResourceW(NULL, lpName, lpType);
+        HRSRC hrsrc = FindResourceW(nullptr, lpName, lpType);
         if (hrsrc == nullptr) return ipStream;
 
-        DWORD dwResourceSize = SizeofResource(NULL, hrsrc);
-        HGLOBAL hglbImage = LoadResource(NULL, hrsrc);
+        DWORD dwResourceSize = SizeofResource(nullptr, hrsrc);
+        HGLOBAL hglbImage = LoadResource(nullptr, hrsrc);
         if (hglbImage == nullptr) return ipStream;
 
         LPVOID pvSourceResourceData = LockResource(hglbImage);
@@ -90,9 +90,9 @@ namespace DirectDesktop
         bminfo.bmiHeader.biCompression = BI_RGB;
 
         void* pvImageBits = nullptr;
-        HDC hdcScreen = GetDC(NULL);
-        HBITMAP hInternalBitmap = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0);
-        ReleaseDC(NULL, hdcScreen);
+        HDC hdcScreen = GetDC(nullptr);
+        HBITMAP hInternalBitmap = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, nullptr, 0);
+        ReleaseDC(nullptr, hdcScreen);
         if (hInternalBitmap == nullptr) return false;
 
         const UINT cbStride = width * 4;
@@ -141,10 +141,10 @@ namespace DirectDesktop
         bmi.bmiHeader.biBitCount = 32;
         bmi.bmiHeader.biCompression = BI_RGB;
 
-        void* pBitmapData = NULL;
-        HBITMAP hTextBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBitmapData, NULL, 0);
+        void* pBitmapData = nullptr;
+        HBITMAP hTextBitmap = CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, &pBitmapData, nullptr, 0);
         if (!hTextBitmap) return false;
-        HDC hdcMem = CreateCompatibleDC(NULL);
+        HDC hdcMem = CreateCompatibleDC(nullptr);
         HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hTextBitmap);
 
         if (!hdcMem)
@@ -202,7 +202,7 @@ namespace DirectDesktop
         int newWidth = originalWidth + pL + pR;
         int newHeight = originalHeight + pT + pB;
 
-        HDC hdcScreen = GetDC(NULL);
+        HDC hdcScreen = GetDC(nullptr);
         HDC hdcMem = CreateCompatibleDC(hdcScreen);
         HBITMAP hInternalNewBitmap = CreateCompatibleBitmap(hdcScreen, newWidth, newHeight);
         HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hInternalNewBitmap);
@@ -220,7 +220,7 @@ namespace DirectDesktop
         DeleteDC(hdcOriginal);
         SelectObject(hdcMem, hOldBitmap);
         DeleteDC(hdcMem);
-        ReleaseDC(NULL, hdcScreen);
+        ReleaseDC(nullptr, hdcScreen);
 
         hNewBitmap = hInternalNewBitmap;
         return true;
@@ -234,7 +234,7 @@ namespace DirectDesktop
 
         Gdiplus::GdiplusStartupInput gdiplusStartupInput;
         ULONG_PTR gdiplusToken;
-        if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL) != Gdiplus::Status::Ok) return false;
+        if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) != Gdiplus::Status::Ok) return false;
 
         Gdiplus::Bitmap* bmp = Gdiplus::Bitmap::FromFile(path, false);
         if (!bmp) return false;
@@ -242,7 +242,7 @@ namespace DirectDesktop
         HBITMAP hbmOld;
         bmp->GetHBITMAP(Gdiplus::Color(0, 0, 0), &hbmOld);
 
-        HDC hdcScreen = GetDC(NULL);
+        HDC hdcScreen = GetDC(nullptr);
         HDC hdcSrc = CreateCompatibleDC(hdcScreen);
         HDC hdcDst = CreateCompatibleDC(hdcScreen);
         HBITMAP hOldSrc = (HBITMAP)SelectObject(hdcSrc, hbmOld);
@@ -256,7 +256,7 @@ namespace DirectDesktop
         SelectObject(hdcDst, hOldDst);
         DeleteDC(hdcSrc);
         DeleteDC(hdcDst);
-        ReleaseDC(NULL, hdcScreen);
+        ReleaseDC(nullptr, hdcScreen);
         delete bmp;
         DeleteObject(hbmOld);
         Gdiplus::GdiplusShutdown(gdiplusToken);

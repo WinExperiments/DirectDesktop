@@ -111,7 +111,7 @@ namespace DirectDesktop
                             }
                             g_maxPageID--;
                             DWORD dwReload;
-                            HANDLE hReload = CreateThread(0, 0, ReloadPV, NULL, 0, &dwReload);
+                            HANDLE hReload = CreateThread(nullptr, 0, ReloadPV, nullptr, 0, &dwReload);
                             if (hReload) CloseHandle(hReload);
                         }
                         break;
@@ -140,7 +140,7 @@ namespace DirectDesktop
                             }
                             g_homePageID = page;
                             DWORD dwReload;
-                            HANDLE hReload = CreateThread(0, 0, ReloadPV, NULL, 0, &dwReload);
+                            HANDLE hReload = CreateThread(nullptr, 0, ReloadPV, nullptr, 0, &dwReload);
                             if (hReload) CloseHandle(hReload);
                         }
                         break;
@@ -157,9 +157,9 @@ namespace DirectDesktop
                 const WCHAR* iconshadow = g_touchmode ? L"PV_IconShadowTouchPreview" : L"PV_IconShadowPreview";
                 const WCHAR* icon = g_touchmode ? L"PV_IconTouchPreview" : L"PV_IconPreview";
                 const WCHAR* iconshortcut = g_touchmode ? L"PV_IconShortcutTouchPreview" : L"PV_IconShortcutPreview";
-                parserEdit->CreateElement(iconshadow, NULL, NULL, NULL, (Element**)&PV_IconShadowPreview);
-                parserEdit->CreateElement(icon, NULL, NULL, NULL, (Element**)&PV_IconPreview);
-                parserEdit->CreateElement(iconshortcut, NULL, NULL, NULL, &PV_IconShortcutPreview);
+                parserEdit->CreateElement(iconshadow, nullptr, nullptr, nullptr, (Element**)&PV_IconShadowPreview);
+                parserEdit->CreateElement(icon, nullptr, nullptr, nullptr, (Element**)&PV_IconPreview);
+                parserEdit->CreateElement(iconshortcut, nullptr, nullptr, nullptr, &PV_IconShortcutPreview);
                 CSafeElementPtr<Element> pePreviewContainer;
                 pePreviewContainer.Assign(yV->peOptionalTarget1);
                 pePreviewContainer->Add((Element**)&PV_IconShadowPreview, 1);
@@ -237,13 +237,13 @@ namespace DirectDesktop
             {
                 CValuePtr v;
                 DDScalableElement* PV_PageInner{};
-                parserEdit->CreateElement(L"PV_PageInner", NULL, NULL, NULL, (Element**)&PV_PageInner);
+                parserEdit->CreateElement(L"PV_PageInner", nullptr, nullptr, nullptr, (Element**)&PV_PageInner);
                 ((Element*)wParam)->Add((Element**)&PV_PageInner, 1);
                 CSafeElementPtr<RichText> number;
                 number.Assign(regElem<RichText*>(L"number", PV_PageInner));
                 number->SetContentString(to_wstring(lParam).c_str());
                 Element* pagetasks{};
-                parserEdit->CreateElement(L"pagetasks", NULL, NULL, NULL, &pagetasks);
+                parserEdit->CreateElement(L"pagetasks", nullptr, nullptr, nullptr, &pagetasks);
                 ((Element*)wParam)->Add(&pagetasks, 1);
                 CSafeElementPtr<Element> PV_HomeBadge;
                 PV_HomeBadge.Assign(regElem<Element*>(L"PV_HomeBadge", pagetasks));
@@ -368,7 +368,7 @@ namespace DirectDesktop
 
     void fullscreenAnimation3(int width, int height, float animstartscale, bool animate)
     {
-        parserEdit->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninnerE);
+        parserEdit->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninnerE);
         centeredE->Add((Element**)&fullscreeninnerE, 1);
         static const int savedanim = centeredE->GetAnimation();
         static const int savedanim2 = fullscreeninnerE->GetAnimation();
@@ -388,7 +388,7 @@ namespace DirectDesktop
         SimpleViewTop->SetAlpha(0);
         SimpleViewBottom->SetAlpha(0);
         DWORD animThread;
-        HANDLE animThreadHandle = CreateThread(0, 0, animate7, NULL, 0, &animThread);
+        HANDLE animThreadHandle = CreateThread(nullptr, 0, animate7, nullptr, 0, &animThread);
         if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 
@@ -537,7 +537,7 @@ namespace DirectDesktop
             PageViewer->Destroy(true);
             g_invokedpagechange = true;
             DWORD dd;
-            HANDLE thumbnailThread = CreateThread(0, 0, LoadNewPages, NULL, 0, &dd);
+            HANDLE thumbnailThread = CreateThread(nullptr, 0, LoadNewPages, nullptr, 0, &dd);
             if (thumbnailThread) CloseHandle(thumbnailThread);
         }
     }
@@ -548,7 +548,7 @@ namespace DirectDesktop
         {
             RECT dimensions;
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-            parserEdit->CreateElement(L"PageViewer", NULL, NULL, NULL, (Element**)&PageViewer);
+            parserEdit->CreateElement(L"PageViewer", nullptr, nullptr, nullptr, (Element**)&PageViewer);
             pEdit->Add((Element**)&PageViewer, 1);
             CSafeElementPtr<Element> PageViewerTop;
             PageViewerTop.Assign(regElem<Element*>(L"PageViewerTop", PageViewer));
@@ -582,7 +582,7 @@ namespace DirectDesktop
                 for (int i = 1; i <= g_maxPageID; i++)
                 {
                     LVItem* PV_Page{};
-                    parserEdit->CreateElement(L"PV_Page", NULL, NULL, NULL, (Element**)&PV_Page);
+                    parserEdit->CreateElement(L"PV_Page", nullptr, nullptr, nullptr, (Element**)&PV_Page);
                     PV_Page->SetWidth(dimensions.right * 0.25);
                     PV_Page->SetHeight(dimensions.bottom * 0.25);
                     PV_Page->SetMargin(dimensions.right * 0.025, 0, dimensions.right * 0.025, 0);
@@ -603,12 +603,12 @@ namespace DirectDesktop
                         remainingIcons++;
                     }
                     PV_Page->SetInternalXPos(remainingIcons); // hack
-                    yValueEx* yV = new yValueEx{ -1, 0.25, NULL, NULL, NULL, NULL, NULL, NULL, PV_Page };
+                    yValueEx* yV = new yValueEx{ -1, 0.25, NULL, nullptr, nullptr, nullptr, nullptr, nullptr, PV_Page };
                     QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
                     for (int j = 0; j < pm.size(); j++)
                     {
                         if (pm[j]->GetPage() != i) continue;
-                        yValueEx* yV = new yValueEx{ j, 0.25, NULL, NULL, NULL, NULL, NULL, NULL, PV_Page };
+                        yValueEx* yV = new yValueEx{ j, 0.25, NULL, nullptr, nullptr, nullptr, nullptr, nullptr, PV_Page };
                         QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
                     }
                 }
@@ -660,7 +660,7 @@ namespace DirectDesktop
         if (iev->uidType == Button::Click)
         {
             timerPtr = elem;
-            SetTimer(editwnd->GetHWND(), 1, 50, NULL);
+            SetTimer(editwnd->GetHWND(), 1, 50, nullptr);
         }
     }
 
@@ -669,7 +669,7 @@ namespace DirectDesktop
         if (iev->uidType == Button::Click)
         {
             timerPtr = elem;
-            SetTimer(editwnd->GetHWND(), 2, 50, NULL);
+            SetTimer(editwnd->GetHWND(), 2, 50, nullptr);
         }
     }
 
@@ -727,13 +727,13 @@ namespace DirectDesktop
             int rightMon = GetRightMonitor();
             topLeftMon.x = dimensions.right + dimensions.left - rightMon;
         }
-        NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Edit Mode", NULL, NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
-                               dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_NOINHERITLAYOUT, WS_POPUP, NULL, 0x43, &editwnd);
-        HWNDElement::Create(editwnd->GetHWND(), true, NULL, NULL, &key5, (Element**)&editparent);
-        DUIXmlParser::Create(&parserEdit, NULL, NULL, DUI_ParserErrorCB, NULL);
+        NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Edit Mode", nullptr, nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
+                               dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_NOINHERITLAYOUT, WS_POPUP, nullptr, 0x43, &editwnd);
+        HWNDElement::Create(editwnd->GetHWND(), true, NULL, nullptr, &key5, (Element**)&editparent);
+        DUIXmlParser::Create(&parserEdit, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
         parserEdit->SetXMLFromResource(IDR_UIFILE6, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
 
-        parserEdit->CreateElement(L"editmode", editparent, NULL, NULL, &pEdit);
+        parserEdit->CreateElement(L"editmode", editparent, nullptr, nullptr, &pEdit);
         //parserEdit->CreateElement(L"editmodeblur", editbgparent, NULL, NULL, &pEditBG);
 
         SetWindowLongPtrW(editwnd->GetHWND(), GWL_STYLE, 0x56003A40L);
@@ -811,7 +811,7 @@ namespace DirectDesktop
                 peContainerScale = 0.5;
             }
             else continue;
-            yValueEx* yV = new yValueEx{ j, peContainerScale, NULL, NULL, NULL, NULL, NULL, NULL, peContainer };
+            yValueEx* yV = new yValueEx{ j, peContainerScale, NULL, nullptr, nullptr, nullptr, nullptr, nullptr, peContainer };
             QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
         }
 
@@ -847,7 +847,7 @@ namespace DirectDesktop
         SimpleViewBottom->SetHeight(dimensions.bottom * 0.15);
         if (dimensions.bottom * 0.15 < 80 * g_flScaleFactor) SimpleViewTop->SetHeight(80 * g_flScaleFactor);
         if (dimensions.bottom * 0.15 < 112 * g_flScaleFactor) SimpleViewBottom->SetHeight(112 * g_flScaleFactor);
-        parserEdit->CreateElement(L"simpleviewoverlay", NULL, NULL, NULL, (Element**)&simpleviewoverlay);
+        parserEdit->CreateElement(L"simpleviewoverlay", nullptr, nullptr, nullptr, (Element**)&simpleviewoverlay);
         centeredE->Add((Element**)&simpleviewoverlay, 1);
         static const int savedanim3 = simpleviewoverlay->GetAnimation();
         g_savedanim3 = savedanim3;

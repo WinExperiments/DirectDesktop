@@ -19,7 +19,7 @@ namespace DirectDesktop
     bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y)
     {
         if (hBitmap) DeleteObject(hBitmap);
-        HDC hDC = GetDC(NULL);
+        HDC hDC = GetDC(nullptr);
         HDC hMemDC = CreateCompatibleDC(hDC);
 
         BITMAPINFO bmi = {};
@@ -30,17 +30,17 @@ namespace DirectDesktop
         bmi.bmiHeader.biBitCount = 32;
         bmi.bmiHeader.biCompression = BI_RGB;
 
-        void* pvBits = NULL;
-        HBITMAP hResultBmp = CreateDIBSection(hMemDC, &bmi, DIB_RGB_COLORS, &pvBits, NULL, 0);
+        void* pvBits = nullptr;
+        HBITMAP hResultBmp = CreateDIBSection(hMemDC, &bmi, DIB_RGB_COLORS, &pvBits, nullptr, 0);
         if (!hResultBmp)
         {
             DeleteDC(hMemDC);
-            ReleaseDC(NULL, hDC);
+            ReleaseDC(nullptr, hDC);
             return false;
         }
 
         HGDIOBJ hOrgBMP = SelectObject(hMemDC, hResultBmp);
-        DrawIconEx(hMemDC, 0, 0, hIcon, x, y, 0, NULL, DI_NORMAL);
+        DrawIconEx(hMemDC, 0, 0, hIcon, x, y, 0, nullptr, DI_NORMAL);
 
         DWORD* pixels = (DWORD*)pvBits;
         for (int i = 0; i < x * y; ++i)
@@ -54,7 +54,7 @@ namespace DirectDesktop
 
         SelectObject(hMemDC, hOrgBMP);
         DeleteDC(hMemDC);
-        ReleaseDC(NULL, hDC);
+        ReleaseDC(nullptr, hDC);
         DestroyIcon(hIcon);
         hBitmap = hResultBmp;
         return true;

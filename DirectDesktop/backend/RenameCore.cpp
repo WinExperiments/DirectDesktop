@@ -45,7 +45,7 @@ namespace DirectDesktop
     {
         HRESULT hr{};
         LVItem* selectedElement = (LVItem*)(elem->GetParent()->GetParent());
-        HWND hRichEdit = FindWindowExW(((HWNDElement*)elem)->GetHWND(), NULL, MSFTEDIT_CLASS, NULL);
+        HWND hRichEdit = FindWindowExW(((HWNDElement*)elem)->GetHWND(), nullptr, MSFTEDIT_CLASS, nullptr);
         WCHAR* buffer = new WCHAR[256];
         wstring newText{};
         GetWindowTextW(hRichEdit, buffer, 256);
@@ -62,8 +62,8 @@ namespace DirectDesktop
         StringCchPrintfW(newFilename, 256, newFilenameBuffer.c_str(), newText.c_str());
         if (hr != E_FAIL && MoveFileW(RemoveQuotes(selectedElement->GetFilename()).c_str(), RemoveQuotes(newFilename).c_str()))
         {
-            SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, NULL, NULL);
-            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, NULL);
+            SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
+            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, nullptr);
         }
         delete[] newFilename;
         delete[] buffer;
@@ -77,7 +77,7 @@ namespace DirectDesktop
         TEXTMETRICW tm{};
         LOGFONTW lf{};
         RECT rc = { 0, 0, 100, 100 };
-        HDC hdcBuffer = CreateCompatibleDC(NULL);
+        HDC hdcBuffer = CreateCompatibleDC(nullptr);
         SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
         HFONT hFont = CreateFontIndirectW(&lf);
         HFONT hOldFont = (HFONT)SelectObject(hdcBuffer, hFont);
@@ -101,8 +101,8 @@ namespace DirectDesktop
         GetWindowRect(hRichEdit, &rc);
         int currentWidth = rc.right - rc.left;
         int newHeight = GetContentHeight(hRichEdit);
-        SetWindowPos(hRichEdit, NULL, 0, 0, currentWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
-        SetWindowPos(((HWNDElement*)hDUIParent)->GetHWND(), NULL, 0, 0, currentWidth + rcPadding.left + rcPadding.right, newHeight + rcPadding.top + rcPadding.bottom, SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowPos(hRichEdit, nullptr, 0, 0, currentWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowPos(((HWNDElement*)hDUIParent)->GetHWND(), nullptr, 0, 0, currentWidth + rcPadding.left + rcPadding.right, newHeight + rcPadding.top + rcPadding.bottom, SWP_NOMOVE | SWP_NOZORDER);
     }
 
     LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -137,13 +137,13 @@ namespace DirectDesktop
                     }
                 case WM_PASTE:
                 case WM_CHAR:
-                    if (wcschr(L"\\/:*?\"<>|", (WCHAR)wParam) != NULL)
+                    if (wcschr(L"\\/:*?\"<>|", (WCHAR)wParam) != nullptr)
                     {
-                        SetTimer(hWnd, 2, 50, NULL);
+                        SetTimer(hWnd, 2, 50, nullptr);
                         return 0;
                         break;
                     }
-                    SetTimer(hWnd, 1, 150, NULL);
+                    SetTimer(hWnd, 1, 150, nullptr);
                     break;
                 case WM_TIMER:
                     KillTimer(hWnd, wParam);
@@ -155,7 +155,7 @@ namespace DirectDesktop
                         case 2:
                             MessageBeep(MB_OK);
                             DDNotificationBanner* ddnb{};
-                            DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", NULL, LoadStrFromRes(4109, L"shell32.dll").c_str(), 5, false);
+                            DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", nullptr, LoadStrFromRes(4109, L"shell32.dll").c_str(), 5, false);
                             break;
                     }
                     break;
@@ -208,7 +208,7 @@ namespace DirectDesktop
                 if (found > 1)
                 {
                     Sleep(250);
-                    DestroyWindow(FindWindowW(MSFTEDIT_CLASS, NULL));
+                    DestroyWindow(FindWindowW(MSFTEDIT_CLASS, nullptr));
                     if (RenameBox)
                     {
                         DestroyWindow(RenameBox->GetHWND());
@@ -224,7 +224,7 @@ namespace DirectDesktop
                     g_renameactive = false;
                     MessageBeep(MB_OK);
                     DDNotificationBanner* ddnb{};
-                    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_ERROR, L"DDNB", NULL, LoadStrFromRes(4041).c_str(), 3, false);
+                    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_ERROR, L"DDNB", nullptr, LoadStrFromRes(4041).c_str(), 3, false);
                     break;
                 }
                 if (pm[items]->GetPage() == g_currentPageID)
@@ -254,12 +254,12 @@ namespace DirectDesktop
                     textY = g_touchmode ? 8 * g_flScaleFactor : 0;
                     unsigned long keyR{};
                     CValuePtr v;
-                    parser->CreateElement(L"RenameBoxElement", NULL, NULL, NULL, &RenameBoxElement);
+                    parser->CreateElement(L"RenameBoxElement", nullptr, nullptr, nullptr, &RenameBoxElement);
                     RenameBoxElement->SetLayoutPos(textElement->GetLayoutPos());
                     pm[items]->Add((Element**)&RenameBoxElement, 1);
                     RenameBoxElement->SetHeight(textHeight);
-                    parser->CreateElement(L"RenameBox", RenameBoxElement, NULL, NULL, (Element**)&RenameBox);
-                    HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &keyR, (Element**)&RenameBox);
+                    parser->CreateElement(L"RenameBox", RenameBoxElement, nullptr, nullptr, (Element**)&RenameBox);
+                    HWNDElement::Create(wnd->GetHWND(), true, NULL, nullptr, &keyR, (Element**)&RenameBox);
                     RenameBoxElement->Add((Element**)&RenameBox, 1);
                     RenameBox->SetVisible(true);
                     SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX, itemY + itemHeight - textHeight, itemWidth, textHeight, SWP_SHOWWINDOW);
@@ -279,7 +279,7 @@ namespace DirectDesktop
                     RenameBox->SetValue(Element::SheetProp, 1, sheetStorage);
                     DWORD alignment = g_touchmode ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
                     HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, pm[items]->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
-                                                     ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, RenameBox->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, NULL);
+                                                     ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, RenameBox->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, nullptr);
                     LOGFONTW lf{};
                     int dpiAdjusted = (g_dpiLaunch * 96.0) * (g_dpiLaunch / 96.0) / g_dpi;
                     SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);

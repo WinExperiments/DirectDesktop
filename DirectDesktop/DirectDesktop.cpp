@@ -55,9 +55,9 @@ namespace DirectDesktop
     wstring path1, path2, path3;
 
     HRESULT err;
-    HWND g_hWorkerW = NULL;
-    HWND g_hSHELLDLL_DefView = NULL;
-    HWND g_hWndTaskbar = FindWindowW(L"Shell_TrayWnd", NULL);
+    HWND g_hWorkerW = nullptr;
+    HWND g_hSHELLDLL_DefView = nullptr;
+    HWND g_hWndTaskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
     Logger MainLogger;
 
     DWORD shutdownReason = SHTDN_REASON_UNKNOWN;
@@ -79,7 +79,7 @@ namespace DirectDesktop
     wstring LoadStrFromRes(UINT id, LPCWSTR dllName)
     {
         WCHAR* loadedStrBuffer = new WCHAR[512]{};
-        HINSTANCE hInst = (HINSTANCE)LoadLibraryExW(dllName, NULL, LOAD_LIBRARY_AS_DATAFILE);
+        HINSTANCE hInst = (HINSTANCE)LoadLibraryExW(dllName, nullptr, LOAD_LIBRARY_AS_DATAFILE);
         LoadStringW(hInst, id, loadedStrBuffer, 512);
         wstring loadedStr = loadedStrBuffer;
         delete[] loadedStrBuffer;
@@ -109,9 +109,9 @@ namespace DirectDesktop
 
     void InitialUpdateScale()
     {
-        HDC screen = GetDC(0);
+        HDC screen = GetDC(nullptr);
         g_dpi = GetDeviceCaps(screen, LOGPIXELSX);
-        ReleaseDC(0, screen);
+        ReleaseDC(nullptr, screen);
         g_flScaleFactor = g_dpi / 96.0;
         g_dpiLaunch = g_dpi;
         g_touchSizeX *= g_flScaleFactor;
@@ -325,11 +325,11 @@ namespace DirectDesktop
             DeleteObject(hBitmap);
             hBitmap = nullptr;
         }
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         if (FAILED(hr)) return false;
 
         ComPtr<IShellItem2> pShellItem{};
-        hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
+        hr = SHCreateItemFromParsingName(filePath, nullptr, IID_PPV_ARGS(&pShellItem));
 
         if (SUCCEEDED(hr) && pShellItem)
         {
@@ -364,7 +364,7 @@ namespace DirectDesktop
     {
         LOGFONTW lf{};
         RECT rc = { 0, 0, 100, 100 };
-        HDC hdcBuffer = CreateCompatibleDC(NULL);
+        HDC hdcBuffer = CreateCompatibleDC(nullptr);
         SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
         DrawTextW(hdcBuffer, L" ", -1, &rc, DT_CENTER);
         GetTextMetricsW(hdcBuffer, &textm);
@@ -373,7 +373,7 @@ namespace DirectDesktop
 
     float CalcTextLines(const wchar_t* str, int width)
     {
-        HDC hdcBuffer = CreateCompatibleDC(NULL);
+        HDC hdcBuffer = CreateCompatibleDC(nullptr);
         LOGFONTW lf{};
         SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
         if (g_touchmode) lf.lfHeight *= 1.25;
@@ -390,7 +390,7 @@ namespace DirectDesktop
             wcscpy_s(filenameBuffer, str);
             DWORD direction = (localeType == 1) ? DT_RIGHT : DT_LEFT;
             DWORD alignment = g_touchmode ? direction | DT_WORD_ELLIPSIS : DT_CENTER;
-            DrawTextExW(hdcBuffer, filenameBuffer, -1, &rc, alignment | DT_MODIFYSTRING | DT_END_ELLIPSIS | DT_LVICON, NULL);
+            DrawTextExW(hdcBuffer, filenameBuffer, -1, &rc, alignment | DT_MODIFYSTRING | DT_END_ELLIPSIS | DT_LVICON, nullptr);
             lines_b1 = wcscmp(str, filenameBuffer);
             if (!g_touchmode || tilelines > 5) break;
         }
@@ -404,7 +404,7 @@ namespace DirectDesktop
         RECT rc2 = { 0, 0, width - 4, textm.tmHeight * 2 };
         wchar_t filenameBuffer2[260]{};
         wcscpy_s(filenameBuffer2, str);
-        DrawTextExW(hdcBuffer, filenameBuffer2, -1, &rc2, DT_MODIFYSTRING | DT_WORD_ELLIPSIS | DT_CENTER | DT_LVICON, NULL);
+        DrawTextExW(hdcBuffer, filenameBuffer2, -1, &rc2, DT_MODIFYSTRING | DT_WORD_ELLIPSIS | DT_CENTER | DT_LVICON, nullptr);
         int lines_b2 = wcscmp(str, filenameBuffer2);
         DeleteObject(hFont);
         DeleteObject(hOldFont);
@@ -469,15 +469,15 @@ namespace DirectDesktop
             int rightMon = GetRightMonitor();
             topLeftMon.x = dimensions.right + dimensions.left - rightMon;
         }
-        SetWindowPos(wnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
-        SetWindowPos(subviewwnd->GetHWND(), NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+        SetWindowPos(wnd->GetHWND(), nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+        SetWindowPos(subviewwnd->GetHWND(), nullptr, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
         if (editwnd)
         {
-            SetWindowPos(editwnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
+            SetWindowPos(editwnd->GetHWND(), nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             //SetWindowPos(editbgwnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
         }
-        SetWindowPos(g_hWorkerW, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
-        SetWindowPos(g_hSHELLDLL_DefView, NULL, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
+        SetWindowPos(g_hWorkerW, nullptr, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
+        SetWindowPos(g_hSHELLDLL_DefView, nullptr, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
         UIContainer->SetWidth(dimensions.right - dimensions.left);
         UIContainer->SetHeight(dimensions.bottom - dimensions.top);
         SetWindowPos(g_hWndTaskbar, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -488,7 +488,7 @@ namespace DirectDesktop
         yValue* yV = (yValue*)lpParam;
         Sleep(yV->fl1);
         HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-        g_hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
+        g_hSHELLDLL_DefView = FindWindowExW(hWndProgman, nullptr, L"SHELLDLL_DefView", nullptr);
         bool bTest = PlaceDesktopInPos(&(yV->num), &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, false);
         SetWindowLongPtrW(g_hWorkerW, GWL_STYLE, 0x96000000L);
         SetWindowLongPtrW(g_hWorkerW, GWL_EXSTYLE, 0x20000880L);
@@ -507,7 +507,7 @@ namespace DirectDesktop
             {
                 yValue* yV = new yValue{ WindowsBuild, 200, NULL };
                 DWORD dwWallpaper{};
-                HANDLE wallpaperThread = CreateThread(0, 0, WallpaperHelper24H2, (LPVOID)yV, 0, &dwWallpaper);
+                HANDLE wallpaperThread = CreateThread(nullptr, 0, WallpaperHelper24H2, (LPVOID)yV, 0, &dwWallpaper);
                 if (wallpaperThread) CloseHandle(wallpaperThread);
             }
         }
@@ -592,12 +592,12 @@ namespace DirectDesktop
                     wchar_t* cBuffer = new wchar_t[260];
                     DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
                     StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
-                    ShellExecuteW(NULL, L"open", L"notepad.exe", desktoplog, NULL, SW_SHOW);
+                    ShellExecuteW(nullptr, L"open", L"notepad.exe", desktoplog, nullptr, SW_SHOW);
                     delete[] desktoplog;
                     delete[] cBuffer;
                 }
                 DWORD dwTermination{};
-                HANDLE termThread = CreateThread(0, 0, EndExplorer, NULL, 0, &dwTermination);
+                HANDLE termThread = CreateThread(nullptr, 0, EndExplorer, nullptr, 0, &dwTermination);
                 if (termThread) CloseHandle(termThread);
                 Sleep(500);
                 pMain->Destroy(true);
@@ -734,7 +734,7 @@ namespace DirectDesktop
                     pm[lParam]->SetDrawType(0);
                     v_pels.push_back(assignFn(pm[lParam], SelectItem2, true));
                     int* itemID = (int*)(&lParam);
-                    HANDLE hCreateGroup = CreateThread(0, 0, InitDesktopGroup, itemID, 0, NULL);
+                    HANDLE hCreateGroup = CreateThread(nullptr, 0, InitDesktopGroup, itemID, 0, nullptr);
                     if (hCreateGroup) CloseHandle(hCreateGroup);
                 }
                 else if (!g_touchmode)
@@ -981,7 +981,7 @@ namespace DirectDesktop
             }
             case WM_USER + 14:
             {
-                vector<HANDLE> smThumbnailThreadHandle(pm.size(), 0);
+                vector<HANDLE> smThumbnailThreadHandle(pm.size(), nullptr);
                 for (int icon = 0; icon < pm.size(); icon++)
                 {
                     IconThumbHelper(icon);
@@ -989,7 +989,7 @@ namespace DirectDesktop
                 for (int icon2 = 0; icon2 < pm.size(); icon2++)
                 {
                     yValue* yV = new yValue{ icon2 };
-                    smThumbnailThreadHandle[icon2] = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
+                    smThumbnailThreadHandle[icon2] = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
                     if (smThumbnailThreadHandle[icon2]) CloseHandle(smThumbnailThreadHandle[icon2]);
                 }
                 smThumbnailThreadHandle.clear();
@@ -1007,7 +1007,7 @@ namespace DirectDesktop
                 HBITMAP thumbIcon = ti->icon;
                 CValuePtr spvThumbIcon = DirectUI::Value::CreateGraphic(thumbIcon, 2, 0xffffffff, false, false, false);
                 Element* GroupedIcon{};
-                parser->CreateElement(L"GroupedIcon", NULL, NULL, NULL, (Element**)&GroupedIcon);
+                parser->CreateElement(L"GroupedIcon", nullptr, nullptr, nullptr, (Element**)&GroupedIcon);
                 iconpm[lParam]->Add((Element**)&GroupedIcon, 1);
                 GroupedIcon->SetWidth(g_gpiconsz * g_flScaleFactor), GroupedIcon->SetHeight(g_gpiconsz * g_flScaleFactor);
                 GroupedIcon->SetX(ti->x), GroupedIcon->SetY(ti->y);
@@ -1228,9 +1228,9 @@ namespace DirectDesktop
                 FileInfo* fi = (FileInfo*)lParam;
                 if (g_touchmode)
                 {
-                    parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElem);
+                    parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElem);
                 }
-                else parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
+                else parser->CreateElement(L"outerElem", nullptr, nullptr, nullptr, (Element**)&outerElem);
                 CSafeElementPtr<DDScalableElement> iconElem;
                 iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElem));
                 CSafeElementPtr<Element> shortcutElem;
@@ -1296,7 +1296,7 @@ namespace DirectDesktop
                 int currentID = pm.size() - 1;
                 IconThumbHelper(currentID);
                 yValue* yV = new yValue{ currentID };
-                HANDLE smThumbnailThreadHandle = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
+                HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
                 if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
                 RearrangeIcons(false, false, true);
                 pm[currentID]->SetRefreshState(true);
@@ -1362,7 +1362,7 @@ namespace DirectDesktop
                         containerElem.Assign(regElem<Element*>(L"containerElem", pm[lParam]));
                         containerElem->SetPadding(space, space, space, space);
                     }
-                    SelectItemListener(pm[lParam], Element::SelectedProp(), 69, NULL, NULL);
+                    SelectItemListener(pm[lParam], Element::SelectedProp(), 69, nullptr, nullptr);
                 }
                 break;
             }
@@ -1410,11 +1410,11 @@ namespace DirectDesktop
             {
                 DDCheckBoxGlyph* peGlyph;
                 DDScalableElement* peText;
-                DDCheckBoxGlyph::Create((Element*)wParam, 0, (Element**)&peGlyph);
+                DDCheckBoxGlyph::Create((Element*)wParam, nullptr, (Element**)&peGlyph);
                 ((Element*)wParam)->Add((Element**)&peGlyph, 1);
                 peGlyph->SetCheckedState(((DDCheckBox*)wParam)->GetCheckedState());
                 peGlyph->SetID(L"DDCB_Glyph");
-                DDScalableElement::Create((Element*)wParam, 0, (Element**)&peText);
+                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peText);
                 ((Element*)wParam)->Add((Element**)&peText, 1);
                 CValuePtr v;
                 peText->SetContentString(((Element*)wParam)->GetContentString(&v));
@@ -1454,7 +1454,7 @@ namespace DirectDesktop
                 int btnX = ((Element*)wParam)->GetWidth() / 8;
                 int btnY = (((Element*)wParam)->GetHeight() - bm.bmHeight) / 2;
 
-                HDC hdc = GetDC(NULL);
+                HDC hdc = GetDC(nullptr);
                 HDC hdcSrc = CreateCompatibleDC(hdc);
                 HDC hdcDst = CreateCompatibleDC(hdc);
                 SelectObject(hdcSrc, newImage);
@@ -1464,7 +1464,7 @@ namespace DirectDesktop
                     HBITMAP hbmPickerBtn = CreateCompatibleBitmap(hdc, btnWidth, btnHeight);
                     SelectObject(hdcDst, hbmPickerBtn);
                     BitBlt(hdcDst, 0, 0, btnWidth, btnHeight, hdcSrc, i * btnWidth, 0, SRCCOPY);
-                    DDColorPickerButton::Create((Element*)wParam, 0, (Element**)&peTemp);
+                    DDColorPickerButton::Create((Element*)wParam, nullptr, (Element**)&peTemp);
                     ((Element*)wParam)->Add((Element**)&peTemp, 1);
                     peTemp->SetLayoutPos(-2);
                     peTemp->SetX(xPos);
@@ -1482,20 +1482,20 @@ namespace DirectDesktop
                 if (newImage) DeleteObject(newImage);
                 DeleteDC(hdcSrc);
                 DeleteDC(hdcDst);
-                ReleaseDC(NULL, hdc);
+                ReleaseDC(nullptr, hdc);
 
                 RegKeyValue rkv = ((DDColorPicker*)wParam)->GetRegKeyValue();
                 int order = GetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind) * btnX;
                 int checkedBtnX = (localeType == 1) ? ((Element*)wParam)->GetWidth() - order - btnWidth : order;
                 DDScalableElement* peCircle;
-                DDScalableElement::Create((Element*)wParam, 0, (Element**)&peCircle);
+                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peCircle);
                 ((Element*)wParam)->Add((Element**)&peCircle, 1);
                 peCircle->SetLayoutPos(-2);
                 peCircle->SetX(-9999);
                 peCircle->SetWidth(bm.bmWidth / 8);
                 peCircle->SetHeight(btnHeight);
                 peCircle->SetID(L"DDColorPicker_HoverCircle");
-                DDScalableElement::Create((Element*)wParam, 0, (Element**)&peCircle);
+                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peCircle);
                 ((Element*)wParam)->Add((Element**)&peCircle, 1);
                 peCircle->SetLayoutPos(-2);
                 peCircle->SetX(checkedBtnX);
@@ -1693,7 +1693,7 @@ namespace DirectDesktop
         int maxheight = dimensions.bottom - dimensions.top - padding.top - padding.bottom;
         if (width > maxwidth) width = maxwidth;
         if (height > maxheight) height = maxheight;
-        parserSubview->CreateElement(L"fullscreeninner", NULL, NULL, NULL, (Element**)&fullscreeninner);
+        parserSubview->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninner);
         centered->Add((Element**)&fullscreeninner, 1);
         static const int savedanim = centered->GetAnimation();
         static const int savedanim2 = fullscreeninner->GetAnimation();
@@ -1703,7 +1703,7 @@ namespace DirectDesktop
         fullscreenpopupbase->SetVisible(true);
         fullscreeninner->SetVisible(true);
         if (!g_editmode) BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbase);
-        HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper2, NULL, NULL, NULL);
+        HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
         g_issubviewopen = true;
     }
@@ -1711,14 +1711,14 @@ namespace DirectDesktop
     void fullscreenAnimation2()
     {
         DWORD animThread;
-        HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
+        HANDLE animThreadHandle = CreateThread(nullptr, 0, animate6, nullptr, 0, &animThread);
         if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 
     void ShowPopupCore()
     {
         fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.9);
-        HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper2, NULL, NULL, NULL);
+        HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
     }
 
@@ -1736,7 +1736,7 @@ namespace DirectDesktop
         if (g_issettingsopen && g_atleastonesetting)
         {
             DDNotificationBanner* ddnb{};
-            DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_SUCCESS, L"DDNB", LoadStrFromRes(4042).c_str(), NULL, 3, false);
+            DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_SUCCESS, L"DDNB", LoadStrFromRes(4042).c_str(), nullptr, 3, false);
         }
         g_issubviewopen = false;
         g_issettingsopen = false;
@@ -1839,7 +1839,7 @@ namespace DirectDesktop
             tasks->SetVisible(false);
             More->SetVisible(false);
             groupdirlist->SetLayoutPos(-3);
-            parserSubview->CreateElement(L"customizegroup", NULL, groupdirectory, NULL, &customizegroup);
+            parserSubview->CreateElement(L"customizegroup", nullptr, groupdirectory, nullptr, &customizegroup);
             groupdirectory->Add(&customizegroup, 1);
             CSafeElementPtr<DDColorPicker> DDCP_Group;
             DDCP_Group.Assign(regElem<DDColorPicker*>(L"DDCP_Group", customizegroup));
@@ -1852,7 +1852,7 @@ namespace DirectDesktop
             DDCP_Group->SetTargetElements(btnTargets);
             btnTargets.clear();
             yValuePtrs* yV = new yValuePtrs{ (void*)DDCP_Group, (void*)iconElement };
-            HANDLE checkedCircleThread = CreateThread(0, 0, PositionCheckCircle, (LPVOID)yV, 0, NULL);
+            HANDLE checkedCircleThread = CreateThread(nullptr, 0, PositionCheckCircle, (LPVOID)yV, 0, nullptr);
             if (checkedCircleThread) CloseHandle(checkedCircleThread);
         }
     }
@@ -1884,7 +1884,7 @@ namespace DirectDesktop
                 if (localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth());
                 lviTarget->SetTooltip(true);
                 yValue* yV = new yValue{ i };
-                HANDLE smThumbnailThreadHandle = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
+                HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
                 if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
             }
             IconThumbHelper(i);
@@ -1942,7 +1942,7 @@ namespace DirectDesktop
             CSafeElementPtr<Element> tasks;
             tasks.Assign(regElem<Element*>(L"tasks", ((DDLVActionButton*)elem)->GetAssociatedItem()));
             tasks->SetLayoutPos(2);
-            hAutoHide = CreateThread(0, 0, AutoHideMoreOptions, (LPVOID)((DDLVActionButton*)elem)->GetAssociatedItem(), 0, NULL);
+            hAutoHide = CreateThread(nullptr, 0, AutoHideMoreOptions, (LPVOID)((DDLVActionButton*)elem)->GetAssociatedItem(), 0, nullptr);
             if (hAutoHide) CloseHandle(hAutoHide);
         }
     }
@@ -2205,7 +2205,7 @@ namespace DirectDesktop
         }
         bool isCustomPath = (iconFinal.length() > 1);
         HICON icoShortcut{};
-        if (isCustomPath) icoShortcut = (HICON)LoadImageW(NULL, iconFinal.c_str(), IMAGE_ICON, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor, LR_LOADFROMFILE);
+        if (isCustomPath) icoShortcut = (HICON)LoadImageW(nullptr, iconFinal.c_str(), IMAGE_ICON, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor, LR_LOADFROMFILE);
         else icoShortcut = (HICON)LoadImageW(LoadLibraryW(dllName.c_str()), MAKEINTRESOURCE(_wtoi(iconID.c_str())), IMAGE_ICON, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor, LR_SHARED);
         // The use of a dummy icon is because we can't use a fully transparent bitmap
         static const HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
@@ -2245,7 +2245,7 @@ namespace DirectDesktop
             {
                 if (&pmLVItem == &pm)
                 {
-                    HDC hdc = GetDC(NULL);
+                    HDC hdc = GetDC(nullptr);
                     HBITMAP bmpOverlay{};
                     AddPaddingToBitmap(bmp, bmpOverlay, 0, 0, 0, 0);
                     HBITMAP bmpOverlay2{};
@@ -2266,7 +2266,7 @@ namespace DirectDesktop
                     IterateBitmap(bmp, StandardBitmapPixelHandler, 3, 0, 0.8, glassColor);
                     CompositeBitmaps(bmp, bmpOverlay3, false, 0);
                     DeleteObject(bmpOverlay3);
-                    ReleaseDC(NULL, hdc);
+                    ReleaseDC(nullptr, hdc);
                 }
                 else
                 {
@@ -2367,7 +2367,7 @@ namespace DirectDesktop
         lvi->SetMemorySelected(true);
         g_tempElem2 = lvi;
         Element* groupdirectory{};
-        parserSubview->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
+        parserSubview->CreateElement(L"groupdirectory", nullptr, nullptr, nullptr, (Element**)&groupdirectory);
         fullscreeninner->Add((Element**)&groupdirectory, 1);
         CSafeElementPtr<DDScalableElement> iconElement;
         iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", lvi));
@@ -2400,9 +2400,9 @@ namespace DirectDesktop
                 LVItem* outerElemGrouped;
                 if (g_touchmode)
                 {
-                    parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+                    parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 }
-                else parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+                else parser->CreateElement(L"outerElemGrouped", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage);
                 lvi_SubUIContainer->Add((Element**)&outerElemGrouped, 1);
                 CSafeElementPtr<DDScalableElement> iconElem;
@@ -2479,7 +2479,7 @@ namespace DirectDesktop
             lvi->SetChildFilenames((*subfilepm));
             DWORD animThread2;
             yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, subpm, subiconpm, subshadowpm, subshortpm, subfilepm, PendingContainer, lvi };
-            HANDLE animThreadHandle2 = CreateThread(0, 0, subfastin, (LPVOID)yV, 0, &animThread2);
+            HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
             if (animThreadHandle2) CloseHandle(animThreadHandle2);
         }
         else
@@ -2507,8 +2507,8 @@ namespace DirectDesktop
         g_checkifelemexists = true;
         DWORD animThread3;
         DWORD animThread4;
-        HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
-        HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
+        HANDLE animThreadHandle3 = CreateThread(nullptr, 0, grouptitlebaranimation, nullptr, 0, &animThread3);
+        HANDLE animThreadHandle4 = CreateThread(nullptr, 0, grouptasksanimation, nullptr, 0, &animThread4);
         if (animThreadHandle3) CloseHandle(animThreadHandle3);
         if (animThreadHandle4) CloseHandle(animThreadHandle4);
         CSafeElementPtr<DDLVActionButton> Pin;
@@ -2537,7 +2537,7 @@ namespace DirectDesktop
         lvi->SetMemorySelected(true);
         g_tempElem2 = lvi;
         Element* groupdirectory{};
-        parserSubview->CreateElement(L"groupdirectory", NULL, lvi, NULL, (Element**)&groupdirectory);
+        parserSubview->CreateElement(L"groupdirectory", nullptr, lvi, nullptr, (Element**)&groupdirectory);
         groupdirectory->SetValue(Element::SheetProp, 1, sheetStorage);
         lvi->Add((Element**)&groupdirectory, 1);
         CSafeElementPtr<DDScalableElement> iconElement;
@@ -2569,9 +2569,9 @@ namespace DirectDesktop
                 LVItem* outerElemGrouped;
                 if (g_touchmode)
                 {
-                    parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+                    parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 }
-                else parser->CreateElement(L"outerElemGrouped", NULL, NULL, NULL, (Element**)&outerElemGrouped);
+                else parser->CreateElement(L"outerElemGrouped", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage2);
                 lvi_SubUIContainer->Add((Element**)&outerElemGrouped, 1);
                 CSafeElementPtr<DDScalableElement> iconElem;
@@ -2648,7 +2648,7 @@ namespace DirectDesktop
             lvi->SetChildFilenames((*d_subfilepm));
             DWORD animThread2;
             yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, d_subpm, d_subiconpm, d_subshadowpm, d_subshortpm, d_subfilepm, PendingContainer, lvi };
-            HANDLE animThreadHandle2 = CreateThread(0, 0, subfastin, (LPVOID)yV, 0, &animThread2);
+            HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
             if (animThreadHandle2) CloseHandle(animThreadHandle2);
         }
         else
@@ -2704,7 +2704,7 @@ namespace DirectDesktop
 
     void OpenDeskCpl(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click) ShellExecuteW(NULL, L"open", L"control.exe", L"desk.cpl,Web,0", NULL, SW_SHOW);
+        if (iev->uidType == Button::Click) ShellExecuteW(nullptr, L"open", L"control.exe", L"desk.cpl,Web,0", nullptr, SW_SHOW);
     }
 
     void OpenLog(Element* elem, Event* iev)
@@ -2715,7 +2715,7 @@ namespace DirectDesktop
             wchar_t* cBuffer = new wchar_t[260];
             DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
             StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
-            ShellExecuteW(NULL, L"open", L"notepad.exe", desktoplog, NULL, SW_SHOW);
+            ShellExecuteW(nullptr, L"open", L"notepad.exe", desktoplog, nullptr, SW_SHOW);
             delete[] desktoplog;
             delete[] cBuffer;
         }
@@ -2756,7 +2756,7 @@ namespace DirectDesktop
             PageTab3->SetSelected(false);
             SubUIContainer->DestroyAll(true);
             Element* SettingsPage1;
-            parserSubview->CreateElement(L"SettingsPage1", NULL, NULL, NULL, (Element**)&SettingsPage1);
+            parserSubview->CreateElement(L"SettingsPage1", nullptr, nullptr, nullptr, (Element**)&SettingsPage1);
             SubUIContainer->Add((Element**)&SettingsPage1, 1);
             CSafeElementPtr<DDToggleButton> ItemCheckboxes;
             ItemCheckboxes.Assign(regElem<DDToggleButton*>(L"ItemCheckboxes", SettingsPage1));
@@ -2817,7 +2817,7 @@ namespace DirectDesktop
             PageTab3->SetSelected(false);
             SubUIContainer->DestroyAll(true);
             Element* SettingsPage2;
-            parserSubview->CreateElement(L"SettingsPage2", NULL, NULL, NULL, (Element**)&SettingsPage2);
+            parserSubview->CreateElement(L"SettingsPage2", nullptr, nullptr, nullptr, (Element**)&SettingsPage2);
             SubUIContainer->Add((Element**)&SettingsPage2, 1);
             CSafeElementPtr<DDToggleButton> EnableAccent;
             EnableAccent.Assign(regElem<DDToggleButton*>(L"EnableAccent", SettingsPage2));
@@ -2881,7 +2881,7 @@ namespace DirectDesktop
             PageTab3->SetSelected(true);
             SubUIContainer->DestroyAll(true);
             Element* SettingsPage3;
-            parserSubview->CreateElement(L"SettingsPage3", NULL, NULL, NULL, (Element**)&SettingsPage3);
+            parserSubview->CreateElement(L"SettingsPage3", nullptr, nullptr, nullptr, (Element**)&SettingsPage3);
             SubUIContainer->Add((Element**)&SettingsPage3, 1);
             CSafeElementPtr<DDToggleButton> EnableLogging;
             EnableLogging.Assign(regElem<DDToggleButton*>(L"EnableLogging", SettingsPage3));
@@ -2906,7 +2906,7 @@ namespace DirectDesktop
             g_issubviewopen = true;
             g_issettingsopen = true;
             Element* settingsview{};
-            parserSubview->CreateElement(L"settingsview", NULL, NULL, NULL, (Element**)&settingsview);
+            parserSubview->CreateElement(L"settingsview", nullptr, nullptr, nullptr, (Element**)&settingsview);
             fullscreeninner->Add((Element**)&settingsview, 1);
             CSafeElementPtr<TouchScrollViewer> settingslist;
             settingslist.Assign(regElem<TouchScrollViewer*>(L"settingslist", settingsview));
@@ -2926,7 +2926,7 @@ namespace DirectDesktop
             name->SetAlpha(255);
             g_checkifelemexists = true;
             DWORD animThread3;
-            HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
+            HANDLE animThreadHandle3 = CreateThread(nullptr, 0, grouptitlebaranimation, nullptr, 0, &animThread3);
             if (animThreadHandle3) CloseHandle(animThreadHandle3);
         }
     }
@@ -2962,7 +2962,7 @@ namespace DirectDesktop
                 if (elem == elemStorage) clicks++;
                 else clicks = 0;
                 DWORD doubleClickThread{};
-                HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, &clicks, 0, &doubleClickThread);
+                HANDLE doubleClickThreadHandle = CreateThread(nullptr, 0, DoubleClickHandler, &clicks, 0, &doubleClickThread);
                 if (doubleClickThreadHandle) CloseHandle(doubleClickThreadHandle);
                 elemStorage = elem;
             }
@@ -3142,7 +3142,7 @@ namespace DirectDesktop
             {
                 g_emptyclicks++;
                 DWORD doubleClickThread{};
-                HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, &g_emptyclicks, 0, &doubleClickThread);
+                HANDLE doubleClickThreadHandle = CreateThread(nullptr, 0, DoubleClickHandler, &g_emptyclicks, 0, &doubleClickThread);
                 if (doubleClickThreadHandle) CloseHandle(doubleClickThreadHandle);
                 if (g_emptyclicks & 1)
                 {
@@ -3178,7 +3178,7 @@ namespace DirectDesktop
                 selector->SetY(origY);
                 selector->SetVisible(true);
                 selector->SetLayoutPos(-2);
-                marqueeThreadHandle = CreateThread(0, 0, UpdateMarqueeSelectorPosition, NULL, 0, &marqueeThread);
+                marqueeThreadHandle = CreateThread(nullptr, 0, UpdateMarqueeSelectorPosition, nullptr, 0, &marqueeThread);
                 if (marqueeThreadHandle) CloseHandle(marqueeThreadHandle);
             }
             isPressed = 1;
@@ -3266,7 +3266,7 @@ namespace DirectDesktop
                     if (hbmCapture != nullptr) DeleteObject(hbmCapture);
                     dragpreview->SetWidth(elem->GetWidth());
                     dragpreview->SetHeight(elem->GetHeight());
-                    dragThreadHandle = CreateThread(0, 0, UpdateIconPosition, &selectedLVItems, 0, &dragThread);
+                    dragThreadHandle = CreateThread(nullptr, 0, UpdateIconPosition, &selectedLVItems, 0, &dragThread);
                     if (dragThreadHandle) CloseHandle(dragThreadHandle);
                 }
             }
@@ -3351,7 +3351,7 @@ namespace DirectDesktop
         if (reloadicons)
         {
             DWORD dd;
-            HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
+            HANDLE thumbnailThread = CreateThread(nullptr, 0, ApplyThumbnailIcons, nullptr, 0, &dd);
             if (thumbnailThread) CloseHandle(thumbnailThread);
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
@@ -3569,7 +3569,7 @@ namespace DirectDesktop
             g_outerElem->Destroy(true);
         }
         static IElementListener *pel_SelectItem, *pel_MarqueeSelector, *pel_DesktopRightClick;
-        parser->CreateElement(name, NULL, NULL, NULL, (Element**)&g_outerElem);
+        parser->CreateElement(name, nullptr, nullptr, nullptr, (Element**)&g_outerElem);
         if (bAlreadyOpen && isDefaultRes()) SetPos(true);
         UIContainer->DestroyAll(true);
         pm.clear();
@@ -3599,12 +3599,12 @@ namespace DirectDesktop
         int count2{};
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 6 complete: Obtained desktop item count.");
 
-        parser->CreateElement(L"emptyspace", NULL, NULL, NULL, (Element**)&emptyspace);
+        parser->CreateElement(L"emptyspace", nullptr, nullptr, nullptr, (Element**)&emptyspace);
         UIContainer->Add((Element**)&emptyspace, 1);
         for (int i = 0; i < lviCount; i++)
         {
             LVItem* outerElem;
-            parser->CreateElement(name, NULL, NULL, NULL, (Element**)&outerElem);
+            parser->CreateElement(name, nullptr, nullptr, nullptr, (Element**)&outerElem);
             UIContainer->Add((Element**)&outerElem, 1);
             CSafeElementPtr<DDScalableElement> iconElem;
             iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElem));
@@ -3723,7 +3723,7 @@ namespace DirectDesktop
     DWORD WINAPI FinishedLogging(LPVOID lpParam)
     {
         int logresponse{};
-        TaskDialog(NULL, NULL, LoadStrFromRes(4024).c_str(), LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), TDCBF_OK_BUTTON | TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, &logresponse);
+        TaskDialog(nullptr, nullptr, LoadStrFromRes(4024).c_str(), LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), TDCBF_OK_BUTTON | TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, &logresponse);
         if (logresponse == IDCLOSE) SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, 420);
         return 0;
     }
@@ -3731,26 +3731,26 @@ namespace DirectDesktop
     HWND GetShutdownWindowIfPresent()
     {
         if (shutdownwnd) return shutdownwnd->GetHWND();
-        else return NULL;
+        else return nullptr;
     }
 
     HWND GetEditWindowIfPresent()
     {
         if (editwnd) return editwnd->GetHWND();
-        else return NULL;
+        else return nullptr;
     }
 
     bool IsDesktopActive()
     {
         HWND hWnd = GetForegroundWindow();
-        if (hWnd == NULL) return false;
+        if (hWnd == nullptr) return false;
         return (hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == GetShutdownWindowIfPresent());
     }
 
     bool IsDesktopOrSubviewActive()
     {
         HWND hWnd = GetForegroundWindow();
-        if (hWnd == NULL) return false;
+        if (hWnd == nullptr) return false;
         return (hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == subviewwnd->GetHWND() || hWnd == GetEditWindowIfPresent() || hWnd == GetShutdownWindowIfPresent());
     }
 
@@ -3782,14 +3782,14 @@ namespace DirectDesktop
                 {
                     static bool valid{};
                     valid = !valid;
-                    if (valid) SetTimer(wnd->GetHWND(), 4, 100, NULL);
+                    if (valid) SetTimer(wnd->GetHWND(), 4, 100, nullptr);
                     return 1;
                 }
                 if (pKeyInfo->vkCode == VK_F5)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
-                        SetTimer(wnd->GetHWND(), 2, 150, NULL);
+                        SetTimer(wnd->GetHWND(), 2, 150, nullptr);
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
@@ -3825,7 +3825,7 @@ namespace DirectDesktop
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
-                        SetTimer(wnd->GetHWND(), 1, 150, NULL);
+                        SetTimer(wnd->GetHWND(), 1, 150, nullptr);
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
@@ -3833,7 +3833,7 @@ namespace DirectDesktop
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
-                        SetTimer(wnd->GetHWND(), 3, 150, NULL);
+                        SetTimer(wnd->GetHWND(), 3, 150, nullptr);
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
@@ -3909,7 +3909,7 @@ namespace DirectDesktop
     {
         if (pszError != nullptr)
         {
-            TaskDialog(NULL, NULL, L"DUIXMLPARSER FAILED", L"Error while parsing DirectUI", pszError, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+            TaskDialog(nullptr, nullptr, L"DUIXMLPARSER FAILED", L"Error while parsing DirectUI", pszError, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
             OutputDebugString(pszError);
             DebugBreak();
         }
@@ -3924,28 +3924,28 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                       _In_ LPWSTR lpCmdLine,
                       _In_ int nCmdShow)
 {
-    hMutex = CreateMutex(NULL, TRUE, szWindowClass);
+    hMutex = CreateMutex(nullptr, TRUE, szWindowClass);
     if (!hMutex || ERROR_ALREADY_EXISTS == GetLastError())
     {
-        TaskDialog(NULL, HINST_THISCOMPONENT, LoadStrFromRes(4025).c_str(), NULL,
-                   LoadStrFromRes(4021).c_str(), TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, NULL);
+        TaskDialog(nullptr, HINST_THISCOMPONENT, LoadStrFromRes(4025).c_str(), nullptr,
+                   LoadStrFromRes(4021).c_str(), TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, nullptr);
         return 1;
     }
     if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"FFlags") & 0x4);
     else
     {
-        TaskDialog(NULL, HINST_THISCOMPONENT, L"DirectDesktop", LoadStrFromRes(4022).c_str(),
-                   LoadStrFromRes(4023).c_str(), TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, NULL);
+        TaskDialog(nullptr, HINST_THISCOMPONENT, L"DirectDesktop", LoadStrFromRes(4022).c_str(),
+                   LoadStrFromRes(4023).c_str(), TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, nullptr);
         return 1;
     }
 
     HANDLE hToken;
     TOKEN_PRIVILEGES tkp;
     OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
-    LookupPrivilegeValueW(NULL, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid);
+    LookupPrivilegeValueW(nullptr, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid);
     tkp.PrivilegeCount = 1;
     tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
+    AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)nullptr, nullptr);
 
     s_InitializeDUI();
     RegisterAllControls();
@@ -3961,7 +3961,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDColorPicker::Register();
     DDColorPickerButton::Register();
     DDNotificationBanner::Register();
-    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
     WCHAR localeName[256]{};
     ULONG numLanguages{};
@@ -3976,7 +3976,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", 0, true, &checklog);
     if (checklog)
     {
-        TaskDialog(NULL, HINST_THISCOMPONENT, L"DirectDesktop", LoadStrFromRes(4017).c_str(),
+        TaskDialog(nullptr, HINST_THISCOMPONENT, L"DirectDesktop", LoadStrFromRes(4017).c_str(),
                    LoadStrFromRes(4018).c_str(), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON, &logging);
         SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"Logging", logging, false, nullptr);
     }
@@ -3996,10 +3996,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (hWndProgman)
     {
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Found the Program Manager window.");
-        g_hSHELLDLL_DefView = FindWindowExW(hWndProgman, NULL, L"SHELLDLL_DefView", NULL);
+        g_hSHELLDLL_DefView = FindWindowExW(hWndProgman, nullptr, L"SHELLDLL_DefView", nullptr);
         if (logging == IDYES && g_hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: Found a SHELLDLL_DefView window.");
         if (WindowsBuild >= 26002 && logging == IDYES) MainLogger.WriteLine(L"Information: Version is 24H2, skipping WorkerW creation!!!");
-        SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, NULL);
+        SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, nullptr);
         Sleep(250);
         if (g_hSHELLDLL_DefView)
         {
@@ -4009,21 +4009,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (logging == IDYES && !g_hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
     bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, true);
     if (logging == IDYES && g_hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: Found a SHELLDLL_DefView window.");
-    HWND hSysListView32 = FindWindowExW(g_hSHELLDLL_DefView, NULL, L"SysListView32", L"FolderView");
+    HWND hSysListView32 = FindWindowExW(g_hSHELLDLL_DefView, nullptr, L"SysListView32", L"FolderView");
     if (hSysListView32)
     {
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Found SysListView32 window to hide.");
         ShowWindow(hSysListView32, SW_HIDE);
     }
     KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
-    NativeHWNDHost::Create(L"DD_DesktopHost", L"DirectDesktop", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, NULL, 0x43, &wnd);
-    NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", NULL, NULL, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0x43, &subviewwnd);
-    DUIXmlParser::Create(&parser, NULL, NULL, DUI_ParserErrorCB, NULL);
-    DUIXmlParser::Create(&parserSubview, NULL, NULL, DUI_ParserErrorCB, NULL);
+    NativeHWNDHost::Create(L"DD_DesktopHost", L"DirectDesktop", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, nullptr, 0x43, &wnd);
+    NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, nullptr, 0x43, &subviewwnd);
+    DUIXmlParser::Create(&parser, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
+    DUIXmlParser::Create(&parserSubview, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
     parser->SetXMLFromResourceWithTheme(IDR_UIFILE2, hInstance, HINST_THISCOMPONENT, g_hModTWinUI);
     parserSubview->SetXMLFromResourceWithTheme(IDR_UIFILE3, hInstance, HINST_THISCOMPONENT, g_hModTWinUI);
-    HWNDElement::Create(wnd->GetHWND(), true, NULL, NULL, &key, (Element**)&parent);
-    HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, NULL, &key2, (Element**)&subviewparent);
+    HWNDElement::Create(wnd->GetHWND(), true, NULL, nullptr, &key, (Element**)&parent);
+    HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, nullptr, &key2, (Element**)&subviewparent);
     WTSRegisterSessionNotification(wnd->GetHWND(), NOTIFY_FOR_THIS_SESSION);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
@@ -4044,15 +4044,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         else MainLogger.WriteLine(L"Error: DirectDesktop is still hosted in its own window.");
     }
 
-    parser->CreateElement(L"main", parent, NULL, NULL, &pMain);
+    parser->CreateElement(L"main", parent, nullptr, nullptr, &pMain);
     pMain->SetVisible(true);
     pMain->EndDefer(key);
-    parserSubview->CreateElement(L"fullscreenpopup", subviewparent, NULL, NULL, &pSubview);
+    parserSubview->CreateElement(L"fullscreenpopup", subviewparent, nullptr, nullptr, &pSubview);
     pSubview->SetVisible(true);
     pSubview->EndDefer(key2);
 
     LVItem* outerElemTouch;
-    parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElemTouch);
+    parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElemTouch);
     g_touchSizeX = outerElemTouch->GetWidth();
     g_touchSizeY = outerElemTouch->GetHeight();
 
@@ -4093,7 +4093,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         g_currentPageID = *reinterpret_cast<unsigned short*>(&value2[2]);
         free(value2);
     }
-    RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\DirectDesktop", NULL, NULL };
+    RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\DirectDesktop", nullptr, NULL };
     if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultWidth"))
     {
         g_defWidth = dimensions.right / g_flScaleFactor;
@@ -4127,7 +4127,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     iconColorID = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID");
     IconColorizationColor = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorizationColor");
     if (g_automaticDark) g_isDarkIconsEnabled = !g_theme;
-    DDScalableElement::Create(NULL, NULL, (Element**)&RegistryListener);
+    DDScalableElement::Create(nullptr, nullptr, (Element**)&RegistryListener);
     assignExtendedFn(RegistryListener, UpdateIconColorizationColor);
     if (g_touchmode) g_iconsz = 32;
     g_shiconsz = 32;
@@ -4161,7 +4161,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (logging == IDYES)
     {
         DWORD dd;
-        HANDLE loggingThread = CreateThread(0, 0, FinishedLogging, NULL, 0, &dd);
+        HANDLE loggingThread = CreateThread(nullptr, 0, FinishedLogging, nullptr, 0, &dd);
         if (loggingThread) CloseHandle(loggingThread);
     }
     logging = IDNO;

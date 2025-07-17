@@ -275,7 +275,7 @@ namespace DirectDesktop
             DDCPCC->SetX(elem->GetX());
             vector<DDScalableElement*> te = ((DDColorPickerButton*)elem)->GetTargetElements();
             RegKeyValue rkv = ((DDColorPicker*)elem->GetParent())->GetRegKeyValue();
-            if (rkv._hKeyName != NULL)
+            if (rkv._hKeyName != nullptr)
             {
                 rkv._dwValue = ((DDColorPickerButton*)elem)->GetOrder();
                 SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
@@ -1100,7 +1100,7 @@ namespace DirectDesktop
             ((DDScalableTouchEdit*)*ppElement)->InitDrawImage();
             ((DDScalableTouchEdit*)*ppElement)->InitDrawFont();
             DWORD dw2;
-            HANDLE drawingHandle2 = CreateThread(0, 0, CreateTEVisual, (LPVOID)*ppElement, NULL, &dw2);
+            HANDLE drawingHandle2 = CreateThread(nullptr, 0, CreateTEVisual, (LPVOID)*ppElement, NULL, &dw2);
             if (drawingHandle2) CloseHandle(drawingHandle2);
         }
         return hr;
@@ -1637,7 +1637,7 @@ namespace DirectDesktop
         if (SUCCEEDED(hr))
         {
             DWORD dw;
-            HANDLE drawingHandle = CreateThread(0, 0, CreateCBInnerElements, (LPVOID)*ppElement, NULL, &dw);
+            HANDLE drawingHandle = CreateThread(nullptr, 0, CreateCBInnerElements, (LPVOID)*ppElement, NULL, &dw);
             if (drawingHandle) CloseHandle(drawingHandle);
         }
         return hr;
@@ -1744,7 +1744,7 @@ namespace DirectDesktop
         if (SUCCEEDED(hr))
         {
             DWORD dw;
-            HANDLE drawingHandle = CreateThread(0, 0, ColorPickerLayout, (LPVOID)*ppElement, NULL, &dw);
+            HANDLE drawingHandle = CreateThread(nullptr, 0, ColorPickerLayout, (LPVOID)*ppElement, NULL, &dw);
             if (drawingHandle) CloseHandle(drawingHandle);
         }
         return hr;
@@ -1903,7 +1903,7 @@ namespace DirectDesktop
         if (SUCCEEDED(hr))
         {
             DWORD dw;
-            HANDLE drawingHandle = CreateThread(0, 0, PickerBtnFn, (LPVOID)*ppElement, NULL, &dw);
+            HANDLE drawingHandle = CreateThread(nullptr, 0, PickerBtnFn, (LPVOID)*ppElement, NULL, &dw);
             if (drawingHandle) CloseHandle(drawingHandle);
         }
         return hr;
@@ -2126,8 +2126,8 @@ namespace DirectDesktop
         Element* pHostElement;
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", NULL, NULL, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwnd);
-        HWNDElement::Create(notificationwnd->GetHWND(), true, NULL, NULL, &keyN, (Element**)&pDDNB);
+        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwnd);
+        HWNDElement::Create(notificationwnd->GetHWND(), true, NULL, nullptr, &keyN, (Element**)&pDDNB);
         Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList;
         if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
             IID_ITaskbarList, (void**)&pTaskbarList)))
@@ -2137,7 +2137,7 @@ namespace DirectDesktop
                 pTaskbarList->DeleteTab(notificationwnd->GetHWND());
             }
         }
-        pParser->CreateElement(pszResID, pDDNB, NULL, NULL, &pHostElement);
+        pParser->CreateElement(pszResID, pDDNB, nullptr, nullptr, &pHostElement);
         WndProcNotification = (WNDPROC)SetWindowLongPtrW(notificationwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
         pHostElement->SetVisible(true);
         pHostElement->EndDefer(keyN);
@@ -2157,14 +2157,14 @@ namespace DirectDesktop
         pDDNB->GetPadding(&v);
         pHostElement->SetValue(Element::PaddingProp, 1, v);
         SetForegroundWindow(notificationwnd->GetHWND());
-        CreateAndSetLayout(pHostElement, BorderLayout::Create, 0, 0);
+        CreateAndSetLayout(pHostElement, BorderLayout::Create, 0, nullptr);
 
         int cx{}, cy{};
         RECT hostpadding = *(v->GetRect());
         cx += (hostpadding.left + hostpadding.right + 48 * g_flScaleFactor); // 48: 28 is the icon width, 20 is extra padding
         cy += (hostpadding.top + hostpadding.bottom);
         Element* peTemp = pDDNB->GetIconElement();
-        CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+        CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
         peTemp->SetID(L"DDNB_Icon");
         pHostElement->Add(&peTemp, 1);
         wstring titleStr{};
@@ -2189,7 +2189,7 @@ namespace DirectDesktop
         }
         if (title) titleStr = title;
 
-        HDC hdcMem = CreateCompatibleDC(NULL);
+        HDC hdcMem = CreateCompatibleDC(nullptr);
         NONCLIENTMETRICSW ncm{};
         TEXTMETRICW tm{};
         SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, NULL, g_dpi);
@@ -2213,20 +2213,20 @@ namespace DirectDesktop
         DeleteDC(hdcMem);
 
         peTemp = pDDNB->GetTitleElement();
-        CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+        CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
         peTemp->SetID(L"DDNB_Title");
         pHostElement->Add(&peTemp, 1);
-        HANDLE setFontStr = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+        HANDLE setFontStr = CreateThread(nullptr, 0, AutoSizeFont, peTemp, 0, nullptr);
         if (setFontStr) CloseHandle(setFontStr);
         peTemp->SetContentString(titleStr.c_str());
 
         if (content)
         {
             peTemp = pDDNB->GetContentElement();
-            CreateAndInit<Element, int>(0, pHostElement, 0, (Element**)&peTemp);
+            CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
             peTemp->SetID(L"DDNB_Content");
             pHostElement->Add(&peTemp, 1);
-            HANDLE setFontStr2 = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+            HANDLE setFontStr2 = CreateThread(nullptr, 0, AutoSizeFont, peTemp, 0, nullptr);
             if (setFontStr2) CloseHandle(setFontStr2);
             peTemp->SetContentString(content);
         }
@@ -2246,13 +2246,13 @@ namespace DirectDesktop
             SetWindowPos(notificationwnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED);
             notificationopen = true;
             IntegerWrapper* iw = new IntegerWrapper{ timeout };
-            HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper, &notificationopen, NULL, NULL);
+            HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper, &notificationopen, NULL, nullptr);
             if (AnimHandle) CloseHandle(AnimHandle);
             if (timeout > 0)
             {
                 TerminateThread(AutoCloseHandle, 1);
                 DWORD dwAutoClose;
-                AutoCloseHandle = CreateThread(0, 0, AutoCloseNotification, iw, NULL, &dwAutoClose);
+                AutoCloseHandle = CreateThread(nullptr, 0, AutoCloseNotification, iw, NULL, &dwAutoClose);
             }
         }
     }
