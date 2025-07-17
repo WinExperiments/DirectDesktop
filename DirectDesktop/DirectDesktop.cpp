@@ -1,33 +1,27 @@
-#include "framework.h"
-#include "Include\dui70\DirectUI\DirectUI.h"
-#include "Include\dui70\DUser\DUser.h"
+#include "pch.h"
+
 #include "DirectDesktop.h"
-#include "resource.h"
-#include <propkey.h>
-#include "strsafe.h"
+
 #include <cmath>
-#include <vector>
 #include <list>
-#include <regex>
-#include <WinUser.h>
-#include <ShObjIdl.h>
-#include <shellapi.h>
-#include <shlwapi.h>
-#include <uxtheme.h>
-#include <dwmapi.h>
-#include <wtsapi32.h>
 #include <powrprof.h>
+#include <shlwapi.h>
+#include <ShObjIdl.h>
+#include <vector>
+#include <WinUser.h>
 #include <wrl.h>
+#include <wtsapi32.h>
+
+#include "backend\ContextMenus.h"
+#include "backend\DirectoryHelper.h"
+#include "backend\RenameCore.h"
+#include "backend\SettingsHelper.h"
+#include "coreui\BitmapHelper.h"
 #include "coreui\ColorHelper.h"
 #include "coreui\StyleModifier.h"
-#include "coreui\BitmapHelper.h"
-#include "backend\DirectoryHelper.h"
-#include "backend\SettingsHelper.h"
-#include "backend\ContextMenus.h"
-#include "ui\ShutdownDialog.h"
-#include "backend\RenameCore.h"
-#include "ui\SearchPage.h"
 #include "ui\EditMode.h"
+#include "ui\SearchPage.h"
+#include "ui\ShutdownDialog.h"
 
 using namespace DirectUI;
 using namespace std;

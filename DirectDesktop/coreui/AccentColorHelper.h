@@ -1,5 +1,5 @@
 #pragma once
-#include "..\framework.h"
+
 #include "ColorHelper.h"
 
 namespace DirectDesktop

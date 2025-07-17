@@ -2,15 +2,6 @@
 #pragma warning(disable:6258)
 #pragma warning(disable:28159)
 
-#include "..\framework.h"
-
-#include "..\Include\dui70\DirectUI\DirectUI.h"
-
-#include "..\coreui\StyleModifier.h"
-
-#include <string>
-#include <strsafe.h>
-
 using namespace std;
 using namespace DirectUI;
 

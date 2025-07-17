@@ -1,6 +1,7 @@
+#include "pch.h"
+
 #include "Logger.h"
-#include <string>
-#include "..\framework.h"
+
 using namespace std;
 
 namespace DirectDesktop

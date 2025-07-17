@@ -1,12 +1,11 @@
+#include "pch.h"
+
 #include "DirectoryHelper.h"
-#include "strsafe.h"
 #include "..\DirectDesktop.h"
 #include "..\coreui\StyleModifier.h"
-#include <shlobj.h>
 #include <shlwapi.h>
 #include <exdisp.h>
 #include <ShlGuid.h>
-#include <algorithm>
 
 using namespace std;
 using namespace DirectUI;

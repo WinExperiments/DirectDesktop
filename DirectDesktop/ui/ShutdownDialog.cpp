@@ -1,14 +1,13 @@
+#include "pch.h"
+
 #include "ShutdownDialog.h"
 
 #include "..\backend\DirectoryHelper.h"
-#include "..\resource.h"
 #include "..\coreui\BitmapHelper.h"
 #include "..\DirectDesktop.h"
 #include <wrl.h>
-#include <shellapi.h>
-#include <uxtheme.h>
-#include <dwmapi.h>
-#include <algorithm>
+
+#include "..\coreui\StyleModifier.h"
 
 using namespace std;
 using namespace DirectUI;

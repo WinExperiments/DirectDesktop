@@ -1,11 +1,10 @@
+#include "pch.h"
+
 #include <ShlObj_core.h>
-#include <ShlGuid.h>
 #include "ContextMenus.h"
 #include "DirectoryHelper.h"
 #include "..\DirectDesktop.h"
 #include "..\ui\EditMode.h"
-#include "..\resource.h"
-#include <propkey.h>
 
 namespace DirectDesktop
 {

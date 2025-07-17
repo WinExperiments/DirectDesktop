@@ -1,11 +1,7 @@
 #pragma once
 #pragma warning(disable:28159)
 
-#include "resource.h"
 #include "ui\DDControls.h"
-#include <vector>
-#include <string>
-#include "Include\dui70\DirectUI\DirectUI.h"
 
 using namespace DirectUI;
 

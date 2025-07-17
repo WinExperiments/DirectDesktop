@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #include "BitmapHelper.h"
 
 #include "BlurCore.h"

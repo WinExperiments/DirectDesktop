@@ -1,9 +1,5 @@
 #pragma once
 #pragma warning(disable:6258)
-#include <string>
-#include <vector>
-
-#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 using namespace std;
 using namespace DirectUI;
@@ -13,7 +9,7 @@ namespace DirectDesktop
     extern int g_dpi, g_dpiLaunch;
     extern NativeHWNDHost* subviewwnd;
     extern int GetCurrentScaleInterval();
-    extern struct yValue;
+    struct yValue;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
 

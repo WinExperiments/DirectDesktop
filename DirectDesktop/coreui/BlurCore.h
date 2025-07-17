@@ -1,9 +1,7 @@
 #pragma once
-#include "..\framework.h"
+
 #include "StyleModifier.h"
 #include "..\backend\DirectoryHelper.h"
-#include <dwmapi.h>
-#include <vector>
 #include <cmath>
 
 using namespace std;

@@ -1,8 +1,7 @@
+#include "pch.h"
+
 #include "SettingsHelper.h"
 #include "DirectoryHelper.h"
-#include <shlobj.h>
-#include <vector>
-#include <algorithm>
 
 using namespace std;
 using namespace DirectUI;

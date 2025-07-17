@@ -1,6 +1,6 @@
+#include "pch.h"
+
 #include "AccentColorHelper.h"
-#include "StyleModifier.h"
-#include "ColorHelper.h"
 
 namespace DirectDesktop
 {

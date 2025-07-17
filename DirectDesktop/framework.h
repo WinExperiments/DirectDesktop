@@ -13,6 +13,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+
 // Use HINST_THISCOMPONENT for futureproofing in case DirectDesktop becomes a DLL
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)

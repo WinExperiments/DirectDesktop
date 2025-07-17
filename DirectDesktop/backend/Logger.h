@@ -1,7 +1,6 @@
 #pragma once
-#include <fstream>
 
-#include "..\framework.h"
+#include <fstream>
 
 using namespace std;
 

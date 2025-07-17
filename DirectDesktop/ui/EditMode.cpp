@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #include "EditMode.h"
 #include "..\DirectDesktop.h"
 #include "..\coreui\BitmapHelper.h"
@@ -6,9 +8,6 @@
 #include "..\backend\SettingsHelper.h"
 #include "SearchPage.h"
 #include "..\backend\DirectoryHelper.h"
-#include <strsafe.h>
-#include <uxtheme.h>
-#include <dwmapi.h>
 
 using namespace DirectUI;
 

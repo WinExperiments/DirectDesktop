@@ -1,10 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include "Logger.h"
+
 #include "..\ui\DDControls.h"
-#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 using namespace std;
 
@@ -30,11 +28,6 @@ namespace DirectDesktop
 
     class ThumbIcons
     {
-    private:
-        wstring _filename{};
-        bool _isHidden = false;
-        bool _colorLock = false;
-
     public:
         wstring GetFilename();
         void SetFilename(const wstring& wsFilename);
@@ -42,6 +35,11 @@ namespace DirectDesktop
         bool GetColorLock();
         void SetHiddenState(bool hiddenState);
         void SetColorLock(bool colorLockState);
+
+    private:
+        wstring _filename{};
+        bool _isHidden = false;
+        bool _colorLock = false;
     };
 
     extern vector<const wchar_t*> imageExts;

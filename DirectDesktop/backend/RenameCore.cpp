@@ -1,10 +1,10 @@
+#include "pch.h"
+
 #include "RenameCore.h"
 #include "..\coreui\StyleModifier.h"
 #include "..\DirectDesktop.h"
-#include <strsafe.h>
 #include <Richedit.h>
 #include <textserv.h>
-#include <shlobj.h>
 
 using namespace std;
 using namespace DirectUI;

@@ -1,13 +1,13 @@
+#include "pch.h"
+
 #include "StyleModifier.h"
-#include "BitmapHelper.h"
-#include "ColorHelper.h"
+
+#include <map>
+
 #include "AccentColorHelper.h"
+#include "cdpa.h"
 #include "ImmersiveColor.h"
 #include "..\backend\DirectoryHelper.h"
-#include "cdpa.h"
-#include <vector>
-#include <map>
-#include <uxtheme.h>
 
 namespace DirectDesktop
 {

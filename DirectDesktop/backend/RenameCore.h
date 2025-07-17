@@ -1,10 +1,6 @@
 #pragma once
-#include "..\framework.h"
 
 #include "..\ui\DDControls.h"
-
-#include <string>
-#include <vector>
 
 using namespace DirectUI;
 

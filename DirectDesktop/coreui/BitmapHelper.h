@@ -1,6 +1,4 @@
 #pragma once
-#include "..\framework.h"
-#include "..\Include\dui70\DirectUI\DirectUI.h"
 
 #define DT_LVICON (DT_WORDBREAK | DT_NOFULLWIDTHCHARBREAK | DT_NOPREFIX | DT_EDITCONTROL)
 

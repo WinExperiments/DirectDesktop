@@ -1,14 +1,11 @@
+#include "pch.h"
+
 #include "SearchPage.h"
 #include "..\DirectDesktop.h"
 #include "DDControls.h"
 //#include "EverythingSearch/Everything.h"
-#include "..\resource.h"
-#include <strsafe.h>
 #include "..\coreui\BitmapHelper.h"
 #include "..\backend\DirectoryHelper.h"
-#include <shellapi.h>
-#include <uxtheme.h>
-#include <dwmapi.h>
 
 //#pragma comment (lib, "Everything64.lib")
 

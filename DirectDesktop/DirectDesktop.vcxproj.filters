@@ -93,6 +93,9 @@
     <ClInclude Include="ui\ShutdownDialog.h">
       <Filter>Header Files\ui</Filter>
     </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coreui\AccentColorHelper.cpp">
@@ -135,6 +138,9 @@
       <Filter>Source Files\ui</Filter>
     </ClCompile>
     <ClCompile Include="DirectDesktop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
