@@ -11,24 +11,26 @@ typedef enum IMMERSIVE_COLOR_TYPE
     IMCLR_SystemAccentDark1 = 5,
     IMCLR_StartDesktopTilesText = 11,
 } IMMERSIVE_COLOR_TYPE;
+
 typedef struct IMMERSIVE_COLOR_PREFERENCE
 {
     DWORD crStartColor;
     DWORD crAccentColor;
 } IMMERSIVE_COLOR_PREFERENCE;
+
 typedef enum IMMERSIVE_HC_CACHE_MODE
 {
     IHCM_USE_CACHED_VALUE = 0,
     IHCM_REFRESH = 1
 } IMMERSIVE_HC_CACHE_MODE;
 
-typedef bool(*RefreshImmersiveColorPolicyState_t)(); // 104
+typedef bool (*RefreshImmersiveColorPolicyState_t)(); // 104
 RefreshImmersiveColorPolicyState_t RefreshImmersiveColorPolicyState = (RefreshImmersiveColorPolicyState_t)GetProcAddress(hUxtheme, MAKEINTRESOURCEA(104));
-typedef bool(*GetIsImmersiveColorUsingHighContrast_t)(IMMERSIVE_HC_CACHE_MODE); // 106
+typedef bool (*GetIsImmersiveColorUsingHighContrast_t)(IMMERSIVE_HC_CACHE_MODE); // 106
 GetIsImmersiveColorUsingHighContrast_t GetIsImmersiveColorUsingHighContrast = (GetIsImmersiveColorUsingHighContrast_t)GetProcAddress(hUxtheme, MAKEINTRESOURCEA(106));;
-typedef HRESULT(*GetUserColorPreference_t)(IMMERSIVE_COLOR_PREFERENCE*, bool); // 120
+typedef HRESULT (*GetUserColorPreference_t)(IMMERSIVE_COLOR_PREFERENCE*, bool); // 120
 GetUserColorPreference_t GetUserColorPreference = (GetUserColorPreference_t)GetProcAddress(hUxtheme, MAKEINTRESOURCEA(120));
-typedef DWORD(*GetColorFromPreference_t)(const IMMERSIVE_COLOR_PREFERENCE*, IMMERSIVE_COLOR_TYPE, bool, IMMERSIVE_HC_CACHE_MODE); // 121
+typedef DWORD (*GetColorFromPreference_t)(const IMMERSIVE_COLOR_PREFERENCE*, IMMERSIVE_COLOR_TYPE, bool, IMMERSIVE_HC_CACHE_MODE); // 121
 GetColorFromPreference_t GetColorFromPreference = (GetColorFromPreference_t)GetProcAddress(hUxtheme, MAKEINTRESOURCEA(121));
 
 class CImmersiveColor

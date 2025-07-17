@@ -23,12 +23,15 @@ namespace DirectDesktop
     extern int g_iconsz, g_shiconsz, g_gpiconsz;
     extern int g_currentPageID, g_maxPageID, g_homePageID;
 
-    struct yValue {
+    struct yValue
+    {
         int num{};
         float fl1{};
         float fl2{};
     };
-    struct yValueEx {
+
+    struct yValueEx
+    {
         int num{};
         float fl1{};
         float fl2{};
@@ -40,11 +43,15 @@ namespace DirectDesktop
         Element* peOptionalTarget1{};
         Element* peOptionalTarget2{};
     };
-    struct yValuePtrs {
+
+    struct yValuePtrs
+    {
         void* ptr1{};
         void* ptr2{};
     };
-    struct DesktopIcon {
+
+    struct DesktopIcon
+    {
         HBITMAP icon{};
         HBITMAP iconshadow{};
         HBITMAP iconshortcut{};
@@ -68,6 +75,6 @@ namespace DirectDesktop
     extern elemType regElem(const wchar_t* elemName, Element* peParent);
     extern struct EventListener;
     extern struct EventListener2;
-    extern EventListener* assignFn(Element* btnName, void(*fnName)(Element* elem, Event* iev), bool fReturn = false);
-    extern EventListener2* assignExtendedFn(Element* elemName, void(*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
+    extern EventListener* assignFn(Element* btnName, void (*fnName)(Element* elem, Event* iev), bool fReturn = false);
+    extern EventListener2* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
 }

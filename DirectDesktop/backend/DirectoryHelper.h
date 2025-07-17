@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include <string>
 #include "Logger.h"
@@ -27,11 +28,13 @@ namespace DirectDesktop
     extern void RemoveLVItem(const wstring& filepath, const wstring& filename);
     extern void UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type); // types: 1: old, 2: new
 
-    class ThumbIcons {
+    class ThumbIcons
+    {
     private:
         wstring _filename{};
         bool _isHidden = false;
         bool _colorLock = false;
+
     public:
         wstring GetFilename();
         void SetFilename(const wstring& wsFilename);

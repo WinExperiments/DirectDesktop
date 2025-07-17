@@ -15,16 +15,18 @@ namespace DirectDesktop
     extern int GetCurrentScaleInterval();
     extern struct yValue;
 
-    HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT(*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
+    HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
 
-    struct RegKeyValue {
+    struct RegKeyValue
+    {
         HKEY _hKeyName;
         LPCWSTR _path;
         const wchar_t* _valueToFind;
         DWORD _dwValue;
     };
 
-    class DDScalableElement : public Element {
+    class DDScalableElement : public Element
+    {
     public:
         DDScalableElement();
         virtual ~DDScalableElement();
@@ -63,6 +65,7 @@ namespace DirectDesktop
         static void RedrawImages();
         void InitDrawFont();
         static void RedrawFonts();
+
     protected:
         IElementListener* _pelPropChange{};
         static vector<DDScalableElement*> _arrCreatedElements;
@@ -70,11 +73,13 @@ namespace DirectDesktop
         unsigned short _gc{};
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDScalableButton : public Button {
+    class DDScalableButton : public Button
+    {
     public:
         DDScalableButton();
         virtual ~DDScalableButton();
@@ -111,28 +116,31 @@ namespace DirectDesktop
         static void RedrawFonts();
 
         RegKeyValue GetRegKeyValue();
-        void(*GetAssociatedFn())(bool, bool, bool);
+        void (* GetAssociatedFn())(bool, bool, bool);
         bool* GetAssociatedBool();
         int GetDDCPIntensity();
         void SetRegKeyValue(RegKeyValue rkvNew);
-        void SetAssociatedFn(void(*pfn)(bool, bool, bool));
+        void SetAssociatedFn(void (*pfn)(bool, bool, bool));
         void SetAssociatedBool(bool* pb);
         void SetDDCPIntensity(int intensity);
-        void ExecAssociatedFn(void(*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
+        void ExecAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
+
     protected:
         IElementListener* _pelPropChange{};
         static vector<DDScalableButton*> _arrCreatedButtons;
         RegKeyValue _rkv{};
-        void(*_assocFn)(bool, bool, bool) = nullptr;
+        void (*_assocFn)(bool, bool, bool) = nullptr;
         bool* _assocBool = nullptr;
         int _intensity = 255;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDScalableRichText : public RichText {
+    class DDScalableRichText : public RichText
+    {
     public:
         DDScalableRichText();
         virtual ~DDScalableRichText();
@@ -167,16 +175,19 @@ namespace DirectDesktop
         static void RedrawImages();
         void InitDrawFont();
         static void RedrawFonts();
+
     protected:
         IElementListener* _pelPropChange{};
         static vector<DDScalableRichText*> _arrCreatedTexts;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDScalableTouchEdit : public TouchEdit2 {
+    class DDScalableTouchEdit : public TouchEdit2
+    {
     public:
         DDScalableTouchEdit();
         virtual ~DDScalableTouchEdit();
@@ -207,15 +218,18 @@ namespace DirectDesktop
         static void RedrawImages();
         void InitDrawFont();
         static void RedrawFonts();
+
     protected:
         static vector<DDScalableTouchEdit*> _arrCreatedBoxes;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    enum LVItemGroupSize {
+    enum LVItemGroupSize
+    {
         LVIGS_NORMAL = 0,
         LVIGS_SMALL = 1,
         LVIGS_MEDIUM = 2,
@@ -223,11 +237,13 @@ namespace DirectDesktop
         LVIGS_LARGE = 4
     };
 
-    class LVItem final : public DDScalableButton {
+    class LVItem final : public DDScalableButton
+    {
     public:
-        LVItem() {
-
+        LVItem()
+        {
         }
+
         ~LVItem();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
@@ -276,6 +292,7 @@ namespace DirectDesktop
         void SetChildFilenames(vector<RichText*> vfpm);
         void SetListeners(vector<IElementListener*> pels);
         void ClearAllListeners();
+
     private:
         static IClassInfo* s_pClassInfo;
         wstring _filename{};
@@ -301,11 +318,13 @@ namespace DirectDesktop
         vector<IElementListener*> _pels;
     };
 
-    class DDLVActionButton final : public DDScalableButton {
+    class DDLVActionButton final : public DDScalableButton
+    {
     public:
-        DDLVActionButton() {
-
+        DDLVActionButton()
+        {
         }
+
         ~DDLVActionButton();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
@@ -314,19 +333,23 @@ namespace DirectDesktop
         static HRESULT Register();
         LVItem* GetAssociatedItem();
         void SetAssociatedItem(LVItem* lvi);
+
     private:
         static IClassInfo* s_pClassInfo;
         LVItem* _assocItem{};
     };
 
-    class DDToggleButton final : public DDScalableButton {
+    class DDToggleButton final : public DDScalableButton
+    {
     public:
-        DDToggleButton() {
-
+        DDToggleButton()
+        {
         }
-        ~DDToggleButton() {
 
+        ~DDToggleButton()
+        {
         }
+
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -335,18 +358,22 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI CheckedStateProp();
         bool GetCheckedState();
         void SetCheckedState(bool bChecked);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDCheckBox final : public DDScalableButton {
+    class DDCheckBox final : public DDScalableButton
+    {
     public:
-        DDCheckBox() {
-
+        DDCheckBox()
+        {
         }
-        ~DDCheckBox() {
 
+        ~DDCheckBox()
+        {
         }
+
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -355,18 +382,22 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI CheckedStateProp();
         bool GetCheckedState();
         void SetCheckedState(bool bChecked);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDCheckBoxGlyph final : public DDScalableElement {
+    class DDCheckBoxGlyph final : public DDScalableElement
+    {
     public:
-        DDCheckBoxGlyph() {
-
+        DDCheckBoxGlyph()
+        {
         }
-        ~DDCheckBoxGlyph() {
 
+        ~DDCheckBoxGlyph()
+        {
         }
+
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -375,15 +406,18 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI CheckedStateProp();
         bool GetCheckedState();
         void SetCheckedState(bool bChecked);
+
     private:
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDColorPicker final : public Element {
+    class DDColorPicker final : public Element
+    {
     public:
-        DDColorPicker() {
-
+        DDColorPicker()
+        {
         }
+
         ~DDColorPicker();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
@@ -408,6 +442,7 @@ namespace DirectDesktop
         void SetRegKeyValue(RegKeyValue rkvNew);
         void SetTargetElements(vector<DDScalableElement*> vte);
         void SetThemeAwareness(bool ta);
+
     private:
         static IClassInfo* s_pClassInfo;
         RegKeyValue _rkv{};
@@ -417,11 +452,13 @@ namespace DirectDesktop
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
     };
 
-    class DDColorPickerButton final : public Button {
+    class DDColorPickerButton final : public Button
+    {
     public:
-        DDColorPickerButton() {
-
+        DDColorPickerButton()
+        {
         }
+
         ~DDColorPickerButton();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
@@ -435,6 +472,7 @@ namespace DirectDesktop
         void SetAssociatedColor(COLORREF cr);
         void SetOrder(BYTE bOrder);
         void SetTargetElements(vector<DDScalableElement*> vte);
+
     private:
         static IClassInfo* s_pClassInfo;
         IElementListener* _pelPropChange{};
@@ -443,18 +481,21 @@ namespace DirectDesktop
         vector<DDScalableElement*> _targetElems{};
     };
 
-    enum DDNotificationType {
+    enum DDNotificationType
+    {
         DDNT_SUCCESS = 0,
         DDNT_INFO = 1,
         DDNT_WARNING = 2,
         DDNT_ERROR = 3
     };
 
-    class DDNotificationBanner final : public HWNDElement {
+    class DDNotificationBanner final : public HWNDElement
+    {
     public:
-        DDNotificationBanner() {
-
+        DDNotificationBanner()
+        {
         }
+
         ~DDNotificationBanner();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
@@ -466,6 +507,7 @@ namespace DirectDesktop
         DDScalableElement* GetContentElement();
         static void CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, short timeout, bool fClose);
         static void DestroyBanner(bool* notificationopen);
+
     private:
         static IClassInfo* s_pClassInfo;
         DDNotificationType _notificationType{};

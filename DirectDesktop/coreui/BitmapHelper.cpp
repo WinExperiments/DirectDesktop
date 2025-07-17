@@ -8,7 +8,8 @@
 namespace DirectDesktop
 {
     // https://faithlife.codes/blog/2008/09/displaying_a_splash_screen_with_c_part_i/
-    IStream* CreateStreamOnResource(LPCTSTR lpName, LPCTSTR lpType) {
+    IStream* CreateStreamOnResource(LPCTSTR lpName, LPCTSTR lpType)
+    {
         IStream* ipStream = nullptr;
 
         HRSRC hrsrc = FindResourceW(NULL, lpName, lpType);
@@ -25,7 +26,8 @@ namespace DirectDesktop
         if (hgblResourceData == nullptr) return ipStream;
 
         LPVOID pvResourceData = GlobalLock(hgblResourceData);
-        if (pvResourceData == nullptr) {
+        if (pvResourceData == nullptr)
+        {
             GlobalFree(hgblResourceData);
             return ipStream;
         }
@@ -35,25 +37,30 @@ namespace DirectDesktop
 
         if (SUCCEEDED(CreateStreamOnHGlobal(hgblResourceData, TRUE, &ipStream))) return ipStream;
     }
-    IWICBitmapSource* LoadBitmapFromStream(IStream* ipImageStream) {
+
+    IWICBitmapSource* LoadBitmapFromStream(IStream* ipImageStream)
+    {
         IWICBitmapSource* ipBitmap = nullptr;
 
         IWICBitmapDecoder* ipDecoder = nullptr;
         if (FAILED(CoCreateInstance(CLSID_WICPngDecoder, NULL, CLSCTX_INPROC_SERVER, __uuidof(ipDecoder), reinterpret_cast<void**>(&ipDecoder)))) return ipBitmap;
 
-        if (FAILED(ipDecoder->Initialize(ipImageStream, WICDecodeMetadataCacheOnLoad))) {
+        if (FAILED(ipDecoder->Initialize(ipImageStream, WICDecodeMetadataCacheOnLoad)))
+        {
             ipDecoder->Release();
             return ipBitmap;
         }
 
         UINT nFrameCount = 0;
-        if (FAILED(ipDecoder->GetFrameCount(&nFrameCount)) || nFrameCount != 1) {
+        if (FAILED(ipDecoder->GetFrameCount(&nFrameCount)) || nFrameCount != 1)
+        {
             ipDecoder->Release();
             return ipBitmap;
         }
 
         IWICBitmapFrameDecode* ipFrame = nullptr;
-        if (FAILED(ipDecoder->GetFrame(0, &ipFrame))) {
+        if (FAILED(ipDecoder->GetFrame(0, &ipFrame)))
+        {
             ipDecoder->Release();
             return ipBitmap;
         }
@@ -63,7 +70,9 @@ namespace DirectDesktop
         ipDecoder->Release();
         return ipBitmap;
     }
-    bool CreateHBITMAP(HBITMAP& hBitmap, IWICBitmapSource* ipBitmap) {
+
+    bool CreateHBITMAP(HBITMAP& hBitmap, IWICBitmapSource* ipBitmap)
+    {
         if (hBitmap) DeleteObject(hBitmap);
         UINT width = 0;
         UINT height = 0;
@@ -86,21 +95,25 @@ namespace DirectDesktop
 
         const UINT cbStride = width * 4;
         const UINT cbImage = cbStride * height;
-        if (FAILED(ipBitmap->CopyPixels(NULL, cbStride, cbImage, static_cast<BYTE*>(pvImageBits)))) {
+        if (FAILED(ipBitmap->CopyPixels(NULL, cbStride, cbImage, static_cast<BYTE*>(pvImageBits))))
+        {
             DeleteObject(hInternalBitmap);
             hInternalBitmap = nullptr;
         }
         hBitmap = hInternalBitmap;
         return false;
     }
-    bool LoadPNGAsBitmap(HBITMAP& hBitmap, int imageID) {
+
+    bool LoadPNGAsBitmap(HBITMAP& hBitmap, int imageID)
+    {
         if (hBitmap) DeleteObject(hBitmap);
         IStream* ipImageStream{};
         ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(imageID), _T("PNG"));
         if (ipImageStream == nullptr) return false;
 
         IWICBitmapSource* ipBitmap = LoadBitmapFromStream(ipImageStream);
-        if (ipBitmap == nullptr) {
+        if (ipBitmap == nullptr)
+        {
             ipImageStream->Release();
             return false;
         }
@@ -114,7 +127,9 @@ namespace DirectDesktop
     }
 
     TEXTMETRICW textm;
-    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch) {
+
+    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch)
+    {
         if (hBitmap) DeleteObject(hBitmap);
         BITMAPINFO bmi = {};
         bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -130,7 +145,8 @@ namespace DirectDesktop
         HDC hdcMem = CreateCompatibleDC(NULL);
         HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hTextBitmap);
 
-        if (!hdcMem) {
+        if (!hdcMem)
+        {
             DeleteObject(hTextBitmap);
             return false;
         }
@@ -142,7 +158,8 @@ namespace DirectDesktop
         HFONT hFont = CreateFontIndirectW(&lf);
         HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
 
-        if (!hFont) {
+        if (!hFont)
+        {
             SelectObject(hdcMem, hOldBitmap);
             DeleteDC(hdcMem);
             DeleteObject(hTextBitmap);
@@ -154,9 +171,11 @@ namespace DirectDesktop
         RECT rc = { 2, 0, width - 2, height };
         DrawTextW(hdcMem, text, -1, &rc, ellipsisType | DT_LVICON);
         DWORD* pixels = (DWORD*)pBitmapData;
-        for (int i = 0; i < width * height; i++) {
+        for (int i = 0; i < width * height; i++)
+        {
             BYTE* pPixel = (BYTE*)&pixels[i];
-            if (pPixel[0] | pPixel[1] | pPixel[2]) {
+            if (pPixel[0] | pPixel[1] | pPixel[2])
+            {
                 pPixel[3] = 255;
             }
         }
@@ -170,7 +189,8 @@ namespace DirectDesktop
         return true;
     }
 
-    bool AddPaddingToBitmap(HBITMAP hOriginalBitmap, HBITMAP& hNewBitmap, int pL, int pT, int pR, int pB) {
+    bool AddPaddingToBitmap(HBITMAP hOriginalBitmap, HBITMAP& hNewBitmap, int pL, int pT, int pR, int pB)
+    {
         if (hNewBitmap) DeleteObject(hNewBitmap);
         BITMAP bmp;
         GetObject(hOriginalBitmap, sizeof(BITMAP), &bmp);
@@ -204,7 +224,8 @@ namespace DirectDesktop
         return true;
     }
 
-    bool CaptureWallpaperFromProgman(HBITMAP& hBitmap, RECT rc) {
+    bool CaptureWallpaperFromProgman(HBITMAP& hBitmap, RECT rc)
+    {
         if (hBitmap) DeleteObject(hBitmap);
         WCHAR path[MAX_PATH];
         if (!SystemParametersInfoW(SPI_GETDESKWALLPAPER, MAX_PATH, path, 0)) return false;
@@ -251,183 +272,200 @@ namespace DirectDesktop
 
         int bmBits = (bm.bmWidth) * (bm.bmHeight) * 4;
 
-        switch (type) {
-        case 1: {
-            BYTE* pBits = new BYTE[bmBits];
-            GetBitmapBits(hbm, bmBits, pBits);
-
-            BYTE* pPixel;
-            int x, y;
-            int r, g, b, a;
-
-            for (y = 0; y < bm.bmHeight; y++)
+        switch (type)
+        {
+            case 1:
             {
-                pPixel = pBits + bm.bmWidth * 4 * y;
+                BYTE* pBits = new BYTE[bmBits];
+                GetBitmapBits(hbm, bmBits, pBits);
 
-                for (x = 0; x < bm.bmWidth; x++)
+                BYTE* pPixel;
+                int x, y;
+                int r, g, b, a;
+
+                for (y = 0; y < bm.bmHeight; y++)
                 {
-                    r = pPixel[2] & 0xFFFFFF;
-                    g = pPixel[1] & 0xFFFFFF;
-                    b = pPixel[0] & 0xFFFFFF;
-                    a = pPixel[3] & 0xFFFFFF;
+                    pPixel = pBits + bm.bmWidth * 4 * y;
 
-                    handler(r, g, b, a, crOpt);
+                    for (x = 0; x < bm.bmWidth; x++)
+                    {
+                        r = pPixel[2] & 0xFFFFFF;
+                        g = pPixel[1] & 0xFFFFFF;
+                        b = pPixel[0] & 0xFFFFFF;
+                        a = pPixel[3] & 0xFFFFFF;
 
-                    pPixel[2] = r;
-                    pPixel[1] = g;
-                    pPixel[0] = b;
-                    a *= alphaValue;
-                    if (a > 255) a = 255;
-                    pPixel[3] = a;
+                        handler(r, g, b, a, crOpt);
 
-                    pPixel += 4;
+                        pPixel[2] = r;
+                        pPixel[1] = g;
+                        pPixel[0] = b;
+                        a *= alphaValue;
+                        if (a > 255) a = 255;
+                        pPixel[3] = a;
+
+                        pPixel += 4;
+                    }
                 }
+
+                SetBitmapBits(hbm, bmBits, pBits);
+                delete[] pBits;
+                break;
             }
-
-            SetBitmapBits(hbm, bmBits, pBits);
-            delete[] pBits;
-            break;
-        }
-        case 0: {
-            BYTE* pBits = new BYTE[bmBits];
-            GetBitmapBits(hbm, bmBits, pBits);
-
-            BYTE* pPixel;
-            int x, y;
-            int r, g, b, a;
-
-            for (y = 0; y < bm.bmHeight; y++)
+            case 0:
             {
-                pPixel = pBits + (bm.bmWidth) * 4 * y;
+                BYTE* pBits = new BYTE[bmBits];
+                GetBitmapBits(hbm, bmBits, pBits);
 
-                for (x = 0; x < bm.bmWidth; x++)
+                BYTE* pPixel;
+                int x, y;
+                int r, g, b, a;
+
+                for (y = 0; y < bm.bmHeight; y++)
                 {
-                    a = (pPixel[3] & 0xFFFFFF);
+                    pPixel = pBits + (bm.bmWidth) * 4 * y;
 
-                    handler(r, g, b, a, crOpt);
+                    for (x = 0; x < bm.bmWidth; x++)
+                    {
+                        a = (pPixel[3] & 0xFFFFFF);
 
-                    pPixel[2] = r;
-                    pPixel[1] = g;
-                    pPixel[0] = b;
-                    pPixel[3] = a;
+                        handler(r, g, b, a, crOpt);
 
-                    pPixel += 4;
+                        pPixel[2] = r;
+                        pPixel[1] = g;
+                        pPixel[0] = b;
+                        pPixel[3] = a;
+
+                        pPixel += 4;
+                    }
                 }
-            }
 
-            vector<BYTE> vBits;
-            vBits.assign(pBits, pBits + bmBits / 4);
-            int channel = 0;
-            for (int alpha = 3; alpha < bmBits; alpha += 4) {
-                vBits[channel++] = pBits[alpha];
-            }
-            if (blurradius >= 1) Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            channel = 0;
-            for (int alpha = 3; alpha < bmBits; alpha += 4) {
-                short tempAlpha = vBits[channel++] * alphaValue;
-                if (tempAlpha > 255) tempAlpha = 255;
-                pBits[alpha] = tempAlpha;
-            }
+                vector<BYTE> vBits;
+                vBits.assign(pBits, pBits + bmBits / 4);
+                int channel = 0;
+                for (int alpha = 3; alpha < bmBits; alpha += 4)
+                {
+                    vBits[channel++] = pBits[alpha];
+                }
+                if (blurradius >= 1) Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+                channel = 0;
+                for (int alpha = 3; alpha < bmBits; alpha += 4)
+                {
+                    short tempAlpha = vBits[channel++] * alphaValue;
+                    if (tempAlpha > 255) tempAlpha = 255;
+                    pBits[alpha] = tempAlpha;
+                }
 
-            SetBitmapBits(hbm, bmBits, pBits);
-            delete[] pBits;
-            vBits.clear();
-            break;
-        }
-        case 2: {
-            BYTE* pBits = new BYTE[bmBits];
-            GetBitmapBits(hbm, bmBits, pBits);
-
-            vector<BYTE> vBitsR, vBitsG, vBitsB, vBitsA;
-            vBitsR.assign(pBits, pBits + bmBits / 4);
-            vBitsG.assign(pBits, pBits + bmBits / 4);
-            vBitsB.assign(pBits, pBits + bmBits / 4);
-            vBitsA.assign(pBits, pBits + bmBits / 4);
-            int channel = 0;
-            for (int alpha = 0; alpha < bmBits; alpha += 4) {
-                vBitsB[channel++] = pBits[alpha];
+                SetBitmapBits(hbm, bmBits, pBits);
+                delete[] pBits;
+                vBits.clear();
+                break;
             }
-            channel = 0;
-            for (int alpha = 1; alpha < bmBits; alpha += 4) {
-                vBitsG[channel++] = pBits[alpha];
-            }
-            channel = 0;
-            for (int alpha = 2; alpha < bmBits; alpha += 4) {
-                vBitsR[channel++] = pBits[alpha];
-            }
-            channel = 0;
-            for (int alpha = 3; alpha < bmBits; alpha += 4) {
-                vBitsA[channel++] = pBits[alpha];
-            }
-            Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-            channel = 0;
-            for (int alpha = 0; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vBitsB[channel++];
-            }
-            channel = 0;
-            for (int alpha = 1; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vBitsG[channel++];
-            }
-            channel = 0;
-            for (int alpha = 2; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vBitsR[channel++];
-            }
-            channel = 0;
-            for (int alpha = 3; alpha < bmBits; alpha += 4) {
-                pBits[alpha] = vBitsA[channel++];
-            }
-
-            SetBitmapBits(hbm, bmBits, pBits);
-            delete[] pBits;
-            vBitsR.clear();
-            vBitsG.clear();
-            vBitsB.clear();
-            vBitsA.clear();
-            break;
-        }
-        case 3: {
-            // handlers do not affect this, except a few.
-            // SimpleBitmapPixelHandler: converts all alpha to the alphaValue arg
-            // UndoPremultiplication: premultiplies the alpha by itself (lol)
-            BYTE* pBits = new BYTE[bmBits];
-            GetBitmapBits(hbm, bmBits, pBits);
-
-            BYTE* pPixel;
-            int x, y;
-
-            for (y = 0; y < bm.bmHeight; y++)
+            case 2:
             {
-                pPixel = pBits + bm.bmWidth * 4 * y;
+                BYTE* pBits = new BYTE[bmBits];
+                GetBitmapBits(hbm, bmBits, pBits);
 
-                for (x = 0; x < bm.bmWidth; x++)
+                vector<BYTE> vBitsR, vBitsG, vBitsB, vBitsA;
+                vBitsR.assign(pBits, pBits + bmBits / 4);
+                vBitsG.assign(pBits, pBits + bmBits / 4);
+                vBitsB.assign(pBits, pBits + bmBits / 4);
+                vBitsA.assign(pBits, pBits + bmBits / 4);
+                int channel = 0;
+                for (int alpha = 0; alpha < bmBits; alpha += 4)
                 {
-                    pPixel[2] = (int)(crOpt % 16777216);
-                    pPixel[1] = (int)((crOpt / 256) % 65536);
-                    pPixel[0] = (int)((crOpt / 65536) % 256);
-                    pPixel[3] = (handler == SimpleBitmapPixelHandler) ? 255 * alphaValue : pPixel[3] * alphaValue;
-                    if (handler == UndoPremultiplication) pPixel[3] = pow(pPixel[3] / 255.0, 2) * 255.0;
-
-                    pPixel += 4;
+                    vBitsB[channel++] = pBits[alpha];
                 }
-            }
+                channel = 0;
+                for (int alpha = 1; alpha < bmBits; alpha += 4)
+                {
+                    vBitsG[channel++] = pBits[alpha];
+                }
+                channel = 0;
+                for (int alpha = 2; alpha < bmBits; alpha += 4)
+                {
+                    vBitsR[channel++] = pBits[alpha];
+                }
+                channel = 0;
+                for (int alpha = 3; alpha < bmBits; alpha += 4)
+                {
+                    vBitsA[channel++] = pBits[alpha];
+                }
+                Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+                Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+                Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+                Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+                channel = 0;
+                for (int alpha = 0; alpha < bmBits; alpha += 4)
+                {
+                    pBits[alpha] = vBitsB[channel++];
+                }
+                channel = 0;
+                for (int alpha = 1; alpha < bmBits; alpha += 4)
+                {
+                    pBits[alpha] = vBitsG[channel++];
+                }
+                channel = 0;
+                for (int alpha = 2; alpha < bmBits; alpha += 4)
+                {
+                    pBits[alpha] = vBitsR[channel++];
+                }
+                channel = 0;
+                for (int alpha = 3; alpha < bmBits; alpha += 4)
+                {
+                    pBits[alpha] = vBitsA[channel++];
+                }
 
-            SetBitmapBits(hbm, bmBits, pBits);
-            delete[] pBits;
-            break;
-        }
+                SetBitmapBits(hbm, bmBits, pBits);
+                delete[] pBits;
+                vBitsR.clear();
+                vBitsG.clear();
+                vBitsB.clear();
+                vBitsA.clear();
+                break;
+            }
+            case 3:
+            {
+                // handlers do not affect this, except a few.
+                // SimpleBitmapPixelHandler: converts all alpha to the alphaValue arg
+                // UndoPremultiplication: premultiplies the alpha by itself (lol)
+                BYTE* pBits = new BYTE[bmBits];
+                GetBitmapBits(hbm, bmBits, pBits);
+
+                BYTE* pPixel;
+                int x, y;
+
+                for (y = 0; y < bm.bmHeight; y++)
+                {
+                    pPixel = pBits + bm.bmWidth * 4 * y;
+
+                    for (x = 0; x < bm.bmWidth; x++)
+                    {
+                        pPixel[2] = (int)(crOpt % 16777216);
+                        pPixel[1] = (int)((crOpt / 256) % 65536);
+                        pPixel[0] = (int)((crOpt / 65536) % 256);
+                        pPixel[3] = (handler == SimpleBitmapPixelHandler) ? 255 * alphaValue : pPixel[3] * alphaValue;
+                        if (handler == UndoPremultiplication) pPixel[3] = pow(pPixel[3] / 255.0, 2) * 255.0;
+
+                        pPixel += 4;
+                    }
+                }
+
+                SetBitmapBits(hbm, bmBits, pBits);
+                delete[] pBits;
+                break;
+            }
         }
 
         return true;
     }
 
-    bool CompositeBitmaps(HBITMAP hbmBg, HBITMAP hbmFg, bool hardLight, float hlCoef) {
+    bool CompositeBitmaps(HBITMAP hbmBg, HBITMAP hbmFg, bool hardLight, float hlCoef)
+    {
         BITMAP bmBg, bmFg;
         GetObject(hbmBg, sizeof(bmBg), &bmBg);
         GetObject(hbmFg, sizeof(bmFg), &bmFg);
-        if (!hbmBg || !hbmFg || bmBg.bmWidth != bmFg.bmWidth || bmBg.bmHeight != bmFg.bmHeight || bmBg.bmBitsPixel != 32 || bmFg.bmBitsPixel != 32) {
+        if (!hbmBg || !hbmFg || bmBg.bmWidth != bmFg.bmWidth || bmBg.bmHeight != bmFg.bmHeight || bmBg.bmBitsPixel != 32 || bmFg.bmBitsPixel != 32)
+        {
             return false;
         }
         int bmBits = (bmBg.bmWidth) * (bmBg.bmHeight) * 4;
@@ -436,7 +474,7 @@ namespace DirectDesktop
         BYTE* pBitsFg = new BYTE[bmBits];
         GetBitmapBits(hbmFg, bmBits, pBitsFg);
 
-        BYTE* pPixel, * pPixelSec;
+        BYTE *pPixel, *pPixelSec;
         int x, y;
 
         for (y = 0; y < bmBg.bmHeight; y++)
@@ -448,15 +486,18 @@ namespace DirectDesktop
                 float aBg = pPixel[3] / 255.0;
                 float aFg = pPixelSec[3] / 255.0;
                 float resultAlpha = aFg + aBg * (1.0 - aFg);
-                if (resultAlpha < 0.003) {
+                if (resultAlpha < 0.003)
+                {
                     pPixel[2] = 0, pPixel[1] = 0, pPixel[0] = 0, pPixel[3] = 0;
                 }
-                else {
+                else
+                {
                     float r, g, b;
                     r = (pPixelSec[2] * aFg + pPixel[2] * aBg * (1.0 - aFg)) / resultAlpha;
                     g = (pPixelSec[1] * aFg + pPixel[1] * aBg * (1.0 - aFg)) / resultAlpha;
                     b = (pPixelSec[0] * aFg + pPixel[0] * aBg * (1.0 - aFg)) / resultAlpha;
-                    if (hardLight) {
+                    if (hardLight)
+                    {
                         float r2 = (pPixelSec[2] > 128) ? (1 - 2 * (1 - pPixel[2] / 255.0) * (1 - pPixelSec[2] / 255.0)) * 255 : 2 * (pPixel[2] * pPixelSec[2]) / 255.0;
                         float g2 = (pPixelSec[1] > 128) ? (1 - 2 * (1 - pPixel[1] / 255.0) * (1 - pPixelSec[1] / 255.0)) * 255 : 2 * (pPixel[1] * pPixelSec[1]) / 255.0;
                         float b2 = (pPixelSec[0] > 128) ? (1 - 2 * (1 - pPixel[0] / 255.0) * (1 - pPixelSec[0] / 255.0)) * 255 : 2 * (pPixel[0] * pPixelSec[0]) / 255.0;
@@ -479,10 +520,13 @@ namespace DirectDesktop
         return true;
     }
 
-    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, Element* peOptional) {
+    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, Element* peOptional)
+    {
         ToggleAcrylicBlur(hwnd, blur, fullscreen, peOptional);
     }
-    void BlurBackground2(HWND hwnd, bool blur, bool fullscreen, Element* peOptional) {
+
+    void BlurBackground2(HWND hwnd, bool blur, bool fullscreen, Element* peOptional)
+    {
         ToggleAcrylicBlur2(hwnd, blur, fullscreen, peOptional);
     }
 }

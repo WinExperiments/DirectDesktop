@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include "..\framework.h"
 
@@ -11,15 +12,15 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-	extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
-	extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
-	extern bool g_hiddenIcons;
-	extern bool g_touchmode;
-	extern int localeType;
-	extern NativeHWNDHost* wnd;
+    extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
+    extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
+    extern bool g_hiddenIcons;
+    extern bool g_touchmode;
+    extern int localeType;
+    extern NativeHWNDHost* wnd;
 
 
-	void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);
-	void DesktopRightClick(Element* elem, Event* iev);
-	void ItemRightClick(Element* elem, Event* iev);
+    void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);
+    void DesktopRightClick(Element* elem, Event* iev);
+    void ItemRightClick(Element* elem, Event* iev);
 }

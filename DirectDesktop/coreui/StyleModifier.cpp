@@ -16,7 +16,8 @@ namespace DirectDesktop
     const wchar_t* sheetName;
     rgb_t WhiteText;
 
-    bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y) {
+    bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y)
+    {
         if (hBitmap) DeleteObject(hBitmap);
         HDC hDC = GetDC(NULL);
         HDC hMemDC = CreateCompatibleDC(hDC);
@@ -31,7 +32,8 @@ namespace DirectDesktop
 
         void* pvBits = NULL;
         HBITMAP hResultBmp = CreateDIBSection(hMemDC, &bmi, DIB_RGB_COLORS, &pvBits, NULL, 0);
-        if (!hResultBmp) {
+        if (!hResultBmp)
+        {
             DeleteDC(hMemDC);
             ReleaseDC(NULL, hDC);
             return false;
@@ -41,9 +43,11 @@ namespace DirectDesktop
         DrawIconEx(hMemDC, 0, 0, hIcon, x, y, 0, NULL, DI_NORMAL);
 
         DWORD* pixels = (DWORD*)pvBits;
-        for (int i = 0; i < x * y; ++i) {
+        for (int i = 0; i < x * y; ++i)
+        {
             BYTE* px = (BYTE*)&pixels[i];
-            if ((px[0] != 0 || px[1] != 0 || px[2] != 0) && px[3] == 0) {
+            if ((px[0] != 0 || px[1] != 0 || px[2] != 0) && px[3] == 0)
+            {
                 px[3] = 0xFF;
             }
         }
@@ -56,7 +60,8 @@ namespace DirectDesktop
         return true;
     }
 
-    void UpdateModeInfo() {
+    void UpdateModeInfo()
+    {
         g_theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
         ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
         ImmersiveColorL = CImmersiveColor::GetColor(IMCLR_SystemAccentLight2);
@@ -64,7 +69,8 @@ namespace DirectDesktop
         if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", ImmersiveColor, false, nullptr);
     }
 
-    void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         if (crOpt == NULL) crOpt = ImmersiveColor;
         UpdateAccentColor(crOpt);
         rgb_t rgbVal = { r, g, b };
@@ -75,10 +81,12 @@ namespace DirectDesktop
 
         hslVal.l += (g_hslAccent.l * hslVal.s);
 
-        if (hslVal.l > g_hslEnhancedAccentHL) {
+        if (hslVal.l > g_hslEnhancedAccentHL)
+        {
             hslVal.h = g_hslAccent.h + 0.5 * ((g_hslLightAccentH - g_hslAccent.h) * ((hslVal.l - g_hslEnhancedAccentHL) / (255.0 - g_hslEnhancedAccentHL)));
         }
-        else if (hslVal.l <= g_hslEnhancedAccentHL) {
+        else if (hslVal.l <= g_hslEnhancedAccentHL)
+        {
             hslVal.h = g_hslAccent.h + 0.5 * ((g_hslDarkAccentH - g_hslAccent.h) * ((g_hslEnhancedAccentHL - hslVal.l) / g_hslEnhancedAccentHL));
         }
 
@@ -91,7 +99,8 @@ namespace DirectDesktop
         b = rgbVal.b;
     }
 
-    void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         if (crOpt == NULL) crOpt = ImmersiveColor;
         UpdateAccentColor(crOpt);
         rgb_t rgbVal = { r, g, b };
@@ -106,10 +115,12 @@ namespace DirectDesktop
 
         hslVal.s = (hslVal.s * 0.8 - 0.2) * g_hslAccent.s;
 
-        if (hslVal.l > g_hslEnhancedAccentHL) {
+        if (hslVal.l > g_hslEnhancedAccentHL)
+        {
             hslVal.h = g_hslAccent.h + 0.5 * ((g_hslLightAccentH - g_hslAccent.h) * ((hslVal.l - g_hslEnhancedAccentHL) / (255.0 - g_hslEnhancedAccentHL)));
         }
-        else if (hslVal.l <= g_hslEnhancedAccentHL) {
+        else if (hslVal.l <= g_hslEnhancedAccentHL)
+        {
             hslVal.h = g_hslAccent.h + 0.5 * ((g_hslDarkAccentH - g_hslAccent.h) * ((g_hslEnhancedAccentHL - hslVal.l) / g_hslEnhancedAccentHL));
         }
 
@@ -120,20 +131,23 @@ namespace DirectDesktop
         b = rgbVal.b;
     }
 
-    void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void SimpleBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         r = 0;
         g = 0;
         b = 0;
     }
 
-    void UndoPremultiplication(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void UndoPremultiplication(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         rgb_t rgbVal = { r, g, b };
         r = rgbVal.r / (a / 255.0);
         g = rgbVal.g / (a / 255.0);
         b = rgbVal.b / (a / 255.0);
     }
 
-    void DesaturateWhiten(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void DesaturateWhiten(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         rgb_t rgbVal = { r, g, b };
         hsl_t hslVal = rgb2hsl(rgbVal);
 
@@ -143,7 +157,8 @@ namespace DirectDesktop
         b = 255.0;
     }
 
-    void DesaturateWhitenGlass(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void DesaturateWhitenGlass(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         rgb_t rgbSrc = { GetRValue(crOpt), GetGValue(crOpt), GetBValue(crOpt) };
         hsl_t hslSrc = rgb2hsl(rgbSrc);
         rgb_t rgbVal = { r, g, b };
@@ -157,14 +172,16 @@ namespace DirectDesktop
         b = 255.0;
     }
 
-    void ColorToAlpha(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void ColorToAlpha(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         // https://stackoverflow.com/a/40862635
         int r1 = GetRValue(crOpt);
         int r2 = GetGValue(crOpt);
         int r3 = GetBValue(crOpt);
         rgb_t rgbThreshold = { r1, r2, r3 };
         hsl_t hslThreshold = rgb2hsl(rgbThreshold);
-        if (hslThreshold.l < 208) {
+        if (hslThreshold.l < 208)
+        {
             a *= 0.8;
             return;
         }
@@ -187,7 +204,8 @@ namespace DirectDesktop
         if (a2 > aA) aA = a2;
         if (a3 > aA) aA = a3;
 
-        if (aA >= maxA / maxX) {
+        if (aA >= maxA / maxX)
+        {
             a = aA * a / 255.0;
             rgbVal.r = maxA * (r - r1) / aA + r1;
             rgbVal.g = maxA * (g - r2) / aA + r2;
@@ -202,7 +220,8 @@ namespace DirectDesktop
             g = 255.0 - rgbVal.g;
             b = 255.0 - rgbVal.b;
         }
-        else {
+        else
+        {
             a = 0;
             r = 0;
             g = 0;
@@ -210,7 +229,8 @@ namespace DirectDesktop
         }
     }
 
-    void InvertConstHue(int& r, int& g, int& b, int& a, COLORREF& crOpt) {
+    void InvertConstHue(int& r, int& g, int& b, int& a, COLORREF& crOpt)
+    {
         rgb_t rgbVal = { r, g, b };
         hsl_t hslVal = rgb2hsl(rgbVal);
         if (hslVal.h >= 180.0) hslVal.h -= 180.0;
@@ -221,14 +241,18 @@ namespace DirectDesktop
         b = 255.0 - rgbVal.b;
     }
 
-    struct BUCKET {
+    struct BUCKET
+    {
         CDPA<RGBQUAD, CTContainer_PolicyUnOwned<RGBQUAD>> _dpa;
-        BUCKET() {
+
+        BUCKET()
+        {
             _dpa.Create(16);
         }
     };
 
-    void IncreaseBrightness(COLORREF& cr) {
+    void IncreaseBrightness(COLORREF& cr)
+    {
         rgb_t rgbVal = { GetRValue(cr), GetGValue(cr), GetBValue(cr) };
         hsl_t hslVal = rgb2hsl(rgbVal);
         hslVal.l = (sqrt(hslVal.l / 255.0)) * 255;
@@ -237,12 +261,14 @@ namespace DirectDesktop
         cr = RGB(rgbVal.r, rgbVal.g, rgbVal.b);
     }
 
-    COLORREF GetColorFromPixel(HDC hdc, POINT pt) {
+    COLORREF GetColorFromPixel(HDC hdc, POINT pt)
+    {
         COLORREF cr = GetPixel(hdc, pt.x, pt.y);
         return cr;
     }
 
-    COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold) {
+    COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold)
+    {
         COLORREF outDominantColor = g_isColorized ? IconColorizationColor : g_isDarkIconsEnabled ? RGB(72, 76, 80) : RGB(128, 136, 144);
 
         HDC hMemDC = CreateCompatibleDC(nullptr);
@@ -257,7 +283,8 @@ namespace DirectDesktop
         HDC hdcPaint;
         HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hMemDC, &rcIcon, BPBF_TOPDOWNDIB, nullptr, &hdcPaint);
         HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC2, hbm);
-        if (hBufferedPaint) {
+        if (hBufferedPaint)
+        {
             BufferedPaintClear(hBufferedPaint, &rcIcon);
             BitBlt(hdcPaint, rcIcon.left, rcIcon.top, rcIcon.right, rcIcon.bottom, hMemDC2, 0, 0, SRCCOPY);
 
@@ -271,20 +298,24 @@ namespace DirectDesktop
             constexpr int frac = 0xFF / (bucketCoef - 1);
             BUCKET rgBucket[
                 (frac * frac) * (0xFF / bucketCoef)
-                    + (frac) * (0xFF / bucketCoef)
-                    + (0xFF / bucketCoef)
-                    + 1
+                + (frac) * (0xFF / bucketCoef)
+                + (0xFF / bucketCoef)
+                + 1
             ];
-            for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize) {
-                for (int column = 0; column < iconsize; ++column, ++pbBuffer) {
-                    if (pbBuffer->rgbReserved) {
+            for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize)
+            {
+                for (int column = 0; column < iconsize; ++column, ++pbBuffer)
+                {
+                    if (pbBuffer->rgbReserved)
+                    {
                         BYTE maxValue = max(pbBuffer->rgbRed, max(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
                         BYTE minValue = min(pbBuffer->rgbRed, min(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
-                        if (maxValue - minValue > nonGreyishThreshold) {
+                        if (maxValue - minValue > nonGreyishThreshold)
+                        {
                             BUCKET* bucket = &rgBucket[
                                 (frac * frac) * (pbBuffer->rgbRed / bucketCoef)
-                                    + (frac) * (pbBuffer->rgbGreen / bucketCoef)
-                                    + (pbBuffer->rgbBlue / bucketCoef)
+                                + (frac) * (pbBuffer->rgbGreen / bucketCoef)
+                                + (pbBuffer->rgbBlue / bucketCoef)
                             ];
                             bucket->_dpa.AppendPtr(pbBuffer);
                         }
@@ -294,10 +325,12 @@ namespace DirectDesktop
 
             SIZE_T bucketWithMostHits = -1;
             int totalHits = 0;
-            for (SIZE_T bucketIdx = 0; bucketIdx < ARRAYSIZE(rgBucket); ++bucketIdx) {
+            for (SIZE_T bucketIdx = 0; bucketIdx < ARRAYSIZE(rgBucket); ++bucketIdx)
+            {
                 int myHits = rgBucket[bucketIdx]._dpa.GetPtrCount();
                 totalHits += myHits;
-                if (bucketWithMostHits == -1 || myHits > rgBucket[bucketWithMostHits]._dpa.GetPtrCount()) {
+                if (bucketWithMostHits == -1 || myHits > rgBucket[bucketWithMostHits]._dpa.GetPtrCount())
+                {
                     bucketWithMostHits = bucketIdx;
                 }
             }
@@ -308,9 +341,11 @@ namespace DirectDesktop
             int totalG = 0;
             int totalB = 0;
             int numBestBucketHits = bestBucket->_dpa.GetPtrCount();
-            if (numBestBucketHits > 0) {
+            if (numBestBucketHits > 0)
+            {
                 denominator = numBestBucketHits;
-                for (int colorIdx = 0; colorIdx < numBestBucketHits; ++colorIdx) {
+                for (int colorIdx = 0; colorIdx < numBestBucketHits; ++colorIdx)
+                {
                     const RGBQUAD* color = bestBucket->_dpa.FastGetPtr(colorIdx);
                     totalR += color->rgbRed;
                     totalG += color->rgbGreen;
@@ -318,10 +353,12 @@ namespace DirectDesktop
                 }
             }
 
-            if (MulDiv(numBestBucketHits, 100, totalHits) >= hitRatioThreshold) {
+            if (MulDiv(numBestBucketHits, 100, totalHits) >= hitRatioThreshold)
+            {
                 outDominantColor = RGB(totalR / denominator, totalG / denominator, totalB / denominator);
             }
-            if (GetRValue(outDominantColor) * 0.299 + GetGValue(outDominantColor) * 0.587 + GetBValue(outDominantColor) * 0.114 > 156) {
+            if (GetRValue(outDominantColor) * 0.299 + GetGValue(outDominantColor) * 0.587 + GetBValue(outDominantColor) * 0.114 > 156)
+            {
                 rgb_t odcTemp1 = { GetRValue(outDominantColor), GetGValue(outDominantColor), GetBValue(outDominantColor) };
                 hsl_t odcTemp2 = rgb2hsl(odcTemp1);
                 double reduced = pow((odcTemp2.l), 0.972);
@@ -340,7 +377,8 @@ namespace DirectDesktop
         return outDominantColor;
     }
 
-    COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize) {
+    COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize)
+    {
         COLORREF outFrequentColor = RGB(136, 136, 136);
 
         HDC hMemDC = CreateCompatibleDC(nullptr);
@@ -355,7 +393,8 @@ namespace DirectDesktop
         HDC hdcPaint;
         HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hMemDC, &rcIcon, BPBF_TOPDOWNDIB, nullptr, &hdcPaint);
         HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC2, hbm);
-        if (hBufferedPaint) {
+        if (hBufferedPaint)
+        {
             BufferedPaintClear(hBufferedPaint, &rcIcon);
             BitBlt(hdcPaint, rcIcon.left, rcIcon.top, rcIcon.right, rcIcon.bottom, hMemDC2, 0, 0, SRCCOPY);
 
@@ -364,9 +403,12 @@ namespace DirectDesktop
             GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
             vector<BYTE> lightValues;
 
-            for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize) {
-                for (int column = 0; column < iconsize; ++column, ++pbBuffer) {
-                    if (pbBuffer->rgbReserved > 64) {
+            for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize)
+            {
+                for (int column = 0; column < iconsize; ++column, ++pbBuffer)
+                {
+                    if (pbBuffer->rgbReserved > 64)
+                    {
                         rgb_t rgbVal = { pbBuffer->rgbRed, pbBuffer->rgbGreen, pbBuffer->rgbBlue };
                         hsl_t hslVal = rgb2hsl(rgbVal);
                         hslVal.l = round(hslVal.l / 32.0) * 32;
@@ -380,9 +422,11 @@ namespace DirectDesktop
             int lightCount = 0;
             int lightVal = 0;
 
-            for (auto&& item : lightValues) {
+            for (auto&& item : lightValues)
+            {
                 lightMap[item] = lightMap.emplace(item, 0).first->second + 1;
-                if (lightMap[item] >= lightCount) {
+                if (lightMap[item] >= lightCount)
+                {
                     tie(lightCount, lightVal) = tie(lightMap[item], item);
                 }
             }
@@ -400,12 +444,14 @@ namespace DirectDesktop
         return outFrequentColor;
     }
 
-    COLORREF GetLightestPixel(HBITMAP hbm) {
+    COLORREF GetLightestPixel(HBITMAP hbm)
+    {
         COLORREF outLightestColor = RGB(255, 255, 255);
         BITMAP bm;
         GetObject(hbm, sizeof(bm), &bm);
 
-        if (!hbm || bm.bmBitsPixel != 32) {
+        if (!hbm || bm.bmBitsPixel != 32)
+        {
             return outLightestColor;
         }
 
@@ -418,9 +464,11 @@ namespace DirectDesktop
         int x, y;
         vector<BYTE> lightValues;
 
-        for (y = 0; y < bm.bmHeight; y++) {
+        for (y = 0; y < bm.bmHeight; y++)
+        {
             pPixel = pBits + bm.bmWidth * 4 * y;
-            for (x = 0; x < bm.bmWidth; x++) {
+            for (x = 0; x < bm.bmWidth; x++)
+            {
                 rgb_t rgbVal = { pPixel[2] & 0xFFFFFF, pPixel[1] & 0xFFFFFF, pPixel[0] & 0xFFFFFF };
                 hsl_t hslVal = rgb2hsl(rgbVal);
                 lightValues.push_back((BYTE)hslVal.l);
@@ -428,8 +476,10 @@ namespace DirectDesktop
             }
         }
         BYTE lightestPixel{};
-        for (auto b : lightValues) {
-            if (b > lightestPixel) {
+        for (auto b : lightValues)
+        {
+            if (b > lightestPixel)
+            {
                 lightestPixel = b;
             }
         }

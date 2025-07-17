@@ -9,14 +9,17 @@
 
 namespace DirectDesktop
 {
-    std::wstring RemoveQuotes2(const std::wstring& input) {
-        if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"') {
+    std::wstring RemoveQuotes2(const std::wstring& input)
+    {
+        if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"')
+        {
             return input.substr(1, input.size() - 2);
         }
         return input;
     }
 
-    void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch) {
+    void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch)
+    {
         if (iconsz == g_iconsz && touch == g_touchmode) return;
         if (isDefaultRes()) SetPos(true);
         g_iconsz = iconsz;
@@ -25,16 +28,18 @@ namespace DirectDesktop
         bool touchmodeMem = g_touchmode;
         g_touchmode = touch;
         if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
-        if (touchmodeMem == !touch) {
+        if (touchmodeMem == !touch)
+        {
             InitLayout(false, false, false);
             return;
         }
         RearrangeIcons(true, true, false);
     }
 
-    void DesktopRightClick(Element* elem, Event* iev) {
-        if (iev->uidType == Button::Context) {
-
+    void DesktopRightClick(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Context)
+        {
             IShellView* pShellView = NULL;
             IShellFolder* pShellFolder = NULL;
 
@@ -56,7 +61,8 @@ namespace DirectDesktop
                 AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4006).c_str());
                 AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1004, LoadStrFromRes(4007).c_str());
                 AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1005, LoadStrFromRes(4034).c_str());
-                for (int menuitem = 1001; menuitem <= 1005; menuitem++) {
+                for (int menuitem = 1001; menuitem <= 1005; menuitem++)
+                {
                     mii.fState = MFS_UNCHECKED;
                     SetMenuItemInfoW(hsm, menuitem, 0, &mii);
                 }
@@ -82,12 +88,15 @@ namespace DirectDesktop
                 pICv1->QueryContextMenu(hm, 4, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
                 int itemCount = GetMenuItemCount(hm);
-                for (int i = 0; i < itemCount; i++) {
+                for (int i = 0; i < itemCount; i++)
+                {
                     MENUITEMINFO mii = { 0 };
                     mii.cbSize = sizeof(MENUITEMINFO);
                     mii.fMask = MIIM_ID;
-                    if (GetMenuItemInfoW(hm, i, TRUE, &mii)) {
-                        if (mii.wID == 2004) {
+                    if (GetMenuItemInfoW(hm, i, TRUE, &mii))
+                    {
+                        if (mii.wID == 2004)
+                        {
                             for (int j = 0; j < 5; j++) RemoveMenu(hm, i, MF_BYPOSITION);
                             break;
                         }
@@ -108,42 +117,45 @@ namespace DirectDesktop
                 GetCursorPos(&pt);
                 int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), NULL);
                 bool touchmodeMem{};
-                switch (menuItemId) {
-                case 2002:
-                    InitLayout(false, false, true);
-                    break;
-                case 2003:
-                    ShowSimpleView(false);
-                    break;
-                case 1001:
-                    SetView(144, 64, 48, false);
-                    break;
-                case 1002:
-                    SetView(96, 48, 32, false);
-                    break;
-                case 1003:
-                    SetView(48, 32, 16, false);
-                    break;
-                case 1004:
-                    SetView(32, 32, 12, false);
-                    break;
-                case 1005:
-                    SetView(32, 32, 12, true);
-                    break;
-                case 1007:
-                    for (int items = 0; items < pm.size(); items++) {
-                        switch (g_hiddenIcons) {
-                        case 0:
-                            pm[items]->SetVisible(false);
-                            break;
-                        case 1:
-                            if (pm[items]->GetPage() == g_currentPageID) pm[items]->SetVisible(true);
-                            break;
+                switch (menuItemId)
+                {
+                    case 2002:
+                        InitLayout(false, false, true);
+                        break;
+                    case 2003:
+                        ShowSimpleView(false);
+                        break;
+                    case 1001:
+                        SetView(144, 64, 48, false);
+                        break;
+                    case 1002:
+                        SetView(96, 48, 32, false);
+                        break;
+                    case 1003:
+                        SetView(48, 32, 16, false);
+                        break;
+                    case 1004:
+                        SetView(32, 32, 12, false);
+                        break;
+                    case 1005:
+                        SetView(32, 32, 12, true);
+                        break;
+                    case 1007:
+                        for (int items = 0; items < pm.size(); items++)
+                        {
+                            switch (g_hiddenIcons)
+                            {
+                                case 0:
+                                    pm[items]->SetVisible(false);
+                                    break;
+                                case 1:
+                                    if (pm[items]->GetPage() == g_currentPageID) pm[items]->SetVisible(true);
+                                    break;
+                            }
                         }
-                    }
-                    g_hiddenIcons = !g_hiddenIcons;
-                    SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", g_hiddenIcons, false, nullptr);
-                    break;
+                        g_hiddenIcons = !g_hiddenIcons;
+                        SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", g_hiddenIcons, false, nullptr);
+                        break;
                     //case 1008:
                     //    break;
                     //case 1009:
@@ -152,14 +164,14 @@ namespace DirectDesktop
                     //    break;
                     //case 1011:
                     //    break;
-                default:
-                    CMINVOKECOMMANDINFO ici;
-                    ZeroMemory(&ici, sizeof(ici));
-                    ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-                    ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
-                    ici.nShow = SW_SHOWNORMAL;
-                    pICv1->InvokeCommand(&ici);
-                    break;
+                    default:
+                        CMINVOKECOMMANDINFO ici;
+                        ZeroMemory(&ici, sizeof(ici));
+                        ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
+                        ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
+                        ici.nShow = SW_SHOWNORMAL;
+                        pICv1->InvokeCommand(&ici);
+                        break;
                 }
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", g_touchmode, false, nullptr);
             }
@@ -167,7 +179,8 @@ namespace DirectDesktop
         }
     }
 
-    void RightClickCore(LPCWSTR folderPath) {
+    void RightClickCore(LPCWSTR folderPath)
+    {
         LPITEMIDLIST pidl = NULL;
         SHParseDisplayName(folderPath, NULL, &pidl, 0, NULL);
 
@@ -207,8 +220,10 @@ namespace DirectDesktop
         ppFolder->Release();
     }
 
-    void ItemRightClick(Element* elem, Event* iev) {
-        if (iev->uidType == Button::Context) {
+    void ItemRightClick(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Context)
+        {
             RightClickCore(RemoveQuotes2(((LVItem*)elem)->GetFilename()).c_str());
         }
     }

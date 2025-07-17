@@ -7,17 +7,17 @@ using namespace std;
 
 namespace DirectDesktop
 {
-	class Logger
-	{
-	public:
-		~Logger();
+    class Logger
+    {
+    public:
+        ~Logger();
 
-		void StartLogger(const wchar_t* filename);
+        void StartLogger(const wchar_t* filename);
 
-		void WriteLine(wstring line);
-		void WriteLine(wstring line, int exitCode);
+        void WriteLine(wstring line);
+        void WriteLine(wstring line, int exitCode);
 
-	private:
-		wfstream logfile;
-	};
+    private:
+        wfstream logfile;
+    };
 }
