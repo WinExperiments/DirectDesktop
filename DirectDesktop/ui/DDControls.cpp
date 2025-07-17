@@ -37,10 +37,13 @@ namespace DirectDesktop
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams)
     {
-        HRESULT hr{};
-        CValuePtr spvLayout{};
-        hr = pfnCreate(dNumParams, pParams, &spvLayout);
-        if (SUCCEEDED(hr)) hr = pe->SetValue(Element::LayoutProp, 1, spvLayout);
+        CValuePtr spvLayout;
+        HRESULT hr = pfnCreate(dNumParams, pParams, &spvLayout);
+        if (SUCCEEDED(hr))
+        {
+            hr = pe->SetValue(Element::LayoutProp, 1, spvLayout);
+        }
+
         return hr;
     }
 
@@ -167,35 +170,47 @@ namespace DirectDesktop
 
     void RedrawImageCore(DDScalableElement* pe)
     {
-        if (!pe || pe->GetFirstScaledImage() == -1) return;
+        if (!pe || pe->GetFirstScaledImage() == -1)
+            return;
+
         int scaleInterval = GetCurrentScaleInterval();
         int scaleIntervalImage = pe->GetScaledImageIntervals();
-        if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+        if (scaleInterval > scaleIntervalImage - 1)
+            scaleInterval = scaleIntervalImage - 1;
         int imageID = pe->GetFirstScaledImage() + scaleInterval;
+
         HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
         if (newImage == nullptr)
         {
             LoadPNGAsBitmap(newImage, imageID);
             IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
         }
-        if (pe->GetAssociatedColor() != -1) IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
-        else if (pe->GetEnableAccent()) IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1, ImmersiveColor);
+
+        if (pe->GetAssociatedColor() != -1)
+            IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
+        else if (pe->GetEnableAccent())
+            IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1, ImmersiveColor);
+
         switch (pe->GetDrawType())
         {
             case 1:
             {
-                CValuePtr vImage = Value::CreateGraphic(newImage, 7, 0xffffffff, true, false, false);
-                if (vImage) pe->SetValue(Element::BackgroundProp, 1, vImage);
+                CValuePtr spvImage = Value::CreateGraphic(newImage, 7, 0xFFFFFFFF, true, false, false);
+                if (spvImage)
+                    pe->SetValue(Element::BackgroundProp, 1, spvImage);
                 break;
             }
             case 2:
             {
-                CValuePtr vImage = Value::CreateGraphic(newImage, 2, 0xffffffff, true, false, false);
-                if (vImage) pe->SetValue(Element::ContentProp, 1, vImage);
+                CValuePtr spvImage = Value::CreateGraphic(newImage, 2, 0xFFFFFFFF, true, false, false);
+                if (spvImage)
+                    pe->SetValue(Element::ContentProp, 1, spvImage);
                 break;
             }
         }
-        if (newImage) DeleteObject(newImage);
+
+        if (newImage != nullptr)
+            DeleteObject(newImage);
     }
 
     void RedrawFontCore(DDScalableElement* pe)
@@ -380,7 +395,7 @@ namespace DirectDesktop
 
     HRESULT DDScalableElement::Register()
     {
-        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        static const PropertyInfo* const rgRegisterProps[] =
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
@@ -390,7 +405,7 @@ namespace DirectDesktop
             &impNeedsFontResize2Prop,
             &impAssociatedColorProp
         };
-        return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDScalableElement, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     void DDScalableElement::SetPropChangeListener(IElementListener* pel)
@@ -624,7 +639,7 @@ namespace DirectDesktop
 
     HRESULT DDScalableButton::Register()
     {
-        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        static const PropertyInfo* const rgRegisterProps[] =
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
@@ -634,7 +649,7 @@ namespace DirectDesktop
             &impNeedsFontResize2Prop,
             &impAssociatedColorProp
         };
-        return ClassInfo<DDScalableButton, Button, StandardCreator<DDScalableButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDScalableButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     void DDScalableButton::SetPropChangeListener(IElementListener* pel)
@@ -899,7 +914,7 @@ namespace DirectDesktop
             &impNeedsFontResize2Prop,
             &impAssociatedColorProp
         };
-        return ClassInfo<DDScalableRichText, RichText, StandardCreator<DDScalableRichText>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDScalableRichText, RichText>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     void DDScalableRichText::SetPropChangeListener(IElementListener* pel)
@@ -1117,7 +1132,7 @@ namespace DirectDesktop
             &impNeedsFontResizeProp,
             &impNeedsFontResize2Prop
         };
-        return ClassInfo<DDScalableTouchEdit, TouchEdit2, StandardCreator<DDScalableTouchEdit>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDScalableTouchEdit, TouchEdit2>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     auto DDScalableTouchEdit::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
@@ -1302,7 +1317,7 @@ namespace DirectDesktop
 
     HRESULT LVItem::Register()
     {
-        return ClassInfo<LVItem, DDScalableButton, StandardCreator<LVItem>>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
+        return ClassInfo<LVItem, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
     }
 
     unsigned short LVItem::GetInternalXPos()
@@ -1552,7 +1567,7 @@ namespace DirectDesktop
 
     HRESULT DDLVActionButton::Register()
     {
-        return ClassInfo<DDLVActionButton, DDScalableButton, StandardCreator<DDLVActionButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDLVActionButton", nullptr, 0);
+        return ClassInfo<DDLVActionButton, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDLVActionButton", nullptr, 0);
     }
 
     LVItem* DDLVActionButton::GetAssociatedItem()
@@ -1598,7 +1613,7 @@ namespace DirectDesktop
         {
             &impCheckedStateProp
         };
-        return ClassInfo<DDToggleButton, DDScalableButton, StandardCreator<DDToggleButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDToggleButton, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     const PropertyInfo* WINAPI DDToggleButton::CheckedStateProp()
@@ -1649,7 +1664,7 @@ namespace DirectDesktop
         {
             &impCheckedStateProp
         };
-        return ClassInfo<DDCheckBox, DDScalableButton, StandardCreator<DDCheckBox>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBox", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDCheckBox, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBox", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     const PropertyInfo* WINAPI DDCheckBox::CheckedStateProp()
@@ -1700,7 +1715,7 @@ namespace DirectDesktop
         {
             &impCheckedStateProp
         };
-        return ClassInfo<DDCheckBoxGlyph, DDScalableElement, StandardCreator<DDCheckBoxGlyph>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBoxGlyph", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDCheckBoxGlyph, DDScalableElement>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBoxGlyph", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     const PropertyInfo* WINAPI DDCheckBoxGlyph::CheckedStateProp()
@@ -1745,21 +1760,24 @@ namespace DirectDesktop
         {
             DWORD dw;
             HANDLE drawingHandle = CreateThread(nullptr, 0, ColorPickerLayout, (LPVOID)*ppElement, NULL, &dw);
-            if (drawingHandle) CloseHandle(drawingHandle);
+            if (drawingHandle)
+            {
+                CloseHandle(drawingHandle);
+            }
         }
         return hr;
     }
 
     HRESULT DDColorPicker::Register()
     {
-        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        static const PropertyInfo* const rgRegisterProps[] =
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
             &impColorIntensityProp,
             &impDefaultColorProp
         };
-        return ClassInfo<DDColorPicker, Element, StandardCreator<DDColorPicker>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPicker", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDColorPicker, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPicker", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     int DDColorPicker::GetPropCommon(const PropertyProcT pPropertyProc)
@@ -1911,7 +1929,7 @@ namespace DirectDesktop
 
     HRESULT DDColorPickerButton::Register()
     {
-        return ClassInfo<DDColorPickerButton, Button, StandardCreator<DDColorPickerButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
+        return ClassInfo<DDColorPickerButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
     }
 
     void DDColorPickerButton::SetPropChangeListener(IElementListener* pel)
@@ -2024,8 +2042,7 @@ namespace DirectDesktop
 
     int CalcLines(const wstring& textStr)
     {
-        int lines = count(textStr.begin(), textStr.end(), L'\n') + 1;
-        return lines;
+        return count(textStr.begin(), textStr.end(), L'\n') + 1;
     }
 
     void GetLongestLine(HDC hdc, const wstring& textStr, RECT* rcText)
@@ -2053,7 +2070,7 @@ namespace DirectDesktop
 
     DDNotificationBanner::~DDNotificationBanner()
     {
-        this->DestroyAll(true);
+        DestroyAll(true);
     }
 
     IClassInfo* DDNotificationBanner::GetClassInfoPtr()

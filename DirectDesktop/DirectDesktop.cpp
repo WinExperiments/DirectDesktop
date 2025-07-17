@@ -449,8 +449,7 @@ namespace DirectDesktop
         HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
         DWORD pid{};
         GetWindowThreadProcessId(hWndProgman, &pid);
-        HANDLE hExplorer;
-        hExplorer = OpenProcess(PROCESS_TERMINATE, false, pid);
+        HANDLE hExplorer = OpenProcess(PROCESS_TERMINATE, false, pid);
         TerminateProcess(hExplorer, 2);
         CloseHandle(hExplorer);
         return 0;
@@ -578,8 +577,22 @@ namespace DirectDesktop
             {
                 int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
                 yValue* yV = new yValue{ WindowsBuild, 2000, NULL };
-                if (wParam == WTS_SESSION_LOCK) Perform24H2Fixes(false);
-                if (wParam == WTS_SESSION_UNLOCK && WindowsBuild >= 26002) WallpaperHelper24H2(yV);
+                switch (wParam)
+                {
+                    case WTS_SESSION_LOCK:
+                    {
+                        Perform24H2Fixes(false);
+                        break;
+                    }
+                    case WTS_SESSION_UNLOCK:
+                    {
+                        if (WindowsBuild >= 26002)
+                        {
+                            WallpaperHelper24H2(yV);
+                        }
+                        break;
+                    }
+                }
                 break;
             }
             case WM_CLOSE:

@@ -3,11 +3,13 @@
 #include "SearchPage.h"
 #include "..\DirectDesktop.h"
 #include "DDControls.h"
-//#include "EverythingSearch/Everything.h"
 #include "..\coreui\BitmapHelper.h"
 #include "..\backend\DirectoryHelper.h"
 
-//#pragma comment (lib, "Everything64.lib")
+#ifdef HAS_SEARCH
+#include "EverythingSearch/Everything.h"
+#pragma comment (lib, "Everything64.lib")
+#endif
 
 using namespace DirectUI;
 
