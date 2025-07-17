@@ -57,7 +57,7 @@ namespace DirectDesktop
 	Element* dragpreview;
 
 	DDScalableElement* RegistryListener;
-	void* g_tempElem;
+	void* g_tempElem, * g_tempElem2;
 	wstring path1, path2, path3;
 
 	HRESULT err;
@@ -277,12 +277,12 @@ namespace DirectDesktop
 	bool GetShellItemImage(HBITMAP& hBitmap, LPCWSTR filePath, int width, int height) {
 		static const HINSTANCE hImageres = LoadLibraryW(L"imageres.dll");
 
-		if (hBitmap) DeleteObject(hBitmap);
-		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-		if (FAILED(hr)) {
-			CoUninitialize();
-			return false;
+		if (hBitmap) {
+			DeleteObject(hBitmap);
+			hBitmap = nullptr;
 		}
+		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+		if (FAILED(hr))	return false;
 
 		ComPtr<IShellItem2> pShellItem{};
 		hr = SHCreateItemFromParsingName(filePath, NULL, IID_PPV_ARGS(&pShellItem));
@@ -294,18 +294,17 @@ namespace DirectDesktop
 				SIZE size = { width * g_flScaleFactor, height * g_flScaleFactor };
 				if (pImageFactory) {
 					if (SUCCEEDED(pImageFactory->GetImage(size, SIIGBF_RESIZETOFIT, &hBitmap)));
+					else hBitmap = nullptr;
 				}
 			}
 			else {
 				HICON fallback = (HICON)LoadImageW(hImageres, MAKEINTRESOURCE(2), IMAGE_ICON, width * g_flScaleFactor, height * g_flScaleFactor, LR_SHARED);
 				IconToBitmap(fallback, hBitmap, width * g_flScaleFactor, height * g_flScaleFactor);
-				DestroyIcon(fallback);
 			}
 		}
 		else {
 			HICON fallback = (HICON)LoadImageW(hImageres, MAKEINTRESOURCE(2), IMAGE_ICON, width * g_flScaleFactor, height * g_flScaleFactor, LR_SHARED);
 			IconToBitmap(fallback, hBitmap, width * g_flScaleFactor, height * g_flScaleFactor);
-			DestroyIcon(fallback);
 		}
 
 		CoUninitialize();
@@ -427,7 +426,7 @@ namespace DirectDesktop
 		bool bTest = PlaceDesktopInPos(&(yV->num), &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, false);
 		SetWindowLongPtrW(g_hWorkerW, GWL_STYLE, 0x96000000L);
 		SetWindowLongPtrW(g_hWorkerW, GWL_EXSTYLE, 0x20000880L);
-		free(yV);
+		delete yV;
 		return 0;
 	}
 
@@ -440,6 +439,7 @@ namespace DirectDesktop
 				yValue* yV = new yValue{ WindowsBuild, 200, NULL };
 				DWORD dwWallpaper{};
 				HANDLE wallpaperThread = CreateThread(0, 0, WallpaperHelper24H2, (LPVOID)yV, 0, &dwWallpaper);
+				if (wallpaperThread) CloseHandle(wallpaperThread);
 			}
 		}
 	}
@@ -515,6 +515,7 @@ namespace DirectDesktop
 			}
 			DWORD dwTermination{};
 			HANDLE termThread = CreateThread(0, 0, EndExplorer, NULL, 0, &dwTermination);
+			if (termThread) CloseHandle(termThread);
 			Sleep(500);
 			pMain->Destroy(true);
 			pSubview->Destroy(true);
@@ -537,6 +538,16 @@ namespace DirectDesktop
 			case 3:
 				CreateSearchPage();
 				break;
+			case 4:
+				switch (g_dialogopen) {
+				case false:
+					DisplayShutdownDialog();
+					break;
+				case true:
+					DestroyShutdownDialog();
+					break;
+				}
+				break;
 			}
 			break;
 		}
@@ -550,7 +561,9 @@ namespace DirectDesktop
 			//subpm[lParam].elem->SetAlpha(255);
 			yValueEx* yV = (yValueEx*)lParam;
 			vector<LVItem*>* l_pm = yV->vpm;
-			(*l_pm)[yV->num]->SetVisible(true);
+			for (int num = 0; num < yV->num; num++) {
+				(*l_pm)[num]->SetVisible(true);
+			}
 			break;
 		}
 		case WM_USER + 3: {
@@ -623,6 +636,7 @@ namespace DirectDesktop
 				v_pels.push_back(assignFn(pm[lParam], SelectItem2, true));
 				int* itemID = (int*)(&lParam);
 				HANDLE hCreateGroup = CreateThread(0, 0, InitDesktopGroup, itemID, 0, NULL);
+				if (hCreateGroup) CloseHandle(hCreateGroup);
 			}
 			else if (!g_touchmode) {
 				lines_basedOnEllipsis = floor(CalcTextLines(pm[lParam]->GetSimpleFilename().c_str(), innerSizeX - 4 * g_flScaleFactor)) * textm.tmHeight;
@@ -697,6 +711,7 @@ namespace DirectDesktop
 			GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
 			static const int dragWidth = _wtoi(cxDragStr);
 			static const int dragHeight = _wtoi(cyDragStr);
+			free(cxDragStr), free(cyDragStr);
 			POINT ppt;
 			GetCursorPos(&ppt);
 			ScreenToClient(wnd->GetHWND(), &ppt);
@@ -750,46 +765,47 @@ namespace DirectDesktop
 			vector<Element*>* l_shadowpm = yV->vispm;
 			vector<Element*>* l_shortpm = yV->vspm;
 			vector<RichText*>* l_filepm = yV->vfpm;
-			if (!g_touchmode && (*l_pm)[yV->num]) {
-				(*l_pm)[yV->num]->SetWidth(innerSizeX);
-				(*l_pm)[yV->num]->SetHeight(innerSizeY + textm.tmHeight + 23 * g_flScaleFactor);
-				int textlines = 1;
-				if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
-				(*l_filepm)[yV->num]->SetHeight(textm.tmHeight * textlines + 4 * g_flScaleFactor);
-				if ((*l_filepm)[yV->num]->GetHeight() > (iconPaddingY * 0.575 + 48)) (*l_filepm)[yV->num]->SetHeight(iconPaddingY * 0.575 + 48);
-				(*l_iconpm)[yV->num]->SetWidth(round(g_iconsz * g_flScaleFactor));
-				(*l_iconpm)[yV->num]->SetHeight(round(g_iconsz * g_flScaleFactor));
-				(*l_iconpm)[yV->num]->SetX(iconPaddingX);
-				(*l_iconpm)[yV->num]->SetY(round(iconPaddingY * 0.575));
-			}
-			HBITMAP iconbmp = ((DesktopIcon*)wParam)->icon;
-			CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
-			DeleteObject(iconbmp);
-			if (spvBitmap != nullptr) (*l_iconpm)[yV->num]->SetValue(Element::ContentProp, 1, spvBitmap);
-			HBITMAP iconshadowbmp = ((DesktopIcon*)wParam)->iconshadow;
-			CValuePtr spvBitmapShadow = DirectUI::Value::CreateGraphic(iconshadowbmp, 2, 0xffffffff, false, false, false);
-			DeleteObject(iconshadowbmp);
-			if (spvBitmapShadow != nullptr)	(*l_shadowpm)[yV->num]->SetValue(Element::ContentProp, 1, spvBitmapShadow);
-			HBITMAP iconshortcutbmp = ((DesktopIcon*)wParam)->iconshortcut;
-			CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
-			DeleteObject(iconshortcutbmp);
-			if (spvBitmapShortcut != nullptr && (*l_pm)[yV->num]->GetShortcutState() == true) (*l_shortpm)[yV->num]->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
-			HBITMAP textbmp = ((DesktopIcon*)wParam)->text;
-			CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
-			DeleteObject(textbmp);
-			if (spvBitmapText != nullptr) (*l_filepm)[yV->num]->SetValue(Element::ContentProp, 1, spvBitmapText);
-			if (g_touchmode) {
-				((DDScalableElement*)(*l_pm)[yV->num])->SetDDCPIntensity(((*l_pm)[yV->num]->GetHiddenState() == true) ? 192 : 255);
-				((DDScalableElement*)(*l_pm)[yV->num])->SetAssociatedColor(((DesktopIcon*)wParam)->crDominantTile);
-			}
-			if (yV->fl2 == 1) {
-				((LVItem*)yV->peOptionalTarget)->SetPage(((LVItem*)yV->peOptionalTarget)->GetPage() + 1); // hack
-				if (((LVItem*)yV->peOptionalTarget)->GetPage() >= yV->fl1) { // hack
-					CSafeElementPtr<DDScalableButton> lvi_SubUIContainer; lvi_SubUIContainer.Assign(regElem<DDScalableButton*>(L"SubUIContainer", yV->peOptionalTarget->GetParent()));
-					lvi_SubUIContainer->SetVisible(true);
-					yV->peOptionalTarget->DestroyAll(true);
-					yV->peOptionalTarget->Destroy(true);
+			vector<DesktopIcon*>* vdi = (vector<DesktopIcon*>*)wParam;
+			for (int num = 0; num < yV->num; num++) {
+				if (!g_touchmode && (*l_pm)[num]) {
+					(*l_pm)[num]->SetWidth(innerSizeX);
+					(*l_pm)[num]->SetHeight(innerSizeY + textm.tmHeight + 23 * g_flScaleFactor);
+					int textlines = 1;
+					if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
+					(*l_filepm)[num]->SetHeight(textm.tmHeight * textlines + 4 * g_flScaleFactor);
+					if ((*l_filepm)[num]->GetHeight() > (iconPaddingY * 0.575 + 48)) (*l_filepm)[num]->SetHeight(iconPaddingY * 0.575 + 48);
+					(*l_iconpm)[num]->SetWidth(round(g_iconsz * g_flScaleFactor));
+					(*l_iconpm)[num]->SetHeight(round(g_iconsz * g_flScaleFactor));
+					(*l_iconpm)[num]->SetX(iconPaddingX);
+					(*l_iconpm)[num]->SetY(round(iconPaddingY * 0.575));
 				}
+				HBITMAP iconbmp = (*vdi)[num]->icon;
+				CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
+				DeleteObject(iconbmp);
+				if (spvBitmap != nullptr) (*l_iconpm)[num]->SetValue(Element::ContentProp, 1, spvBitmap);
+				HBITMAP iconshadowbmp = (*vdi)[num]->iconshadow;
+				CValuePtr spvBitmapShadow = DirectUI::Value::CreateGraphic(iconshadowbmp, 2, 0xffffffff, false, false, false);
+				DeleteObject(iconshadowbmp);
+				if (spvBitmapShadow != nullptr)	(*l_shadowpm)[num]->SetValue(Element::ContentProp, 1, spvBitmapShadow);
+				HBITMAP iconshortcutbmp = (*vdi)[num]->iconshortcut;
+				CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
+				DeleteObject(iconshortcutbmp);
+				if (spvBitmapShortcut != nullptr && (*l_pm)[num]->GetShortcutState() == true) (*l_shortpm)[num]->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
+				HBITMAP textbmp = (*vdi)[num]->text;
+				CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
+				DeleteObject(textbmp);
+				if (spvBitmapText != nullptr) (*l_filepm)[num]->SetValue(Element::ContentProp, 1, spvBitmapText);
+				if (g_touchmode) {
+					((DDScalableElement*)(*l_pm)[num])->SetDDCPIntensity(((*l_pm)[num]->GetHiddenState() == true) ? 192 : 255);
+					((DDScalableElement*)(*l_pm)[num])->SetAssociatedColor((*vdi)[num]->crDominantTile);
+				}
+			}
+			CSafeElementPtr<TouchScrollViewer> groupdirlist; groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", yV->peOptionalTarget1->GetParent()));
+			groupdirlist->SetVisible(true);
+			yV->peOptionalTarget1->DestroyAll(true);
+			yV->peOptionalTarget1->Destroy(true);
+			for (int i = 0; i < vdi->size(); i++) {
+				free((*vdi)[i]);
 			}
 			break;
 		}
@@ -798,18 +814,20 @@ namespace DirectDesktop
 			vector<LVItem*>* l_pm = yV->vpm;
 			vector<Element*>* l_shadowpm = yV->vispm;
 			vector<Element*>* l_shortpm = yV->vspm;
-			if ((*l_pm)[yV->num]) {
-				if ((*l_pm)[yV->num]->GetHiddenState() == false) (*l_shadowpm)[yV->num]->SetAlpha(255);
-				if ((*l_shortpm)[yV->num]) (*l_shortpm)[yV->num]->SetAlpha(255);
-				if (!g_touchmode && (*l_shadowpm)[yV->num] && (*l_shortpm)[yV->num]) {
-					(*l_shadowpm)[yV->num]->SetWidth((g_iconsz + 16) * g_flScaleFactor);
-					(*l_shadowpm)[yV->num]->SetHeight((g_iconsz + 16) * g_flScaleFactor);
-					(*l_shadowpm)[yV->num]->SetX(iconPaddingX - 8 * g_flScaleFactor);
-					(*l_shadowpm)[yV->num]->SetY((iconPaddingY * 0.575) - 6 * g_flScaleFactor);
-					(*l_shortpm)[yV->num]->SetWidth(g_shiconsz * g_flScaleFactor);
-					(*l_shortpm)[yV->num]->SetHeight(g_shiconsz * g_flScaleFactor);
-					(*l_shortpm)[yV->num]->SetX(iconPaddingX);
-					(*l_shortpm)[yV->num]->SetY((iconPaddingY * 0.575) + (g_iconsz - g_shiconsz) * g_flScaleFactor);
+			for (int num = 0; num < yV->num; num++) {
+				if ((*l_pm)[num]) {
+					if ((*l_pm)[num]->GetHiddenState() == false) (*l_shadowpm)[num]->SetAlpha(255);
+					if ((*l_shortpm)[num]) (*l_shortpm)[num]->SetAlpha(255);
+					if (!g_touchmode && (*l_shadowpm)[num] && (*l_shortpm)[num]) {
+						(*l_shadowpm)[num]->SetWidth((g_iconsz + 16) * g_flScaleFactor);
+						(*l_shadowpm)[num]->SetHeight((g_iconsz + 16) * g_flScaleFactor);
+						(*l_shadowpm)[num]->SetX(iconPaddingX - 8 * g_flScaleFactor);
+						(*l_shadowpm)[num]->SetY((iconPaddingY * 0.575) - 6 * g_flScaleFactor);
+						(*l_shortpm)[num]->SetWidth(g_shiconsz * g_flScaleFactor);
+						(*l_shortpm)[num]->SetHeight(g_shiconsz * g_flScaleFactor);
+						(*l_shortpm)[num]->SetX(iconPaddingX);
+						(*l_shortpm)[num]->SetY((iconPaddingY * 0.575) + (g_iconsz - g_shiconsz) * g_flScaleFactor);
+					}
 				}
 			}
 			break;
@@ -833,18 +851,15 @@ namespace DirectDesktop
 			break;
 		}
 		case WM_USER + 14: {
-			vector<DWORD> smThumbnailThread;
-			vector<HANDLE> smThumbnailThreadHandle;
-			smThumbnailThread.resize(pm.size());
-			smThumbnailThreadHandle.resize(pm.size());
+			vector<HANDLE> smThumbnailThreadHandle(pm.size(), 0);
 			for (int icon = 0; icon < pm.size(); icon++) {
 				IconThumbHelper(icon);
 			}
 			for (int icon2 = 0; icon2 < pm.size(); icon2++) {
 				yValue* yV = new yValue{ icon2 };
-				smThumbnailThreadHandle[icon2] = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, &(smThumbnailThread[icon2]));
+				smThumbnailThreadHandle[icon2] = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
+				if (smThumbnailThreadHandle[icon2]) CloseHandle(smThumbnailThreadHandle[icon2]);
 			}
-			smThumbnailThread.clear();
 			smThumbnailThreadHandle.clear();
 			break;
 		}
@@ -865,7 +880,7 @@ namespace DirectDesktop
 			if (ti->str.GetHiddenState()) GroupedIcon->SetAlpha(128);
 			if (spvThumbIcon != nullptr) GroupedIcon->SetValue(Element::ContentProp, 1, spvThumbIcon);
 			DeleteObject(thumbIcon);
-			free(ti);
+			delete ti;
 			break;
 		}
 		case WM_USER + 17: {
@@ -879,6 +894,7 @@ namespace DirectDesktop
 			GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
 			static const int dragWidth = _wtoi(cxDragStr);
 			static const int dragHeight = _wtoi(cyDragStr);
+			free(cxDragStr), free(cyDragStr);
 			static const int savedanim = UIContainer->GetAnimation();
 			vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
 			if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight) {
@@ -1102,6 +1118,7 @@ namespace DirectDesktop
 			IconThumbHelper(currentID);
 			yValue* yV = new yValue{ currentID };
 			HANDLE smThumbnailThreadHandle = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
+			if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
 			RearrangeIcons(false, false, true);
 			pm[currentID]->SetRefreshState(true);
 			break;
@@ -1139,8 +1156,8 @@ namespace DirectDesktop
 			break;
 		}
 		case WM_USER + 25: {
-			((Element*)wParam)->SetLayoutPos(-3);
-			((Element*)lParam)->SetLayoutPos(2);
+			if (wParam) ((Element*)wParam)->SetLayoutPos(-3);
+			if (lParam) ((Element*)lParam)->SetLayoutPos(2);
 			break;
 		}
 		case WM_USER + 26: {
@@ -1259,7 +1276,7 @@ namespace DirectDesktop
 				peTemp->SetOrder(i);
 				peTemp->SetTargetElements(((DDColorPicker*)wParam)->GetTargetElements());
 				DeleteObject(hbmPickerBtn);
-				assignExtendedFn(peTemp, ShowHoverCircle);
+				peTemp->SetPropChangeListener(assignExtendedFn(peTemp, ShowHoverCircle, true));
 			}
 			if (newImage) DeleteObject(newImage);
 			DeleteDC(hdcSrc);
@@ -1290,22 +1307,7 @@ namespace DirectDesktop
 		return CallWindowProc(WndProcSubview, hWnd, uMsg, wParam, lParam);
 	}
 
-	DWORD WINAPI animate(LPVOID lpParam) {
-		Sleep(150);
-		yValue* yV = (yValue*)lpParam;
-		SendMessageW(wnd->GetHWND(), WM_USER + 1, NULL, yV->num);
-		return 0;
-	}
-
-	DWORD WINAPI subanimate(LPVOID lpParam) {
-		Sleep(150);
-		yValueEx* yV = (yValueEx*)lpParam;
-		SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, (LPARAM)yV);
-		return 0;
-	}
-
 	DWORD WINAPI fastin(LPVOID lpParam) {
-		InitThread(TSM_DESKTOP_DYNAMIC);
 		Sleep(25);
 		yValue* yV = (yValue*)lpParam;
 		if (pm[yV->num]->GetRefreshState()) {
@@ -1343,7 +1345,7 @@ namespace DirectDesktop
 				IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * g_flScaleFactor), 2, NULL);
 				if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
 			}
-			if (di.icon == nullptr) fastin(lpParam);
+			SendMessageW(wnd->GetHWND(), WM_USER + 1, NULL, yV->num);
 			SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, yV->num);
 			SendMessageW(wnd->GetHWND(), WM_USER + 3, (WPARAM)&di, yV->num);
 			Sleep(250);
@@ -1357,47 +1359,62 @@ namespace DirectDesktop
 		Sleep(25);
 		yValueEx* yV = (yValueEx*)lpParam;
 		vector<LVItem*>* l_pm = yV->vpm;
-		int lines_basedOnEllipsis{};
-		DWORD alignment{};
-		RECT g_touchmoderect{};
-		int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
-		int textlines = 1;
-		if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
-		yValue* yV2 = new yValue{ yV->num, yV->fl1, yV->fl2 };
-		if (g_touchmode) CalcDesktopIconInfo(yV2, &lines_basedOnEllipsis, &alignment, true, yV->vpm, yV->vfpm);
-		HBITMAP capturedBitmap{};
-		if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[yV->num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode);
-		else CreateTextBitmap(capturedBitmap, (*l_pm)[yV->num]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode);
-		DesktopIcon di;
-		ApplyIcons(*l_pm, *(yV->vipm), &di, false, yV->num, 1);
-		if (g_touchmode) {
-			di.crDominantTile = GetDominantColorFromIcon(di.icon, g_iconsz, 48);
-			rgb_t saturatedColor = { GetRValue(di.crDominantTile), GetGValue(di.crDominantTile), GetBValue(di.crDominantTile) };
-			hsl_t saturatedColor2 = rgb2hsl(saturatedColor);
-			saturatedColor2.l /= 4;
-			saturatedColor2.s *= 4;
-			saturatedColor = hsl2rgb(saturatedColor2);
-			IterateBitmap(di.iconshadow, StandardBitmapPixelHandler, 3, 0, 1, RGB(saturatedColor.r, saturatedColor.g, saturatedColor.b));
-			if (GetRValue(di.crDominantTile) * 0.299 + GetGValue(di.crDominantTile) * 0.587 + GetBValue(di.crDominantTile) * 0.114 > 156) {
+		vector<DesktopIcon*> vdi;
+		for (int num = 0; num < yV->num; num++) {
+			int lines_basedOnEllipsis{};
+			DWORD alignment{};
+			RECT g_touchmoderect{};
+			int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
+			int textlines = 1;
+			if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
+			yValue* yV2 = new yValue{ num, yV->fl1, yV->fl2 };
+			if (g_touchmode) CalcDesktopIconInfo(yV2, &lines_basedOnEllipsis, &alignment, true, yV->vpm, yV->vfpm);
+			HBITMAP capturedBitmap{};
+			if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode);
+			else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode);
+			delete yV2;
+			DesktopIcon* di = new DesktopIcon;
+			ApplyIcons(*l_pm, *(yV->vipm), di, false, num, 1);
+			if (((LVItem*)yV->peOptionalTarget2)->GetMemorySelected() == false) {
+				for (int num2 = 0; num2 < num; num2++) {
+					DeleteObject(vdi[num2]->icon);
+					DeleteObject(vdi[num2]->iconshadow);
+					DeleteObject(vdi[num2]->iconshortcut);
+					DeleteObject(vdi[num2]->text);
+					DeleteObject(vdi[num2]->textshadow);
+					free(vdi[num2]);
+					UnInitThread();
+				}
+				vdi.clear();
+				delete yV;
+				return 0;
+			}
+			if (g_touchmode) {
+				di->crDominantTile = GetDominantColorFromIcon(di->icon, g_iconsz, 48);
+				rgb_t saturatedColor = { GetRValue(di->crDominantTile), GetGValue(di->crDominantTile), GetBValue(di->crDominantTile) };
+				hsl_t saturatedColor2 = rgb2hsl(saturatedColor);
+				saturatedColor2.l /= 4;
+				saturatedColor2.s *= 4;
+				saturatedColor = hsl2rgb(saturatedColor2);
+				IterateBitmap(di->iconshadow, StandardBitmapPixelHandler, 3, 0, 1, RGB(saturatedColor.r, saturatedColor.g, saturatedColor.b));
+				if (GetRValue(di->crDominantTile) * 0.299 + GetGValue(di->crDominantTile) * 0.587 + GetBValue(di->crDominantTile) * 0.114 > 156) {
+					IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
+					IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1, NULL);
+				}
+				else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
+			}
+			else if (g_theme && !g_touchmode) {
 				IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
-				IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1, NULL);
+				IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9, NULL);
 			}
 			else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
+			if (capturedBitmap != nullptr) di->text = capturedBitmap;
+			vdi.push_back(di);
 		}
-		else if (g_theme && !g_touchmode) {
-			IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
-			IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9, NULL);
-		}
-		else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
-		if (capturedBitmap != nullptr) di.text = capturedBitmap;
-		if (yV->vpm) {
-			SendMessageW(wnd->GetHWND(), WM_USER + 10, NULL, (LPARAM)yV);
-			SendMessageW(wnd->GetHWND(), WM_USER + 9, (WPARAM)&di, (LPARAM)yV);
-		}
-		else {
-			DeleteObject(di.icon), DeleteObject(di.iconshadow), DeleteObject(di.iconshortcut), DeleteObject(di.text), DeleteObject(di.textshadow);
-			free(yV);
-		}
+		SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, (LPARAM)yV);
+		SendMessageW(wnd->GetHWND(), WM_USER + 10, NULL, (LPARAM)yV);
+		SendMessageW(wnd->GetHWND(), WM_USER + 9, (WPARAM)&vdi, (LPARAM)yV);
+		UnInitThread();
 		return 0;
 	}
 
@@ -1464,18 +1481,22 @@ namespace DirectDesktop
 		fullscreeninner->SetVisible(true);
 		if (!g_editmode) BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbase);
 		HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper2, NULL, NULL, NULL);
+		if (AnimHandle) CloseHandle(AnimHandle);
 		g_issubviewopen = true;
 	}
 	void fullscreenAnimation2() {
 		DWORD animThread;
 		HANDLE animThreadHandle = CreateThread(0, 0, animate6, NULL, 0, &animThread);
+		if (animThreadHandle) CloseHandle(animThreadHandle);
 	}
 	void ShowPopupCore() {
 		fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.9);
 		HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper2, NULL, NULL, NULL);
+		if (AnimHandle) CloseHandle(AnimHandle);
 	}
 	void HidePopupCore(bool WinDInvoked) {
 		if (!WinDInvoked) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+		if (g_tempElem2) ((LVItem*)g_tempElem2)->SetMemorySelected(false);
 		if (g_issubviewopen) {
 			centered->SetWidth(centered->GetWidth() * 0.85);
 			centered->SetHeight(centered->GetHeight() * 0.85);
@@ -1503,6 +1524,8 @@ namespace DirectDesktop
 		int order = ((DDScalableElement*)yV->ptr2)->GetGroupColor() * btnX;
 		int checkedBtnX = (localeType == 1) ? ((DDColorPicker*)yV->ptr1)->GetWidth() - order - DDCPCC->GetWidth() : order;
 		SendMessageW(wnd->GetHWND(), WM_USER + 23, (WPARAM)DDCPCC, checkedBtnX);
+		delete yV;
+		UnInitThread();
 		return 0;
 	}
 
@@ -1527,8 +1550,9 @@ namespace DirectDesktop
 			More->SetVisible(true);
 			groupdirlist->SetLayoutPos(4);
 			groupdirlist->SetKeyFocus();
-			if (customizegroup) { // this probably causes memory leak
+			if (customizegroup) {
 				customizegroup->SetLayoutPos(-3);
+				customizegroup->DestroyAll(true);
 				customizegroup->Destroy(true);
 			}
 		}
@@ -1570,6 +1594,7 @@ namespace DirectDesktop
 			btnTargets.clear();
 			yValuePtrs* yV = new yValuePtrs{ (void*)DDCP_Group, (void*)iconElement };
 			HANDLE checkedCircleThread = CreateThread(0, 0, PositionCheckCircle, (LPVOID)yV, 0, NULL);
+			if (checkedCircleThread) CloseHandle(checkedCircleThread);
 		}
 	}
 
@@ -1577,6 +1602,7 @@ namespace DirectDesktop
 		static int i{};
 		if (iev->uidType == Button::Click) {
 			CSafeElementPtr<LVItem> lviTarget; lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
+			lviTarget->SetMemorySelected(false);
 			for (i = 0; i < pm.size(); i++) {
 				if (lviTarget == pm[i]) break;
 			}
@@ -1593,6 +1619,7 @@ namespace DirectDesktop
 				lviTarget->SetTooltip(true);
 				yValue* yV = new yValue{ i };
 				HANDLE smThumbnailThreadHandle = CreateThread(0, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, NULL);
+				if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
 			}
 			IconThumbHelper(i);
 			RearrangeIcons(true, false, true);
@@ -1604,6 +1631,7 @@ namespace DirectDesktop
 		static int i{};
 		if (iev->uidType == Button::Click) {
 			CSafeElementPtr<LVItem> lviTarget; lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
+			lviTarget->SetMemorySelected(false);
 			for (i = 0; i < pm.size(); i++) {
 				if (lviTarget == pm[i]) break;
 			}
@@ -1636,6 +1664,7 @@ namespace DirectDesktop
 			CSafeElementPtr<Element> tasks; tasks.Assign(regElem<Element*>(L"tasks", ((DDLVActionButton*)elem)->GetAssociatedItem()));
 			tasks->SetLayoutPos(2);
 			hAutoHide = CreateThread(0, 0, AutoHideMoreOptions, (LPVOID)((DDLVActionButton*)elem)->GetAssociatedItem(), 0, NULL);
+			if (hAutoHide) CloseHandle(hAutoHide);
 		}
 	}
 
@@ -1656,6 +1685,7 @@ namespace DirectDesktop
 		wchar_t* dcms{};
 		GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed", &dcms);
 		Sleep(_wtoi(dcms));
+		free(dcms);
 		*((int*)lpParam) = 1;
 		return 0;
 	}
@@ -1765,6 +1795,7 @@ namespace DirectDesktop
 	DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam) {
 		yValue* yV = (yValue*)lpParam;
 		if (!g_treatdirasgroup || pm[yV->num]->GetGroupSize() != LVIGS_NORMAL) {
+			delete yV;
 			return 1;
 		}
 		int padding = 3, paddingInner = 2;
@@ -1824,7 +1855,7 @@ namespace DirectDesktop
 				PostMessageW(wnd->GetHWND(), WM_USER + 16, (WPARAM)ti, yV->num);
 			}
 		}
-		free(yV);
+		delete yV;
 		return 0;
 	}
 
@@ -1848,6 +1879,7 @@ namespace DirectDesktop
 				dllName = L"imageres.dll";
 				iconID = L"163";
 			}
+			free(customIconStr);
 		}
 		else {
 			dllName = L"imageres.dll";
@@ -1857,17 +1889,13 @@ namespace DirectDesktop
 		HICON icoShortcut{};
 		if (isCustomPath) icoShortcut = (HICON)LoadImageW(NULL, iconFinal.c_str(), IMAGE_ICON, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor, LR_LOADFROMFILE);
 		else icoShortcut = (HICON)LoadImageW(LoadLibraryW(dllName.c_str()), MAKEINTRESOURCE(_wtoi(iconID.c_str())), IMAGE_ICON, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor, LR_SHARED);
-		// The use of the 4 lines below is because we can't use a fully transparent bitmap
+		// The use of a dummy icon is because we can't use a fully transparent bitmap
 		static const HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"shell32.dll"), MAKEINTRESOURCE(24), IMAGE_ICON, 16, 16, LR_SHARED);
 		HBITMAP dummyii{};
 		IconToBitmap(dummyi, dummyii, 16, 16);
 		IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005, NULL);
 		HBITMAP bmp{};
-		if (id < pm.size()) {
-			if (pm[id]->GetGroupedDirState() == false || g_treatdirasgroup == false || pmIcon != iconpm) GetShellItemImage(bmp, RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), g_iconsz * scale, g_iconsz * scale);
-			else bmp = dummyii;
-		}
-		else if (g_treatdirasgroup == false || pmIcon != iconpm) GetShellItemImage(bmp, RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), g_iconsz * scale, g_iconsz * scale);
+		if (pmLVItem[id]->GetGroupedDirState() == false || g_treatdirasgroup == false) GetShellItemImage(bmp, RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), g_iconsz * scale, g_iconsz * scale);
 		else bmp = dummyii;
 		HBITMAP bmpShortcut{};
 		IconToBitmap(icoShortcut, bmpShortcut, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor);
@@ -1878,7 +1906,7 @@ namespace DirectDesktop
 			HBITMAP bmpShadow{};
 			AddPaddingToBitmap(bmp, bmpShadow, 8 * scale * g_flScaleFactor, 8 * scale * g_flScaleFactor, 8 * scale * g_flScaleFactor, 8 * scale * g_flScaleFactor);
 			IterateBitmap(bmpShadow, SimpleBitmapPixelHandler, 0, (int)(4 * scale * g_flScaleFactor), shadowintensity, NULL);
-			if (!g_isGlass || pmLVItem == pm) di->iconshadow = bmpShadow;
+			if (!g_isGlass || &pmLVItem == &pm) di->iconshadow = bmpShadow;
 			if (g_isDarkIconsEnabled) {
 				if (pmLVItem[id]->GetColorLock() == false) {
 					HBITMAP bmpOverlay{};
@@ -1892,39 +1920,39 @@ namespace DirectDesktop
 				}
 				if (GetGValue(GetMostFrequentLightnessFromIcon(bmpShortcut, g_iconsz * scale * g_flScaleFactor)) > 208) IterateBitmap(bmpShortcut, InvertConstHue, 1, 0, 1, NULL);
 			}
-		}
-		if (g_isGlass && !g_isDarkIconsEnabled && !g_isColorized && pmLVItem[id]->GetColorLock() == false) {
-			if (pmLVItem == pm) {
-				HDC hdc = GetDC(NULL);
-				HBITMAP bmpOverlay{};
-				AddPaddingToBitmap(bmp, bmpOverlay, 0, 0, 0, 0);
-				HBITMAP bmpOverlay2{};
-				AddPaddingToBitmap(bmp, bmpOverlay2, 0, 0, 0, 0);
-				IterateBitmap(bmpOverlay, SimpleBitmapPixelHandler, 0, 0, 1, RGB(0, 0, 0));
-				CompositeBitmaps(bmpOverlay, bmpOverlay2, true, 0.5);
-				IterateBitmap(bmp, SimpleBitmapPixelHandler, 0, 0, 1, RGB(0, 0, 0));
-				CompositeBitmaps(bmp, bmpOverlay, true, 1);
-				DeleteObject(bmpOverlay);
-				DeleteObject(bmpOverlay2);
-				HBITMAP bmpOverlay3{};
-				AddPaddingToBitmap(bmp, bmpOverlay3, 0, 0, 0, 0);
-				IterateBitmap(bmpOverlay3, DesaturateWhitenGlass, 1, 0, 0.4, 16777215);
-				POINT iconmidpoint = { pm[id]->GetX() + iconpm[id]->GetX() + g_iconsz * scale * g_flScaleFactor / 2, pm[id]->GetY() + iconpm[id]->GetY() + g_iconsz * scale * g_flScaleFactor / 2 };
-				IterateBitmap(bmp, DesaturateWhitenGlass, 1, 0, 1, GetLightestPixel(bmp));
-				COLORREF glassColor = GetColorFromPixel(hdc, iconmidpoint);
-				IncreaseBrightness(glassColor);
-				IterateBitmap(bmp, StandardBitmapPixelHandler, 3, 0, 0.8, glassColor);
-				CompositeBitmaps(bmp, bmpOverlay3, false, 0);
-				DeleteObject(bmpOverlay3);
-				ReleaseDC(NULL, hdc);
-			}
-			else {
-				HBITMAP bmpOverlay{};
-				AddPaddingToBitmap(bmp, bmpOverlay, 0, 0, 0, 0);
-				IterateBitmap(bmp, SimpleBitmapPixelHandler, 0, 0, 1, RGB(0, 0, 0));
-				CompositeBitmaps(bmp, bmpOverlay, true, 1);
-				IterateBitmap(bmp, DesaturateWhitenGlass, 1, 0, 0.4, GetLightestPixel(bmp));
-				DeleteObject(bmpOverlay);
+			if (g_isGlass && !g_isDarkIconsEnabled && !g_isColorized && pmLVItem[id]->GetColorLock() == false) {
+				if (&pmLVItem == &pm) {
+					HDC hdc = GetDC(NULL);
+					HBITMAP bmpOverlay{};
+					AddPaddingToBitmap(bmp, bmpOverlay, 0, 0, 0, 0);
+					HBITMAP bmpOverlay2{};
+					AddPaddingToBitmap(bmp, bmpOverlay2, 0, 0, 0, 0);
+					IterateBitmap(bmpOverlay, SimpleBitmapPixelHandler, 0, 0, 1, RGB(0, 0, 0));
+					CompositeBitmaps(bmpOverlay, bmpOverlay2, true, 0.5);
+					IterateBitmap(bmp, SimpleBitmapPixelHandler, 0, 0, 1, RGB(0, 0, 0));
+					CompositeBitmaps(bmp, bmpOverlay, true, 1);
+					DeleteObject(bmpOverlay);
+					DeleteObject(bmpOverlay2);
+					HBITMAP bmpOverlay3{};
+					AddPaddingToBitmap(bmp, bmpOverlay3, 0, 0, 0, 0);
+					IterateBitmap(bmpOverlay3, DesaturateWhitenGlass, 1, 0, 0.4, 16777215);
+					POINT iconmidpoint = { pm[id]->GetX() + iconpm[id]->GetX() + g_iconsz * scale * g_flScaleFactor / 2, pm[id]->GetY() + iconpm[id]->GetY() + g_iconsz * scale * g_flScaleFactor / 2 };
+					IterateBitmap(bmp, DesaturateWhitenGlass, 1, 0, 1, GetLightestPixel(bmp));
+					COLORREF glassColor = GetColorFromPixel(hdc, iconmidpoint);
+					IncreaseBrightness(glassColor);
+					IterateBitmap(bmp, StandardBitmapPixelHandler, 3, 0, 0.8, glassColor);
+					CompositeBitmaps(bmp, bmpOverlay3, false, 0);
+					DeleteObject(bmpOverlay3);
+					ReleaseDC(NULL, hdc);
+				}
+				else {
+					HBITMAP bmpOverlay{};
+					AddPaddingToBitmap(bmp, bmpOverlay, 0, 0, 0, 0);
+					IterateBitmap(bmp, SimpleBitmapPixelHandler, 0, 0, 1, RGB(0, 0, 0));
+					CompositeBitmaps(bmp, bmpOverlay, true, 1);
+					IterateBitmap(bmp, DesaturateWhitenGlass, 1, 0, 0.4, GetLightestPixel(bmp));
+					DeleteObject(bmpOverlay);
+				}
 			}
 		}
 		if (g_isColorized) {
@@ -1959,6 +1987,7 @@ namespace DirectDesktop
 				iconpm[id]->SetHeight(g_iconsz * g_flScaleFactor);
 			}
 		}
+		free(uc);
 	}
 	void UpdateTileOnColorChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
 		if (pProp == DDScalableElement::AssociatedColorProp()) {
@@ -1994,6 +2023,8 @@ namespace DirectDesktop
 		SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
 		fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.9);
 		SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		lvi->SetMemorySelected(true);
+		g_tempElem2 = lvi;
 		Element* groupdirectory{};
 		parserSubview->CreateElement(L"groupdirectory", NULL, NULL, NULL, (Element**)&groupdirectory);
 		fullscreeninner->Add((Element**)&groupdirectory, 1);
@@ -2052,10 +2083,6 @@ namespace DirectDesktop
 				outerSizeX = g_touchSizeX + DESKPADDING_TOUCH * g_flScaleFactor;
 				outerSizeY = g_touchSizeY + DESKPADDING_TOUCH * g_flScaleFactor;
 			}
-			DWORD* animThread = new DWORD[lviCount];
-			DWORD* animThread2 = new DWORD[lviCount];
-			HANDLE* animThreadHandle = new HANDLE[lviCount];
-			HANDLE* animThreadHandle2 = new HANDLE[lviCount];
 			for (int j = 0; j < lviCount; j++) {
 				if ((*subpm)[j]->GetHiddenState() == true) {
 					(*subiconpm)[j]->SetAlpha(128);
@@ -2070,7 +2097,6 @@ namespace DirectDesktop
 				if (!g_touchmode) (*subpm)[j]->SetClass(L"singleclicked");
 				int xRender = (localeType == 1) ? (centered->GetWidth() - (dimensions.left + dimensions.right + outerSizeX)) - x : x;
 				(*subpm)[j]->SetX(xRender), (*subpm)[j]->SetY(y);
-				yValueEx* yV = new yValueEx{ j, static_cast<float>(lviCount), 1.0, subpm, subiconpm, subshadowpm, subshortpm, subfilepm, PendingContainer };
 				x += outerSizeX;
 				xRuns++;
 				if (x > centered->GetWidth() - (dimensions.left + dimensions.right + outerSizeX)) {
@@ -2079,8 +2105,6 @@ namespace DirectDesktop
 					x = 0;
 					y += outerSizeY;
 				}
-				animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
-				animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV, 0, &(animThread2[j]));
 			}
 			x -= outerSizeX;
 			if (maxX != 0 && xRuns % maxX != 0) y += outerSizeY;
@@ -2090,15 +2114,15 @@ namespace DirectDesktop
 				if (localeType == 1 && y > (480 * g_flScaleFactor - (dirtitle->GetHeight() + dimensions.top + dimensions.bottom)))
 					(*subpm)[j]->SetX((*subpm)[j]->GetX() - GetSystemMetricsForDpi(SM_CXVSCROLL, g_dpi));
 			}
-			delete[] animThread;
-			delete[] animThread2;
-			delete[] animThreadHandle;
-			delete[] animThreadHandle2;
 			lvi->SetChildItems((*subpm));
 			lvi->SetChildIcons((*subiconpm));
 			lvi->SetChildShadows((*subshadowpm));
 			lvi->SetChildShortcutArrows((*subshortpm));
 			lvi->SetChildFilenames((*subfilepm));
+			DWORD animThread2;
+			yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, subpm, subiconpm, subshadowpm, subshortpm, subfilepm, PendingContainer, lvi };
+			HANDLE animThreadHandle2 = CreateThread(0, 0, subfastin, (LPVOID)yV, 0, &animThread2);
+			if (animThreadHandle2) CloseHandle(animThreadHandle2);
 		}
 		else {
 			CSafeElementPtr<Element> emptyview; emptyview.Assign(regElem<Element*>(L"emptyview", groupdirectory));
@@ -2122,6 +2146,8 @@ namespace DirectDesktop
 		DWORD animThread4;
 		HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
 		HANDLE animThreadHandle4 = CreateThread(0, 0, grouptasksanimation, NULL, 0, &animThread4);
+		if (animThreadHandle3) CloseHandle(animThreadHandle3);
+		if (animThreadHandle4) CloseHandle(animThreadHandle4);
 		CSafeElementPtr<DDLVActionButton> Pin; Pin.Assign(regElem<DDLVActionButton*>(L"Pin", groupdirectory));
 		CSafeElementPtr<DDLVActionButton> Customize; Customize.Assign(regElem<DDLVActionButton*>(L"Customize", groupdirectory));
 		CSafeElementPtr<DDLVActionButton> OpenInExplorer; OpenInExplorer.Assign(regElem<DDLVActionButton*>(L"OpenInExplorer", groupdirectory));
@@ -2140,6 +2166,8 @@ namespace DirectDesktop
 		StyleSheet* sheet = pSubview->GetSheet();
 		CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
 		parserSubview->GetSheet(g_theme ? L"popup" : L"popupdark", &sheetStorage);
+		lvi->SetMemorySelected(true);
+		g_tempElem2 = lvi;
 		Element* groupdirectory{};
 		parserSubview->CreateElement(L"groupdirectory", NULL, lvi, NULL, (Element**)&groupdirectory);
 		groupdirectory->SetValue(Element::SheetProp, 1, sheetStorage);
@@ -2183,6 +2211,8 @@ namespace DirectDesktop
 				d_subfilepm->push_back(textElem);
 				outerElemGrouped->SetAnimation(NULL);
 			}
+			CSafeElementPtr<LVItem> PendingContainer; PendingContainer.Assign(regElem<LVItem*>(L"PendingContainer", groupdirectory));
+			PendingContainer->SetVisible(true);
 			EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), &(*d_subpm), false, nullptr, &count2, lviCount);
 			int x = 0, y = 0;
 			int maxX{}, xRuns{};
@@ -2195,10 +2225,6 @@ namespace DirectDesktop
 				outerSizeX = g_touchSizeX + DESKPADDING_TOUCH * g_flScaleFactor;
 				outerSizeY = g_touchSizeY + DESKPADDING_TOUCH * g_flScaleFactor;
 			}
-			DWORD* animThread = new DWORD[lviCount];
-			DWORD* animThread2 = new DWORD[lviCount];
-			HANDLE* animThreadHandle = new HANDLE[lviCount];
-			HANDLE* animThreadHandle2 = new HANDLE[lviCount];
 			for (int j = 0; j < lviCount; j++) {
 				if ((*d_subpm)[j]->GetHiddenState() == true) {
 					(*d_subiconpm)[j]->SetAlpha(128);
@@ -2213,7 +2239,6 @@ namespace DirectDesktop
 				if (!g_touchmode) (*d_subpm)[j]->SetClass(L"singleclicked");
 				int xRender = (localeType == 1) ? (lvi->GetWidth() - (dimensions.left + dimensions.right + outerSizeX)) - x : x;
 				(*d_subpm)[j]->SetX(xRender), (*d_subpm)[j]->SetY(y);
-				yValueEx* yV = new yValueEx{ j, static_cast<float>(lviCount), NULL, d_subpm, d_subiconpm, d_subshadowpm, d_subshortpm, d_subfilepm, NULL };
 				x += outerSizeX;
 				xRuns++;
 				if (x > lvi->GetWidth() - (dimensions.left + dimensions.right + outerSizeX + GetSystemMetricsForDpi(SM_CXVSCROLL, g_dpi))) {
@@ -2222,8 +2247,6 @@ namespace DirectDesktop
 					x = 0;
 					y += outerSizeY;
 				}
-				animThreadHandle[j] = CreateThread(0, 0, subanimate, (LPVOID)yV, 0, &(animThread[j]));
-				animThreadHandle2[j] = CreateThread(0, 0, subfastin, (LPVOID)yV, 0, &(animThread2[j]));
 			}
 			x -= outerSizeX;
 			if (maxX != 0 && xRuns % maxX != 0) y += outerSizeY;
@@ -2233,15 +2256,15 @@ namespace DirectDesktop
 				if (localeType == 1 && y > (lvi->GetHeight() - (dirtitle->GetHeight() + dimensions.top + dimensions.bottom)))
 					(*d_subpm)[j]->SetX((*d_subpm)[j]->GetX() - GetSystemMetricsForDpi(SM_CXVSCROLL, g_dpi));
 			}
-			delete[] animThread;
-			delete[] animThread2;
-			delete[] animThreadHandle;
-			delete[] animThreadHandle2;
 			lvi->SetChildItems((*d_subpm));
 			lvi->SetChildIcons((*d_subiconpm));
 			lvi->SetChildShadows((*d_subshadowpm));
 			lvi->SetChildShortcutArrows((*d_subshortpm));
 			lvi->SetChildFilenames((*d_subfilepm));
+			DWORD animThread2;
+			yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, d_subpm, d_subiconpm, d_subshadowpm, d_subshortpm, d_subfilepm, PendingContainer, lvi };
+			HANDLE animThreadHandle2 = CreateThread(0, 0, subfastin, (LPVOID)yV, 0, &animThread2);
+			if (animThreadHandle2) CloseHandle(animThreadHandle2);
 		}
 		else {
 			CSafeElementPtr<Element> emptyview; emptyview.Assign(regElem<Element*>(L"emptyview", groupdirectory));
@@ -2468,6 +2491,7 @@ namespace DirectDesktop
 			g_checkifelemexists = true;
 			DWORD animThread3;
 			HANDLE animThreadHandle3 = CreateThread(0, 0, grouptitlebaranimation, NULL, 0, &animThread3);
+			if (animThreadHandle3) CloseHandle(animThreadHandle3);
 		}
 	}
 
@@ -2494,10 +2518,8 @@ namespace DirectDesktop
 				if (elem == elemStorage) clicks++; else clicks = 0;
 				DWORD doubleClickThread{};
 				HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, &clicks, 0, &doubleClickThread);
+				if (doubleClickThreadHandle) CloseHandle(doubleClickThreadHandle);
 				elemStorage = elem;
-			}
-			for (int items = 0; items < pm.size(); items++) {
-				pm[items]->SetMemorySelected(pm[items]->GetSelected());
 			}
 			if (clicks & 1 && checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false) {
 				wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
@@ -2580,12 +2602,13 @@ namespace DirectDesktop
 		}
 	}
 	void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-		UpdateCache u;
 		if (pProp == Element::MouseFocusedProp()) {
+			UpdateCache* uc{};
 			Element* grandparent = elem->GetParent()->GetParent();
-			CValuePtr v = elem->GetValue(Element::MouseFocusedProp, 1, &u);
+			CValuePtr v = elem->GetValue(Element::MouseFocusedProp, 1, uc);
 			CSafeElementPtr<Element> item; item.Assign(regElem<Element*>(L"innerElem", grandparent));
 			if (item != nullptr) item->SetValue(Element::MouseFocusedProp(), 1, v);
+			free(uc);
 		}
 	}
 
@@ -2608,6 +2631,7 @@ namespace DirectDesktop
 		GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
 		static const int dragWidth = _wtoi(cxDragStr);
 		static const int dragHeight = _wtoi(cyDragStr);
+		free(cxDragStr), free(cyDragStr);
 		while (true) {
 			GetCursorPos(&ppt2);
 			ScreenToClient(wnd->GetHWND(), &ppt2);
@@ -2635,6 +2659,7 @@ namespace DirectDesktop
 				g_emptyclicks++;
 				DWORD doubleClickThread{};
 				HANDLE doubleClickThreadHandle = CreateThread(0, 0, DoubleClickHandler, &g_emptyclicks, 0, &doubleClickThread);
+				if (doubleClickThreadHandle) CloseHandle(doubleClickThreadHandle);
 				if (g_emptyclicks & 1) {
 					for (int items = 0; items < pm.size(); items++) {
 						switch (g_hiddenIcons) {
@@ -2666,6 +2691,7 @@ namespace DirectDesktop
 				selector->SetVisible(true);
 				selector->SetLayoutPos(-2);
 				marqueeThreadHandle = CreateThread(0, 0, UpdateMarqueeSelectorPosition, NULL, 0, &marqueeThread);
+				if (marqueeThreadHandle) CloseHandle(marqueeThreadHandle);
 			}
 			isPressed = 1;
 		}
@@ -2738,6 +2764,7 @@ namespace DirectDesktop
 					dragpreview->SetWidth(elem->GetWidth());
 					dragpreview->SetHeight(elem->GetHeight());
 					dragThreadHandle = CreateThread(0, 0, UpdateIconPosition, &selectedLVItems, 0, &dragThread);
+					if (dragThreadHandle) CloseHandle(dragThreadHandle);
 				}
 			}
 			isIconPressed = 1;
@@ -2776,6 +2803,17 @@ namespace DirectDesktop
 		}
 	}
 
+	HANDLE g_iconSemaphore = CreateSemaphoreW(nullptr, 8, 8, nullptr);
+	DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam) {
+		InitThread(TSM_DESKTOP_DYNAMIC);
+		yValue* yV = static_cast<yValue*>(lpParam);
+		fastin(yV);
+		delete yV;
+		ReleaseSemaphore(g_iconSemaphore, 1, nullptr);
+		UnInitThread();
+		return 0;
+	}
+
 	void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen) {
 		RECT dimensions;
 		GetClientRect(wnd->GetHWND(), &dimensions);
@@ -2797,6 +2835,7 @@ namespace DirectDesktop
 		if (reloadicons) {
 			DWORD dd;
 			HANDLE thumbnailThread = CreateThread(0, 0, ApplyThumbnailIcons, NULL, 0, &dd);
+			if (thumbnailThread) CloseHandle(thumbnailThread);
 		}
 		if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 2 of 5 complete: Applied icons to the relevant desktop items.");
 		int desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
@@ -2804,10 +2843,6 @@ namespace DirectDesktop
 		int desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
 		int x = desktoppadding_x, y = desktoppadding_y;
 		if (count >= 1) {
-			DWORD* animThread = new DWORD[count];
-			DWORD* animThread2 = new DWORD[count];
-			HANDLE* animThreadHandle = new HANDLE[count];
-			HANDLE* animThreadHandle2 = new HANDLE[count];
 			int outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
 			int outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
 			int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
@@ -2964,15 +2999,11 @@ namespace DirectDesktop
 
 			if (g_currentPageID > g_maxPageID) g_currentPageID = g_maxPageID;
 			if (g_currentPageID != 1) prevpageMain->SetVisible(true);
+
 			for (int j = 0; j < count; j++) {
 				yValue* yV = new yValue{ j, (float)innerSizeX, (float)innerSizeY };
-				animThreadHandle[j] = CreateThread(0, 0, animate, (LPVOID)yV, 0, &(animThread[j]));
-				animThreadHandle2[j] = CreateThread(0, 0, fastin, (LPVOID)yV, 0, &(animThread2[j]));
+				QueueUserWorkItem(RearrangeIconsHelper, yV, 0);
 			}
-			delete[] animThread;
-			delete[] animThread2;
-			delete[] animThreadHandle;
-			delete[] animThreadHandle2;
 			positions.clear();
 		}
 		if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
@@ -2984,6 +3015,11 @@ namespace DirectDesktop
 	void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen) {
 		g_ensureNoRefresh = false;
 		const WCHAR* name = g_touchmode ? L"outerElemTouch" : L"outerElem";
+		if (g_outerElem) {
+			g_outerElem->DestroyAll(true);
+			g_outerElem->Destroy(true);
+		}
+		static IElementListener* pel_SelectItem, * pel_MarqueeSelector, * pel_DesktopRightClick;
 		parser->CreateElement(name, NULL, NULL, NULL, (Element**)&g_outerElem);
 		if (bAlreadyOpen && isDefaultRes()) SetPos(true);
 		UIContainer->DestroyAll(true);
@@ -2996,10 +3032,10 @@ namespace DirectDesktop
 		cbpm.clear();
 		GetFontHeight();
 		if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 6 complete: Prepared DirectDesktop to receive desktop data.");
-		LPWSTR path{};
+		WCHAR* path{};
 		GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
-		wchar_t* secondaryPath = new wchar_t[260];
-		wchar_t* cBuffer = new wchar_t[260];
+		WCHAR* secondaryPath = new WCHAR[260];
+		WCHAR* cBuffer = new WCHAR[260];
 
 		BYTE* value{};
 		GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconLayouts", &value);
@@ -3017,10 +3053,7 @@ namespace DirectDesktop
 		UIContainer->Add((Element**)&emptyspace, 1);
 		for (int i = 0; i < lviCount; i++) {
 			LVItem* outerElem;
-			if (g_touchmode) {
-				parser->CreateElement(L"outerElemTouch", NULL, NULL, NULL, (Element**)&outerElem);
-			}
-			else parser->CreateElement(L"outerElem", NULL, NULL, NULL, (Element**)&outerElem);
+			parser->CreateElement(name, NULL, NULL, NULL, (Element**)&outerElem);
 			UIContainer->Add((Element**)&outerElem, 1);
 			CSafeElementPtr<DDScalableElement> iconElem; iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElem));
 			CSafeElementPtr<Element> shortcutElem; shortcutElem.Assign(regElem<Element*>(L"shortcutElem", outerElem));
@@ -3064,19 +3097,21 @@ namespace DirectDesktop
 			if (!g_touchmode) {
 				if (shellstate[4] & 0x20) {
 					pm[i]->SetClass(L"doubleclicked");
-					//if (pm[i].isDirectory == true && g_treatdirasgroup == true) outerElem->SetClass(L"singleclicked");
 				}
 				else pm[i]->SetClass(L"singleclicked");
 			}
 		}
 		if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 5 of 6 complete: Filled the arrays with relevant desktop icon data.");
 		RearrangeIcons(false, true, false);
-		assignFn(emptyspace, SelectItem);
-		assignExtendedFn(emptyspace, MarqueeSelector);
-		assignFn(emptyspace, DesktopRightClick);
+		free(pel_SelectItem), free(pel_MarqueeSelector), free(pel_DesktopRightClick);
+		pel_SelectItem = assignFn(emptyspace, SelectItem, true);
+		pel_MarqueeSelector = assignExtendedFn(emptyspace, MarqueeSelector, true);
+		pel_DesktopRightClick = assignFn(emptyspace, DesktopRightClick, true);
 		if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 6 of 6 complete: Arranged the icons according to your icon placements.");
 		delete[] cBuffer;
 		delete[] secondaryPath;
+		free(path);
+		free(value);
 	}
 
 	void InitNewLVItem(const wstring& filepath, const wstring& filename) {
@@ -3158,17 +3193,7 @@ namespace DirectDesktop
 				if ((pKeyInfo->vkCode == VK_F4) && GetAsyncKeyState(VK_MENU) & 0x8000) {
 					static bool valid{};
 					valid = !valid;
-					if (valid) {
-						switch (g_dialogopen) {
-						case false:
-							DisplayShutdownDialog();
-							break;
-						case true:
-							DestroyShutdownDialog();
-							break;
-						}
-						Sleep(50);
-					}
+					if (valid) SetTimer(wnd->GetHWND(), 4, 100, NULL);
 					return 1;
 				}
 				if (pKeyInfo->vkCode == VK_F5) {
@@ -3345,6 +3370,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
 		StringCchPrintfW(docsfolder, 260, L"%s\\Documents", cBuffer);
 		MainLogger.StartLogger(((wstring)docsfolder + L"\\DirectDesktop.log").c_str());
+		delete[] docsfolder;
+		delete[] cBuffer;
 	}
 	HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
 	int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
@@ -3440,6 +3467,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		BYTE* value2;
 		GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
 		g_currentPageID = *reinterpret_cast<unsigned short*>(&value2[2]);
+		free(value2);
 	}
 	RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\DirectDesktop", NULL, NULL };
 	if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultWidth")) {
@@ -3490,9 +3518,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	StartMonitorFileChanges(path3);
 
 	DDNotificationBanner* ddnb{};
-	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M6",
-		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone6\nCompiled on 2025-07-11",
-		15, false);
+	DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Pre-M7",
+		L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_pre_milestone7\nCompiled on 2025-07-17",
+		10, false);
 
 	if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
 
@@ -3507,6 +3535,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	if (logging == IDYES) {
 		DWORD dd;
 		HANDLE loggingThread = CreateThread(0, 0, FinishedLogging, NULL, 0, &dd);
+		if (loggingThread) CloseHandle(loggingThread);
 	}
 	logging = IDNO;
 	StartMessagePump();

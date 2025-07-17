@@ -32,6 +32,7 @@ namespace DirectDesktop
     Button* PageViewer;
     TouchEdit2* PV_EnterPage;
 
+    HANDLE g_editSemaphore = CreateSemaphoreW(nullptr, 8, 8, nullptr);
     LPVOID timerPtr;
 
     void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
@@ -98,6 +99,7 @@ namespace DirectDesktop
                     g_maxPageID--;
                     DWORD dwReload;
                     HANDLE hReload = CreateThread(0, 0, ReloadPV, NULL, 0, &dwReload);
+                    if (hReload) CloseHandle(hReload);
                 }
                 break;
             case 2:
@@ -122,6 +124,7 @@ namespace DirectDesktop
                     g_homePageID = page;
                     DWORD dwReload;
                     HANDLE hReload = CreateThread(0, 0, ReloadPV, NULL, 0, &dwReload);
+                    if (hReload) CloseHandle(hReload);
                 }
                 break;
             }
@@ -130,8 +133,8 @@ namespace DirectDesktop
         case WM_USER + 1: {
             DesktopIcon* di = (DesktopIcon*)wParam;
             yValueEx* yV = (yValueEx*)lParam;
-            DDScalableElement* PV_IconShadowPreview;
-            DDScalableElement* PV_IconPreview;
+            DDScalableElement* PV_IconShadowPreview{};
+            DDScalableElement* PV_IconPreview{};
             Element* PV_IconShortcutPreview;
             const WCHAR* iconshadow = g_touchmode ? L"PV_IconShadowTouchPreview" : L"PV_IconShadowPreview";
             const WCHAR* icon = g_touchmode ? L"PV_IconTouchPreview" : L"PV_IconPreview";
@@ -139,7 +142,7 @@ namespace DirectDesktop
             parserEdit->CreateElement(iconshadow, NULL, NULL, NULL, (Element**)&PV_IconShadowPreview);
             parserEdit->CreateElement(icon, NULL, NULL, NULL, (Element**)&PV_IconPreview);
             parserEdit->CreateElement(iconshortcut, NULL, NULL, NULL, &PV_IconShortcutPreview);
-            Element* pePreviewContainer = yV->peOptionalTarget;
+            CSafeElementPtr<Element> pePreviewContainer; pePreviewContainer.Assign(yV->peOptionalTarget1);
             pePreviewContainer->Add((Element**)&PV_IconShadowPreview, 1);
             pePreviewContainer->Add((Element**)&PV_IconPreview, 1);
             pePreviewContainer->Add(&PV_IconShortcutPreview, 1);
@@ -215,10 +218,28 @@ namespace DirectDesktop
             parserEdit->CreateElement(L"pagetasks", NULL, NULL, NULL, &pagetasks);
             ((Element*)wParam)->Add(&pagetasks, 1);
             CSafeElementPtr<Element> PV_HomeBadge; PV_HomeBadge.Assign(regElem<Element*>(L"PV_HomeBadge", pagetasks));
-            CSafeElementPtr<DDLVActionButton> PV_Home; PV_Home.Assign(regElem<DDLVActionButton*>(L"PV_Home", pagetasks));
+            DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", pagetasks);
             if (((LVItem*)wParam)->GetPage() == g_homePageID) {
                 PV_Home->SetSelected(true);
                 PV_HomeBadge->SetSelected(true);
+            }
+            DynamicArray<Element*>* Children = ((Element*)wParam)->GetChildren(&v);
+            if (Children->GetSize() == 2) {
+                DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", (Element*)wParam);
+                if (PV_Remove) {
+                    ((DDScalableElement*)PV_Remove)->SetDDCPIntensity(255);
+                    ((DDScalableElement*)PV_Remove)->SetAssociatedColor(RGB(196, 43, 28));
+                    PV_Remove->SetVisible(((Element*)wParam)->GetMouseWithin());
+                    PV_Remove->SetAssociatedItem((LVItem*)wParam);
+                    assignFn(PV_Remove, RemoveSelectedPage);
+                }
+            }
+            if (PV_Home) {
+                ((DDScalableElement*)PV_Home)->SetDDCPIntensity(255);
+                ((DDScalableElement*)PV_Home)->SetAssociatedColor(RGB(255, 102, 0));
+                PV_Home->SetVisible(((Element*)wParam)->GetMouseWithin());
+                PV_Home->SetAssociatedItem((LVItem*)wParam);
+                assignFn(PV_Home, SetSelectedPageHome);
             }
             assignExtendedFn((Element*)wParam, ShowPageOptionsOnHover);
             break;
@@ -252,17 +273,24 @@ namespace DirectDesktop
     }
 
     DWORD WINAPI CreateDesktopPreview(LPVOID lpParam) {
-        InitThread(TSM_DESKTOP_DYNAMIC);
-        yValueEx* yV = (yValueEx*)lpParam;
+        yValueEx* yV = (yValueEx*)lpParam; // These are NEVER deleted, they need to be deleted in a way that won't crash
         DesktopIcon di;
-        if (!g_hiddenIcons && yV->num >= 0 && yV->peOptionalTarget) {
+        if (!g_hiddenIcons && yV->num >= 0 && yV->peOptionalTarget1) {
             ApplyIcons(pm, iconpm, &di, false, yV->num, yV->fl1);
             SendMessageW(editwnd->GetHWND(), WM_USER + 1, (WPARAM)&di, (LPARAM)yV);
         }
-        ((LVItem*)yV->peOptionalTarget)->SetInternalXPos(((LVItem*)yV->peOptionalTarget)->GetInternalXPos() - 1); // hack
-        if (((LVItem*)yV->peOptionalTarget)->GetInternalXPos() == 0) {
-            PostMessageW(editwnd->GetHWND(), WM_USER + 2, (WPARAM)yV->peOptionalTarget, ((LVItem*)yV->peOptionalTarget)->GetPage());
+        ((LVItem*)yV->peOptionalTarget1)->SetInternalXPos(((LVItem*)yV->peOptionalTarget1)->GetInternalXPos() - 1); // hack
+        if (((LVItem*)yV->peOptionalTarget1)->GetInternalXPos() == 0) {
+            PostMessageW(editwnd->GetHWND(), WM_USER + 2, (WPARAM)yV->peOptionalTarget1, ((LVItem*)yV->peOptionalTarget1)->GetPage());
         }
+        return 0;
+    }
+    DWORD WINAPI CreateDesktopPreviewHelper(LPVOID lpParam) {
+        InitThread(TSM_DESKTOP_DYNAMIC);
+        yValueEx* yV = static_cast<yValueEx*>(lpParam);
+        CreateDesktopPreview(yV);
+        ReleaseSemaphore(g_editSemaphore, 1, nullptr);
+        UnInitThread();
         return 0;
     }
 
@@ -278,8 +306,13 @@ namespace DirectDesktop
     DWORD WINAPI animate7(LPVOID lpParam) {
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
         Sleep(350);
+        fullscreeninnerE->DestroyAll(true);
+        fullscreeninnerE->Destroy(true);
+        prevpage->DestroyAll(true);
+        prevpage->Destroy(true);
+        nextpage->DestroyAll(true);
+        nextpage->Destroy(true);
         pEdit->DestroyAll(true);
-        pEdit->Destroy(true);
         editwnd->DestroyWindow();
         //editbgwnd->DestroyWindow();
         return 0;
@@ -307,6 +340,7 @@ namespace DirectDesktop
         SimpleViewBottom->SetAlpha(0);
         DWORD animThread;
         HANDLE animThreadHandle = CreateThread(0, 0, animate7, NULL, 0, &animThread);
+        if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 
     void HideSimpleView(bool animate) {
@@ -326,8 +360,13 @@ namespace DirectDesktop
             mainContainer->SetVisible(true);
             mainContainer->SetAlpha(255);
             g_editmode = false;
+            fullscreeninnerE->DestroyAll(true);
+            fullscreeninnerE->Destroy(true);
+            prevpage->DestroyAll(true);
+            prevpage->Destroy(true);
+            nextpage->DestroyAll(true);
+            nextpage->Destroy(true);
             pEdit->DestroyAll(true);
-            pEdit->Destroy(true);
             editwnd->DestroyWindow();
             //editbgwnd->DestroyWindow();
         }
@@ -373,7 +412,6 @@ namespace DirectDesktop
     }
 
     void UpdateEnterPagePreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2) {
-        UpdateCache* uc{};
         if (pProp == Element::KeyWithinProp()) {
             CSafeElementPtr<DDScalableElement> PV_EnterPageBackground; PV_EnterPageBackground.Assign(regElem<DDScalableElement*>(L"PV_EnterPageBackground", PageViewer));
             CSafeElementPtr<Element> PV_EnterPagePreview; PV_EnterPagePreview.Assign(regElem<Element*>(L"PV_EnterPagePreview", PageViewer));
@@ -420,6 +458,7 @@ namespace DirectDesktop
             g_invokedpagechange = true;
             DWORD dd;
             HANDLE thumbnailThread = CreateThread(0, 0, LoadNewPages, NULL, 0, &dd);
+            if (thumbnailThread) CloseHandle(thumbnailThread);
         }
     }
     void ShowPageViewer(Element* elem, Event* iev) {
@@ -472,13 +511,11 @@ namespace DirectDesktop
                     }
                     PV_Page->SetInternalXPos(remainingIcons); // hack
                     yValueEx* yV = new yValueEx{ -1, 0.25, NULL, NULL, NULL, NULL, NULL, NULL, PV_Page };
-                    DWORD dwDeskPreview;
-                    HANDLE hDeskPreview = CreateThread(0, 0, CreateDesktopPreview, yV, 0, &dwDeskPreview);
+                    QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
                     for (int j = 0; j < pm.size(); j++) {
                         if (pm[j]->GetPage() != i) continue;
                         yValueEx* yV = new yValueEx{ j, 0.25, NULL, NULL, NULL, NULL, NULL, NULL, PV_Page };
-                        DWORD dwDeskPreview;
-                        HANDLE hDeskPreview = CreateThread(0, 0, CreateDesktopPreview, yV, 0, &dwDeskPreview);
+                        QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
                     }
                 }
             }
@@ -488,7 +525,7 @@ namespace DirectDesktop
                 PV_EnterPage = (TouchEdit2*)PageViewer->FindDescendent(StrToID(L"PV_EnterPage"));
                 CSafeElementPtr<DDScalableButton> PV_ConfirmEnterPage; PV_ConfirmEnterPage.Assign(regElem<DDScalableButton*>(L"PV_ConfirmEnterPage", PageViewer));
                 assignFn(PV_ConfirmEnterPage, EnterSelectedPage);
-                CSafeElementPtr<Element> PV_EnterPagePreview; PV_EnterPagePreview.Assign(regElem<Element*>(L"delaysecondspreview", PageViewer));
+                CSafeElementPtr<Element> PV_EnterPagePreview; PV_EnterPagePreview.Assign(regElem<Element*>(L"PV_EnterPagePreview", PageViewer));
                 assignExtendedFn(PV_EnterPage, UpdateEnterPagePreview);
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", PageViewer);
                 if (PV_Remove) {
@@ -561,6 +598,8 @@ namespace DirectDesktop
         if (g_touchmode) g_iconsz = 64;
         g_editmode = true;
         if (!g_invokedpagechange) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
+        static IElementListener* pel_GoToPrevPage, * pel_GoToNextPage, * pel_TriggerHSV1, * pel_ShowShutdownDialog, * pel_TriggerHSV2,
+            * pel_ShowSearchUI, * pel_ShowSettings, * pel_TriggerHSV3, * pel_ShowPageViewer, * pel_ExitWindow;
         RECT dimensions;
         POINT topLeftMon = GetTopLeftMonitor();
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -600,16 +639,18 @@ namespace DirectDesktop
         nextpage = regElem<TouchButton*>(L"nextpage", pEdit);
         pageinfo = regElem<DDScalableRichText*>(L"pageinfo", pEdit);
 
-        assignFn(prevpage, GoToPrevPage);
-        assignFn(nextpage, GoToNextPage);
-        assignFn(fullscreenpopupbaseE, TriggerHSV);
-        assignFn(SimpleViewPower, ShowShutdownDialog);
-        assignFn(SimpleViewPower, TriggerHSV);
-        assignFn(SimpleViewSearch, ShowSearchUI);
-        assignFn(SimpleViewSettings, ShowSettings);
-        assignFn(SimpleViewSettings, TriggerHSV);
-        assignFn(SimpleViewPages, ShowPageViewer);
-        assignFn(SimpleViewClose, ExitWindow);
+        free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_TriggerHSV1), free(pel_ShowShutdownDialog), free(pel_TriggerHSV2),
+            free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_TriggerHSV3), free(pel_ShowPageViewer), free(pel_ExitWindow);
+        pel_GoToPrevPage = (IElementListener*)assignFn(prevpage, GoToPrevPage, true);
+        pel_GoToNextPage = (IElementListener*)assignFn(nextpage, GoToNextPage, true);
+        pel_TriggerHSV1 = (IElementListener*)assignFn(fullscreenpopupbaseE, TriggerHSV, true);
+        pel_ShowShutdownDialog = (IElementListener*)assignFn(SimpleViewPower, ShowShutdownDialog, true);
+        pel_TriggerHSV2 = (IElementListener*)assignFn(SimpleViewPower, TriggerHSV, true);
+        pel_ShowSearchUI = (IElementListener*)assignFn(SimpleViewSearch, ShowSearchUI, true);
+        pel_ShowSettings = (IElementListener*)assignFn(SimpleViewSettings, ShowSettings, true);
+        pel_TriggerHSV3 = (IElementListener*)assignFn(SimpleViewSettings, TriggerHSV, true);
+        pel_ShowPageViewer = (IElementListener*)assignFn(SimpleViewPages, ShowPageViewer, true);
+        pel_ExitWindow = (IElementListener*)assignFn(SimpleViewClose, ExitWindow, true);
 
         WndProcEdit = (WNDPROC)SetWindowLongPtrW(editwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeWindowProc);
         //WndProcEditBG = (WNDPROC)SetWindowLongPtrW(editbgwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeBGWindowProc);
@@ -647,8 +688,7 @@ namespace DirectDesktop
             }
             else continue;
             yValueEx* yV = new yValueEx{ j, peContainerScale, NULL, NULL, NULL, NULL, NULL, NULL, peContainer };
-            DWORD dwDeskPreview;
-            HANDLE hDeskPreview = CreateThread(0, 0, CreateDesktopPreview, yV, 0, &dwDeskPreview);
+            QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
         }
 
         if (g_maxPageID != 1) {

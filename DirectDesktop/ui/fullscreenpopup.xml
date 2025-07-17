@@ -33,20 +33,20 @@
 			</Element>
 		</Element>
 		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-			<TouchScrollViewer id="atom(groupdirlist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
-				<DDScalableButton id="atom(SubUIContainer)" visible="false" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
+			<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::EnsureLayered()" InteractionMode="TranslateY|Inertia">
+				<DDScalableButton id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 			</TouchScrollViewer>
 			<Element id="atom(emptyview)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
 				<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr"/>
 				<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
 			</Element>
-			<LVItem id="atom(PendingContainer)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
+			<Element id="atom(PendingContainer)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
 				<ModernProgressRing width="72rp" height="72rp" margin="rect(12rp,12rp,12rp,12rp)"/>
 				<DDScalableRichText content="Loading" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
-			</LVItem>
+			</Element>
 		</Element>
 	</Element>
-	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
 			<DDScalableElement content="resstr(4046)" class="toggletext"/>
 			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>

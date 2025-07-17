@@ -95,9 +95,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DirectDesktop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="coreui\AccentColorHelper.cpp">
       <Filter>Source Files\coreui</Filter>
     </ClCompile>
@@ -136,6 +133,9 @@
     </ClCompile>
     <ClCompile Include="ui\ShutdownDialog.cpp">
       <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectDesktop.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

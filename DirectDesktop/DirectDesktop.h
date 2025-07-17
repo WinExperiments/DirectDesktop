@@ -37,7 +37,8 @@ namespace DirectDesktop
         std::vector<Element*>* vispm{};
         std::vector<Element*>* vspm{};
         std::vector<RichText*>* vfpm{};
-        Element* peOptionalTarget{};
+        Element* peOptionalTarget1{};
+        Element* peOptionalTarget2{};
     };
     struct yValuePtrs {
         void* ptr1{};
@@ -61,7 +62,6 @@ namespace DirectDesktop
 
     extern bool isDefaultRes();
 
-    DWORD WINAPI animate(LPVOID lpParam);
     DWORD WINAPI fastin(LPVOID lpParam);
 
     template <typename elemType>

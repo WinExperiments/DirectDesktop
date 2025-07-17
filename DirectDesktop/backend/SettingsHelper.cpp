@@ -23,7 +23,7 @@ namespace DirectDesktop
     Element* UIContainer;
 
     BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
-        vector<RECT>* monitors = reinterpret_cast<std::vector<RECT>*>(dwData);
+        vector<RECT>* monitors = reinterpret_cast<vector<RECT>*>(dwData);
         MONITORINFOEX monitorInfo{};
         monitorInfo.cbSize = sizeof(MONITORINFOEX);
         if (GetMonitorInfoW(hMonitor, &monitorInfo)) {
@@ -83,6 +83,7 @@ namespace DirectDesktop
             if (rkv._valueToFind == L"Hidden") {
                 DWORD dwDisableToggle;
                 HANDLE DisableToggleHandle = CreateThread(0, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
+                if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
                 return;
             }
             if (ddtb->GetAssociatedFn() != nullptr)

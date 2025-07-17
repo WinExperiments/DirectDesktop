@@ -133,6 +133,7 @@ namespace DirectDesktop
 		wchar_t* productType = nullptr;
 		GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\ProductOptions", L"ProductType", &productType);
 		return (wcscmp(productType, L"ServerNT") == 0);
+		free(productType);
 	}
 
 	void ShowNotification(wstring title, wstring content) {

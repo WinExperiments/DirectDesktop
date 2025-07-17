@@ -134,6 +134,7 @@ namespace DirectDesktop
 		unsigned long key4 = 0;
 		RECT dimensions;
 		SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+		static IElementListener* pel_DisplayResults, *pel_CloseSearch, *pel_UpdateSearchBox;
 		NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", NULL, NULL, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, NULL, 0x43, &searchwnd);
 		DUIXmlParser::Create(&parserSearch, NULL, NULL, DUI_ParserErrorCB, NULL);
 		parserSearch->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
@@ -154,11 +155,12 @@ namespace DirectDesktop
 		pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
 		searchwnd->ShowWindow(SW_SHOW);
 		searchbox = (TouchEdit2*)pSearch->FindDescendent(StrToID(L"searchbox"));
-		CSafeElementPtr<Button> searchbutton; searchbutton.Assign(regElem<Button*>(L"searchbutton", pSearch));
-		assignFn(searchbutton, DisplayResults);
-		CSafeElementPtr<Button> closebutton; closebutton.Assign(regElem<Button*>(L"closebutton", pSearch));
-		assignFn(closebutton, CloseSearch);
-		assignExtendedFn(searchbox, UpdateSearchBox);
+		free(pel_DisplayResults), free(pel_CloseSearch), free(pel_UpdateSearchBox);
+		CSafeElementPtr<DDScalableButton> searchbutton; searchbutton.Assign(regElem<DDScalableButton*>(L"searchbutton", pSearch));
+		pel_DisplayResults = (IElementListener*)assignFn(searchbutton, DisplayResults, true);
+		CSafeElementPtr<DDScalableButton> closebutton; closebutton.Assign(regElem<DDScalableButton*>(L"closebutton", pSearch));
+		pel_CloseSearch = (IElementListener*)assignFn(closebutton, CloseSearch, true);
+		pel_UpdateSearchBox = (IElementListener*)assignExtendedFn(searchbox, UpdateSearchBox, true);
 		CSafeElementPtr<TouchScrollViewer> SearchResults; SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
 		SearchResults->SetBackgroundColor(g_theme ? 4293980400 : 4280821800);
 	}

@@ -270,14 +270,6 @@ namespace DirectDesktop
 			DDCPHC->SetX(elem->GetX());
 		}
 	}
-	DWORD WINAPI DelayedDraw(LPVOID lpParam) {
-		if (lpParam) {
-			assignExtendedFn((Element*)lpParam, UpdateImageOnPropChange);
-			((DDScalableElement*)lpParam)->InitDrawImage();
-			((DDScalableElement*)lpParam)->InitDrawFont();
-		}
-		return 0;
-	}
 	DWORD WINAPI CreateCBInnerElements(LPVOID lpParam) {
 		PostMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)lpParam, NULL);
 		assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
@@ -290,6 +282,7 @@ namespace DirectDesktop
 	DWORD WINAPI PickerBtnFn(LPVOID lpParam) {
 		InitThread(TSM_DESKTOP_DYNAMIC);
 		assignFn((Element*)lpParam, UpdateUICtrlColor);
+		UnInitThread();
 		return 0;
 	}
 	DWORD WINAPI CreateTEVisual(LPVOID lpParam) {
@@ -301,6 +294,9 @@ namespace DirectDesktop
 		_arrCreatedElements.push_back(this);
 	}
 	DDScalableElement::~DDScalableElement() {
+		this->RemoveListener(_pelPropChange);
+		free(_pelPropChange);
+		_pelPropChange = nullptr;
 		auto toRemove = find(_arrCreatedElements.begin(), _arrCreatedElements.end(), this);
 		if (toRemove != _arrCreatedElements.end()) {
 			_arrCreatedElements.erase(toRemove);
@@ -318,8 +314,11 @@ namespace DirectDesktop
 	}
 	HRESULT DDScalableElement::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDScalableElement, int>(0, pParent, pdwDeferCookie, ppElement);
-		DWORD dw;
-		HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+		if (SUCCEEDED(hr)) {
+			((DDScalableElement*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableElement*)*ppElement)->InitDrawImage();
+			((DDScalableElement*)*ppElement)->InitDrawFont();
+		}
 		return hr;
 	}
 	HRESULT DDScalableElement::Register() {
@@ -334,6 +333,9 @@ namespace DirectDesktop
 			&impAssociatedColorProp
 		};
 		return ClassInfo<DDScalableElement, Element, StandardCreator<DDScalableElement>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+	}
+	void DDScalableElement::SetPropChangeListener(IElementListener* pel) {
+		_pelPropChange = pel;
 	}
 	auto DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
 		if (!this) return -1;
@@ -449,6 +451,13 @@ namespace DirectDesktop
 		_arrCreatedButtons.push_back(this);
 	}
 	DDScalableButton::~DDScalableButton() {
+		///////////////////// Will crash if any instance of DDLVActionButton is destroyed (tested on pages UI and folder UI)
+		//if (_pelPropChange) {
+		//	this->RemoveListener(_pelPropChange);
+		//	free(_pelPropChange);
+		//	_pelPropChange = nullptr;
+		//}
+		/////////////////////
 		auto toRemove = find(_arrCreatedButtons.begin(), _arrCreatedButtons.end(), this);
 		if (toRemove != _arrCreatedButtons.end()) {
 			_arrCreatedButtons.erase(toRemove);
@@ -467,8 +476,9 @@ namespace DirectDesktop
 	HRESULT DDScalableButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDScalableButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableButton*)*ppElement)->InitDrawImage();
+			((DDScalableButton*)*ppElement)->InitDrawFont();
 		}
 		return hr;
 	}
@@ -484,6 +494,9 @@ namespace DirectDesktop
 			&impAssociatedColorProp
 		};
 		return ClassInfo<DDScalableButton, Button, StandardCreator<DDScalableButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+	}
+	void DDScalableButton::SetPropChangeListener(IElementListener* pel) {
+		_pelPropChange = pel;
 	}
 	auto DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
 		if (!this) return -1;
@@ -614,6 +627,9 @@ namespace DirectDesktop
 		_arrCreatedTexts.push_back(this);
 	}
 	DDScalableRichText::~DDScalableRichText() {
+		this->RemoveListener(_pelPropChange);
+		free(_pelPropChange);
+		_pelPropChange = nullptr;
 		auto toRemove = find(_arrCreatedTexts.begin(), _arrCreatedTexts.end(), this);
 		if (toRemove != _arrCreatedTexts.end()) {
 			_arrCreatedTexts.erase(toRemove);
@@ -632,8 +648,9 @@ namespace DirectDesktop
 	HRESULT DDScalableRichText::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDScalableRichText>(pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			((DDScalableRichText*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableRichText*)*ppElement)->InitDrawImage();
+			((DDScalableRichText*)*ppElement)->InitDrawFont();
 		}
 		return hr;
 	}
@@ -649,6 +666,9 @@ namespace DirectDesktop
 			&impAssociatedColorProp
 		};
 		return ClassInfo<DDScalableRichText, RichText, StandardCreator<DDScalableRichText>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+	}
+	void DDScalableRichText::SetPropChangeListener(IElementListener* pel) {
+		_pelPropChange = pel;
 	}
 	auto DDScalableRichText::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt) {
 		Value* pv = GetValue(pPropertyProc, 2, nullptr);
@@ -769,10 +789,12 @@ namespace DirectDesktop
 	HRESULT DDScalableTouchEdit::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDScalableTouchEdit>(pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			assignExtendedFn(*ppElement, UpdateImageOnPropChange);
+			((DDScalableTouchEdit*)*ppElement)->InitDrawImage();
+			((DDScalableTouchEdit*)*ppElement)->InitDrawFont();
 			DWORD dw2;
 			HANDLE drawingHandle2 = CreateThread(0, 0, CreateTEVisual, (LPVOID)*ppElement, NULL, &dw2);
+			if (drawingHandle2) CloseHandle(drawingHandle2);
 		}
 		return hr;
 	}
@@ -882,6 +904,10 @@ namespace DirectDesktop
 		_childShortcutArrows.clear();
 		_childFilenames.clear();
 		this->ClearAllListeners();
+		for (auto pel : _pels) {
+			delete pel;
+		}
+		_pels.clear();
 		this->DestroyAll(true);
 	}
 	IClassInfo* LVItem::GetClassInfoPtr() {
@@ -896,8 +922,9 @@ namespace DirectDesktop
 	HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableButton*)*ppElement)->InitDrawImage();
+			((DDScalableButton*)*ppElement)->InitDrawFont();
 		}
 		return hr;
 	}
@@ -1033,6 +1060,9 @@ namespace DirectDesktop
 		}
 	}
 
+	DDLVActionButton::~DDLVActionButton() {
+		_assocItem = nullptr;
+	}
 	IClassInfo* DDLVActionButton::GetClassInfoPtr() {
 		return s_pClassInfo;
 	}
@@ -1045,8 +1075,9 @@ namespace DirectDesktop
 	HRESULT DDLVActionButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDLVActionButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableButton*)*ppElement)->InitDrawImage();
+			((DDScalableButton*)*ppElement)->InitDrawFont();
 		}
 		return hr;
 	}
@@ -1072,8 +1103,9 @@ namespace DirectDesktop
 	HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableButton*)*ppElement)->InitDrawImage();
+			((DDScalableButton*)*ppElement)->InitDrawFont();
 		}
 		return hr;
 	}
@@ -1108,6 +1140,7 @@ namespace DirectDesktop
 		if (SUCCEEDED(hr)) {
 			DWORD dw;
 			HANDLE drawingHandle = CreateThread(0, 0, CreateCBInnerElements, (LPVOID)*ppElement, NULL, &dw);
+			if (drawingHandle) CloseHandle(drawingHandle);
 		}
 		return hr;
 	}
@@ -1140,8 +1173,9 @@ namespace DirectDesktop
 	HRESULT DDCheckBoxGlyph::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) {
 		HRESULT hr = CreateAndInit<DDCheckBoxGlyph, int>(0, pParent, pdwDeferCookie, ppElement);
 		if (SUCCEEDED(hr)) {
-			DWORD dw;
-			HANDLE drawingHandle = CreateThread(0, 0, DelayedDraw, (LPVOID)*ppElement, NULL, &dw);
+			((DDScalableElement*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+			((DDScalableElement*)*ppElement)->InitDrawImage();
+			((DDScalableElement*)*ppElement)->InitDrawFont();
 		}
 		return hr;
 	}
@@ -1179,6 +1213,7 @@ namespace DirectDesktop
 		if (SUCCEEDED(hr)) {
 			DWORD dw;
 			HANDLE drawingHandle = CreateThread(0, 0, ColorPickerLayout, (LPVOID)*ppElement, NULL, &dw);
+			if (drawingHandle) CloseHandle(drawingHandle);
 		}
 		return hr;
 	}
@@ -1265,6 +1300,9 @@ namespace DirectDesktop
 	}
 
 	DDColorPickerButton::~DDColorPickerButton() {
+		this->RemoveListener(_pelPropChange);
+		free(_pelPropChange);
+		_pelPropChange = nullptr;
 		this->DestroyAll(true);
 	}
 	IClassInfo* DDColorPickerButton::GetClassInfoPtr() {
@@ -1281,11 +1319,15 @@ namespace DirectDesktop
 		if (SUCCEEDED(hr)) {
 			DWORD dw;
 			HANDLE drawingHandle = CreateThread(0, 0, PickerBtnFn, (LPVOID)*ppElement, NULL, &dw);
+			if (drawingHandle) CloseHandle(drawingHandle);
 		}
 		return hr;
 	}
 	HRESULT DDColorPickerButton::Register() {
 		return ClassInfo<DDColorPickerButton, Button, StandardCreator<DDColorPickerButton>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
+	}
+	void DDColorPickerButton::SetPropChangeListener(IElementListener* pel) {
+		_pelPropChange = pel;
 	}
 	COLORREF DDColorPickerButton::GetAssociatedColor() {
 		return _assocCR;
@@ -1386,6 +1428,7 @@ namespace DirectDesktop
 		Element* ppeTemp = (Element*)lpParam;
 		if (!ppeTemp || notificationwnd == nullptr) return 1;
 		SendMessageW(notificationwnd->GetHWND(), WM_USER + 2, (WPARAM)ppeTemp, NULL);
+		UnInitThread();
 		return 0;
 	}
 	DDNotificationBanner::~DDNotificationBanner() {
@@ -1527,6 +1570,7 @@ namespace DirectDesktop
 		peTemp->SetID(L"DDNB_Title");
 		pHostElement->Add(&peTemp, 1);
 		HANDLE setFontStr = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+		if (setFontStr) CloseHandle(setFontStr);
 		peTemp->SetContentString(titleStr.c_str());
 
 		if (content) {
@@ -1535,6 +1579,7 @@ namespace DirectDesktop
 			peTemp->SetID(L"DDNB_Content");
 			pHostElement->Add(&peTemp, 1);
 			HANDLE setFontStr2 = CreateThread(0, 0, AutoSizeFont, peTemp, 0, NULL);
+			if (setFontStr2) CloseHandle(setFontStr2);
 			peTemp->SetContentString(content);
 		}
 
@@ -1553,6 +1598,7 @@ namespace DirectDesktop
 			notificationopen = true;
 			IntegerWrapper* iw = new IntegerWrapper{ timeout };
 			HANDLE AnimHandle = CreateThread(0, 0, AnimateWindowWrapper, &notificationopen, NULL, NULL);
+			if (AnimHandle) CloseHandle(AnimHandle);
 			if (timeout > 0) {
 				TerminateThread(AutoCloseHandle, 1);
 				DWORD dwAutoClose;

@@ -203,7 +203,7 @@
 			</if>
 			<DDCheckBox height="32rp" background="argb(0,0,0,0)"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="1107" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="1107" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
 				<if mousefocused="true">
 					<DDCheckBoxGlyph FirstScaledImage="1114"/>
 				</if>
@@ -463,7 +463,7 @@
 			</if>
 			<DDCheckBox height="32rp" background="argb(0,0,0,0)"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="2107" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="2107" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
 				<if mousefocused="true">
 					<DDCheckBoxGlyph FirstScaledImage="2114"/>
 				</if>

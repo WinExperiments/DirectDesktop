@@ -108,8 +108,8 @@ namespace DirectDesktop
 		}
 		return filename;
 	}
-	vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".accountpicture-ms", L".ai", L".avi", L".avif", L".bmp", L".flv" L".gif", L".heic", L".heif", L".ico",
-		L".jfif", L".jpe", L".jpeg", L".jpg", L".mov", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm" L".webp", L".wma", L".wmv", L".xcf" };
+	vector<const wchar_t*> imageExts = { L".3gp", L".3gpp", L".accountpicture-ms", L".ai", L".avi", L".avif", L".bmp", L".flv", L".gif", L".heic", L".heif", L".ico",
+		L".jfif", L".jpe", L".jpeg", L".jpg", L".mov", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm", L".webp", L".wma", L".wmv", L".xcf" };
 
 	int extIterator;
 	void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result) {
@@ -152,7 +152,10 @@ namespace DirectDesktop
 		if (lResult == ERROR_SUCCESS) {
 			DWORD* dwValue = (DWORD*)malloc(dwSize);
 			lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, NULL, dwValue, &dwSize);
-			if (dwValue != nullptr) result = *dwValue;
+			if (dwValue != nullptr) {
+				result = *dwValue;
+				free(dwValue);
+			}
 		}
 		return result;
 	}
@@ -180,6 +183,7 @@ namespace DirectDesktop
 				lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
 				if (isNewValue != nullptr) *isNewValue = true;
 			}
+			free(dwValueInternal);
 		}
 		RegCloseKey(hKey);
 	}
@@ -344,11 +348,12 @@ namespace DirectDesktop
 	void StartMonitorFileChanges(const wstring& path) {
 		if (!PathFileExistsW(path.c_str())) return;
 		HANDLE hThread = CreateThread(0, 0, MonitorFileChanges, (LPVOID)path.c_str(), NULL, NULL);
+		if (hThread) CloseHandle(hThread);
 	}
 
 	static int checkSpotlight{};
 	void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* count2) {
-		if (clsid == L"{645FF040-5081-101B-9F08-00AA002F954E}") {
+		if (wcscmp(clsid, L"{645FF040-5081-101B-9F08-00AA002F954E}") == 0) {
 			if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel", clsid) == -1) {
 				WCHAR clsidEx[64];
 				StringCchPrintfW(clsidEx, 64, L"::%s", clsid);
@@ -364,10 +369,11 @@ namespace DirectDesktop
 				(*pm)[(*count2)]->SetFilename(clsidEx);
 				(*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
 				(*count2)++;
+				free(cRegValue);
 				return;
 			}
 		}
-		if (clsid == L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}") {
+		if (wcscmp(clsid, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}") == 0) {
 			GetPos(true, &checkSpotlight);
 			if (checkSpotlight == 1) {
 				WCHAR clsidEx[64];
@@ -384,6 +390,7 @@ namespace DirectDesktop
 				(*pm)[(*count2)]->SetFilename(clsidEx);
 				if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
 				(*count2)++;
+				free(cRegValue);
 			}
 			return;
 		}
@@ -402,12 +409,13 @@ namespace DirectDesktop
 			(*pm)[(*count2)]->SetFilename(clsidEx);
 			if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
 			(*count2)++;
+			free(cRegValue);
 			return;
 		}
 	}
 
-	void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigned short* countedItems, int* count2, unsigned short limit) {
-		if (!PathFileExistsW(path) && path != L"InternalCodeForNamespace") {
+	void EnumerateFolder(LPWSTR path, vector<LVItem*>* pmLVItem, bool bCountItems, unsigned short* countedItems, int* count2, unsigned short limit) {
+		if (!PathFileExistsW(path) && wcscmp(path, L"InternalCodeForNamespace") != 0) {
 			WCHAR details[320];
 			StringCchPrintfW(details, 320, L"Error: Can't find %s.", path);
 			MainLogger.WriteLine(details);
@@ -418,7 +426,7 @@ namespace DirectDesktop
 		int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
 		int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
 		int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
-		if (path == L"InternalCodeForNamespace") {
+		if (wcscmp(path, L"InternalCodeForNamespace") == 0) {
 			filestructs.clear();
 			HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
 			HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
@@ -426,38 +434,40 @@ namespace DirectDesktop
 			GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}", NULL, &ThisPCBuf);
 			if (ThisPCBuf == NULL) {
 				LoadStringW(WinStorageDLL, 9216, ThisPC, 260);
-				FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
+				FindShellIcon(pmLVItem, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
 				delete[] ThisPC;
 			}
-			else FindShellIcon(pm, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPCBuf, count2);
+			else FindShellIcon(pmLVItem, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPCBuf, count2);
 			wchar_t* RecycleBin = new wchar_t[260], *RecycleBinBuf{};
 			GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}", NULL, &RecycleBinBuf);
 			if (RecycleBinBuf == NULL) {
 				LoadStringW(WinStorageDLL, 8964, RecycleBin, 260);
-				FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
+				FindShellIcon(pmLVItem, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
 				delete[] RecycleBin;
 			}
-			else FindShellIcon(pm, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBinBuf, count2);
+			else FindShellIcon(pmLVItem, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBinBuf, count2);
 			wchar_t* UserFiles = new wchar_t[260];
 			DWORD d = GetEnvironmentVariableW(L"userprofile", UserFiles, 260);
 			wstring UserFiless = UserFiles;
-			UserFiless.erase(0, 9);
+			if (UserFiless.length() >= 9) UserFiless.erase(0, 9);
 			wchar_t* ControlPanel = new wchar_t[260];
 			LoadStringW(WinStorageDLL, 4161, ControlPanel, 260);
 			wchar_t* Network = new wchar_t[260];
 			LoadStringW(WinStorageDLL, 9217, Network, 260);
 			wchar_t* LearnAbout = new wchar_t[260];
 			LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
-			FindShellIcon(pm, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), count2);
-			FindShellIcon(pm, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, count2);
-			FindShellIcon(pm, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, count2);
-			FindShellIcon(pm, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2);
+			FindShellIcon(pmLVItem, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), count2);
+			FindShellIcon(pmLVItem, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, count2);
+			FindShellIcon(pmLVItem, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, count2);
+			FindShellIcon(pmLVItem, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2);
 			free(ThisPCBuf);
 			free(RecycleBinBuf);
 			delete[] UserFiles;
 			delete[] ControlPanel;
 			delete[] Network;
 			delete[] LearnAbout;
+			if (WinStorageDLL) FreeLibrary(WinStorageDLL);
+			if (Shell32DLL) FreeLibrary(Shell32DLL);
 			if (logging == IDYES) MainLogger.WriteLine(L"Information: Finished finding shell icons.");
 			return;
 		}
@@ -468,6 +478,12 @@ namespace DirectDesktop
 
 		LPSHELLFOLDER psfDesktop = NULL;
 		hr = SHGetDesktopFolder(&psfDesktop);
+
+		if (FAILED(hr) || pMalloc == nullptr || psfDesktop == nullptr) {
+			if (pMalloc) pMalloc->Release();
+			if (psfDesktop) psfDesktop->Release();
+			return;
+		}
 
 		LPITEMIDLIST pidl = NULL;
 		hr = psfDesktop->ParseDisplayName(NULL, NULL, path, NULL, &pidl, NULL);
@@ -489,26 +505,26 @@ namespace DirectDesktop
 				hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
 				if (!bCountItems) {
 					if (count2 != nullptr) {
-						foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), (*pm)[*(count2)]);
+						foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), (*pmLVItem)[*(count2)]);
 						foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
 						if (fd.dwFileAttributes & 16) {
-							(*pm)[*(count2)]->SetDirState(true);
+							(*pmLVItem)[*(count2)]->SetDirState(true);
 							unsigned short itemsInside{};
 							EnumerateFolder((LPWSTR)RemoveQuotes(foundfilename).c_str(), nullptr, true, &itemsInside);
-							if (itemsInside <= 192) (*pm)[*(count2)]->SetGroupedDirState(true);
+							if (pmLVItem == &pm && itemsInside <= 192) (*pmLVItem)[*(count2)]->SetGroupedDirState(true);
 						}
-						else (*pm)[*(count2)]->SetDirState(false);
-						if (fd.dwFileAttributes & 2) (*pm)[*(count2)]->SetHiddenState(true);
-						else (*pm)[*(count2)]->SetHiddenState(false);
+						else (*pmLVItem)[*(count2)]->SetDirState(false);
+						if (fd.dwFileAttributes & 2) (*pmLVItem)[*(count2)]->SetHiddenState(true);
+						else (*pmLVItem)[*(count2)]->SetHiddenState(false);
 						filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
 						if (isThumbnailHidden == 0) {
 							bool image;
 							isImage(foundfilename, true, imageExts[0], &image);
-							(*pm)[*(count2)]->SetColorLock(image);
+							(*pmLVItem)[*(count2)]->SetColorLock(image);
 						}
-						(*pm)[*(count2)]->SetSimpleFilename(foundsimplefilename);
-						(*pm)[*(count2)]->SetFilename(foundfilename);
-						(*pm)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
+						(*pmLVItem)[*(count2)]->SetSimpleFilename(foundsimplefilename);
+						(*pmLVItem)[*(count2)]->SetFilename(foundfilename);
+						(*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
 					}
 				}
 				if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2) {
@@ -755,7 +771,7 @@ namespace DirectDesktop
 			if (item.name == L"::{59031A47-3F72-44A7-89C5-5595FE6B30EE}") {
 				DWORD d = GetEnvironmentVariableW(L"userprofile", nameBuffer, 260);
 				wstring UserFiless = nameBuffer;
-				UserFiless.erase(0, 9);
+				if (UserFiless.length() >= 9) UserFiless.erase(0, 9);
 				item.name = UserFiless;
 			}
 			if (item.name == L"::{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}") {
@@ -787,7 +803,10 @@ namespace DirectDesktop
 				}
 			}
 		}
-		if (getSpotlightIcon) return;
+		if (getSpotlightIcon) {
+			free(value);
+			return;
+		}
 
 		// Parse head2 (64 bytes)
 		vector<uint16_t> head2;
@@ -924,6 +943,7 @@ namespace DirectDesktop
 		pmFileBuf.clear();
 		pmFileShadowBuf.clear();
 		pmCBBuf.clear();
+		free(value);
 	}
 	void GetPos2(bool full) {
 		WCHAR DesktopLayoutWithSize[24];
