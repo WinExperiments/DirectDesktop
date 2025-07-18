@@ -21,7 +21,7 @@
 		</Element>
 	</HWNDElement>
 	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
-	<Button resid="emptyspace" layoutpos="client" background="argb(0,0,0,0)">
+	<Button resid="emptyspace" layoutpos="absolute" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
 	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>

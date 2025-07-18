@@ -1300,7 +1300,7 @@ namespace DirectDesktop
                 const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&temp);
                 DesktopLayout.push_back(colorBinary[0]);
                 DesktopLayout.push_back(colorBinary[1]);
-                temp = iconpm[i]->GetDDCPIntensity();
+                temp = static_cast<unsigned short>(iconpm[i]->GetDDCPIntensity());
                 const BYTE* intensityBinary = reinterpret_cast<const BYTE*>(&temp);
                 DesktopLayout.push_back(intensityBinary[0]);
                 DesktopLayout.push_back(intensityBinary[1]);

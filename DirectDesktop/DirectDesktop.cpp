@@ -66,6 +66,7 @@ namespace DirectDesktop
     int localeType{};
     int g_touchSizeX, g_touchSizeY;
     unsigned short g_defWidth, g_defHeight, g_lastWidth, g_lastHeight;
+    int g_lastDpiChangeTick;
 
     wstring LoadStrFromRes(UINT id)
     {
@@ -597,7 +598,7 @@ namespace DirectDesktop
             }
             case WM_CLOSE:
             {
-                if (isDefaultRes()) SetPos(true);
+                SetPos(isDefaultRes());
                 subviewwnd->ShowWindow(SW_HIDE);
                 if (lParam == 420)
                 {
@@ -647,6 +648,10 @@ namespace DirectDesktop
                                 DestroyShutdownDialog();
                                 break;
                         }
+                        break;
+                    case 5:
+                        if (GetTickCount64() - g_lastDpiChangeTick > 1250 || g_lastDpiChangeTick - GetTickCount64() > 1250)
+                            RearrangeIcons(true, false, false);
                         break;
                 }
                 break;
@@ -864,6 +869,7 @@ namespace DirectDesktop
             }
             case WM_USER + 6:
             {
+                CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
                 fullscreenpopupbase->SetVisible(true);
                 fullscreeninner->SetVisible(true);
                 fullscreeninner->SetY(dimensions.bottom * 0.1 * (1 - py[g_popupframe - 1]) + 1);
@@ -941,6 +947,8 @@ namespace DirectDesktop
                 {
                     free((*vdi)[i]);
                 }
+                free(l_pm), free(l_iconpm), free(l_shadowpm), free(l_shortpm), free(l_filepm);
+                delete yV;
                 break;
             }
             case WM_USER + 10:
@@ -1389,17 +1397,18 @@ namespace DirectDesktop
         {
             case WM_DPICHANGED:
             {
+                g_lastDpiChangeTick = GetTickCount64();
                 g_delayGroupsForDpi = true;
                 UpdateScale();
-                InitLayout(false, true, false);
+                SetTimer(wnd->GetHWND(), 2, 500, nullptr);
                 break;
             }
             case WM_DISPLAYCHANGE:
             {
-                if (isDefaultRes()) SetPos(true);
                 AdjustWindowSizes(true);
                 g_lastWidth = 0, g_lastHeight = 0;
-                RearrangeIcons(true, false, true);
+                g_lastDpiChangeTick = GetTickCount64();
+                SetTimer(wnd->GetHWND(), 5, 150, nullptr);
                 break;
             }
             case WM_CLOSE:
@@ -1489,6 +1498,7 @@ namespace DirectDesktop
                     peTemp->SetAssociatedColor(colorPickerPalette[i]);
                     peTemp->SetOrder(i);
                     peTemp->SetTargetElements(((DDColorPicker*)wParam)->GetTargetElements());
+                    peTemp->SetTargetButtons(((DDColorPicker*)wParam)->GetTargetButtons());
                     DeleteObject(hbmPickerBtn);
                     peTemp->SetPropChangeListener(assignExtendedFn(peTemp, ShowHoverCircle, true));
                 }
@@ -1741,6 +1751,7 @@ namespace DirectDesktop
         if (g_tempElem2) ((LVItem*)g_tempElem2)->SetMemorySelected(false);
         if (g_issubviewopen)
         {
+            CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
             centered->SetWidth(centered->GetWidth() * 0.85);
             centered->SetHeight(centered->GetHeight() * 0.85);
             fullscreeninner->SetWidth(fullscreeninner->GetWidth() * 0.85);
@@ -1857,12 +1868,16 @@ namespace DirectDesktop
             CSafeElementPtr<DDColorPicker> DDCP_Group;
             DDCP_Group.Assign(regElem<DDColorPicker*>(L"DDCP_Group", customizegroup));
             DDCP_Group->SetThemeAwareness(true);
-            vector<DDScalableElement*> btnTargets{};
-            if (g_issubviewopen) btnTargets.push_back((DDScalableElement*)fullscreeninner);
+            vector<DDScalableElement*> elemTargets{};
+            vector<DDScalableButton*> btnTargets{};
+            CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
+            if (g_issubviewopen) btnTargets.push_back(fullscreeninner);
             CSafeElementPtr<DDScalableElement> iconElement;
             iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", ((DDLVActionButton*)elem)->GetAssociatedItem()));
-            btnTargets.push_back(iconElement);
-            DDCP_Group->SetTargetElements(btnTargets);
+            elemTargets.push_back(iconElement);
+            DDCP_Group->SetTargetElements(elemTargets);
+            DDCP_Group->SetTargetButtons(btnTargets);
+            elemTargets.clear();
             btnTargets.clear();
             yValuePtrs* yV = new yValuePtrs{ (void*)DDCP_Group, (void*)iconElement };
             HANDLE checkedCircleThread = CreateThread(nullptr, 0, PositionCheckCircle, (LPVOID)yV, 0, nullptr);
@@ -1975,13 +1990,15 @@ namespace DirectDesktop
         }
     }
 
-    DWORD WINAPI DoubleClickHandler(LPVOID lpParam)
+    DWORD WINAPI MultiClickHandler(LPVOID lpParam)
     {
+        int clicks = *(int*)lpParam;
         wchar_t* dcms{};
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed", &dcms);
         Sleep(_wtoi(dcms));
         free(dcms);
-        *((int*)lpParam) = 1;
+        if (clicks == *(int*)lpParam)
+            *(int*)lpParam = 1;
         return 0;
     }
 
@@ -2113,22 +2130,14 @@ namespace DirectDesktop
             delete yV;
             return 1;
         }
-        int padding = 3, paddingInner = 2;
-        if (g_iconsz > 96)
-        {
-            padding = 18;
+        int paddingInner = 2;
+        if (g_iconsz > 120)
             paddingInner = 12;
-        }
-        else if (g_iconsz > 48)
-        {
-            padding = 12;
+        else if (g_iconsz > 80)
             paddingInner = 8;
-        }
-        else if (g_iconsz > 32)
-        {
-            padding = 6;
+        else if (g_iconsz > 40)
             paddingInner = 4;
-        }
+        int padding = (g_iconsz - paddingInner - g_gpiconsz * 2) / 2;
         if (pm[yV->num]->GetGroupedDirState() == true && g_treatdirasgroup == true)
         {
             int x = padding * g_flScaleFactor, y = padding * g_flScaleFactor;
@@ -2381,11 +2390,12 @@ namespace DirectDesktop
         g_tempElem2 = lvi;
         Element* groupdirectory{};
         parserSubview->CreateElement(L"groupdirectory", nullptr, nullptr, nullptr, (Element**)&groupdirectory);
+        CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
         fullscreeninner->Add((Element**)&groupdirectory, 1);
         CSafeElementPtr<DDScalableElement> iconElement;
         iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", lvi));
-        ((DDScalableElement*)fullscreeninner)->SetDDCPIntensity(iconElement->GetDDCPIntensity());
-        ((DDScalableElement*)fullscreeninner)->SetAssociatedColor(iconElement->GetAssociatedColor());
+        fullscreeninner->SetDDCPIntensity(iconElement->GetDDCPIntensity());
+        fullscreeninner->SetAssociatedColor(iconElement->GetAssociatedColor());
         CSafeElementPtr<TouchScrollViewer> groupdirlist;
         groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory));
         CSafeElementPtr<DDScalableButton> lvi_SubUIContainer;
@@ -2854,10 +2864,10 @@ namespace DirectDesktop
             DDCP_Icons->SetThemeAwareness(false);
             DDCP_Icons->SetEnabled(g_isColorized);
             DDCP_Icons->SetRegKeyValue(rkvTemp);
-            vector<DDScalableElement*> btnTargets{};
-            btnTargets.push_back(RegistryListener);
-            DDCP_Icons->SetTargetElements(btnTargets);
-            btnTargets.clear();
+            vector<DDScalableElement*> elemTargets{};
+            elemTargets.push_back(RegistryListener);
+            DDCP_Icons->SetTargetElements(elemTargets);
+            elemTargets.clear();
             rkvTemp._valueToFind = L"DarkIcons";
             EnableDarkIcons->SetEnabled(!g_automaticDark);
             EnableDarkIcons->SetCheckedState(g_isDarkIconsEnabled);
@@ -2920,6 +2930,7 @@ namespace DirectDesktop
             g_issettingsopen = true;
             Element* settingsview{};
             parserSubview->CreateElement(L"settingsview", nullptr, nullptr, nullptr, (Element**)&settingsview);
+            CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
             fullscreeninner->Add((Element**)&settingsview, 1);
             CSafeElementPtr<TouchScrollViewer> settingslist;
             settingslist.Assign(regElem<TouchScrollViewer*>(L"settingslist", settingsview));
@@ -2975,11 +2986,11 @@ namespace DirectDesktop
                 if (elem == elemStorage) clicks++;
                 else clicks = 0;
                 DWORD doubleClickThread{};
-                HANDLE doubleClickThreadHandle = CreateThread(nullptr, 0, DoubleClickHandler, &clicks, 0, &doubleClickThread);
+                HANDLE doubleClickThreadHandle = CreateThread(nullptr, 0, MultiClickHandler, &clicks, 0, &doubleClickThread);
                 if (doubleClickThreadHandle) CloseHandle(doubleClickThreadHandle);
                 elemStorage = elem;
             }
-            if (clicks & 1 && checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false)
+            if (elem != emptyspace && clicks & 1 && checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false)
             {
                 wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
                 SHELLEXECUTEINFOW execInfo = {};
@@ -3094,7 +3105,7 @@ namespace DirectDesktop
             CSafeElementPtr<Element> item;
             item.Assign(regElem<Element*>(L"innerElem", grandparent));
             if (item != nullptr) item->SetValue(Element::MouseFocusedProp(), 1, v);
-            free(uc);
+            if (uc) free(uc);
         }
     }
 
@@ -3149,15 +3160,14 @@ namespace DirectDesktop
     {
         DWORD marqueeThread;
         HANDLE marqueeThreadHandle;
-        if (pProp == Button::CapturedProp())
+        if (pProp == Button::PressedProp())
         {
-            if (g_tripleclickandhide == true && ((Button*)elem)->GetCaptured() == true)
+            if (g_tripleclickandhide == true && ((Button*)elem)->GetPressed() == true)
             {
                 g_emptyclicks++;
-                DWORD doubleClickThread{};
-                HANDLE doubleClickThreadHandle = CreateThread(nullptr, 0, DoubleClickHandler, &g_emptyclicks, 0, &doubleClickThread);
-                if (doubleClickThreadHandle) CloseHandle(doubleClickThreadHandle);
-                if (g_emptyclicks & 1)
+                HANDLE tripleClickThreadHandle = CreateThread(nullptr, 0, MultiClickHandler, &g_emptyclicks, 0, nullptr);
+                if (tripleClickThreadHandle) CloseHandle(tripleClickThreadHandle);
+                if (g_emptyclicks % 3 == 1)
                 {
                     for (int items = 0; items < pm.size(); items++)
                     {
@@ -3178,10 +3188,13 @@ namespace DirectDesktop
             }
             if (!isPressed)
             {
-                emptyspace->SetLayoutPos(-3);
                 POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(wnd->GetHWND(), &ppt);
+                elem->SetX(ppt.x - 4);
+                elem->SetY(ppt.y - 4);
+                elem->SetWidth(9);
+                elem->SetHeight(9);
                 RECT dimensions{};
                 GetClientRect(wnd->GetHWND(), &dimensions);
                 if (localeType == 1) origX = dimensions.right - ppt.x;
@@ -3200,11 +3213,16 @@ namespace DirectDesktop
         {
             if (isPressed)
             {
-                emptyspace->SetLayoutPos(4);
-                selector->SetVisible(false);
-                selector->SetLayoutPos(-3);
+                RECT dimensions{};
+                GetClientRect(wnd->GetHWND(), &dimensions);
+                elem->SetX(dimensions.left);
+                elem->SetY(dimensions.top);
+                elem->SetWidth(dimensions.right);
+                elem->SetHeight(dimensions.bottom);
                 selector->SetWidth(0);
                 selector->SetHeight(0);
+                selector->SetVisible(false);
+                selector->SetLayoutPos(-3);
                 isPressed = 0;
             }
         }
@@ -3614,6 +3632,13 @@ namespace DirectDesktop
 
         parser->CreateElement(L"emptyspace", nullptr, nullptr, nullptr, (Element**)&emptyspace);
         UIContainer->Add((Element**)&emptyspace, 1);
+        RECT dimensions{};
+        GetClientRect(wnd->GetHWND(), &dimensions);
+        emptyspace->SetX(dimensions.left);
+        emptyspace->SetY(dimensions.top);
+        emptyspace->SetWidth(dimensions.right);
+        emptyspace->SetHeight(dimensions.bottom);
+
         for (int i = 0; i < lviCount; i++)
         {
             LVItem* outerElem;
@@ -4147,9 +4172,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (g_iconsz > 96) g_shiconsz = 64;
     else if (g_iconsz > 48) g_shiconsz = 48;
     g_gpiconsz = 12;
-    if (g_iconsz > 96) g_gpiconsz = 48;
-    else if (g_iconsz > 48) g_gpiconsz = 32;
-    else if (g_iconsz > 32) g_gpiconsz = 16;
+    if (g_iconsz > 120) g_gpiconsz = 48;
+    else if (g_iconsz > 80) g_gpiconsz = 32;
+    else if (g_iconsz > 40) g_gpiconsz = 16;
     InitLayout(false, false, false);
 
     StartMonitorFileChanges(path1);
@@ -4157,8 +4182,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     StartMonitorFileChanges(path3);
 
     DDNotificationBanner* ddnb{};
-    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Pre-M7",
-                                       L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_pre_milestone7\nCompiled on 2025-07-17",
+    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M7",
+                                       L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone7\nCompiled on 2025-07-19",
                                        10, false);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");

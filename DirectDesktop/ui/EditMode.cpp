@@ -259,8 +259,8 @@ namespace DirectDesktop
                     DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", (Element*)wParam);
                     if (PV_Remove)
                     {
-                        ((DDScalableElement*)PV_Remove)->SetDDCPIntensity(255);
-                        ((DDScalableElement*)PV_Remove)->SetAssociatedColor(RGB(196, 43, 28));
+                        PV_Remove->SetDDCPIntensity(255);
+                        PV_Remove->SetAssociatedColor(RGB(196, 43, 28));
                         PV_Remove->SetVisible(((Element*)wParam)->GetMouseWithin());
                         PV_Remove->SetAssociatedItem((LVItem*)wParam);
                         assignFn(PV_Remove, RemoveSelectedPage);
@@ -268,8 +268,8 @@ namespace DirectDesktop
                 }
                 if (PV_Home)
                 {
-                    ((DDScalableElement*)PV_Home)->SetDDCPIntensity(255);
-                    ((DDScalableElement*)PV_Home)->SetAssociatedColor(RGB(255, 102, 0));
+                    PV_Home->SetDDCPIntensity(255);
+                    PV_Home->SetAssociatedColor(RGB(255, 102, 0));
                     PV_Home->SetVisible(((Element*)wParam)->GetMouseWithin());
                     PV_Home->SetAssociatedItem((LVItem*)wParam);
                     assignFn(PV_Home, SetSelectedPageHome);
@@ -312,7 +312,7 @@ namespace DirectDesktop
 
     DWORD WINAPI CreateDesktopPreview(LPVOID lpParam)
     {
-        yValueEx* yV = (yValueEx*)lpParam; // These are NEVER deleted, they need to be deleted in a way that won't crash
+        yValueEx* yV = (yValueEx*)lpParam;
         DesktopIcon di;
         if (!g_hiddenIcons && yV->num >= 0 && yV->peOptionalTarget1)
         {
@@ -324,6 +324,8 @@ namespace DirectDesktop
         {
             PostMessageW(editwnd->GetHWND(), WM_USER + 2, (WPARAM)yV->peOptionalTarget1, ((LVItem*)yV->peOptionalTarget1)->GetPage());
         }
+        Sleep(250);
+        free(yV);
         return 0;
     }
 
@@ -592,7 +594,11 @@ namespace DirectDesktop
                         pagesrow1->Add((Element**)&PV_Page, 1);
                     }
                     else pagesrow2->Add((Element**)&PV_Page, 1);
-                    if (i == 1) assignFn(PV_Page, GoToPrevPage);
+                    if (i == 1)
+                    {
+                        if (g_maxPageID == 1) assignFn(PV_Page, ClosePageViewer);
+                        else assignFn(PV_Page, GoToPrevPage);
+                    }
                     else if (i == g_maxPageID) assignFn(PV_Page, GoToNextPage);
                     else if (i < g_currentPageID) assignFn(PV_Page, GoToPrevPage);
                     else if (i > g_currentPageID) assignFn(PV_Page, GoToNextPage);
@@ -628,15 +634,15 @@ namespace DirectDesktop
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", PageViewer);
                 if (PV_Remove)
                 {
-                    ((DDScalableElement*)PV_Remove)->SetDDCPIntensity(255);
-                    ((DDScalableElement*)PV_Remove)->SetAssociatedColor(RGB(196, 43, 28));
+                    PV_Remove->SetDDCPIntensity(255);
+                    PV_Remove->SetAssociatedColor(RGB(196, 43, 28));
                     assignFn(PV_Remove, RemoveSelectedPage);
                 }
                 DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", PageViewer);
                 if (PV_Home)
                 {
-                    ((DDScalableElement*)PV_Home)->SetDDCPIntensity(255);
-                    ((DDScalableElement*)PV_Home)->SetAssociatedColor(RGB(255, 102, 0));
+                    PV_Home->SetDDCPIntensity(255);
+                    PV_Home->SetAssociatedColor(RGB(255, 102, 0));
                     assignFn(PV_Home, SetSelectedPageHome);
                 }
             }
@@ -684,8 +690,8 @@ namespace DirectDesktop
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", elem);
                 if (PV_Remove)
                 {
-                    ((DDScalableElement*)PV_Remove)->SetDDCPIntensity(255);
-                    ((DDScalableElement*)PV_Remove)->SetAssociatedColor(RGB(196, 43, 28));
+                    PV_Remove->SetDDCPIntensity(255);
+                    PV_Remove->SetAssociatedColor(RGB(196, 43, 28));
                     PV_Remove->SetVisible(elem->GetMouseWithin());
                     PV_Remove->SetAssociatedItem((LVItem*)elem);
                     assignFn(PV_Remove, RemoveSelectedPage);
@@ -694,8 +700,8 @@ namespace DirectDesktop
             DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", elem);
             if (PV_Home)
             {
-                ((DDScalableElement*)PV_Home)->SetDDCPIntensity(255);
-                ((DDScalableElement*)PV_Home)->SetAssociatedColor(RGB(255, 102, 0));
+                PV_Home->SetDDCPIntensity(255);
+                PV_Home->SetAssociatedColor(RGB(255, 102, 0));
                 PV_Home->SetVisible(elem->GetMouseWithin());
                 PV_Home->SetAssociatedItem((LVItem*)elem);
                 assignFn(PV_Home, SetSelectedPageHome);

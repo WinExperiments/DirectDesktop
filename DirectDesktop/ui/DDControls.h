@@ -39,6 +39,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
+        static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -46,6 +47,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         bool GetNeedsFontResize2();
         int GetAssociatedColor();
+        int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetDrawType(int iDrawType);
@@ -53,9 +55,8 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
-        int GetDDCPIntensity();
-        unsigned short GetGroupColor();
         void SetDDCPIntensity(int intensity);
+        unsigned short GetGroupColor();
         void SetGroupColor(unsigned short sGC);
         void InitDrawImage();
         static void RedrawImages();
@@ -92,6 +93,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
+        static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -99,6 +101,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         bool GetNeedsFontResize2();
         int GetAssociatedColor();
+        int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetDrawType(int iDrawType);
@@ -106,6 +109,7 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
+        void SetDDCPIntensity(int intensity);
         void InitDrawImage();
         static void RedrawImages();
         void InitDrawFont();
@@ -114,11 +118,11 @@ namespace DirectDesktop
         RegKeyValue GetRegKeyValue();
         void (* GetAssociatedFn())(bool, bool, bool);
         bool* GetAssociatedBool();
-        int GetDDCPIntensity();
+        unsigned short GetGroupColor();
         void SetRegKeyValue(RegKeyValue rkvNew);
         void SetAssociatedFn(void (*pfn)(bool, bool, bool));
         void SetAssociatedBool(bool* pb);
-        void SetDDCPIntensity(int intensity);
+        void SetGroupColor(unsigned short sGC);
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
 
     protected:
@@ -128,6 +132,7 @@ namespace DirectDesktop
         void (*_assocFn)(bool, bool, bool) = nullptr;
         bool* _assocBool = nullptr;
         int _intensity = 255;
+        unsigned short _gc{};
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -434,15 +439,18 @@ namespace DirectDesktop
         void SetDefaultColor(int iDefaultColor);
         RegKeyValue GetRegKeyValue();
         vector<DDScalableElement*> GetTargetElements();
+        vector<DDScalableButton*> GetTargetButtons();
         bool GetThemeAwareness();
         void SetRegKeyValue(RegKeyValue rkvNew);
         void SetTargetElements(vector<DDScalableElement*> vte);
+        void SetTargetButtons(vector<DDScalableButton*> vtb);
         void SetThemeAwareness(bool ta);
 
     private:
         static IClassInfo* s_pClassInfo;
         RegKeyValue _rkv{};
         vector<DDScalableElement*> _targetElems{};
+        vector<DDScalableButton*> _targetBtns{};
         bool _themeAwareness{};
         int GetPropCommon(const PropertyProcT pPropertyProc);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
@@ -465,9 +473,11 @@ namespace DirectDesktop
         COLORREF GetAssociatedColor();
         BYTE GetOrder();
         vector<DDScalableElement*> GetTargetElements();
+        vector<DDScalableButton*> GetTargetButtons();
         void SetAssociatedColor(COLORREF cr);
         void SetOrder(BYTE bOrder);
         void SetTargetElements(vector<DDScalableElement*> vte);
+        void SetTargetButtons(vector<DDScalableButton*> vtb);
 
     private:
         static IClassInfo* s_pClassInfo;
@@ -475,6 +485,7 @@ namespace DirectDesktop
         COLORREF _assocCR{};
         BYTE _order{};
         vector<DDScalableElement*> _targetElems{};
+        vector<DDScalableButton*> _targetBtns{};
     };
 
     enum DDNotificationType
@@ -502,7 +513,7 @@ namespace DirectDesktop
         DDScalableElement* GetTitleElement();
         DDScalableElement* GetContentElement();
         static void CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, short timeout, bool fClose);
-        static void DestroyBanner(bool* notificationopen);
+        static void DestroyBanner(bool* notificationopen, NativeHWNDHost* wnd);
 
     private:
         static IClassInfo* s_pClassInfo;

@@ -2,11 +2,11 @@
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
 		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)" alpha="255" animation="alpha|s|veryfast">
-				<Element id="atom(centered)" layout="filllayout()" background="argb(255,255,0,0)" animation="position|log|fast"/>
+				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)" animation="position|log|fast"/>
 			</Element>
 		</Button>
 	</HWNDElement>
-	<DDScalableButton resid="fullscreeninner" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" animation="size|log|fast"/>
+	<DDScalableButton resid="fullscreeninner" id="atom(fullscreeninner)" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" animation="size|log|fast"/>
 	<Element resid="groupdirectory" id="atom(groupdirectory)" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
 			<Element id="atom(tasksanimator)" layoutpos="right"/>

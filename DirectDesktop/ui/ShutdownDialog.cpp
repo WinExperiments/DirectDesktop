@@ -383,8 +383,11 @@ namespace DirectDesktop
             CSafeElementPtr<DDScalableElement> delaysecondsbackground;
             delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
             CValuePtr v;
-            delaysecondspreview->SetVisible(!elem->GetKeyWithin());
-            delaysecondspreview->SetContentString(elem->GetContentString(&v));
+            if (delaysecondspreview)
+            {
+                delaysecondspreview->SetVisible(!elem->GetKeyWithin());
+                delaysecondspreview->SetContentString(elem->GetContentString(&v));
+            }
             if (delaysecondsbackground) delaysecondsbackground->SetSelected(elem->GetKeyWithin());
         }
         if (pProp == Element::MouseWithinProp())
@@ -708,6 +711,7 @@ namespace DirectDesktop
         delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
         if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
         //AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
+        pShutdown->DestroyAll(true);
         shutdownwnd->DestroyWindow();
         g_dialogopen = false;
     }
