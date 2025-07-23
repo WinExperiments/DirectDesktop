@@ -484,6 +484,8 @@ namespace DirectDesktop
             SetWindowPos(editwnd->GetHWND(), nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
             //SetWindowPos(editbgwnd->GetHWND(), NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOZORDER);
         }
+        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+        SetWindowPos(hWndProgman, nullptr, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
         SetWindowPos(g_hWorkerW, nullptr, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
         SetWindowPos(g_hSHELLDLL_DefView, nullptr, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
         UIContainer->SetWidth(dimensions.right - dimensions.left);
@@ -491,35 +493,33 @@ namespace DirectDesktop
         SetWindowPos(g_hWndTaskbar, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     }
 
-    DWORD WINAPI WallpaperHelper24H2(LPVOID lpParam)
-    {
-        yValue* yV = (yValue*)lpParam;
-        Sleep(yV->fl1);
-        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-        g_hSHELLDLL_DefView = FindWindowExW(hWndProgman, nullptr, L"SHELLDLL_DefView", nullptr);
-        bool bTest = PlaceDesktopInPos(&(yV->num), &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, false);
-        SetWindowLongPtrW(g_hWorkerW, GWL_STYLE, 0x96000000L);
-        SetWindowLongPtrW(g_hWorkerW, GWL_EXSTYLE, 0x20000880L);
-        delete yV;
-        return 0;
-    }
+    //DWORD WINAPI WallpaperHelper24H2(LPVOID lpParam)
+    //{
+    //    yValue* yV = (yValue*)lpParam;
+    //    Sleep(yV->fl1);
+    //    HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    //    g_hSHELLDLL_DefView = FindWindowExW(hWndProgman, nullptr, L"SHELLDLL_DefView", nullptr);
+    //    bool bTest = PlaceDesktopInPos(&(yV->num), &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, false);
+    //    delete yV;
+    //    return 0;
+    //}
 
-    void Perform24H2Fixes(bool full)
-    {
-        int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
-        if (WindowsBuild >= 26002)
-        {
-            HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-            SetParent(g_hSHELLDLL_DefView, hWndProgman);
-            if (full)
-            {
-                yValue* yV = new yValue{ WindowsBuild, 200, NULL };
-                DWORD dwWallpaper{};
-                HANDLE wallpaperThread = CreateThread(nullptr, 0, WallpaperHelper24H2, (LPVOID)yV, 0, &dwWallpaper);
-                if (wallpaperThread) CloseHandle(wallpaperThread);
-            }
-        }
-    }
+    //void Perform24H2Fixes(bool full)
+    //{
+    //    int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+    //    if (WindowsBuild >= 26002)
+    //    {
+    //        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+    //        SetParent(g_hSHELLDLL_DefView, hWndProgman);
+    //        if (full)
+    //        {
+    //            yValue* yV = new yValue{ WindowsBuild, 200, NULL };
+    //            DWORD dwWallpaper{};
+    //            HANDLE wallpaperThread = CreateThread(nullptr, 0, WallpaperHelper24H2, (LPVOID)yV, 0, &dwWallpaper);
+    //            if (wallpaperThread) CloseHandle(wallpaperThread);
+    //        }
+    //    }
+    //}
 
     LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
@@ -540,15 +540,6 @@ namespace DirectDesktop
                     g_lastWidth = 0, g_lastHeight = 0;
                     AdjustWindowSizes(false);
                     RearrangeIcons(true, false, true);
-                }
-                if (wParam == SPI_SETDESKWALLPAPER)
-                {
-                    static int messagemitigation{};
-                    messagemitigation++;
-                    if (messagemitigation & 1)
-                    {
-                        Perform24H2Fixes(true);
-                    }
                 }
                 if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0)
                 {
@@ -584,24 +575,24 @@ namespace DirectDesktop
             }
             case WM_WTSSESSION_CHANGE:
             {
-                int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
-                yValue* yV = new yValue{ WindowsBuild, 2000, NULL };
-                switch (wParam)
-                {
-                    case WTS_SESSION_LOCK:
-                    {
-                        Perform24H2Fixes(false);
-                        break;
-                    }
-                    case WTS_SESSION_UNLOCK:
-                    {
-                        if (WindowsBuild >= 26002)
-                        {
-                            WallpaperHelper24H2(yV);
-                        }
-                        break;
-                    }
-                }
+                //int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+                //yValue* yV = new yValue{ WindowsBuild, 2000, NULL };
+                //switch (wParam)
+                //{
+                //    case WTS_SESSION_LOCK:
+                //    {
+                //        Perform24H2Fixes(false);
+                //        break;
+                //    }
+                //    case WTS_SESSION_UNLOCK:
+                //    {
+                //        if (WindowsBuild >= 26002)
+                //        {
+                //            WallpaperHelper24H2(yV);
+                //        }
+                //        break;
+                //    }
+                //}
                 break;
             }
             case WM_CLOSE:
@@ -3821,16 +3812,18 @@ namespace DirectDesktop
 
     bool IsDesktopActive()
     {
+        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
         HWND hWnd = GetForegroundWindow();
         if (hWnd == nullptr) return false;
-        return (hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == GetShutdownWindowIfPresent());
+        return (hWnd == hWndProgman || hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == GetShutdownWindowIfPresent());
     }
 
     bool IsDesktopOrSubviewActive()
     {
+        HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
         HWND hWnd = GetForegroundWindow();
         if (hWnd == nullptr) return false;
-        return (hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == subviewwnd->GetHWND() || hWnd == GetEditWindowIfPresent() || hWnd == GetShutdownWindowIfPresent());
+        return (hWnd == hWndProgman || hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == subviewwnd->GetHWND() || hWnd == GetEditWindowIfPresent() || hWnd == GetShutdownWindowIfPresent());
     }
 
     HHOOK KeyHook = nullptr;
@@ -4085,8 +4078,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, false);
         }
     }
-    if (logging == IDYES && !g_hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
-    bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, true);
+    if (!g_hSHELLDLL_DefView)
+    {
+        if (logging == IDYES) MainLogger.WriteLine(L"Information: SHELLDLL_DefView was not inside Program Manager, retrying...");
+        bool pos = PlaceDesktopInPos(&WindowsBuild, &hWndProgman, &g_hWorkerW, &g_hSHELLDLL_DefView, true);
+    }
     if (logging == IDYES && g_hSHELLDLL_DefView) MainLogger.WriteLine(L"Information: Found a SHELLDLL_DefView window.");
     HWND hSysListView32 = FindWindowExW(g_hSHELLDLL_DefView, nullptr, L"SysListView32", L"FolderView");
     if (hSysListView32)
@@ -4108,15 +4104,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0280800L);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
     WndProcSubview = (WNDPROC)SetWindowLongPtrW(subviewwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)TopLevelWindowProc);
+    HWND dummyHWnd{};
     if (WindowsBuild >= 26002)
     {
-        SetWindowLongPtrW(g_hWorkerW, GWL_STYLE, 0x96000000L);
-        SetWindowLongPtrW(g_hWorkerW, GWL_EXSTYLE, 0x20000880L);
+        dummyHWnd = SetParent(wnd->GetHWND(), hWndProgman);
     }
-    HWND dummyHWnd;
-    dummyHWnd = SetParent(wnd->GetHWND(), g_hSHELLDLL_DefView);
-    HBRUSH hbr = CreateSolidBrush(RGB(0, 0, 0));
-    SetClassLongPtrW(wnd->GetHWND(), GCLP_HBRBACKGROUND, (LONG_PTR)hbr);
+    else dummyHWnd = SetParent(wnd->GetHWND(), g_hSHELLDLL_DefView);
     if (logging == IDYES)
     {
         if (dummyHWnd != nullptr) MainLogger.WriteLine(L"Information: DirectDesktop is now a part of Explorer.");
@@ -4224,8 +4217,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     StartMonitorFileChanges(path3);
 
     DDNotificationBanner* ddnb{};
-    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M8",
-                                       L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone8\nCompiled on 2025-07-23",
+    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Post-M8",
+                                       L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_post_milestone8\nCompiled on 2025-07-24",
                                        10, false);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");

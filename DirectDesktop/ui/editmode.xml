@@ -98,6 +98,7 @@
 			<DDLVActionButton id="atom(PV_Remove)" foreground="white" class="PVActionButton" content="resstr(165)" tooltip="true" accdesc="resstr(4057)" margin="rect(0,0,8rp,0)"/>
 		</Element>
 	</LVItem>
+	<Element resid="PV_PageRow_Dim" class="popupbg" visible="true"/>
 	<DDScalableElement resid="PV_IconShadowPreview" layoutpos="absolute" contentalign="bottomcenter" background="argb(0,0,0,0)"/>
 	<DDScalableElement resid="PV_IconPreview" layoutpos="absolute" contentalign="bottomcenter" background="argb(0,0,0,0)" DrawType="1" layout="filllayout()">
 		<Element id="atom(PV_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>

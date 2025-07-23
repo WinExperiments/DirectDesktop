@@ -730,22 +730,6 @@ namespace DirectDesktop
         if (pMalloc != nullptr) pMalloc->Release();
     }
 
-    BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
-    {
-        WCHAR className[64];
-        GetClassNameW(hwnd, className, sizeof(className) / 2);
-        if (wcscmp(className, L"WorkerW") == 0)
-        {
-            HWND hSHELLDLL_DefView = FindWindowExW(hwnd, nullptr, L"SHELLDLL_DefView", nullptr);
-            if (hSHELLDLL_DefView)
-            {
-                *(HWND*)lParam = hwnd;
-                return 0;
-            }
-        }
-        return 1;
-    }
-
     BOOL CALLBACK EnumWindowsProc2(HWND hwnd, LPARAM lParam)
     {
         WCHAR className[64];
@@ -773,14 +757,7 @@ namespace DirectDesktop
         return 1;
     }
 
-    HWND GetWorkerW()
-    {
-        HWND hWorkerW = nullptr;
-        EnumWindows(EnumWindowsProc, (LPARAM)&hWorkerW);
-        return hWorkerW;
-    }
-
-    HWND GetWorkerW2(int* x, int* y)
+    HWND GetWorkerW2()
     {
         HWND hWorkerW = nullptr;
         EnumWindows(EnumWindowsProc2, (LPARAM)&hWorkerW);
@@ -789,27 +766,29 @@ namespace DirectDesktop
 
     bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView)
     {
-        int x = 0, y = 0;
         HWND hWndResult{};
-        if (*WindowsBuild < 26002) *hWorkerW = GetWorkerW2(&x, &y);
+        if (*WindowsBuild < 26002) *hWorkerW = GetWorkerW2();
         else *hWorkerW = FindWindowExW(*hWndProgman, nullptr, L"WorkerW", nullptr);
         if (hWorkerW)
         {
             if (findSHELLDLL_DefView) *hSHELLDLL_DefView = FindWindowExW(*hWorkerW, nullptr, L"SHELLDLL_DefView", nullptr);
             if (logging == IDYES)
             {
-                if (*hSHELLDLL_DefView != nullptr) MainLogger.WriteLine(L"Information: Found WorkerW.");
-                else MainLogger.WriteLine(L"Error: No WorkerW found.");
+                if (*hSHELLDLL_DefView != nullptr) MainLogger.WriteLine(L"Information: Found SHELLDLL_DefView.");
+                else MainLogger.WriteLine(L"Error: No SHELLDLL_DefView found.");
             }
-            if (*hSHELLDLL_DefView != nullptr) hWndResult = SetParent(*hSHELLDLL_DefView, *hWorkerW);
-            if (*WindowsBuild >= 26002)
+            if (*hSHELLDLL_DefView != nullptr)
             {
-                //SetParent(*hWorkerW, NULL);
-                if (logging == IDYES)
+                if (*WindowsBuild >= 26002)
                 {
-                    if (hWndResult != nullptr) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 WorkerW.");
-                    else MainLogger.WriteLine(L"Error: Could not add DirectDesktop inside the new 24H2 WorkerW.");
+                    hWndResult = SetParent(*hSHELLDLL_DefView, *hWndProgman);
+                    if (logging == IDYES)
+                    {
+                        if (hWndResult != nullptr) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 Progman.");
+                        else MainLogger.WriteLine(L"Error: Could not add DirectDesktop inside the new 24H2 Progman.");
+                    }
                 }
+                else hWndResult = SetParent(*hSHELLDLL_DefView, *hWorkerW);
             }
         }
         return 1;

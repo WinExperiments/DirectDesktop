@@ -282,6 +282,14 @@ namespace DirectDesktop
         pe->SetHeight(cy);
         pe->SetVisible(true);
     }
+    void PV_CreateDimRect(Element* peParent, int cx, int cy)
+    {
+        Element* PV_PageRow_Dim2{};
+        parserEdit->CreateElement(L"PV_PageRow_Dim", nullptr, nullptr, nullptr, &PV_PageRow_Dim2);
+        PV_PageRow_Dim2->SetWidth(cx);
+        PV_PageRow_Dim2->SetHeight(cy);
+        peParent->Add(&PV_PageRow_Dim2, 1);
+    }
 
     DWORD WINAPI CreateDesktopPreview(LPVOID lpParam)
     {
@@ -503,6 +511,11 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Click)
         {
+            CSafeElementPtr<DDLVActionButton> PV_Home; PV_Home.Assign(regElem<DDLVActionButton*>(L"PV_Home", elem));
+            if (PV_Home)
+            {
+                if (PV_Home->GetMouseWithin()) return;
+            }
             PageViewer->DestroyAll(true);
             PageViewer->Destroy(true);
             g_invokedpagechange = true;
@@ -570,13 +583,27 @@ namespace DirectDesktop
                     parserEdit->CreateElement(L"PV_Page", nullptr, nullptr, nullptr, (Element**)&PV_Page);
                     PV_Page->SetWidth(round(dimensions.right * 0.25));
                     PV_Page->SetHeight(round(dimensions.bottom * 0.25));
-                    PV_Page->SetMargin(round(dimensions.right * 0.025), 0, round(dimensions.right * 0.025), 0);
                     PV_Page->SetPage(i);
+                    Element* PV_PageRow_Dim{};
+                    parserEdit->CreateElement(L"PV_PageRow_Dim", nullptr, nullptr, nullptr, &PV_PageRow_Dim);
+                    PV_PageRow_Dim->SetWidth(round(dimensions.right * 0.025));
+                    PV_PageRow_Dim->SetHeight(round(dimensions.bottom * 0.25));
                     if (i <= row1)
                     {
                         pagesrow1->Add((Element**)&PV_Page, 1);
+                        if (i < row1)
+                            pagesrow1->Add(&PV_PageRow_Dim, 1);
                     }
-                    else pagesrow2->Add((Element**)&PV_Page, 1);
+                    else
+                    {
+                        if (g_maxPageID & 1 && i == row1 + 1)
+                            PV_CreateDimRect(pagesrow2, round(dimensions.right * 0.1375), round(dimensions.bottom * 0.25));
+                        pagesrow2->Add((Element**)&PV_Page, 1);
+                        if (i < g_maxPageID)
+                            pagesrow2->Add(&PV_PageRow_Dim, 1);
+                        if (g_maxPageID & 1 && i == g_maxPageID)
+                            PV_CreateDimRect(pagesrow2, round(dimensions.right * 0.1375), round(dimensions.bottom * 0.25));
+                    }
                     if (i == 1)
                     {
                         if (g_maxPageID == 1) assignFn(PV_Page, ClosePageViewer);
@@ -626,7 +653,7 @@ namespace DirectDesktop
                         PV_Home->SetAssociatedColor(RGB(255, 102, 0));
                         PV_Home->SetVisible(PV_Page->GetMouseWithin());
                         PV_Home->SetAssociatedItem(PV_Page);
-                        assignFn(PV_Home, SetSelectedPageHome);
+                        if (PV_Page->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);
                     }
                     assignExtendedFn(PV_Page, ShowPageOptionsOnHover);
                 }
@@ -686,7 +713,7 @@ namespace DirectDesktop
 
     void SetSelectedPageHome(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == Button::Click && g_maxPageID > 1)
         {
             timerPtr = elem;
             SetTimer(editwnd->GetHWND(), 2, 50, nullptr);
@@ -718,7 +745,7 @@ namespace DirectDesktop
                 PV_Home->SetAssociatedColor(RGB(255, 102, 0));
                 PV_Home->SetVisible(elem->GetMouseWithin());
                 PV_Home->SetAssociatedItem((LVItem*)elem);
-                assignFn(PV_Home, SetSelectedPageHome);
+                if (((LVItem*)elem)->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);
             }
         }
     }
@@ -811,7 +838,13 @@ namespace DirectDesktop
         editwnd->ShowWindow(SW_SHOW);
         //editbgwnd->Host(pEditBG);
         //editbgwnd->ShowWindow(SW_SHOW);
-        SetParent(editwnd->GetHWND(), g_hSHELLDLL_DefView);
+        int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+        if (WindowsBuild >= 26002)
+        {
+            HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
+            SetParent(editwnd->GetHWND(), hWndProgman);
+        }
+        else SetParent(editwnd->GetHWND(), g_hSHELLDLL_DefView);
         MARGINS m = { -1, -1, -1, -1 };
         DwmExtendFrameIntoClientArea(editwnd->GetHWND(), &m);
         //DwmExtendFrameIntoClientArea(editbgwnd->GetHWND(), &m);

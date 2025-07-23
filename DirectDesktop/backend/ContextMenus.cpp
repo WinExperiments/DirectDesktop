@@ -237,22 +237,31 @@ namespace DirectDesktop
                 lvi->SetTileSize(LVITS_ICONONLY);
                 RearrangeIcons(false, false, true);
                 lvi->SetRefreshState(true);
-                textElem.Assign(regElem<RichText*>(L"textElem", lvi));
-                textElem->SetVisible(false);
+                if (isDefaultRes())
+                {
+                    textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                    textElem->SetVisible(false);
+                }
                 break;
             case 1002:
                 lvi->SetTileSize(LVITS_NONE);
                 RearrangeIcons(false, false, true);
                 lvi->SetRefreshState(true);
-                textElem.Assign(regElem<RichText*>(L"textElem", lvi));
-                textElem->SetVisible(true);
+                if (isDefaultRes())
+                {
+                    textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                    textElem->SetVisible(true);
+                }
                 break;
             case 1003:
                 lvi->SetTileSize(LVITS_DETAILED);
                 RearrangeIcons(false, false, true);
                 lvi->SetRefreshState(true);
-                textElem.Assign(regElem<RichText*>(L"textElem", lvi));
-                textElem->SetVisible(true);
+                if (isDefaultRes())
+                {
+                    textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                    textElem->SetVisible(true);
+                }
                 break;
             default:
                 CMINVOKECOMMANDINFO ici;

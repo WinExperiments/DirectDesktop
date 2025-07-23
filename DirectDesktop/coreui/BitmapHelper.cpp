@@ -276,186 +276,186 @@ namespace DirectDesktop
 
         switch (type)
         {
-            case 1:
+        case 1:
+        {
+            BYTE* pBits = new BYTE[bmBits];
+            GetBitmapBits(hbm, bmBits, pBits);
+
+            BYTE* pPixel;
+            int x, y;
+            int r, g, b, a;
+
+            for (y = 0; y < bm.bmHeight; y++)
             {
-                BYTE* pBits = new BYTE[bmBits];
-                GetBitmapBits(hbm, bmBits, pBits);
+                pPixel = pBits + bm.bmWidth * 4 * y;
 
-                BYTE* pPixel;
-                int x, y;
-                int r, g, b, a;
-
-                for (y = 0; y < bm.bmHeight; y++)
+                for (x = 0; x < bm.bmWidth; x++)
                 {
-                    pPixel = pBits + bm.bmWidth * 4 * y;
+                    r = pPixel[2] & 0xFFFFFF;
+                    g = pPixel[1] & 0xFFFFFF;
+                    b = pPixel[0] & 0xFFFFFF;
+                    a = pPixel[3] & 0xFFFFFF;
 
-                    for (x = 0; x < bm.bmWidth; x++)
-                    {
-                        r = pPixel[2] & 0xFFFFFF;
-                        g = pPixel[1] & 0xFFFFFF;
-                        b = pPixel[0] & 0xFFFFFF;
-                        a = pPixel[3] & 0xFFFFFF;
+                    handler(r, g, b, a, crOpt);
 
-                        handler(r, g, b, a, crOpt);
+                    pPixel[2] = r;
+                    pPixel[1] = g;
+                    pPixel[0] = b;
+                    a *= alphaValue;
+                    if (a > 255) a = 255;
+                    pPixel[3] = a;
 
-                        pPixel[2] = r;
-                        pPixel[1] = g;
-                        pPixel[0] = b;
-                        a *= alphaValue;
-                        if (a > 255) a = 255;
-                        pPixel[3] = a;
-
-                        pPixel += 4;
-                    }
+                    pPixel += 4;
                 }
-
-                SetBitmapBits(hbm, bmBits, pBits);
-                delete[] pBits;
-                break;
             }
-            case 0:
+
+            SetBitmapBits(hbm, bmBits, pBits);
+            delete[] pBits;
+            break;
+        }
+        case 0:
+        {
+            BYTE* pBits = new BYTE[bmBits];
+            GetBitmapBits(hbm, bmBits, pBits);
+
+            BYTE* pPixel;
+            int x, y;
+            int r, g, b, a;
+
+            for (y = 0; y < bm.bmHeight; y++)
             {
-                BYTE* pBits = new BYTE[bmBits];
-                GetBitmapBits(hbm, bmBits, pBits);
+                pPixel = pBits + (bm.bmWidth) * 4 * y;
 
-                BYTE* pPixel;
-                int x, y;
-                int r, g, b, a;
-
-                for (y = 0; y < bm.bmHeight; y++)
+                for (x = 0; x < bm.bmWidth; x++)
                 {
-                    pPixel = pBits + (bm.bmWidth) * 4 * y;
+                    a = (pPixel[3] & 0xFFFFFF);
 
-                    for (x = 0; x < bm.bmWidth; x++)
-                    {
-                        a = (pPixel[3] & 0xFFFFFF);
+                    handler(r, g, b, a, crOpt);
 
-                        handler(r, g, b, a, crOpt);
+                    pPixel[2] = r;
+                    pPixel[1] = g;
+                    pPixel[0] = b;
+                    pPixel[3] = a;
 
-                        pPixel[2] = r;
-                        pPixel[1] = g;
-                        pPixel[0] = b;
-                        pPixel[3] = a;
-
-                        pPixel += 4;
-                    }
+                    pPixel += 4;
                 }
-
-                vector<BYTE> vBits;
-                vBits.assign(pBits, pBits + bmBits / 4);
-                int channel = 0;
-                for (int alpha = 3; alpha < bmBits; alpha += 4)
-                {
-                    vBits[channel++] = pBits[alpha];
-                }
-                if (blurradius >= 1) Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-                channel = 0;
-                for (int alpha = 3; alpha < bmBits; alpha += 4)
-                {
-                    short tempAlpha = vBits[channel++] * alphaValue;
-                    if (tempAlpha > 255) tempAlpha = 255;
-                    pBits[alpha] = tempAlpha;
-                }
-
-                SetBitmapBits(hbm, bmBits, pBits);
-                delete[] pBits;
-                vBits.clear();
-                break;
             }
-            case 2:
+
+            vector<BYTE> vBits;
+            vBits.assign(pBits, pBits + bmBits / 4);
+            int channel = 0;
+            for (int alpha = 3; alpha < bmBits; alpha += 4)
             {
-                BYTE* pBits = new BYTE[bmBits];
-                GetBitmapBits(hbm, bmBits, pBits);
-
-                vector<BYTE> vBitsR, vBitsG, vBitsB, vBitsA;
-                vBitsR.assign(pBits, pBits + bmBits / 4);
-                vBitsG.assign(pBits, pBits + bmBits / 4);
-                vBitsB.assign(pBits, pBits + bmBits / 4);
-                vBitsA.assign(pBits, pBits + bmBits / 4);
-                int channel = 0;
-                for (int alpha = 0; alpha < bmBits; alpha += 4)
-                {
-                    vBitsB[channel++] = pBits[alpha];
-                }
-                channel = 0;
-                for (int alpha = 1; alpha < bmBits; alpha += 4)
-                {
-                    vBitsG[channel++] = pBits[alpha];
-                }
-                channel = 0;
-                for (int alpha = 2; alpha < bmBits; alpha += 4)
-                {
-                    vBitsR[channel++] = pBits[alpha];
-                }
-                channel = 0;
-                for (int alpha = 3; alpha < bmBits; alpha += 4)
-                {
-                    vBitsA[channel++] = pBits[alpha];
-                }
-                Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-                Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-                Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-                Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
-                channel = 0;
-                for (int alpha = 0; alpha < bmBits; alpha += 4)
-                {
-                    pBits[alpha] = vBitsB[channel++];
-                }
-                channel = 0;
-                for (int alpha = 1; alpha < bmBits; alpha += 4)
-                {
-                    pBits[alpha] = vBitsG[channel++];
-                }
-                channel = 0;
-                for (int alpha = 2; alpha < bmBits; alpha += 4)
-                {
-                    pBits[alpha] = vBitsR[channel++];
-                }
-                channel = 0;
-                for (int alpha = 3; alpha < bmBits; alpha += 4)
-                {
-                    pBits[alpha] = vBitsA[channel++];
-                }
-
-                SetBitmapBits(hbm, bmBits, pBits);
-                delete[] pBits;
-                vBitsR.clear();
-                vBitsG.clear();
-                vBitsB.clear();
-                vBitsA.clear();
-                break;
+                vBits[channel++] = pBits[alpha];
             }
-            case 3:
+            if (blurradius >= 1) Blur(vBits, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            channel = 0;
+            for (int alpha = 3; alpha < bmBits; alpha += 4)
             {
-                // handlers do not affect this, except a few.
-                // SimpleBitmapPixelHandler: converts all alpha to the alphaValue arg
-                // UndoPremultiplication: premultiplies the alpha by itself (lol)
-                BYTE* pBits = new BYTE[bmBits];
-                GetBitmapBits(hbm, bmBits, pBits);
-
-                BYTE* pPixel;
-                int x, y;
-
-                for (y = 0; y < bm.bmHeight; y++)
-                {
-                    pPixel = pBits + bm.bmWidth * 4 * y;
-
-                    for (x = 0; x < bm.bmWidth; x++)
-                    {
-                        pPixel[2] = (int)(crOpt % 16777216);
-                        pPixel[1] = (int)((crOpt / 256) % 65536);
-                        pPixel[0] = (int)((crOpt / 65536) % 256);
-                        pPixel[3] = (handler == SimpleBitmapPixelHandler) ? 255 * alphaValue : pPixel[3] * alphaValue;
-                        if (handler == UndoPremultiplication) pPixel[3] = pow(pPixel[3] / 255.0, 2) * 255.0;
-
-                        pPixel += 4;
-                    }
-                }
-
-                SetBitmapBits(hbm, bmBits, pBits);
-                delete[] pBits;
-                break;
+                short tempAlpha = vBits[channel++] * alphaValue;
+                if (tempAlpha > 255) tempAlpha = 255;
+                pBits[alpha] = tempAlpha;
             }
+
+            SetBitmapBits(hbm, bmBits, pBits);
+            delete[] pBits;
+            vBits.clear();
+            break;
+        }
+        case 2:
+        {
+            BYTE* pBits = new BYTE[bmBits];
+            GetBitmapBits(hbm, bmBits, pBits);
+
+            vector<BYTE> vBitsR, vBitsG, vBitsB, vBitsA;
+            vBitsR.assign(pBits, pBits + bmBits / 4);
+            vBitsG.assign(pBits, pBits + bmBits / 4);
+            vBitsB.assign(pBits, pBits + bmBits / 4);
+            vBitsA.assign(pBits, pBits + bmBits / 4);
+            int channel = 0;
+            for (int alpha = 0; alpha < bmBits; alpha += 4)
+            {
+                vBitsB[channel++] = pBits[alpha];
+            }
+            channel = 0;
+            for (int alpha = 1; alpha < bmBits; alpha += 4)
+            {
+                vBitsG[channel++] = pBits[alpha];
+            }
+            channel = 0;
+            for (int alpha = 2; alpha < bmBits; alpha += 4)
+            {
+                vBitsR[channel++] = pBits[alpha];
+            }
+            channel = 0;
+            for (int alpha = 3; alpha < bmBits; alpha += 4)
+            {
+                vBitsA[channel++] = pBits[alpha];
+            }
+            Blur(vBitsR, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsG, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsB, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            Blur(vBitsA, (int)bm.bmWidth, (int)bm.bmHeight, blurradius);
+            channel = 0;
+            for (int alpha = 0; alpha < bmBits; alpha += 4)
+            {
+                pBits[alpha] = vBitsB[channel++];
+            }
+            channel = 0;
+            for (int alpha = 1; alpha < bmBits; alpha += 4)
+            {
+                pBits[alpha] = vBitsG[channel++];
+            }
+            channel = 0;
+            for (int alpha = 2; alpha < bmBits; alpha += 4)
+            {
+                pBits[alpha] = vBitsR[channel++];
+            }
+            channel = 0;
+            for (int alpha = 3; alpha < bmBits; alpha += 4)
+            {
+                pBits[alpha] = vBitsA[channel++];
+            }
+
+            SetBitmapBits(hbm, bmBits, pBits);
+            delete[] pBits;
+            vBitsR.clear();
+            vBitsG.clear();
+            vBitsB.clear();
+            vBitsA.clear();
+            break;
+        }
+        case 3:
+        {
+            // handlers do not affect this, except a few.
+            // SimpleBitmapPixelHandler: converts all alpha to the alphaValue arg
+            // UndoPremultiplication: premultiplies the alpha by itself (lol)
+            BYTE* pBits = new BYTE[bmBits];
+            GetBitmapBits(hbm, bmBits, pBits);
+
+            BYTE* pPixel;
+            int x, y;
+
+            for (y = 0; y < bm.bmHeight; y++)
+            {
+                pPixel = pBits + bm.bmWidth * 4 * y;
+
+                for (x = 0; x < bm.bmWidth; x++)
+                {
+                    pPixel[2] = (int)(crOpt % 16777216);
+                    pPixel[1] = (int)((crOpt / 256) % 65536);
+                    pPixel[0] = (int)((crOpt / 65536) % 256);
+                    pPixel[3] = (handler == SimpleBitmapPixelHandler) ? 255 * alphaValue : pPixel[3] * alphaValue;
+                    if (handler == UndoPremultiplication) pPixel[3] = pow(pPixel[3] / 255.0, 2) * 255.0;
+
+                    pPixel += 4;
+                }
+            }
+
+            SetBitmapBits(hbm, bmBits, pBits);
+            delete[] pBits;
+            break;
+        }
         }
 
         return true;
