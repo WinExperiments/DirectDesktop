@@ -12,6 +12,7 @@ namespace DirectDesktop
     extern std::wstring RemoveQuotes(const std::wstring& input);
     extern int localeType;
     extern Element* pMain;
+    extern Element* UIContainer;
     extern DUIXmlParser* parser;
     extern NativeHWNDHost* wnd;
     extern void SelectItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);

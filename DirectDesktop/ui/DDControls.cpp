@@ -1527,6 +1527,16 @@ namespace DirectDesktop
         _groupsize = lvigs;
     }
 
+    LVItemTileSize LVItem::GetTileSize()
+    {
+        return _tilesize;
+    }
+
+    void LVItem::SetTileSize(LVItemTileSize lvits)
+    {
+        _tilesize = lvits;
+    }
+
     vector<LVItem*> LVItem::GetChildItems()
     {
         return _childItemss;

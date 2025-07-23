@@ -154,10 +154,10 @@ namespace DirectDesktop
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         static IElementListener *pel_DisplayResults, *pel_CloseSearch, *pel_UpdateSearchBox;
-        NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW, WS_POPUP, nullptr, 0x43, &searchwnd);
+        NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP, WS_POPUP, nullptr, 0x43, &searchwnd);
         DUIXmlParser::Create(&parserSearch, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
         parserSearch->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
-        HWNDElement::Create(searchwnd->GetHWND(), true, NULL, nullptr, &key4, (Element**)&parentSearch);
+        HWNDElement::Create(searchwnd->GetHWND(), true, 0x38, nullptr, &key4, (Element**)&parentSearch);
         parserSearch->CreateElement(L"SearchUI", parentSearch, nullptr, nullptr, &pSearch);
         WndProcSearch = (WNDPROC)SetWindowLongPtrW(searchwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SearchWindowProc);
         pSearch->SetVisible(true);
@@ -185,7 +185,6 @@ namespace DirectDesktop
         pel_UpdateSearchBox = (IElementListener*)assignExtendedFn(searchbox, UpdateSearchBox, true);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
         SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
-        SearchResults->SetBackgroundColor(g_theme ? 4293980400 : 4280821800);
     }
 
     void DestroySearchPage()

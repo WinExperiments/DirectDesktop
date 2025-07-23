@@ -238,6 +238,13 @@ namespace DirectDesktop
         LVIGS_LARGE = 4
     };
 
+    enum LVItemTileSize
+    {
+        LVITS_ICONONLY = 0,
+        LVITS_NONE = 1,
+        LVITS_DETAILED = 2
+    };
+
     class LVItem final : public DDScalableButton
     {
     public:
@@ -281,6 +288,8 @@ namespace DirectDesktop
         void SetPage(unsigned short pageID);
         LVItemGroupSize GetGroupSize();
         void SetGroupSize(LVItemGroupSize lvigs);
+        LVItemTileSize GetTileSize();
+        void SetTileSize(LVItemTileSize lvits);
         vector<LVItem*> GetChildItems();
         vector<DDScalableElement*> GetChildIcons();
         vector<Element*> GetChildShadows();
@@ -311,6 +320,7 @@ namespace DirectDesktop
         unsigned short _yPos = 65535;
         unsigned short _page{};
         LVItemGroupSize _groupsize = LVIGS_NORMAL;
+        LVItemTileSize _tilesize = LVITS_NONE;
         vector<LVItem*> _childItemss;
         vector<DDScalableElement*> _childIcons;
         vector<Element*> _childShadows;

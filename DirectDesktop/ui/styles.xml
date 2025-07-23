@@ -1,20 +1,31 @@
 <duixml>
 	<stylesheets>
 		<style resid="DDBase">
+			<DDScalableElement bordercolor="argb(0,0,0,0)"/>
+			<DDScalableButton bordercolor="argb(0,0,0,0)"/>
+			<DDScalableRichText bordercolor="argb(0,0,0,0)"/>
+			<DDScalableTouchEdit bordercolor="argb(0,0,0,0)"/>
+			<LVItem bordercolor="argb(0,0,0,0)"/>
+			<DDLVActionButton bordercolor="argb(0,0,0,0)"/>
+			<DDToggleButton bordercolor="argb(0,0,0,0)"/>
+			<DDCheckBox bordercolor="argb(0,0,0,0)"/>
+			<DDCheckBoxGlyph bordercolor="argb(0,0,0,0)"/>
+			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
+			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
 			<if class="popupbutton">
-				<DDScalableButton foreground="20007" visible="false" alpha="255" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/> // ALPHA TO BE 224 AFTER PVL FIX
+				<DDScalableButton foreground="20007" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/> // ALPHA TO BE 160 AFTER PVL FIX
+					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="255" foreground="black"/> // ALPHA TO BE 96 AFTER PVL FIX
+					<DDScalableButton alpha="96" foreground="black"/>
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="black" visible="false" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton foreground="black" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
 					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -26,7 +37,7 @@
 				</if>
 			</if>
 			<if class="hyperlink">
-				<DDScalableButton foreground="20007" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20007" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -74,8 +85,8 @@
 					<DDToggleButton FirstScaledImage="1057"/>
 				</if>
 			</if>
-			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(255,240,240,240)"/>
-			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(255,240,240,240)"/>
+			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
+			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
 			<if vertical="true">
 				<TouchScrollBar width="16rp" layoutpos="nineright"/>
 			</if>
@@ -83,12 +94,12 @@
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
 			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(255,240,240,240)" foreground="argb(255,0,0,0)" font="resstr(130)"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(96,0,0,0)" font="resstr(130)"/>
 				<if mousewithin="true">
-					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,64,64,64)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(120,0,0,0)"/>
 				</if>
 				<if Pressed="true">
-					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,0,0,0)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(108,0,0,0)"/>
 				</if>
 				<if id="atom(LineUp)">
 					<TouchRepeatButton layoutpos="top" height="22rp"/>
@@ -137,12 +148,12 @@
 				</if>
 			</if>
 			<if class="Thumb_Mouse">
-				<Thumb accessible="true" accrole="indicator" background="argb(255,0,0,0)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(96,0,0,0)"/>
 				<if mousewithin="true">
-					<Thumb background="argb(255,0,0,0)" bordercolor="20768"/>
+					<Thumb background="argb(96,0,0,0)" bordercolor="20768"/>
 				</if>
 				<if captured="true">
-					<Thumb background="argb(255,0,0,0)" bordercolor="20769"/>
+					<Thumb background="argb(96,0,0,0)" bordercolor="20769"/>
 				</if>
 				<if id="atom(Thumb)">
 					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
@@ -152,7 +163,7 @@
 				</if>
 			</if>
 			<if class="Thumb_Pan">
-				<Thumb accessible="true" accrole="indicator" background="argb(255,0,0,0)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(96,0,0,0)"/>
 				<if id="atom(Thumb)">
 					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
 				</if>
@@ -160,9 +171,9 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" foreground="rgb(0,0,0)" cursor="ibeam"/>
+			<TouchEdit2 padding="rect(0,999rp,0,999rp)" foreground="rgb(0,0,0)" cursor="ibeam" alpha="0"/>
 			<if keywithin="true">
-				<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
+				<TouchEdit2 padding="rect(0,0,0,0)" alpha="255"/>
 			</if>
 			<if class="Ver0_5_editbg">
 				<DDScalableElement FirstScaledImage="1163" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
@@ -261,20 +272,31 @@
 			</if>
 		</style>
 		<style resid="DDBaseDark">
+			<DDScalableElement bordercolor="argb(0,0,0,0)"/>
+			<DDScalableButton bordercolor="argb(0,0,0,0)"/>
+			<DDScalableRichText bordercolor="argb(0,0,0,0)"/>
+			<DDScalableTouchEdit bordercolor="argb(0,0,0,0)"/>
+			<LVItem bordercolor="argb(0,0,0,0)"/>
+			<DDLVActionButton bordercolor="argb(0,0,0,0)"/>
+			<DDToggleButton bordercolor="argb(0,0,0,0)"/>
+			<DDCheckBox bordercolor="argb(0,0,0,0)"/>
+			<DDCheckBoxGlyph bordercolor="argb(0,0,0,0)"/>
+			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
+			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
 			<if class="popupbutton">
-				<DDScalableButton foreground="20002" visible="false" alpha="255" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/> // ALPHA TO BE 224 AFTER PVL FIX
+				<DDScalableButton foreground="20002" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
 				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/> // ALPHA TO BE 224 AFTER PVL FIX
+					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/> // ALPHA TO BE 224 AFTER PVL FIX
+					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/> 
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="255" foreground="white"/> // ALPHA TO BE 224 AFTER PVL FIX
+					<DDScalableButton alpha="96" foreground="white"/> // ALPHA TO BE 224 AFTER PVL FIX
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="white" visible="false" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton foreground="white" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
 					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -286,7 +308,7 @@
 				</if>
 			</if>
 			<if class="hyperlink">
-				<DDScalableButton foreground="20002" alpha="224" background="argb(0,0,0,0)" animation="alpha|s|veryfast" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20002" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
 					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
@@ -334,8 +356,8 @@
 					<DDToggleButton FirstScaledImage="2057"/>
 				</if>
 			</if>
-			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(255,40,40,40)"/>
-			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(255,40,40,40)"/>
+			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
+			<TouchScrollBar accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
 			<if vertical="true">
 				<TouchScrollBar width="16rp" layoutpos="nineright"/>
 			</if>
@@ -343,12 +365,12 @@
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
 			<if class="Line">
-				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(255,40,40,40)" foreground="argb(255,255,255,255)" font="resstr(130)"/>
+				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(128,255,255,255)" font="resstr(130)"/>
 				<if mousewithin="true">
-					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,224,224,224)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(160,255,255,255)"/>
 				</if>
 				<if Pressed="true">
-					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(255,255,255,255)"/>
+					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(144,255,255,255)"/>
 				</if>
 				<if id="atom(LineUp)">
 					<TouchRepeatButton layoutpos="top" height="22rp"/>
@@ -397,12 +419,12 @@
 				</if>
 			</if>
 			<if class="Thumb_Mouse">
-				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(128,255,255,255)"/>
 				<if mousewithin="true">
-					<Thumb background="argb(255,255,255,255)" bordercolor="20768"/>
+					<Thumb background="argb(128,255,255,255)" bordercolor="20768"/>
 				</if>
 				<if captured="true">
-					<Thumb background="argb(255,255,255,255)" bordercolor="20769"/>
+					<Thumb background="argb(128,255,255,255)" bordercolor="20769"/>
 				</if>
 				<if id="atom(Thumb)">
 					<Thumb width="6rp" minsize="size(0,16rp)" margin="rect(5rp,0,0,0)"/>
@@ -412,7 +434,7 @@
 				</if>
 			</if>
 			<if class="Thumb_Pan">
-				<Thumb accessible="true" accrole="indicator" background="argb(255,255,255,255)"/>
+				<Thumb accessible="true" accrole="indicator" background="argb(128,255,255,255)"/>
 				<if id="atom(Thumb)">
 					<Thumb width="2rp" minsize="size(0,16rp)" margin="rect(7rp,0,0,0)"/>
 				</if>
@@ -420,9 +442,9 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<TouchEdit2 padding="rect(4rp,999rp,4rp,999rp)" foreground="rgb(255,255,255)" cursor="ibeam"/>
+			<TouchEdit2 padding="rect(0,999rp,0,999rp)" foreground="rgb(255,255,255)" cursor="ibeam" alpha="0"/>
 			<if keywithin="true">
-				<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
+				<TouchEdit2 padding="rect(0,0,0,0)" alpha="255"/>
 			</if>
 			<if class="Ver0_5_editbg">
 				<DDScalableElement FirstScaledImage="2163" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>

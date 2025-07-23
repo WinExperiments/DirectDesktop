@@ -26,6 +26,7 @@ namespace DirectDesktop
         g_gpiconsz = gpiconsz;
         bool touchmodeMem = g_touchmode;
         g_touchmode = touch;
+        SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", touch, false, nullptr);
         if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
         if (touchmodeMem == !touch)
         {
@@ -172,16 +173,15 @@ namespace DirectDesktop
                         pICv1->InvokeCommand(&ici);
                         break;
                 }
-                SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", g_touchmode, false, nullptr);
             }
             pShellFolder->Release();
         }
     }
 
-    void RightClickCore(LPCWSTR folderPath)
+    void RightClickCore(LVItem* lvi)
     {
         LPITEMIDLIST pidl = nullptr;
-        SHParseDisplayName(folderPath, nullptr, &pidl, 0, nullptr);
+        SHParseDisplayName(RemoveQuotes2(lvi->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr);
 
         IShellFolder* ppFolder = nullptr;
         LPITEMIDLIST pidlChild = nullptr;
@@ -192,7 +192,29 @@ namespace DirectDesktop
         if (pICv1)
         {
             HMENU hm = CreatePopupMenu();
-            pICv1->QueryContextMenu(hm, 0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+            if (g_touchmode)
+            {
+                HMENU hsm = CreatePopupMenu();
+                MENUITEMINFOW mii{};
+                mii.cbSize = sizeof(MENUITEMINFOW);
+                mii.fMask = MIIM_STATE;
+                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, L"Small");
+                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, L"Normal");
+                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, L"Wide");
+                for (int menuitem = 1001; menuitem <= 1005; menuitem++)
+                {
+                    mii.fState = MFS_UNCHECKED;
+                    SetMenuItemInfoW(hsm, menuitem, 0, &mii);
+                }
+                mii.fState = MFS_CHECKED;
+                if (lvi->GetTileSize() == LVITS_ICONONLY) SetMenuItemInfoW(hsm, 1001, 0, &mii);
+                else if (lvi->GetTileSize() == LVITS_NONE) SetMenuItemInfoW(hsm, 1002, 0, &mii);
+                else SetMenuItemInfoW(hsm, 1003, 0, &mii);
+                InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, L"Tile size");
+                InsertMenuW(hm, 1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
+                if (!isDefaultRes()) EnableMenuItem(hm, 0, MF_BYPOSITION | MF_DISABLED);
+            }
+            pICv1->QueryContextMenu(hm, 2, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
             UINT uFlags = TPM_RIGHTBUTTON;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
@@ -204,16 +226,43 @@ namespace DirectDesktop
             // Use TPM_RETURNCMD flag let TrackPopupMenuEx function return the menu item identifier of the user's selection in the return value.
             uFlags |= TPM_RETURNCMD;
 
+            CSafeElementPtr<RichText> textElem;
+
             POINT pt;
             GetCursorPos(&pt);
             int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
-            CMINVOKECOMMANDINFO ici;
-            ZeroMemory(&ici, sizeof(ici));
-            ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-            ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
-            ici.nShow = SW_SHOWNORMAL;
-
-            pICv1->InvokeCommand(&ici);
+            switch (menuItemId)
+            {
+            case 1001:
+                lvi->SetTileSize(LVITS_ICONONLY);
+                RearrangeIcons(false, false, true);
+                lvi->SetRefreshState(true);
+                textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                textElem->SetVisible(false);
+                break;
+            case 1002:
+                lvi->SetTileSize(LVITS_NONE);
+                RearrangeIcons(false, false, true);
+                lvi->SetRefreshState(true);
+                textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                textElem->SetVisible(true);
+                break;
+            case 1003:
+                lvi->SetTileSize(LVITS_DETAILED);
+                RearrangeIcons(false, false, true);
+                lvi->SetRefreshState(true);
+                textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                textElem->SetVisible(true);
+                break;
+            default:
+                CMINVOKECOMMANDINFO ici;
+                ZeroMemory(&ici, sizeof(ici));
+                ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
+                ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
+                ici.nShow = SW_SHOWNORMAL;
+                pICv1->InvokeCommand(&ici);
+                break;
+            }
         }
         CoTaskMemFree(pidl);
         ppFolder->Release();
@@ -223,7 +272,7 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Context)
         {
-            RightClickCore(RemoveQuotes2(((LVItem*)elem)->GetFilename()).c_str());
+            RightClickCore((LVItem*)elem);
         }
     }
 }

@@ -1048,7 +1048,8 @@ namespace DirectDesktop
             {
                 if (c == 0)
                 {
-                    pm[index]->SetInternalXPos(tempXPos);
+                    BYTE coef = 1;// g_touchmode ? 2 : 1;
+                    pm[index]->SetInternalXPos(tempXPos * coef);
                     break;
                 }
                 if (tempXPos == 0)
@@ -1071,7 +1072,8 @@ namespace DirectDesktop
             {
                 if (r == 0)
                 {
-                    pm[index]->SetInternalYPos(tempYPos);
+                    BYTE coef = 1;// g_touchmode ? 2 : 1;
+                    pm[index]->SetInternalYPos(tempYPos * coef);
                     if (logging == IDYES)
                     {
                         WCHAR details[320];
@@ -1117,12 +1119,12 @@ namespace DirectDesktop
         {
             -1,
             *pImmersiveColor,
-            g_theme ? RGB(96, 205, 255) : RGB(0, 95, 184),
-            g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
-            g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
-            g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
-            g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
-            g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
+            g_theme ? RGB(96, 205, 255) + 4278190080 : RGB(0, 95, 184) + 4278190080,
+            g_theme ? RGB(216, 141, 225) + 4278190080 : RGB(158, 58, 176) + 4278190080,
+            g_theme ? RGB(244, 103, 98) + 4278190080 : RGB(210, 14, 30) + 4278190080,
+            g_theme ? RGB(251, 154, 68) + 4278190080 : RGB(224, 83, 7) + 4278190080,
+            g_theme ? RGB(255, 213, 42) + 4278190080 : RGB(225, 157, 0) + 4278190080,
+            g_theme ? RGB(38, 255, 142) + 4278190080 : RGB(0, 178, 90) + 4278190080
         };
         BYTE* value2{};
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
@@ -1157,11 +1159,17 @@ namespace DirectDesktop
                         offset2 += 2;
                         pm[j]->SetPage(page);
                         if (page > g_maxPageID) g_maxPageID = page;
+                        if (g_touchmode)
+                        {
+                            unsigned short tilesize = *reinterpret_cast<unsigned short*>(&value2[offset2]);
+                            offset2 += 2;
+                            pm[j]->SetTileSize(static_cast<LVItemTileSize>(tilesize));
+                        }
                         match = true;
                         break;
                     }
                 }
-                if (!match) offset2 += 10;
+                if (!match) offset2 += g_touchmode ? 12 : 10;
             }
         }
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable"))
@@ -1277,6 +1285,13 @@ namespace DirectDesktop
                 const BYTE* pageBinary = reinterpret_cast<const BYTE*>(&temp);
                 DesktopLayout.push_back(pageBinary[0]);
                 DesktopLayout.push_back(pageBinary[1]);
+                if (g_touchmode)
+                {
+                    temp = static_cast<unsigned short>(pm[i]->GetTileSize());
+                    const BYTE* tilesizeBinary = reinterpret_cast<const BYTE*>(&temp);
+                    DesktopLayout.push_back(tilesizeBinary[0]);
+                    DesktopLayout.push_back(tilesizeBinary[1]);
+                }
             }
             WCHAR DesktopLayoutWithSize[24];
             if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);

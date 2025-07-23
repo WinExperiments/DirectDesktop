@@ -41,18 +41,16 @@ namespace DirectDesktop
         return result;
     }
 
-    void RenameCore(Element* elem)
+    void RenameCore(LVItem* selectedElement)
     {
         HRESULT hr{};
-        LVItem* selectedElement = (LVItem*)(elem->GetParent()->GetParent());
-        HWND hRichEdit = FindWindowExW(((HWNDElement*)elem)->GetHWND(), nullptr, MSFTEDIT_CLASS, nullptr);
+        HWND hRichEdit = FindWindowExW(wnd->GetHWND(), nullptr, MSFTEDIT_CLASS, nullptr);
         WCHAR* buffer = new WCHAR[256];
         wstring newText{};
         GetWindowTextW(hRichEdit, buffer, 256);
         if (wcscmp(buffer, selectedElement->GetSimpleFilename().c_str()) == 0)
         {
             delete[] buffer;
-            g_renameactive = false;
             return;
         }
         if (!buffer) hr = E_FAIL;
@@ -67,7 +65,6 @@ namespace DirectDesktop
         }
         delete[] newFilename;
         delete[] buffer;
-        g_renameactive = false;
     }
 
     int GetContentHeight(HWND hRichEdit)
@@ -92,23 +89,23 @@ namespace DirectDesktop
         return (lineCount * lineHeight);
     }
 
-    void ResizeToContent(HWND hRichEdit, HWNDElement* hDUIParent)
+    void ResizeToContent(HWND hRichEdit)
     {
         CValuePtr v;
-        Element* DUIElem = ((HWNDElement*)hDUIParent)->GetParent();
+        CSafeElementPtr<Element> DUIElem; DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
         RECT rc, rcPadding;
         rcPadding = *(DUIElem->GetPadding(&v));
         GetWindowRect(hRichEdit, &rc);
         int currentWidth = rc.right - rc.left;
         int newHeight = GetContentHeight(hRichEdit);
         SetWindowPos(hRichEdit, nullptr, 0, 0, currentWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
-        SetWindowPos(((HWNDElement*)hDUIParent)->GetHWND(), nullptr, 0, 0, currentWidth + rcPadding.left + rcPadding.right, newHeight + rcPadding.top + rcPadding.bottom, SWP_NOMOVE | SWP_NOZORDER);
+        DUIElem->SetHeight(newHeight + rcPadding.top + rcPadding.bottom);
     }
 
     LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
-        Element *DUIElem{}, *ParentElement{}, *innerElement{};
-        RichText *textElement{}, *textElementShadow{};
+        CSafeElementPtr<Element> DUIElem{}, innerElement{};
+        CSafeElementPtr<RichText> textElement{}, textElementShadow{};
         static bool dontkill{};
         if (g_renameactive)
         {
@@ -117,29 +114,36 @@ namespace DirectDesktop
                 case WM_KEYDOWN:
                     if (wParam == VK_RETURN)
                     {
-                        RenameCore((Element*)dwRefData);
+                        RenameCore((LVItem*)dwRefData);
+                        SendMessageW(hWnd, WM_USER + 1, NULL, NULL);
+                        return 0;
+                    }
+                    if (wParam == VK_ESCAPE)
+                    {
+                        g_renameactive = false;
+                        DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
                         DestroyWindow(hWnd);
-                        DUIElem = ((HWNDElement*)dwRefData)->GetParent();
-                        DestroyWindow(((HWNDElement*)dwRefData)->GetHWND());
-                        ParentElement = DUIElem->GetParent();
-                        textElement = regElem<RichText*>(L"textElem", ParentElement);
-                        textElementShadow = regElem<RichText*>(L"textElemShadow", ParentElement);
-                        innerElement = regElem<RichText*>(L"innerElem", ParentElement);
+                        textElement.Assign(regElem<RichText*>(L"textElem", (Element*)dwRefData));
+                        textElementShadow.Assign(regElem<RichText*>(L"textElemShadow", (Element*)dwRefData));
+                        innerElement.Assign(regElem<RichText*>(L"innerElem", (Element*)dwRefData));
                         textElement->SetVisible(true);
                         if (!g_touchmode)
                         {
                             textElementShadow->SetVisible(true);
                             innerElement->SetVisible(true);
                         }
-                        DUIElem->DestroyAll(true);
-                        DUIElem->Destroy(true);
+                        if (DUIElem)
+                        {
+                            DUIElem->DestroyAll(true);
+                            DUIElem->Destroy(true);
+                        }
                         return 0;
                     }
                 case WM_PASTE:
                 case WM_CHAR:
                     if (wcschr(L"\\/:*?\"<>|", (WCHAR)wParam) != nullptr)
                     {
-                        SetTimer(hWnd, 2, 50, nullptr);
+                        SetTimer(hWnd, 3, 50, nullptr);
                         return 0;
                         break;
                     }
@@ -150,9 +154,12 @@ namespace DirectDesktop
                     switch (wParam)
                     {
                         case 1:
-                            ResizeToContent(hWnd, (HWNDElement*)dwRefData);
+                            ResizeToContent(hWnd);
                             break;
                         case 2:
+                            SendMessageW(hWnd, WM_USER + 1, NULL, NULL);
+                            break;
+                        case 3:
                             MessageBeep(MB_OK);
                             DDNotificationBanner* ddnb{};
                             DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", nullptr, LoadStrFromRes(4109, L"shell32.dll").c_str(), 5, false);
@@ -164,27 +171,32 @@ namespace DirectDesktop
                     GetClassNameW((HWND)wParam, className, 256);
                     if (wcscmp(className, L"DD_NotificationHost") != 0)
                     {
-                        RenameCore((Element*)dwRefData);
-                        DestroyWindow(hWnd);
-                        DUIElem = ((HWNDElement*)dwRefData)->GetParent();
-                        DestroyWindow(((HWNDElement*)dwRefData)->GetHWND());
-                        ParentElement = DUIElem->GetParent();
-                        textElement = regElem<RichText*>(L"textElem", ParentElement);
-                        textElementShadow = regElem<RichText*>(L"textElemShadow", ParentElement);
-                        innerElement = regElem<RichText*>(L"innerElem", ParentElement);
-                        textElement->SetVisible(true);
-                        if (!g_touchmode)
-                        {
-                            textElementShadow->SetVisible(true);
-                            innerElement->SetVisible(true);
-                        }
-                        DUIElem->DestroyAll(true);
-                        DUIElem->Destroy(true);
+                        RenameCore((LVItem*)dwRefData);
+                        SendMessageW(hWnd, WM_USER + 1, NULL, NULL);
                     }
                     else SetFocus(hWnd);
                     break;
                 case WM_NCDESTROY:
                     RemoveWindowSubclass(hWnd, RichEditWindowProc, uIdSubclass);
+                    break;
+                case WM_USER + 1:
+                    DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
+                    DestroyWindow(hWnd);
+                    textElement.Assign(regElem<RichText*>(L"textElem", (Element*)dwRefData));
+                    textElementShadow.Assign(regElem<RichText*>(L"textElemShadow", (Element*)dwRefData));
+                    innerElement.Assign(regElem<RichText*>(L"innerElem", (Element*)dwRefData));
+                    textElement->SetVisible(true);
+                    if (!g_touchmode)
+                    {
+                        textElementShadow->SetVisible(true);
+                        innerElement->SetVisible(true);
+                    }
+                    if (DUIElem)
+                    {
+                        DUIElem->DestroyAll(true);
+                        DUIElem->Destroy(true);
+                    }
+                    g_renameactive = false;
                     break;
             }
         }
@@ -202,26 +214,12 @@ namespace DirectDesktop
                 static RichText* textElement{};
                 static RichText* textElementShadow{};
                 static Element* innerElement{};
-                static HWNDElement* RenameBox{};
-                static Element* RenameBoxElement{};
+                static Element* RenameBoxTexture{};
                 found++;
                 if (found > 1)
                 {
-                    Sleep(250);
-                    DestroyWindow(FindWindowW(MSFTEDIT_CLASS, nullptr));
-                    if (RenameBox)
-                    {
-                        DestroyWindow(RenameBox->GetHWND());
-                        textElement->SetVisible(true);
-                        if (!g_touchmode)
-                        {
-                            textElementShadow->SetVisible(true);
-                            innerElement->SetVisible(true);
-                        }
-                        RenameBoxElement->DestroyAll(true);
-                        RenameBoxElement->Destroy(true);
-                    }
-                    g_renameactive = false;
+                    HWND hRichEdit = FindWindowExW(wnd->GetHWND(), nullptr, MSFTEDIT_CLASS, nullptr);
+                    SetTimer(hRichEdit, 2, 250, nullptr);
                     MessageBeep(MB_OK);
                     DDNotificationBanner* ddnb{};
                     DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_ERROR, L"DDNB", nullptr, LoadStrFromRes(4041).c_str(), 3, false);
@@ -254,32 +252,23 @@ namespace DirectDesktop
                     textY = g_touchmode ? 8 * g_flScaleFactor : 0;
                     unsigned long keyR{};
                     CValuePtr v;
-                    parser->CreateElement(L"RenameBoxElement", nullptr, nullptr, nullptr, &RenameBoxElement);
-                    RenameBoxElement->SetLayoutPos(textElement->GetLayoutPos());
-                    pm[items]->Add((Element**)&RenameBoxElement, 1);
-                    RenameBoxElement->SetHeight(textHeight);
-                    parser->CreateElement(L"RenameBox", RenameBoxElement, nullptr, nullptr, (Element**)&RenameBox);
-                    HWNDElement::Create(wnd->GetHWND(), true, NULL, nullptr, &keyR, (Element**)&RenameBox);
-                    RenameBoxElement->Add((Element**)&RenameBox, 1);
-                    RenameBox->SetVisible(true);
-                    SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX, itemY + itemHeight - textHeight, itemWidth, textHeight, SWP_SHOWWINDOW);
-                    ShowWindow(RenameBox->GetHWND(), SW_SHOW);
+                    parser->CreateElement(L"RenameBoxTexture", nullptr, nullptr, nullptr, &RenameBoxTexture);
+                    UIContainer->Add(&RenameBoxTexture, 1);
                     RECT ebsz{}, rcPadding{};
-                    GetClientRect(RenameBox->GetHWND(), &ebsz);
-                    rcPadding = *(RenameBoxElement->GetPadding(&v));
+                    ebsz.left = itemX, ebsz.top = itemY + itemHeight - textHeight, ebsz.right = itemWidth, ebsz.bottom = textHeight;
+                    rcPadding = *(RenameBoxTexture->GetPadding(&v));
                     if (g_touchmode)
-                    {
-                        SetWindowPos(RenameBox->GetHWND(), HWND_TOP, itemX + textX - rcPadding.left, itemY + textY - rcPadding.top, textWidth + rcPadding.left + rcPadding.right, textHeight, SWP_SHOWWINDOW);
-                        GetClientRect(RenameBox->GetHWND(), &ebsz);
-                    }
+                        ebsz.left = itemX + textX - rcPadding.left, ebsz.top = itemY + textY - rcPadding.top, ebsz.right = textWidth + rcPadding.left, ebsz.bottom = textHeight;
+                    RenameBoxTexture->SetX(ebsz.left), RenameBoxTexture->SetY(ebsz.top);
+                    RenameBoxTexture->SetWidth(ebsz.right), RenameBoxTexture->SetHeight(ebsz.bottom);
                     LPWSTR sheetName = g_theme ? (LPWSTR)L"renamestyle" : (LPWSTR)L"renamestyledark";
                     StyleSheet* sheet = pMain->GetSheet();
                     CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
                     parser->GetSheet(sheetName, &sheetStorage);
-                    RenameBox->SetValue(Element::SheetProp, 1, sheetStorage);
+                    RenameBoxTexture->SetValue(Element::SheetProp, 1, sheetStorage);
                     DWORD alignment = g_touchmode ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
                     HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, pm[items]->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
-                                                     ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, RenameBox->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, nullptr);
+                                                     ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, wnd->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, nullptr);
                     LOGFONTW lf{};
                     int dpiAdjusted = (g_dpiLaunch * 96.0) * (g_dpiLaunch / 96.0) / g_dpi;
                     SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
@@ -298,13 +287,15 @@ namespace DirectDesktop
                     SendMessageW(hRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)editbg);
                     SetWindowLongPtrW(hRichEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
                     SetLayeredWindowAttributes(hRichEdit, 0, 255, LWA_ALPHA);
-                    SetWindowPos(hRichEdit, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                    if (g_touchmode)
+                        SetWindowPos(hRichEdit, HWND_TOP, itemX + textX, itemY + textY, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
+                    else 
+                        SetWindowPos(hRichEdit, HWND_TOP, itemX + rcPadding.left, itemY + itemHeight - textHeight + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
                     SetFocus(hRichEdit);
                     int textLen = pm[items]->GetSimpleFilename().find_last_of(L".");
                     if (textLen == wstring::npos) textLen = pm[items]->GetSimpleFilename().length();
                     SendMessageW(hRichEdit, EM_SETSEL, 0, textLen);
-                    SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)RenameBox);
-                    RenameBox->EndDefer(keyR);
+                    SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)pm[items]);
                 }
             }
         }

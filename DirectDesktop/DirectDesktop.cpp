@@ -39,6 +39,7 @@ namespace DirectDesktop
     Element* mainContainer;
     DDScalableButton* fullscreeninner;
     Element* popupcontainer;
+    Element* fullscreenpopupbg;
     Button *fullscreenpopupbase, *centered;
     Button* emptyspace;
     LVItem* g_outerElem;
@@ -139,6 +140,15 @@ namespace DirectDesktop
         if (g_dpi >= 144) return 2;
         if (g_dpi >= 120) return 1;
         return 0;
+    }
+
+    void DUI_SetGadgetZOrder(DirectUI::Element* pe, UINT uZOrder)
+    {
+        GTRANS_DESC rTrans = {};
+        rTrans.hgadChange = pe->GetDisplayNode();
+        rTrans.nProperty = 10;
+        rTrans.zOrder = (int)uZOrder;
+        SetTransitionVisualProperties(0, 1, &rTrans);
     }
 
     struct EventListener : public IElementListener
@@ -436,10 +446,8 @@ namespace DirectDesktop
 
     void PlaySimpleViewAnimation(Element* elem, int width, int height, int animation, float startscale)
     {
-        elem->SetAnimation(NULL);
         elem->SetWidth(width * startscale);
         elem->SetHeight(height * startscale);
-        elem->SetAnimation(animation);
         elem->SetWidth(width);
         elem->SetHeight(height);
     }
@@ -658,14 +666,10 @@ namespace DirectDesktop
             }
             case WM_USER + 1:
             {
-                //pm[lParam].elem->SetAlpha(255);
-                if (pm[lParam]->GetPage() == g_currentPageID) pm[lParam]->SetVisible(!g_hiddenIcons);
-                else pm[lParam]->SetVisible(false);
                 break;
             }
             case WM_USER + 2:
             {
-                //subpm[lParam].elem->SetAlpha(255);
                 yValueEx* yV = (yValueEx*)lParam;
                 vector<LVItem*>* l_pm = yV->vpm;
                 for (int num = 0; num < yV->num; num++)
@@ -773,6 +777,7 @@ namespace DirectDesktop
                 }
                 else
                 {
+                    if (pm[lParam]->GetTileSize() == LVITS_ICONONLY) filepm[lParam]->SetVisible(false);
                 }
                 if (g_touchmode && pm[lParam]->GetSizedFromGroup() == true)
                 {
@@ -813,8 +818,6 @@ namespace DirectDesktop
             }
             case WM_USER + 4:
             {
-                if (pm[lParam]->GetHiddenState() == false) shadowpm[lParam]->SetAlpha(255);
-                shortpm[lParam]->SetAlpha(255);
                 if (!g_touchmode)
                 {
                     shadowpm[lParam]->SetWidth((g_iconsz + 16) * g_flScaleFactor);
@@ -878,7 +881,7 @@ namespace DirectDesktop
             case WM_USER + 7:
             {
                 g_checkifelemexists = false;
-                AnimateWindow(subviewwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
+                subviewwnd->ShowWindow(SW_HIDE);
                 if (g_pendingaction) Sleep(700);
                 if (lParam == 1)
                 {
@@ -941,6 +944,10 @@ namespace DirectDesktop
                 CSafeElementPtr<TouchScrollViewer> groupdirlist;
                 groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", yV->peOptionalTarget1->GetParent()));
                 groupdirlist->SetVisible(true);
+                CSafeElementPtr<Element> emptyview;
+                emptyview.Assign(regElem<Element*>(L"emptyview", yV->peOptionalTarget1->GetParent()));
+                emptyview->DestroyAll(true);
+                emptyview->Destroy(true);
                 yV->peOptionalTarget1->DestroyAll(true);
                 yV->peOptionalTarget1->Destroy(true);
                 for (int i = 0; i < vdi->size(); i++)
@@ -961,8 +968,6 @@ namespace DirectDesktop
                 {
                     if ((*l_pm)[num])
                     {
-                        if ((*l_pm)[num]->GetHiddenState() == false) (*l_shadowpm)[num]->SetAlpha(255);
-                        if ((*l_shortpm)[num]) (*l_shortpm)[num]->SetAlpha(255);
                         if (!g_touchmode && (*l_shadowpm)[num] && (*l_shortpm)[num])
                         {
                             (*l_shadowpm)[num]->SetWidth((g_iconsz + 16) * g_flScaleFactor);
@@ -1056,7 +1061,7 @@ namespace DirectDesktop
                 if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight)
                 {
                     internalselectedLVItems[0]->SetDragState(true);
-                    dragpreview->SetVisible(true);
+                    dragpreview->SetVisible(!g_lockiconpos);
                 }
                 if (ppt.x < 16 * g_flScaleFactor) dragToPrev++;
                 else dragToPrev = 0;
@@ -1134,6 +1139,15 @@ namespace DirectDesktop
                                 outerSizeX = g_touchSizeX + desktoppadding;
                                 outerSizeY = g_touchSizeY + desktoppadding;
                             }
+                            int largestXPos = (dimensions.right - (2 * desktoppadding_x) + desktoppadding) / outerSizeX;
+                            int largestYPos = (dimensions.bottom - (2 * desktoppadding_y) + desktoppadding) / outerSizeY;
+                            if (largestXPos == 0) largestXPos = 1;
+                            if (largestYPos == 0) largestYPos = 1;
+                            if (g_touchmode)
+                            {
+                                desktoppadding_x = (dimensions.right - largestXPos * outerSizeX + desktoppadding) / 2;
+                                desktoppadding_y = (dimensions.bottom - largestYPos * outerSizeY + desktoppadding) / 2;
+                            }
                             int xRender = (localeType == 1) ? ppt.x + origX - desktoppadding_x - internalselectedLVItems[0]->GetWidth() : ppt.x - origX - desktoppadding_x;
                             int paddingmitigation = (localeType == 1) ? desktoppadding : 0;
                             int destX = desktoppadding_x + round(xRender / static_cast<float>(outerSizeX)) * outerSizeX;
@@ -1148,30 +1162,35 @@ namespace DirectDesktop
                             if (itemstodrag == 0) itemstodrag = 1;
                             for (int items = 0; items < itemstodrag; items++)
                             {
+                                internalselectedLVItems[items]->SetDragState(true);
+                            }
+                            for (int items = 0; items < itemstodrag; items++)
+                            {
                                 int finaldestX = destX - mainElementX + internalselectedLVItems[items]->GetX();
                                 int finaldestY = destY - mainElementY + internalselectedLVItems[items]->GetY();
                                 if (localeType == 1)
                                 {
-                                    if (finaldestX < 0) finaldestX = dimensions.right - round((dimensions.right - internalselectedLVItems[items]->GetWidth()) / static_cast<float>(outerSizeX)) * outerSizeX - desktoppadding_x;
+                                    if (finaldestX < desktoppadding_x) finaldestX = dimensions.right - round((dimensions.right - internalselectedLVItems[items]->GetWidth()) / static_cast<float>(outerSizeX)) * outerSizeX - desktoppadding_x;
                                     if (finaldestX > dimensions.right - internalselectedLVItems[items]->GetWidth() - desktoppadding_x) finaldestX = dimensions.right - internalselectedLVItems[items]->GetWidth() - desktoppadding_x;
                                 }
                                 else
                                 {
-                                    if (finaldestX < 0) finaldestX = desktoppadding_x;
+                                    if (finaldestX < desktoppadding_x) finaldestX = desktoppadding_x;
                                     if (finaldestX > dimensions.right - internalselectedLVItems[items]->GetWidth() + desktoppadding_x) finaldestX = round((dimensions.right - internalselectedLVItems[items]->GetWidth()) / static_cast<float>(outerSizeX)) * outerSizeX + desktoppadding_x;
                                 }
-                                if (finaldestY < 0) finaldestY = desktoppadding_y;
+                                if (finaldestY < desktoppadding_y) finaldestY = desktoppadding_y;
                                 if (finaldestY > dimensions.bottom - internalselectedLVItems[items]->GetHeight() + desktoppadding_y) finaldestY = round((dimensions.bottom - internalselectedLVItems[items]->GetHeight()) / static_cast<float>(outerSizeY)) * outerSizeY + desktoppadding_y;
-                                int saveddestX = (localeType == 1) ? dimensions.right - finaldestX - internalselectedLVItems[items]->GetWidth() : finaldestX;
+                                int saveddestX = (localeType == 1) ? dimensions.right - finaldestX - internalselectedLVItems[items]->GetWidth() + desktoppadding_x : finaldestX - desktoppadding_x;
                                 for (int items2 = 0; items2 < pm.size(); items2++)
                                 {
-                                    if (pm[items2]->GetX() == finaldestX && pm[items2]->GetY() == finaldestY && pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage()) break;
+                                    if (pm[items2]->GetX() == finaldestX && pm[items2]->GetY() == finaldestY && pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage() && pm[items2]->GetDragState() == false) break;
                                     if (items2 == pm.size() - 1)
                                     {
                                         internalselectedLVItems[items]->SetX(finaldestX);
                                         internalselectedLVItems[items]->SetY(finaldestY);
                                         internalselectedLVItems[items]->SetInternalXPos(saveddestX / outerSizeX);
-                                        internalselectedLVItems[items]->SetInternalYPos(finaldestY / outerSizeY);
+                                        internalselectedLVItems[items]->SetInternalYPos((finaldestY - desktoppadding_y) / outerSizeY);
+                                        internalselectedLVItems[items]->SetDragState(false);
                                     }
                                 }
                             }
@@ -1246,6 +1265,7 @@ namespace DirectDesktop
             case WM_USER + 20:
             {
                 LVItem* outerElem;
+                yValue* yV = (yValue*)wParam;
                 FileInfo* fi = (FileInfo*)lParam;
                 if (g_touchmode)
                 {
@@ -1316,11 +1336,18 @@ namespace DirectDesktop
 
                 int currentID = pm.size() - 1;
                 IconThumbHelper(currentID);
-                yValue* yV = new yValue{ currentID };
-                HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
+                yValue* yV2 = new yValue{ currentID };
+                HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV2, 0, nullptr);
                 if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
+                if (yV)
+                {
+                    pm[currentID]->SetInternalXPos(yV->fl1);
+                    pm[currentID]->SetInternalYPos(yV->fl2);
+                    delete yV;
+                }
                 RearrangeIcons(false, false, true);
                 pm[currentID]->SetRefreshState(true);
+                delete fi;
                 break;
             }
             case WM_USER + 21:
@@ -1378,7 +1405,7 @@ namespace DirectDesktop
                     if (g_touchmode)
                     {
                         // had to hardcode it as GetPadding is VERY unreliable on high dpi
-                        int space = 4 * g_flScaleFactor;
+                        int space = 6 * g_flScaleFactor;
                         CSafeElementPtr<Element> containerElem;
                         containerElem.Assign(regElem<Element*>(L"containerElem", pm[lParam]));
                         containerElem->SetPadding(space, space, space, space);
@@ -1575,7 +1602,6 @@ namespace DirectDesktop
                 IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 0, (int)(2 * g_flScaleFactor), 2, NULL);
                 if (shadowBitmap != nullptr) di.textshadow = shadowBitmap;
             }
-            SendMessageW(wnd->GetHWND(), WM_USER + 1, NULL, yV->num);
             SendMessageW(wnd->GetHWND(), WM_USER + 4, NULL, yV->num);
             SendMessageW(wnd->GetHWND(), WM_USER + 3, (WPARAM)&di, yV->num);
             Sleep(250);
@@ -1670,8 +1696,8 @@ namespace DirectDesktop
     DWORD WINAPI animate6(LPVOID lpParam)
     {
         Sleep(350);
-        AnimateWindow(subviewwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
-        BlurBackground(subviewwnd->GetHWND(), false, true, fullscreenpopupbase);
+        subviewwnd->ShowWindow(SW_HIDE);
+        BlurBackground(subviewwnd->GetHWND(), false, true, fullscreenpopupbg);
         SendMessageW(wnd->GetHWND(), WM_USER + 7, NULL, NULL);
         return 0;
     }
@@ -1725,7 +1751,7 @@ namespace DirectDesktop
         centered->SetBackgroundColor(0);
         fullscreenpopupbase->SetVisible(true);
         fullscreeninner->SetVisible(true);
-        if (!g_editmode) BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbase);
+        if (!g_editmode) BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbg);
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
         g_issubviewopen = true;
@@ -2235,7 +2261,11 @@ namespace DirectDesktop
         IconToBitmap(dummyi, dummyii, 16, 16);
         IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005, NULL);
         HBITMAP bmp{};
-        if (pmLVItem[id]->GetGroupedDirState() == false || g_treatdirasgroup == false) GetShellItemImage(bmp, RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), g_iconsz * scale, g_iconsz * scale);
+        if (pmLVItem[id]->GetGroupedDirState() == false || g_treatdirasgroup == false)
+        {
+            if (g_touchmode && pmLVItem[id]->GetTileSize() == LVITS_ICONONLY) GetShellItemImage(bmp, RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), 32 * scale, 32 * scale);
+            else GetShellItemImage(bmp, RemoveQuotes(pmLVItem[id]->GetFilename()).c_str(), g_iconsz * scale, g_iconsz * scale);
+        }
         else bmp = dummyii;
         HBITMAP bmpShortcut{};
         IconToBitmap(icoShortcut, bmpShortcut, g_shiconsz * scale * g_flScaleFactor, g_shiconsz * scale * g_flScaleFactor);
@@ -2401,8 +2431,6 @@ namespace DirectDesktop
         CSafeElementPtr<DDScalableButton> lvi_SubUIContainer;
         lvi_SubUIContainer.Assign(regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist));
         COLORREF crDefault = g_theme ? 4293980400 : 4280821800;
-        groupdirlist->SetBackgroundColor(iconElement->GetAssociatedColor() == -1 ? crDefault : iconElement->GetAssociatedColor());
-        groupdirlist->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
         unsigned short lviCount = 0;
         int count2{};
         EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
@@ -2418,14 +2446,11 @@ namespace DirectDesktop
             StyleSheet* sheet = pMain->GetSheet();
             CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
             parser->GetSheet(g_theme ? L"default" : L"defaultdark", &sheetStorage);
+            const WCHAR* elemname = g_touchmode ? L"outerElemTouch" : L"outerElemGrouped";
             for (int i = 0; i < lviCount; i++)
             {
                 LVItem* outerElemGrouped;
-                if (g_touchmode)
-                {
-                    parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
-                }
-                else parser->CreateElement(L"outerElemGrouped", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
+                parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage);
                 lvi_SubUIContainer->Add((Element**)&outerElemGrouped, 1);
                 CSafeElementPtr<DDScalableElement> iconElem;
@@ -2516,14 +2541,12 @@ namespace DirectDesktop
         CSafeElementPtr<DDScalableElement> dirname;
         dirname.Assign(regElem<DDScalableElement*>(L"dirname", groupdirectory));
         dirname->SetContentString(lvi->GetSimpleFilename().c_str());
-        dirname->SetAlpha(255);
         CSafeElementPtr<DDScalableElement> dirdetails;
         dirdetails.Assign(regElem<DDScalableElement*>(L"dirdetails", groupdirectory));
         WCHAR itemCount[64];
         if (lviCount == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
         else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), lviCount);
         dirdetails->SetContentString(itemCount);
-        dirdetails->SetAlpha(g_theme ? 108 : 144);
         if (lviCount == 0) dirdetails->SetContentString(L"");
         CSafeElementPtr<Element> tasks;
         tasks.Assign(regElem<Element*>(L"tasks", groupdirectory));
@@ -2571,8 +2594,6 @@ namespace DirectDesktop
         lvi_SubUIContainer.Assign(regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist));
         lvi_SubUIContainer->SetVisible(true);
         COLORREF crDefault = g_theme ? 4293980400 : 4280821800;
-        groupdirlist->SetBackgroundColor(iconElement->GetAssociatedColor() == -1 ? crDefault : iconElement->GetAssociatedColor());
-        groupdirlist->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
         unsigned short lviCount = 0;
         int count2{};
         EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
@@ -2587,14 +2608,11 @@ namespace DirectDesktop
             sheet = pMain->GetSheet();
             CValuePtr sheetStorage2 = DirectUI::Value::CreateStyleSheet(sheet);
             parser->GetSheet(g_theme ? L"default" : L"defaultdark", &sheetStorage2);
+            const WCHAR* elemname = g_touchmode ? L"outerElemTouch" : L"outerElemGrouped";
             for (int i = 0; i < lviCount; i++)
             {
                 LVItem* outerElemGrouped;
-                if (g_touchmode)
-                {
-                    parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
-                }
-                else parser->CreateElement(L"outerElemGrouped", nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
+                parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage2);
                 lvi_SubUIContainer->Add((Element**)&outerElemGrouped, 1);
                 CSafeElementPtr<DDScalableElement> iconElem;
@@ -2683,14 +2701,12 @@ namespace DirectDesktop
         CSafeElementPtr<DDScalableElement> dirname;
         dirname.Assign(regElem<DDScalableElement*>(L"dirname", groupdirectory));
         dirname->SetContentString(lvi->GetSimpleFilename().c_str());
-        dirname->SetAlpha(255);
         CSafeElementPtr<DDScalableElement> dirdetails;
         dirdetails.Assign(regElem<DDScalableElement*>(L"dirdetails", groupdirectory));
         WCHAR itemCount[64];
         if (lviCount == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
         else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), lviCount);
         dirdetails->SetContentString(itemCount);
-        dirdetails->SetAlpha(g_theme ? 108 : 144);
         if (lviCount == 0) dirdetails->SetContentString(L"");
         CSafeElementPtr<DDLVActionButton> More;
         More.Assign(regElem<DDLVActionButton*>(L"More", groupdirectory));
@@ -2827,7 +2843,6 @@ namespace DirectDesktop
             assignFn(TreatDirAsGroup, ToggleSetting);
             assignFn(TripleClickAndHide, ToggleSetting);
             assignFn(LockIconPos, ToggleSetting);
-            SubUIContainer->GetParent()->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
         }
     }
 
@@ -2891,7 +2906,6 @@ namespace DirectDesktop
             assignFn(IconThumbnails, ToggleSetting);
             assignFn(DesktopIconSettings, OpenDeskCpl);
             g_tempElem = (void*)SettingsPage2;
-            SubUIContainer->GetParent()->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
         }
     }
 
@@ -2916,7 +2930,6 @@ namespace DirectDesktop
             EnableLogging->SetRegKeyValue(rkvTemp);
             assignFn(EnableLogging, ToggleSetting);
             assignFn(ViewLastLog, OpenLog);
-            SubUIContainer->GetParent()->SetKeyFocus(); // Placeholder. TODO: Make it actually allow scrolling without the need to click inside the scrollviewer
         }
     }
 
@@ -2925,7 +2938,7 @@ namespace DirectDesktop
         if (iev->uidType == Button::Click)
         {
             ShowPopupCore();
-            BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbase);
+            BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbg);
             g_issubviewopen = true;
             g_issettingsopen = true;
             Element* settingsview{};
@@ -2934,7 +2947,6 @@ namespace DirectDesktop
             fullscreeninner->Add((Element**)&settingsview, 1);
             CSafeElementPtr<TouchScrollViewer> settingslist;
             settingslist.Assign(regElem<TouchScrollViewer*>(L"settingslist", settingsview));
-            settingslist->SetBackgroundColor(g_theme ? 4293980400 : 4280821800);
             SubUIContainer = regElem<DDScalableButton*>(L"SubUIContainer", settingsview);
             PageTab1 = regElem<DDScalableButton*>(L"PageTab1", settingsview);
             PageTab2 = regElem<DDScalableButton*>(L"PageTab2", settingsview);
@@ -2947,7 +2959,6 @@ namespace DirectDesktop
             dirnameanimator = regElem<Element*>(L"dirnameanimator", settingsview);
             CSafeElementPtr<DDScalableRichText> name;
             name.Assign(regElem<DDScalableRichText*>(L"name", settingsview));
-            name->SetAlpha(255);
             g_checkifelemexists = true;
             DWORD animThread3;
             HANDLE animThreadHandle3 = CreateThread(nullptr, 0, grouptitlebaranimation, nullptr, 0, &animThread3);
@@ -3281,20 +3292,20 @@ namespace DirectDesktop
                     if (localeType == 1) origX = dimensions.right - ppt.x - elem->GetX();
                     else origX = ppt.x - elem->GetX();
                     origY = ppt.y - elem->GetY();
-                    HBITMAP hbmCapture{};
-                    HDC hdcWindow = GetDC(wnd->GetHWND());
-                    HDC hdcMem = CreateCompatibleDC(hdcWindow);
-                    hbmCapture = CreateCompatibleBitmap(hdcWindow, elem->GetWidth(), elem->GetHeight());
-                    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
-                    int iconX = (localeType == 1) ? dimensions.right - elem->GetX() - elem->GetWidth() : elem->GetX();
-                    BitBlt(hdcMem, 0, 0, elem->GetWidth(), elem->GetHeight(), hdcWindow, iconX, elem->GetY(), SRCCOPY);
-                    SelectObject(hdcMem, hbmOld);
-                    DeleteDC(hdcMem);
-                    ReleaseDC(wnd->GetHWND(), hdcWindow);
-                    IterateBitmap(hbmCapture, UndoPremultiplication, 1, 0, 1, NULL);
-                    CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
-                    if (spvBitmap != nullptr) dragpreview->SetValue(Element::BackgroundProp, 1, spvBitmap);
-                    if (hbmCapture != nullptr) DeleteObject(hbmCapture);
+                    //HBITMAP hbmCapture{};
+                    //HDC hdcWindow = GetDC(wnd->GetHWND());
+                    //HDC hdcMem = CreateCompatibleDC(hdcWindow);
+                    //hbmCapture = CreateCompatibleBitmap(hdcWindow, elem->GetWidth(), elem->GetHeight());
+                    //HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmCapture);
+                    //int iconX = (localeType == 1) ? dimensions.right - elem->GetX() - elem->GetWidth() : elem->GetX();
+                    //BitBlt(hdcMem, 0, 0, elem->GetWidth(), elem->GetHeight(), hdcWindow, iconX, elem->GetY(), SRCCOPY);
+                    //SelectObject(hdcMem, hbmOld);
+                    //DeleteDC(hdcMem);
+                    //ReleaseDC(wnd->GetHWND(), hdcWindow);
+                    //IterateBitmap(hbmCapture, UndoPremultiplication, 1, 0, 1, NULL);
+                    //CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(hbmCapture, 7, 0xffffffff, false, false, false);
+                    //if (spvBitmap != nullptr) dragpreview->SetValue(Element::BackgroundProp, 1, spvBitmap);
+                    //if (hbmCapture != nullptr) DeleteObject(hbmCapture);
                     dragpreview->SetWidth(elem->GetWidth());
                     dragpreview->SetHeight(elem->GetHeight());
                     dragThreadHandle = CreateThread(nullptr, 0, UpdateIconPosition, &selectedLVItems, 0, &dragThread);
@@ -3346,7 +3357,7 @@ namespace DirectDesktop
         }
     }
 
-    HANDLE g_iconSemaphore = CreateSemaphoreW(nullptr, 8, 8, nullptr);
+    HANDLE g_iconSemaphore = CreateSemaphoreW(nullptr, 16, 16, nullptr);
 
     DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam)
     {
@@ -3403,10 +3414,15 @@ namespace DirectDesktop
                 innerSizeX = g_touchSizeX;
                 innerSizeY = g_touchSizeY;
             }
-            int largestXPos = dimensions.right / outerSizeX;
-            int largestYPos = (dimensions.bottom - (2 * desktoppadding_y)) / outerSizeY;
+            int largestXPos = (dimensions.right - (2 * desktoppadding_x) + desktoppadding) / outerSizeX;
+            int largestYPos = (dimensions.bottom - (2 * desktoppadding_y) + desktoppadding) / outerSizeY;
             if (largestXPos == 0) largestXPos = 1;
             if (largestYPos == 0) largestYPos = 1;
+            if (g_touchmode)
+            {
+                x = (dimensions.right - largestXPos * outerSizeX + desktoppadding) / 2;
+                y = (dimensions.bottom - largestYPos * outerSizeY + desktoppadding) / 2;
+            }
             vector<bool> positions{};
             positions.resize(g_maxPageID * largestXPos * largestYPos - 1);
             if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
@@ -3415,6 +3431,24 @@ namespace DirectDesktop
                 pm[j]->SetRefreshState(reloadicons);
                 if (!animation) pm[j]->SetAnimation(NULL);
                 else pm[j]->SetAnimation(savedanim);
+                if (g_touchmode)
+                {
+                    switch (pm[j]->GetTileSize())
+                    {
+                    case LVITS_ICONONLY:
+                        pm[j]->SetWidth((innerSizeX - desktoppadding) / 2);
+                        pm[j]->SetHeight((innerSizeY - desktoppadding) / 2);
+                        break;
+                    case LVITS_NONE:
+                        pm[j]->SetWidth(innerSizeX);
+                        pm[j]->SetHeight(innerSizeY);
+                        break;
+                    case LVITS_DETAILED:
+                        pm[j]->SetWidth(innerSizeX * 2 + desktoppadding);
+                        pm[j]->SetHeight(innerSizeY);
+                        break;
+                    }
+                }
                 if (g_treatdirasgroup)
                 {
                     switch (pm[j]->GetGroupSize())
@@ -3437,9 +3471,9 @@ namespace DirectDesktop
                             break;
                     }
                 }
-                if (pm[j]->GetGroupSize() != LVIGS_NORMAL &&
-                    pm[j]->GetInternalXPos() < largestXPos - (pm[j]->GetWidth() - outerSizeX) / outerSizeX &&
-                    pm[j]->GetInternalYPos() < largestYPos - (pm[j]->GetHeight() - outerSizeY) / outerSizeY)
+                if (((g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL) || (g_touchmode && pm[j]->GetTileSize() != LVITS_NONE)) &&
+                    pm[j]->GetInternalXPos() < largestXPos - ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)) &&
+                    pm[j]->GetInternalYPos() < largestYPos - ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)))
                 {
                     if (!EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) pm[j]->SetPage(g_maxPageID);
                     int occupiedPos = ((pm[j]->GetPage() - 1) * largestXPos * largestYPos) + pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos;
@@ -3452,11 +3486,11 @@ namespace DirectDesktop
                     {
                         int pt = 0;
                         int occupiedHeight = 0;
-                        for (int i = 0; i <= pm[j]->GetWidth() / outerSizeX; i++)
+                        for (int i = 1; i <= ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)); i++)
                         {
                             if (pm[j]->GetHeight() > outerSizeY)
                             {
-                                for (int k = 0; k <= pm[j]->GetHeight() / outerSizeY; k++)
+                                for (int k = 1; k <= ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)); k++)
                                 {
                                     positions[occupiedPos + pt] = true;
                                     pt++;
@@ -3466,7 +3500,7 @@ namespace DirectDesktop
                             pt += (largestYPos - occupiedHeight);
                             occupiedHeight = 0;
                         }
-                        int widthForRender = (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL) ? innerSizeX : pm[j]->GetWidth();
+                        int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
                         int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
                         pm[j]->SetX(xRender);
                         pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
@@ -3477,7 +3511,7 @@ namespace DirectDesktop
             {
                 if (pm[j]->GetGroupSize() == LVIGS_NORMAL && pm[j]->GetInternalXPos() < largestXPos && pm[j]->GetInternalYPos() < largestYPos)
                 {
-                    int widthForRender = (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL) ? innerSizeX : pm[j]->GetWidth();
+                    int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
                     int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
                     if (!EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) pm[j]->SetPage(g_maxPageID);
                     int occupiedPos = ((pm[j]->GetPage() - 1) * largestXPos * largestYPos) + pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos;
@@ -3500,10 +3534,10 @@ namespace DirectDesktop
             {
                 int modifierX = 0;
                 int modifierY = 0;
-                if (pm[j]->GetGroupSize() != LVIGS_NORMAL)
+                if (pm[j]->GetGroupSize() != LVIGS_NORMAL || pm[j]->GetTileSize() != LVITS_NONE)
                 {
-                    modifierX = (pm[j]->GetWidth() - outerSizeX) / outerSizeX + 1;
-                    modifierY = (pm[j]->GetHeight() - outerSizeY) / outerSizeY + 1;
+                    modifierX = (pm[j]->GetWidth() - outerSizeX + desktoppadding) / outerSizeX;
+                    modifierY = (pm[j]->GetHeight() - outerSizeY + desktoppadding) / outerSizeY;
                 }
                 if (pm[j]->GetInternalXPos() >= largestXPos - modifierX ||
                     pm[j]->GetInternalYPos() >= largestYPos - modifierY)
@@ -3546,15 +3580,15 @@ namespace DirectDesktop
                     }
                     else pm[j]->SetPage(g_maxPageID);
                     positions[y] = true;
-                    if (pm[j]->GetGroupSize() != LVIGS_NORMAL && pm[j]->GetWidth() > outerSizeX)
+                    if ((pm[j]->GetGroupSize() != LVIGS_NORMAL || pm[j]->GetTileSize() != LVITS_NONE) && pm[j]->GetWidth() > outerSizeX)
                     {
                         int pt = 0;
                         int occupiedHeight = 0;
-                        for (int i = 0; i <= pm[j]->GetWidth() / outerSizeX; i++)
+                        for (int i = 1; i <= ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)); i++)
                         {
                             if (pm[j]->GetHeight() > outerSizeY)
                             {
-                                for (int k = 0; k <= pm[j]->GetHeight() / outerSizeY; k++)
+                                for (int k = 1; k <= ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)); k++)
                                 {
                                     positions[y + pt] = true;
                                     pt++;
@@ -3566,10 +3600,12 @@ namespace DirectDesktop
                         }
                     }
                 }
-                int widthForRender = (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL) ? innerSizeX : pm[j]->GetWidth();
+                int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
                 int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
                 pm[j]->SetX(xRender);
                 pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
+                if (pm[j]->GetPage() == g_currentPageID) pm[j]->SetVisible(!g_hiddenIcons);
+                else pm[j]->SetVisible(false);
             }
 
             if (g_maxPageID > 1 && g_currentPageID < g_maxPageID) nextpageMain->SetVisible(true);
@@ -3593,14 +3629,14 @@ namespace DirectDesktop
     void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen)
     {
         g_ensureNoRefresh = false;
-        const WCHAR* name = g_touchmode ? L"outerElemTouch" : L"outerElem";
+        const WCHAR* elemname = g_touchmode ? L"outerElemTouch" : L"outerElem";
         if (g_outerElem)
         {
             g_outerElem->DestroyAll(true);
             g_outerElem->Destroy(true);
         }
         static IElementListener *pel_SelectItem, *pel_MarqueeSelector, *pel_DesktopRightClick;
-        parser->CreateElement(name, nullptr, nullptr, nullptr, (Element**)&g_outerElem);
+        parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&g_outerElem);
         if (bAlreadyOpen && isDefaultRes()) SetPos(true);
         UIContainer->DestroyAll(true);
         pm.clear();
@@ -3642,7 +3678,7 @@ namespace DirectDesktop
         for (int i = 0; i < lviCount; i++)
         {
             LVItem* outerElem;
-            parser->CreateElement(name, nullptr, nullptr, nullptr, (Element**)&outerElem);
+            parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&outerElem);
             UIContainer->Add((Element**)&outerElem, 1);
             CSafeElementPtr<DDScalableElement> iconElem;
             iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElem));
@@ -3664,6 +3700,7 @@ namespace DirectDesktop
             filepm.push_back(textElem);
             fileshadowpm.push_back(textElemShadow);
             cbpm.push_back(checkboxElem);
+            DUI_SetGadgetZOrder(outerElem, -1);
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
         EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, false, nullptr, &count2, lviCount);
@@ -3734,6 +3771,7 @@ namespace DirectDesktop
 
     void UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type)
     {
+        static int xpos{}, ypos{};
         switch (type)
         {
             case 1:
@@ -3743,6 +3781,8 @@ namespace DirectDesktop
                 {
                     if (pm[i]->GetFilename() == foundfilename)
                     {
+                        xpos = pm[i]->GetInternalXPos();
+                        ypos = pm[i]->GetInternalYPos();
                         PostMessageW(wnd->GetHWND(), WM_USER + 21, (WPARAM)pm[i], i);
                         break;
                     }
@@ -3751,6 +3791,7 @@ namespace DirectDesktop
             }
             case 2:
             {
+                yValue* yV = new yValue{ NULL, static_cast<float>(xpos), static_cast<float>(ypos) };
                 FileInfo* fi = new FileInfo{ filepath, filename };
                 PostMessageW(wnd->GetHWND(), WM_USER + 20, NULL, (LPARAM)fi);
                 break;
@@ -4055,16 +4096,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
     NativeHWNDHost::Create(L"DD_DesktopHost", L"DirectDesktop", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, NULL, NULL, nullptr, 0x43, &wnd);
-    NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW, WS_POPUP, nullptr, 0x43, &subviewwnd);
+    NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, dimensions.right, dimensions.bottom, WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP, WS_POPUP, nullptr, 0x43, &subviewwnd);
     DUIXmlParser::Create(&parser, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
     DUIXmlParser::Create(&parserSubview, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
     parser->SetXMLFromResourceWithTheme(IDR_UIFILE2, hInstance, HINST_THISCOMPONENT, g_hModTWinUI);
     parserSubview->SetXMLFromResourceWithTheme(IDR_UIFILE3, hInstance, HINST_THISCOMPONENT, g_hModTWinUI);
-    HWNDElement::Create(wnd->GetHWND(), true, NULL, nullptr, &key, (Element**)&parent);
-    HWNDElement::Create(subviewwnd->GetHWND(), true, NULL, nullptr, &key2, (Element**)&subviewparent);
+    HWNDElement::Create(wnd->GetHWND(), true, 0x38, nullptr, &key, (Element**)&parent);
+    HWNDElement::Create(subviewwnd->GetHWND(), true, 0x38, nullptr, &key2, (Element**)&subviewparent);
     WTSRegisterSessionNotification(wnd->GetHWND(), NOTIFY_FOR_THIS_SESSION);
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
-    SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0000800L);
+    SetWindowLongPtrW(wnd->GetHWND(), GWL_EXSTYLE, 0xC0280800L);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
     WndProcSubview = (WNDPROC)SetWindowLongPtrW(subviewwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)TopLevelWindowProc);
     if (WindowsBuild >= 26002)
@@ -4104,6 +4145,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     sampleText = regElem<Element*>(L"sampleText", pMain);
     mainContainer = regElem<Element*>(L"mainContainer", pMain);
     UIContainer = regElem<Element*>(L"UIContainer", pMain);
+    fullscreenpopupbg = regElem<Element*>(L"fullscreenpopupbg", pSubview);
     fullscreenpopupbase = regElem<Button*>(L"fullscreenpopupbase", pSubview);
     popupcontainer = regElem<Button*>(L"popupcontainer", pSubview);
     centered = regElem<Button*>(L"centered", pSubview);
@@ -4182,8 +4224,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     StartMonitorFileChanges(path3);
 
     DDNotificationBanner* ddnb{};
-    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M7",
-                                       L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone7\nCompiled on 2025-07-19",
+    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 M8",
+                                       L"This is a prerelease version of DirectDesktop not intended for public use. It may be unstable or crash.\n\nVersion 0.5_milestone8\nCompiled on 2025-07-23",
                                        10, false);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.");
