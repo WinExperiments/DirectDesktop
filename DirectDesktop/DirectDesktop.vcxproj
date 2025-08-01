@@ -166,6 +166,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="coreui\AnimationHelper.h" />
     <ClInclude Include="coreui\AccentColorHelper.h" />
     <ClInclude Include="coreui\BitmapHelper.h" />
     <ClInclude Include="coreui\BlurCore.h" />
@@ -189,6 +190,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="coreui\AnimationHelper.cpp" />
     <ClCompile Include="coreui\AccentColorHelper.cpp" />
     <ClCompile Include="coreui\BitmapHelper.cpp" />
     <ClCompile Include="coreui\ColorHelper.cpp" />

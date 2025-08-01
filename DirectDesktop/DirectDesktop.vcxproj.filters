@@ -96,6 +96,9 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coreui\AnimationHelper.h">
+      <Filter>Header Files\coreui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coreui\AccentColorHelper.cpp">
@@ -142,6 +145,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coreui\AnimationHelper.cpp">
+      <Filter>Source Files\coreui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

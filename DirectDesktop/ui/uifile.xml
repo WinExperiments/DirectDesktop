@@ -3,16 +3,16 @@
 		<Element id="atom(sampleText)" content="" layoutpos="top"/>
 		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp" background="argb(0,0,0,0)">
 			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
-				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" animation="position|s|fast">
+				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()">
 
 				</Element>
-				<TouchButton layout="filllayout()" id="atom(prevpageMain)" layoutpos="left" class="pageselector" behaviors="PVL::EnsureLayered()">
-					<RichText layoutpos="left" background="sgraphic(3001,7,-1,0,0,1,1)" content="resstr(140)" animation="rectangle|s|fast" width="160rp"/>
+				<TouchButton layout="filllayout()" id="atom(prevpageMain)" layoutpos="left" background="sgraphic(3001,7,-1,0,0,1,1)" class="pageselector" behaviors="PVL::EnsureLayered();PVL::AnimationTrap()">
+					<RichText id="atom(togglepageGlyph)" layoutpos="client" background="argb(0,0,0,0)" content="resstr(140)"/>
 				</TouchButton>
-				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" class="pageselector" behaviors="PVL::EnsureLayered()">
-					<RichText layoutpos="right" background="sgraphic(3002,7,-1,0,0,1,1)" content="resstr(141)" animation="rectangle|s|fast" width="160rp"/>
+				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" background="sgraphic(3002,7,-1,0,0,1,1)" class="pageselector" behaviors="PVL::EnsureLayered();PVL::AnimationTrap()">
+					<RichText id="atom(togglepageGlyph)" layoutpos="client" background="argb(0,0,0,0)" content="resstr(141)"/>
 				</TouchButton>
-				<Element id="atom(selector)" layout="borderlayout()" class="selector" animation="alpha|s|mediumfast" layoutpos="none" background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered()"/>
+				<Element id="atom(selector)" layout="borderlayout()" class="selector" animation="alpha|s|mediumfast" layoutpos="absolute" background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)" behaviors="PVL::EnsureLayered()"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="flowlayout(0,2,2,0)" behaviors="PVL::EnsureLayered()" background="themeable(dtb(Desktop::ListView,1,3), highlight)">
 					<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
 							 foreground="themeable(gtc(DragDrop,8,0,3803), black)" padding="themeable(gtmar(DragDrop,8,0,3602), rect(5rp,1rp,5rp,1rp))" compositedtext="true" textglowsize="0"/>
@@ -20,12 +20,12 @@
 			</Element>
 		</Element>
 	</HWNDElement>
-	<Element resid="page" layoutpos="client" background="argb(0,0,0,0)"/>
+	<Element resid="pageVisual" id="atom(pageVisual)" layoutpos="absolute"/>
 	<Button resid="emptyspace" layoutpos="absolute" background="argb(0,0,0,0)">
 		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
 	</Button>
 	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>
-	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::EnsureLayered()">
+	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::EnsureLayered();PVL::AnimationTrap()">
 		<Element id="atom(innerElem)" layoutpos="client" class="item"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute"/>
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
@@ -43,7 +43,7 @@
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</LVItem>
-	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" animation="position|s|fast" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::EnsureLayered()">
+	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::EnsureLayered();PVL::AnimationTrap()">
 		<DDScalableElement id="atom(innerElem)" class="itemTouchInner"/>
 		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(6rp,6rp,6rp,6rp)" background="argb(0,0,0,0)">
 			<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()" background="argb(0,0,0,0)">
@@ -93,12 +93,6 @@
 					<DDScalableElement FirstScaledImage="3024"/>
 				</if>
 			</if>
-			<if class="selector">
-				<Element alpha="themeable(224, 148)"/>
-				<if visible="false">
-					<Element alpha="themeable(0, 148)"/>
-				</if>
-			</if>
 			<if class="checkbox">
 				<Button content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
 				<if mousefocused="true">
@@ -112,9 +106,9 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
-				<if mousewithin="true">
-					<TouchButton alpha="255" width="160rp"/>
+				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+				<if selected="true">
+					<TouchButton width="160rp"/>
 				</if>
 			</if>
 			<if class="singleclicked">
@@ -123,11 +117,11 @@
 			<if class="doubleclicked">
 				<LVItem cursor="arrow"/>
 			</if>
-			<if class="groupbackground">
-				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)" animation="rectangle|log|fast"/>
-			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+			</if>
+			<if id="atom(pageVisual)">
+				<Element background="argb(72,208,208,208)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(216,208,208,208)"/>
 			</if>
 		</style>
 		<style resid="defaultdark" base="ressheet(31, DDBaseDark)">
@@ -158,12 +152,6 @@
 					<DDScalableElement FirstScaledImage="3024"/>
 				</if>
 			</if>
-			<if class="selector">
-				<Element alpha="themeable(224, 148)"/>
-				<if visible="false">
-					<Element alpha="themeable(0, 148)"/>
-				</if>
-			</if>
 			<if class="checkbox">
 				<Button content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
 				<if mousefocused="true">
@@ -177,9 +165,9 @@
 				</if>
 			</if>
 			<if class="pageselector">
-				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)" alpha="0" animation="alpha|rectangle|s|fast"/>
-				<if mousewithin="true">
-					<TouchButton alpha="255" width="160rp"/>
+				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
+				<if selected="true">
+					<TouchButton width="160rp"/>
 				</if>
 			</if>
 			<if class="singleclicked">
@@ -188,11 +176,11 @@
 			<if class="doubleclicked">
 				<LVItem cursor="arrow"/>
 			</if>
-			<if class="groupbackground">
-				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)" animation="rectangle|log|veryfast"/>
-			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+			</if>
+			<if id="atom(pageVisual)">
+				<Element background="argb(72,48,48,48)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(216,48,48,48)"/>
 			</if>
 		</style>
 		<style resid="renamestyle">

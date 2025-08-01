@@ -30,16 +30,19 @@ namespace DirectDesktop
     DDScalableRichText* pageinfo;
     Button* PageViewer;
     TouchEdit2* PV_EnterPage;
+    Element* EM_Dim;
     Element* bg_left_top, *bg_left_middle, *bg_left_bottom, *bg_right_top, *bg_right_middle, *bg_right_bottom;
 
     HANDLE g_editSemaphore = CreateSemaphoreW(nullptr, 16, 16, nullptr);
     LPVOID timerPtr;
 
     void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+    void ClosePageViewer(Element* elem, Event* iev);
     void ShowPageViewer(Element* elem, Event* iev);
     void RemoveSelectedPage(Element* elem, Event* iev);
     void SetSelectedPageHome(Element* elem, Event* iev);
     bool ValidateStrDigits(const WCHAR* str);
+    bool g_animatePVEnter = true;
     DWORD WINAPI ReloadPV(LPVOID lpParam);
 
     LRESULT CALLBACK EditModeWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -47,7 +50,7 @@ namespace DirectDesktop
         switch (uMsg)
         {
             case WM_CLOSE:
-                HideSimpleView(false);
+                HideSimpleView(true);
                 return 0;
                 break;
             case WM_DESTROY:
@@ -328,33 +331,28 @@ namespace DirectDesktop
 
     DWORD WINAPI animate7(LPVOID lpParam)
     {
-        SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
         Sleep(350);
-        fullscreeninnerE->DestroyAll(true);
-        fullscreeninnerE->Destroy(true);
-        prevpage->DestroyAll(true);
-        prevpage->Destroy(true);
-        nextpage->DestroyAll(true);
-        nextpage->Destroy(true);
-        pEdit->DestroyAll(true);
+        //pEdit->DestroyAll(true);
         editwnd->DestroyWindow();
+        SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
         //editbgwnd->DestroyWindow();
         return 0;
     }
-
-    static int g_savedanim, g_savedanim2, g_savedanim3, g_savedanim4;
 
     void fullscreenAnimation3(int width, int height, float animstartscale, bool animate)
     {
         parserEdit->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninnerE);
         centeredE->Add((Element**)&fullscreeninnerE, 1);
-        static const int savedanim = centeredE->GetAnimation();
-        static const int savedanim2 = fullscreeninnerE->GetAnimation();
-        g_savedanim = savedanim;
-        g_savedanim2 = savedanim2;
-        PlaySimpleViewAnimation(centeredE, width, height, animate ? savedanim : NULL, animstartscale);
-        PlaySimpleViewAnimation(fullscreeninnerE, width, height, animate ? savedanim2 : NULL, animstartscale);
-        centeredE->SetBackgroundColor(0);
+        SetPopupSize(centeredE, width, height);
+        SetPopupSize(fullscreeninnerE, width, height);
+        if (animate)
+        {
+            GTRANS_DESC transDesc[2];
+            TriggerFade(fullscreeninnerE, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false);
+            TriggerScaleIn(fullscreeninnerE, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, animstartscale, animstartscale, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, fullscreeninnerE->GetDisplayNode(), &tsbInfo);
+        }
         fullscreenpopupbaseE->SetVisible(true);
         fullscreeninnerE->SetVisible(true);
         SimpleViewTop->SetAlpha(255);
@@ -363,8 +361,6 @@ namespace DirectDesktop
 
     void fullscreenAnimation4()
     {
-        SimpleViewTop->SetAlpha(0);
-        SimpleViewBottom->SetAlpha(0);
         DWORD animThread;
         HANDLE animThreadHandle = CreateThread(nullptr, 0, animate7, nullptr, 0, &animThread);
         if (animThreadHandle) CloseHandle(animThreadHandle);
@@ -373,23 +369,35 @@ namespace DirectDesktop
     void HideSimpleView(bool animate)
     {
         if (g_touchmode) g_iconsz = 32;
+        UIContainer->SetVisible(true);
         if (animate)
         {
-            RECT dimensions;
-            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-            PlaySimpleViewAnimation(centeredE, dimensions.right, dimensions.bottom, animate ? g_savedanim : NULL, 0.7);
-            PlaySimpleViewAnimation(fullscreeninnerE, dimensions.right, dimensions.bottom, animate ? g_savedanim2 : NULL, 0.7);
-            PlaySimpleViewAnimation(simpleviewoverlay, dimensions.right, dimensions.bottom, animate ? g_savedanim3 : NULL, 0.7);
-            mainContainer->SetVisible(true);
-            mainContainer->SetAlpha(255);
-            g_editmode = false;
+            GTRANS_DESC transDesc[2];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false);
+            TriggerScaleIn(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+            TriggerFade(fullscreeninnerE, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false);
+            TriggerScaleOut(fullscreeninnerE, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 0.5f, false, false);
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, fullscreeninnerE->GetDisplayNode(), &tsbInfo);
+            Element* peFade[4] = { simpleviewoverlay, prevpage, nextpage, EM_Dim };
+            for (Element* pe : peFade)
+            {
+                float originX = 0.5f;
+                if (pe == prevpage) originX = (localeType == 1) ? -0.8f : 1.8f;
+                if (pe == nextpage) originX = (localeType == 1) ? 1.8f : -0.8f;
+                TriggerFade(pe, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false);
+                TriggerScaleOut(pe, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, originX, 0.5f, true, false);
+                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, pe->GetDisplayNode(), &tsbInfo);
+            }
             fullscreenAnimation4();
         }
         else
         {
-            mainContainer->SetVisible(true);
-            mainContainer->SetAlpha(255);
-            g_editmode = false;
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false);
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
             fullscreeninnerE->DestroyAll(true);
             fullscreeninnerE->Destroy(true);
             prevpage->DestroyAll(true);
@@ -400,6 +408,8 @@ namespace DirectDesktop
             editwnd->DestroyWindow();
             //editbgwnd->DestroyWindow();
         }
+        g_editmode = false;
+        DUI_SetGadgetZOrder(UIContainer, -1);
     }
 
     void TriggerHSV(Element* elem, Event* iev)
@@ -407,7 +417,7 @@ namespace DirectDesktop
         static int validation;
         if (iev->uidType == TouchButton::Click && prevpage->GetMouseFocused() == false && nextpage->GetMouseFocused() == false)
         {
-            HideSimpleView(false);
+            HideSimpleView(true);
             if (elem == fullscreenpopupbaseE) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
             return;
         }
@@ -416,7 +426,8 @@ namespace DirectDesktop
             validation++;
             if (validation % 3 == 1)
             {
-                HideSimpleView(false);
+                if (SimpleViewSettings->GetMouseWithin() || SimpleViewSearch->GetMouseWithin()) HideSimpleView(false);
+                else HideSimpleView(true);
                 return;
             }
         }
@@ -448,6 +459,7 @@ namespace DirectDesktop
 
     DWORD WINAPI ReloadPV(LPVOID lpParam)
     {
+        g_animatePVEnter = false;
         Sleep(100);
         SendMessageW(editwnd->GetHWND(), WM_USER + 3, NULL, NULL);
         return 0;
@@ -498,11 +510,16 @@ namespace DirectDesktop
                 return;
             }
             ((LVItem*)elem)->SetPage(page);
-            if (page == 1) GoToPrevPage(elem, iev);
-            else if (page == g_maxPageID) GoToNextPage(elem, iev);
+            if (page == g_currentPageID) ClosePageViewer(elem, iev);
             else if (page < g_currentPageID) GoToPrevPage(elem, iev);
             else if (page > g_currentPageID) GoToNextPage(elem, iev);
         }
+    }
+
+    float CalcAnimOrigin(float flOriginFrom, float flOriginTo, float flScaleFrom, float flScaleTo)
+    {
+        float relScale = flScaleTo / flScaleFrom;
+        return (flOriginTo - relScale * flOriginFrom) / (1 - relScale);
     }
 
     void AddNewPage(Element* elem, Event* iev);
@@ -518,6 +535,7 @@ namespace DirectDesktop
             }
             PageViewer->DestroyAll(true);
             PageViewer->Destroy(true);
+            g_animatePVEnter = true;
             g_invokedpagechange = true;
             DWORD dd;
             HANDLE thumbnailThread = CreateThread(nullptr, 0, LoadNewPages, nullptr, 0, &dd);
@@ -548,6 +566,23 @@ namespace DirectDesktop
             PV_Add->SetEnabled(isDefaultRes());
             if (!isDefaultRes()) PV_Add->SetAlpha(96);
             assignFn(PV_Add, AddNewPage);
+            CSafeElementPtr<Element> PV_Inner; PV_Inner.Assign(regElem<Element*>(L"PV_Inner", PageViewer));
+            CSafeElementPtr<LVItem> peAnimateFrom;
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            int pageNum;
+            POINTFLOAT ptPage;
+            float left = CalcAnimOrigin(0.5f, 0.3625f, 0.7f, 0.25f);
+            float veryleft = CalcAnimOrigin(0.5f, 0.225f, 0.7f, 0.25f);
+            float top = CalcAnimOrigin(0.5f, 0.375f - (0.0125f * dimensions.right / dimensions.bottom), 0.7f, 0.25f);
+            float right = CalcAnimOrigin(0.5f, 0.6375f, 0.7f, 0.25f);
+            float veryright = CalcAnimOrigin(0.5f, 0.775f, 0.7f, 0.25f);
+            float bottom = CalcAnimOrigin(0.5f, 0.625f + (0.0125f * dimensions.right / dimensions.bottom), 0.7f, 0.25f);
+            if (localeType == 1)
+            {
+                left = 1 - left, veryleft = 1 - veryleft;
+                right = 1 - right, veryright = 1 - veryright;
+            }
             if (g_maxPageID <= 6)
             {
                 CSafeElementPtr<Element> pagesrow1;
@@ -604,12 +639,7 @@ namespace DirectDesktop
                         if (g_maxPageID & 1 && i == g_maxPageID)
                             PV_CreateDimRect(pagesrow2, round(dimensions.right * 0.1375), round(dimensions.bottom * 0.25));
                     }
-                    if (i == 1)
-                    {
-                        if (g_maxPageID == 1) assignFn(PV_Page, ClosePageViewer);
-                        else assignFn(PV_Page, GoToPrevPage);
-                    }
-                    else if (i == g_maxPageID) assignFn(PV_Page, GoToNextPage);
+                    if (i == g_currentPageID) assignFn(PV_Page, ClosePageViewer);
                     else if (i < g_currentPageID) assignFn(PV_Page, GoToPrevPage);
                     else if (i > g_currentPageID) assignFn(PV_Page, GoToNextPage);
                     int remainingIcons = 1;
@@ -656,7 +686,89 @@ namespace DirectDesktop
                         if (PV_Page->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);
                     }
                     assignExtendedFn(PV_Page, ShowPageOptionsOnHover);
+                    switch (i)
+                    {
+                    case 1:
+                        switch (g_maxPageID)
+                        {
+                        case 1:
+                            ptPage.x = 0.5f, ptPage.y = 0.5f;
+                            break;
+                        case 2:
+                            ptPage.x = left, ptPage.y = 0.5f;
+                            break;
+                        case 3: case 4:
+                            ptPage.x = left, ptPage.y = top;
+                            break;
+                        case 5: case 6:
+                            ptPage.x = veryleft, ptPage.y = top;
+                            break;
+                        }
+                        break;
+                    case 2:
+                        switch (g_maxPageID)
+                        {
+                        case 2:
+                            ptPage.x = right, ptPage.y = 0.5f;
+                            break;
+                        case 3: case 4:
+                            ptPage.x = right, ptPage.y = top;
+                            break;
+                        case 5: case 6:
+                            ptPage.x = 0.5f, ptPage.y = top;
+                            break;
+                        }
+                        break;
+                    case 3:
+                        switch (g_maxPageID)
+                        {
+                        case 3:
+                            ptPage.x = 0.5f, ptPage.y = bottom;
+                            break;
+                        case 4:
+                            ptPage.x = left, ptPage.y = bottom;
+                            break;
+                        case 5: case 6:
+                            ptPage.x = veryright, ptPage.y = top;
+                            break;
+                        }
+                        break;
+                    case 4:
+                        ptPage.y = bottom;
+                        switch (g_maxPageID)
+                        {
+                        case 4:
+                            ptPage.x = right;
+                            break;
+                        case 5:
+                            ptPage.x = left;
+                            break;
+                        case 6:
+                            ptPage.x = veryleft;
+                            break;
+                        }
+                        break;
+                    case 5:
+                        ptPage.y = bottom;
+                        switch (g_maxPageID)
+                        {
+                        case 5:
+                            ptPage.x = right;
+                            break;
+                        case 6:
+                            ptPage.x = 0.5f;
+                            break;
+                        }
+                        break;
+                    case 6:
+                        ptPage.x = veryright, ptPage.y = bottom;
+                        break;
+                    }
+                    PV_Page->SetAnimOrigin(ptPage);
+                    if (i == g_currentPageID) peAnimateFrom.Assign(PV_Page);
                 }
+                POINTFLOAT ptPageAnim = peAnimateFrom->GetAnimOrigin();
+                TriggerScaleIn(PV_Inner, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 2.8f, 2.8f, ptPageAnim.x, ptPageAnim.y, 1.0f, 1.0f, ptPageAnim.x, ptPageAnim.y, false, false);
             }
             else
             {
@@ -686,6 +798,13 @@ namespace DirectDesktop
                     PV_Home->SetAssociatedColor(RGB(255, 102, 0));
                     assignFn(PV_Home, SetSelectedPageHome);
                 }
+                TriggerScaleIn(PV_Inner, transDesc, 0, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.1f, 1.1f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            }
+            if (g_animatePVEnter)
+            {
+                DUI_SetGadgetZOrder(PageViewerTop, 0);
+                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, PV_Inner->GetDisplayNode(), &tsbInfo);
+                DUI_SetGadgetZOrder(PV_Inner, -4);
             }
         }
     }
@@ -694,6 +813,7 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Click())
         {
+            g_animatePVEnter = false;
             g_maxPageID++;
             PageViewer->DestroyAll(true);
             PageViewer->Destroy(true);
@@ -759,10 +879,11 @@ namespace DirectDesktop
         }
     }
 
-    void ShowSimpleView(bool animate)
+    void ShowSimpleView(bool animate, DWORD animFlags)
     {
         if (g_touchmode) g_iconsz = 64;
         g_editmode = true;
+        g_animatePVEnter = true;
         if (!g_invokedpagechange) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
         static IElementListener *pel_GoToPrevPage, *pel_GoToNextPage, *pel_TriggerHSV1, *pel_ShowShutdownDialog, *pel_TriggerHSV2,
                                 *pel_ShowSearchUI, *pel_ShowSettings, *pel_TriggerHSV3, *pel_ShowPageViewer, *pel_ExitWindow;
@@ -802,6 +923,7 @@ namespace DirectDesktop
         SimpleViewSettings = regElem<Button*>(L"SimpleViewSettings", pEdit);
         SimpleViewPages = regElem<Button*>(L"SimpleViewPages", pEdit);
         SimpleViewClose = regElem<Button*>(L"SimpleViewClose", pEdit);
+        EM_Dim = regElem<Element*>(L"EM_Dim", pEdit);
         bg_left_top = regElem<Element*>(L"bg_left_top", pEdit);
         bg_left_middle = regElem<Element*>(L"bg_left_middle", pEdit);
         bg_left_bottom = regElem<Element*>(L"bg_left_bottom", pEdit);
@@ -849,7 +971,7 @@ namespace DirectDesktop
         DwmExtendFrameIntoClientArea(editwnd->GetHWND(), &m);
         //DwmExtendFrameIntoClientArea(editbgwnd->GetHWND(), &m);
 
-        fullscreenAnimation3(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4285, animate);
+        fullscreenAnimation3(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4285f, animate);
         for (int j = 0; j < pm.size(); j++)
         {
             Element* peContainer{};
@@ -897,22 +1019,58 @@ namespace DirectDesktop
             float xLoc = (localeType == 1) ? 0.9 : -0.4;
             TogglePage(prevpage, xLoc, 0.25, 0.5, 0.5);
         }
-        if (!g_invokedpagechange)
-        {
-            mainContainer->SetAlpha(0);
-        }
-
-        mainContainer->SetVisible(false);
 
         parserEdit->CreateElement(L"simpleviewoverlay", nullptr, nullptr, nullptr, (Element**)&simpleviewoverlay);
         centeredE->Add((Element**)&simpleviewoverlay, 1);
-        static const int savedanim3 = simpleviewoverlay->GetAnimation();
-        g_savedanim3 = savedanim3;
-        PlaySimpleViewAnimation(simpleviewoverlay, round(dimensions.right * 0.7), round(dimensions.bottom * 0.7), animate ? savedanim3 : NULL, 1.4285);
+        SetPopupSize(simpleviewoverlay, round(dimensions.right * 0.7), round(dimensions.bottom * 0.7));
         SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
-        if (dimensions.bottom * 0.15 < 80 * g_flScaleFactor) SimpleViewTop->SetHeight(80 * g_flScaleFactor);
         SimpleViewBottom->SetHeight(dimensions.bottom - SimpleViewTop->GetHeight() - simpleviewoverlay->GetHeight());
-        if (dimensions.bottom * 0.15 < 112 * g_flScaleFactor) SimpleViewBottom->SetHeight(112 * g_flScaleFactor);
+        if (dimensions.bottom * 0.15 < 80 * g_flScaleFactor)
+        {
+            SimpleViewTop->SetHeight(80 * g_flScaleFactor);
+            SimpleViewBottom->SetHeight(80 * g_flScaleFactor);
+        }
+
+        if (animate)
+        {
+            GTRANS_DESC transDesc[2];
+            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false);
+            TriggerScaleOut(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, true, false);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+            Element* peFade[4] = { simpleviewoverlay, prevpage, nextpage, EM_Dim };
+            for (Element* pe : peFade)
+            {
+                float originX = 0.5f;
+                if (pe == prevpage) originX = (localeType == 1) ? -0.8f : 1.8f;
+                if (pe == nextpage) originX = (localeType == 1) ? 1.8f : -0.8f;
+                TriggerFade(pe, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false);
+                TriggerScaleIn(pe, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, originX, 0.5f, 1.0f, 1.0f, originX, 0.5f, false, false);
+                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, pe->GetDisplayNode(), &tsbInfo);
+            }
+        }
+        else
+        {
+            UIContainer->SetVisible(false);
+            GTRANS_DESC transDesc[2];
+            TransitionStoryboardInfo tsbInfo = {};
+            if (animFlags & 1)
+            {
+
+            }
+            if (animFlags & 2)
+            {
+
+            }
+            if (animFlags & 4)
+            {
+
+            }
+            if (animFlags & 8)
+            {
+
+            }
+        }
 
         if (prevpage->GetWidth() > 1)
         {
@@ -928,7 +1086,7 @@ namespace DirectDesktop
         else
         {
             SetTransElementPosition(bg_left_middle, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTop->GetHeight(),
-                round(dimensions.right * 0.15), simpleviewoverlay->GetHeight());
+                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTop->GetHeight() - SimpleViewBottom->GetHeight());
         }
         if (nextpage->GetWidth() > 1)
         {
@@ -944,7 +1102,7 @@ namespace DirectDesktop
         else
         {
             SetTransElementPosition(bg_right_middle, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTop->GetHeight(),
-                round(dimensions.right * 0.15), simpleviewoverlay->GetHeight());
+                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTop->GetHeight() - SimpleViewBottom->GetHeight());
         }
 
         wnd->ShowWindow(SW_SHOW);

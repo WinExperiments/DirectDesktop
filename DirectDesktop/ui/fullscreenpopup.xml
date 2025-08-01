@@ -7,44 +7,46 @@
 			</Element>
 		</Button>
 	</HWNDElement>
-	<DDScalableButton resid="fullscreeninner" id="atom(fullscreeninner)" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1"/>
-	<Element resid="groupdirectory" id="atom(groupdirectory)" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
-		<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
-			<Element id="atom(tasksanimator)" layoutpos="right"/>
-			<Element id="atom(dirnameanimator)" layoutpos="left"/>
-			<Element layoutpos="right" layout="flowlayout(0,2,1,0)">
-				<DDLVActionButton id="atom(More)" content="resstr(153)" tooltip="true" accdesc="resstr(4054)" class="popupbuttonicon" visible="true" layoutpos="none"/>
-			</Element>
-			<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
-				<DDLVActionButton id="atom(Smaller)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
-				<DDLVActionButton id="atom(Larger)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
-				<Element layout="filllayout()">
-					<DDLVActionButton id="atom(Pin)" layoutpos="client" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
-					<DDLVActionButton id="atom(Unpin)" layoutpos="client" content="resstr(150)" tooltip="true" accdesc="resstr(4053)" class="popupbuttonicon"/>
+	<DDScalableButton resid="fullscreeninner" id="atom(fullscreeninner)" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()"/>
+	<Element resid="groupdirectory" id="atom(groupdirectory)" layoutpos="client" layout="filllayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
+		<Element layout="borderlayout()" layoutpos="client">
+			<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)" visible="false">
+				<Element layoutpos="right" layout="flowlayout(0,2,1,0)">
+					<DDLVActionButton id="atom(More)" content="resstr(153)" tooltip="true" accdesc="resstr(4054)" class="popupbuttonicon" visible="true" layoutpos="none"/>
 				</Element>
-				<DDLVActionButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
-				<DDLVActionButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
+				<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
+					<DDLVActionButton id="atom(Smaller)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Larger)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
+					<Element layout="filllayout()">
+						<DDLVActionButton id="atom(Pin)" layoutpos="client" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
+						<DDLVActionButton id="atom(Unpin)" layoutpos="client" content="resstr(150)" tooltip="true" accdesc="resstr(4053)" class="popupbuttonicon"/>
+					</Element>
+					<DDLVActionButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
+				</Element>
+				<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,2,0,0)" margin="rect(0,0,6rp,0)">
+					<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)" tooltip="true" class="popupbuttonicon"/>
+				</Element>
+				<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)">
+					<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold" NeedsFontResize2="true"/>
+					<DDScalableRichText id="atom(dirdetails)" class="popuptext" contentalign="middleleft|endellipsis" font="iconfont;100%;light" NeedsFontResize2="true" padding="rect(2rp,0,0,0)" layoutpos="client"/>
+				</Element>
 			</Element>
-			<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,2,0,0)" margin="rect(0,0,6rp,0)">
-				<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)" tooltip="true" class="popupbuttonicon"/>
-			</Element>
-			<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)" width="600rp">
-				<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold" NeedsFontResize2="true"/>
-				<DDScalableRichText id="atom(dirdetails)" class="popuptexttransparent" contentalign="middleleft|endellipsis" font="iconfont;100%" NeedsFontResize2="true" padding="rect(2rp,0,0,0)"/>
+			<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
+				<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
+					<DDScalableButton id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
+				</TouchScrollViewer>
 			</Element>
 		</Element>
-		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-			<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
-				<DDScalableButton id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
-			</TouchScrollViewer>
-			<Element id="atom(emptyview)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
-				<DDScalableElement FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr"/>
-				<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
+		<Element id="atom(emptyview)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" padding="rect(0,24rp,0,0)">
+			<DDScalableElement id="atom(emptygraphic)" FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr"/>
+			<DDScalableRichText content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
+		</Element>
+		<Element id="atom(PendingContainer)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" padding="rect(0,24rp,0,0)">
+			<Element layout="flowlayout(0,2,2,2)" width="96rp" height="96rp">
+				<ModernProgressRing width="72rp" height="72rp"/>
 			</Element>
-			<Element id="atom(PendingContainer)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
-				<ModernProgressRing width="72rp" height="72rp" margin="rect(12rp,12rp,12rp,12rp)"/>
-				<DDScalableRichText content="Loading" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
-			</Element>
+			<DDScalableRichText content="Loading" font="iconfont;133%;semibold" class="popuptext" NeedsFontResize2="true" contentalign="middlecenter"/>
 		</Element>
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
@@ -63,9 +65,11 @@
 			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
 			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
 		</Element>
-		<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
-			<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
-		</TouchScrollViewer>
+		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
+			<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
+				<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
+			</TouchScrollViewer>
+		</Element>
 	</Element>
 	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
@@ -198,9 +202,6 @@
 				<DDScalableButton foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableRichText foreground="black"/>
 			</if>
-			<if class="popuptexttransparent">
-				<DDScalableRichText foreground="argb(108,0,0,0)"/>
-			</if>
 			<ModernProgressRing foreground="black"/>
 			<if class="SettingsIcon">
 				<RichText layoutpos="left" background="argb(0,0,0,0)" foreground="black" font="resstr(166)" contentalign="middlecenter" width="56rp"/>
@@ -237,9 +238,6 @@
 				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableButton foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableRichText foreground="white"/>
-			</if>
-			<if class="popuptexttransparent">
-				<DDScalableRichText foreground="argb(144,255,255,255)"/>
 			</if>
 			<ModernProgressRing foreground="white"/>
 			<if class="SettingsIcon">

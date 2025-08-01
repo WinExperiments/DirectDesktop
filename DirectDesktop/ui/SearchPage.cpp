@@ -185,11 +185,21 @@ namespace DirectDesktop
         pel_UpdateSearchBox = (IElementListener*)assignExtendedFn(searchbox, UpdateSearchBox, true);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
         SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
+        GTRANS_DESC transDesc2[1];
+        TriggerScaleOut(UIContainer, transDesc2, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
+        TransitionStoryboardInfo tsbInfo2 = {};
+        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
     }
 
     void DestroySearchPage()
     {
         pSearch->DestroyAll(true);
         searchwnd->DestroyWindow();
+        GTRANS_DESC transDesc2[1];
+        TriggerScaleOut(UIContainer, transDesc2, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        TransitionStoryboardInfo tsbInfo2 = {};
+        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
+        DUI_SetGadgetZOrder(UIContainer, -1);
+        SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
     }
 }

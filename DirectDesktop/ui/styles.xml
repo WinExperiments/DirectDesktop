@@ -256,7 +256,7 @@
 				</if>
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="1100" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="1100" ScaledImageIntervals="7" DrawType="2"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="72"/>
 				</if>
@@ -292,16 +292,16 @@
 					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/> 
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="96" foreground="white"/> // ALPHA TO BE 224 AFTER PVL FIX
+					<DDScalableButton alpha="96" foreground="white"/>
 				</if>
 			</if>
 			<if class="popupbuttonicon">
 				<DDLVActionButton foreground="white" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Pressed="true">
-					<DDLVActionButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDLVActionButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Enabled="false">
 					<DDLVActionButton alpha="96"/>
@@ -310,10 +310,10 @@
 			<if class="hyperlink">
 				<DDScalableButton foreground="20002" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Enabled="false">
 					<DDScalableButton alpha="96" foreground="white"/>
@@ -527,7 +527,7 @@
 				</if>
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="2100" ScaledImageIntervals="7" DrawType="2" animation="position|log|veryfast"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="2100" ScaledImageIntervals="7" DrawType="2"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="96"/>
 				</if>

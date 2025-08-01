@@ -1098,12 +1098,12 @@ namespace DirectDesktop
         {
             -1,
             *pImmersiveColor,
-            g_theme ? RGB(96, 205, 255) + 4278190080 : RGB(0, 95, 184) + 4278190080,
-            g_theme ? RGB(216, 141, 225) + 4278190080 : RGB(158, 58, 176) + 4278190080,
-            g_theme ? RGB(244, 103, 98) + 4278190080 : RGB(210, 14, 30) + 4278190080,
-            g_theme ? RGB(251, 154, 68) + 4278190080 : RGB(224, 83, 7) + 4278190080,
-            g_theme ? RGB(255, 213, 42) + 4278190080 : RGB(225, 157, 0) + 4278190080,
-            g_theme ? RGB(38, 255, 142) + 4278190080 : RGB(0, 178, 90) + 4278190080
+            g_theme ? RGB(76, 194, 255) : RGB(0, 103, 192),
+            g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
+            g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
+            g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
+            g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
+            g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
         };
         BYTE* value2{};
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);

@@ -347,14 +347,14 @@ namespace DirectDesktop
 
     DWORD WINAPI CreateCBInnerElements(LPVOID lpParam)
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)lpParam, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 3, (WPARAM)lpParam, NULL);
         assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
         return 0;
     }
 
     DWORD WINAPI ColorPickerLayout(LPVOID lpParam)
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 4, (WPARAM)lpParam, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 4, (WPARAM)lpParam, NULL);
         return 0;
     }
 
@@ -368,7 +368,7 @@ namespace DirectDesktop
 
     DWORD WINAPI CreateTEVisual(LPVOID lpParam)
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 5, (WPARAM)lpParam, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 5, (WPARAM)lpParam, NULL);
         return 0;
     }
 
@@ -599,27 +599,27 @@ namespace DirectDesktop
 
     void DDScalableElement::InitDrawImage()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
     }
 
     void DDScalableElement::RedrawImages()
     {
         for (DDScalableElement* pe : _arrCreatedElements)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
         }
     }
 
     void DDScalableElement::InitDrawFont()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
     }
 
     void DDScalableElement::RedrawFonts()
     {
         for (DDScalableElement* pe : _arrCreatedElements)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
         }
     }
 
@@ -840,27 +840,27 @@ namespace DirectDesktop
 
     void DDScalableButton::InitDrawImage()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
     }
 
     void DDScalableButton::RedrawImages()
     {
         for (DDScalableButton* pe : _arrCreatedButtons)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
         }
     }
 
     void DDScalableButton::InitDrawFont()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
     }
 
     void DDScalableButton::RedrawFonts()
     {
         for (DDScalableButton* pe : _arrCreatedButtons)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
         }
     }
 
@@ -1107,27 +1107,27 @@ namespace DirectDesktop
 
     void DDScalableRichText::InitDrawImage()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
     }
 
     void DDScalableRichText::RedrawImages()
     {
         for (DDScalableRichText* pe : _arrCreatedTexts)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
         }
     }
 
     void DDScalableRichText::InitDrawFont()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
     }
 
     void DDScalableRichText::RedrawFonts()
     {
         for (DDScalableRichText* pe : _arrCreatedTexts)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
         }
     }
 
@@ -1305,27 +1305,27 @@ namespace DirectDesktop
 
     void DDScalableTouchEdit::InitDrawImage()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
     }
 
     void DDScalableTouchEdit::RedrawImages()
     {
         for (DDScalableTouchEdit* pe : _arrCreatedBoxes)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 1, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
         }
     }
 
     void DDScalableTouchEdit::InitDrawFont()
     {
-        PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)this, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
     }
 
     void DDScalableTouchEdit::RedrawFonts()
     {
         for (DDScalableTouchEdit* pe : _arrCreatedBoxes)
         {
-            PostMessageW(subviewwnd->GetHWND(), WM_USER + 2, (WPARAM)pe, NULL);
+            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
         }
     }
 
@@ -1387,6 +1387,16 @@ namespace DirectDesktop
         return _yPos;
     }
 
+    unsigned short LVItem::GetMemXPos()
+    {
+        return _mem_xPos;
+    }
+
+    unsigned short LVItem::GetMemYPos()
+    {
+        return _mem_yPos;
+    }
+
     void LVItem::SetInternalXPos(unsigned short iXPos)
     {
         _xPos = iXPos;
@@ -1395,6 +1405,16 @@ namespace DirectDesktop
     void LVItem::SetInternalYPos(unsigned short iYPos)
     {
         _yPos = iYPos;
+    }
+
+    void LVItem::SetMemXPos(unsigned short iXPos)
+    {
+        _mem_xPos = iXPos;
+    }
+
+    void LVItem::SetMemYPos(unsigned short iYPos)
+    {
+        _mem_yPos = iYPos;
     }
 
     wstring LVItem::GetFilename()
@@ -1462,6 +1482,16 @@ namespace DirectDesktop
         return _sfg;
     }
 
+    bool LVItem::GetFlying()
+    {
+        return _flying;
+    }
+
+    bool LVItem::GetMoving()
+    {
+        return _moving;
+    }
+
     void LVItem::SetDirState(bool dirState)
     {
         _isDirectory = dirState;
@@ -1507,14 +1537,44 @@ namespace DirectDesktop
         _sfg = sfg;
     }
 
+    void LVItem::SetFlying(bool flying)
+    {
+        _flying = flying;
+    }
+
+    void LVItem::SetMoving(bool moving)
+    {
+        _moving = moving;
+    }
+
     unsigned short LVItem::GetPage()
     {
         return _page;
     }
 
+    unsigned short LVItem::GetMemPage()
+    {
+        return _mem_page;
+    }
+
     void LVItem::SetPage(unsigned short pageID)
     {
         _page = pageID;
+    }
+
+    void LVItem::SetMemPage(unsigned short pageID)
+    {
+        _mem_page = pageID;
+    }
+
+    POINTFLOAT LVItem::GetAnimOrigin()
+    {
+        return _ptflAnimOrigin;
+    }
+
+    void LVItem::SetAnimOrigin(POINTFLOAT animOrigin)
+    {
+        _ptflAnimOrigin = animOrigin;
     }
 
     LVItemGroupSize LVItem::GetGroupSize()

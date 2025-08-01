@@ -2,6 +2,7 @@
 #pragma warning(disable:28159)
 
 #include "ui\DDControls.h"
+#include "coreui\AnimationHelper.h"
 
 using namespace DirectUI;
 
@@ -16,8 +17,9 @@ namespace DirectDesktop
 {
     extern float g_flScaleFactor;
     extern unsigned short g_defWidth, g_defHeight, g_lastWidth, g_lastHeight;
-    extern int g_iconsz, g_shiconsz, g_gpiconsz;
+    extern int g_iconsz, g_iconszOld, g_shiconsz, g_gpiconsz;
     extern int g_currentPageID, g_maxPageID, g_homePageID;
+    extern HWND g_msgwnd;
 
     struct yValue
     {
@@ -55,6 +57,14 @@ namespace DirectDesktop
         HBITMAP textshadow{};
         COLORREF crDominantTile{};
         HBITMAP dominantTile{};
+    };
+
+    struct DelayedElementActions
+    {
+        DWORD dwMillis;
+        Element* pe;
+        float val1;
+        float val2;
     };
 
     // Common functions

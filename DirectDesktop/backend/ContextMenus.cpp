@@ -21,6 +21,7 @@ namespace DirectDesktop
     {
         if (iconsz == g_iconsz && touch == g_touchmode) return;
         if (isDefaultRes()) SetPos(true);
+        if (!touch) g_iconszOld = g_iconsz;
         g_iconsz = iconsz;
         g_shiconsz = shiconsz;
         g_gpiconsz = gpiconsz;
@@ -117,13 +118,15 @@ namespace DirectDesktop
                 GetCursorPos(&pt);
                 int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
                 bool touchmodeMem{};
+                RECT dimensions;
+                GetClientRect(wnd->GetHWND(), &dimensions);
                 switch (menuItemId)
                 {
                     case 2002:
                         InitLayout(false, false, true);
                         break;
                     case 2003:
-                        ShowSimpleView(false);
+                        ShowSimpleView(true, 0x0);
                         break;
                     case 1001:
                         SetView(144, 64, 48, false);
@@ -143,14 +146,30 @@ namespace DirectDesktop
                     case 1007:
                         for (int items = 0; items < pm.size(); items++)
                         {
-                            switch (g_hiddenIcons)
+                            if (pm[items]->GetPage() == g_currentPageID)
                             {
+                                float delay = (pm[items]->GetY() + pm[items]->GetHeight() / 2) / static_cast<float>(dimensions.bottom * 9);
+                                float startXPos = ((dimensions.right / 2.0f) - (pm[items]->GetX() + (pm[items]->GetWidth() / 2))) * 0.2f;
+                                float startYPos = ((dimensions.bottom / 2.0f) - (pm[items]->GetY() + (pm[items]->GetHeight() / 2))) * 0.2f;
+                                GTRANS_DESC transReset[3];
+                                switch (g_hiddenIcons)
+                                {
                                 case 0:
-                                    pm[items]->SetVisible(false);
+                                    TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, false, false);
+                                    TriggerFade(pm[items], transReset, 1, delay + 0.11f, delay + 0.22f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false);
+                                    TriggerScaleOut(pm[items], transReset, 2, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, true, false);
                                     break;
                                 case 1:
-                                    if (pm[items]->GetPage() == g_currentPageID) pm[items]->SetVisible(true);
+                                    delay *= 2;
+                                    pm[items]->SetVisible(true);
+                                    TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, pm[items]->GetX(), pm[items]->GetY(), false, false);
+                                    TriggerFade(pm[items], transReset, 1, delay, delay + 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false);
+                                    TriggerScaleIn(pm[items], transReset, 2, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
                                     break;
+                                }
+                                TransitionStoryboardInfo tsbInfo = {};
+                                ScheduleGadgetTransitions(0, ARRAYSIZE(transReset), transReset, pm[items]->GetDisplayNode(), &tsbInfo);
+                                DUI_SetGadgetZOrder(pm[items], -1);
                             }
                         }
                         g_hiddenIcons = !g_hiddenIcons;
