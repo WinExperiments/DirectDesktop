@@ -7,12 +7,13 @@
 #include "AccentColorHelper.h"
 #include "cdpa.h"
 #include "ImmersiveColor.h"
-#include "..\backend\DirectoryHelper.h"
+#include "..\DirectDesktop.h"
 
 namespace DirectDesktop
 {
     COLORREF ImmersiveColor, ImmersiveColorL, ImmersiveColorD;
     bool g_theme;
+    bool g_themeOld;
     const wchar_t* sheetName;
     rgb_t WhiteText;
 

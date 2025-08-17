@@ -7,6 +7,7 @@ namespace DirectDesktop
     extern COLORREF ImmersiveColorD;
     extern COLORREF IconColorizationColor;
     extern bool g_theme;
+    extern bool g_themeOld;
     extern bool g_touchmode;
     extern bool g_isColorized;
     extern bool g_isDarkIconsEnabled;

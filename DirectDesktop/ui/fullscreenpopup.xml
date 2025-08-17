@@ -25,7 +25,7 @@
 					<DDLVActionButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
 				</Element>
 				<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,2,0,0)" margin="rect(0,0,6rp,0)">
-					<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(6rp,9rp,6rp,7rp)" tooltip="true" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(2rp,5rp,2rp,3rp)" tooltip="true" class="popupbuttonicon"/>
 				</Element>
 				<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)">
 					<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold" NeedsFontResize2="true"/>
@@ -33,7 +33,7 @@
 				</Element>
 			</Element>
 			<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-				<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
+				<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="top" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
 					<DDScalableButton id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 				</TouchScrollViewer>
 			</Element>
@@ -66,7 +66,7 @@
 			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
 		</Element>
 		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-			<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
+			<TouchScrollViewer id="atom(settingslist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
 				<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 			</TouchScrollViewer>
 		</Element>
@@ -173,9 +173,6 @@
 				<DDScalableElement class="headertext" content="resstr(4016)"/>
 				<DDScalableElement class="subtext" content="Enable logging for troubleshooting DirectDesktop at launch"/>
 			</Element>
-		</DDScalableElement>
-		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4016)" class="toggletext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
 				<DDToggleButton id="atom(EnableLogging)"/>
 			</Element>

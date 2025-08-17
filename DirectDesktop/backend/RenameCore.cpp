@@ -243,8 +243,8 @@ namespace DirectDesktop
                     LoadLibraryW(L"Msftedit.dll");
                     itemWidth = pm[items]->GetWidth();
                     itemHeight = pm[items]->GetHeight();
-                    itemX = (localeType == 1) ? dimensions.right - pm[items]->GetX() - itemWidth : pm[items]->GetX();
-                    itemY = pm[items]->GetY();
+                    itemX = (localeType == 1) ? dimensions.right - pm[items]->GetMemXPos() - itemWidth : pm[items]->GetMemXPos();
+                    itemY = pm[items]->GetMemYPos();
                     // 0.4.9: width, x, and y are hardcoded due to changing layoutpos of text from absolute to top in touchmode
                     textWidth = g_touchmode ? textElement->GetWidth() - 6 * g_flScaleFactor : textElement->GetWidth();
                     textHeight = textElement->GetHeight() + 4 * g_flScaleFactor;
@@ -259,7 +259,8 @@ namespace DirectDesktop
                     rcPadding = *(RenameBoxTexture->GetPadding(&v));
                     if (g_touchmode)
                         ebsz.left = itemX + textX - rcPadding.left, ebsz.top = itemY + textY - rcPadding.top, ebsz.right = textWidth + rcPadding.left, ebsz.bottom = textHeight;
-                    RenameBoxTexture->SetX(ebsz.left), RenameBoxTexture->SetY(ebsz.top);
+                    int xRender = (localeType == 1) ? dimensions.right - ebsz.left - ebsz.right : ebsz.left;
+                    RenameBoxTexture->SetX(xRender), RenameBoxTexture->SetY(ebsz.top);
                     RenameBoxTexture->SetWidth(ebsz.right), RenameBoxTexture->SetHeight(ebsz.bottom);
                     LPWSTR sheetName = g_theme ? (LPWSTR)L"renamestyle" : (LPWSTR)L"renamestyledark";
                     StyleSheet* sheet = pMain->GetSheet();

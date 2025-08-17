@@ -46,6 +46,7 @@ namespace DirectDesktop
     {
         void* ptr1{};
         void* ptr2{};
+        DWORD dwMillis;
     };
 
     struct DesktopIcon
@@ -67,21 +68,102 @@ namespace DirectDesktop
         float val2;
     };
 
+    struct EventListener : public IElementListener
+    {
+        void (*f)(Element*, Event*);
+
+        EventListener(void (*func)(Element*, Event*))
+        {
+            f = func;
+        }
+
+        void OnListenerAttach(Element* elem) override
+        {
+        }
+
+        void OnListenerDetach(Element* elem) override
+        {
+        }
+
+        bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override
+        {
+            return true;
+        }
+
+        void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override
+        {
+        }
+
+        void OnListenedEvent(Element* elem, struct Event* iev) override
+        {
+            f(elem, iev);
+        }
+
+        void OnListenedInput(Element* elem, struct InputEvent* ev) override
+        {
+        }
+    };
+
+    struct EventListener2 : public IElementListener
+    {
+        void (*f)(Element*, const PropertyInfo*, int, Value*, Value*);
+
+        EventListener2(void (*func)(Element*, const PropertyInfo*, int, Value*, Value*))
+        {
+            f = func;
+        }
+
+        void OnListenerAttach(Element* elem) override
+        {
+        }
+
+        void OnListenerDetach(Element* elem) override
+        {
+        }
+
+        bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2) override
+        {
+            return true;
+        }
+
+        void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override
+        {
+            f(elem, prop, type, v1, v2);
+        }
+
+        void OnListenedEvent(Element* elem, struct Event* iev) override
+        {
+        }
+
+        void OnListenedInput(Element* elem, struct InputEvent* ev) override
+        {
+        }
+    };
+
     // Common functions
     std::wstring LoadStrFromRes(UINT id);
     std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
     std::wstring RemoveQuotes(const std::wstring& input);
     extern void DUI_SetGadgetZOrder(DirectUI::Element* pe, UINT uZOrder);
     extern void CALLBACK DUI_ParserErrorCB(const WCHAR* pszError, const WCHAR* pszToken, int dLine, void* pContext);
+    extern bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind);
+    extern int GetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName);
+    extern void SetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, DWORD dwValue, bool find, bool* isNewValue);
+    extern bool GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, WCHAR** outStr);
+    extern bool GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE** outBytes);
+    extern void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE* bValue, DWORD length, bool find, bool* isNewValue);
+    extern HRESULT CloakWindow(HWND hwnd, bool fCloak);
 
     extern bool isDefaultRes();
 
     DWORD WINAPI fastin(LPVOID lpParam);
 
     template <typename elemType>
-    extern elemType regElem(const wchar_t* elemName, Element* peParent);
-    extern struct EventListener;
-    extern struct EventListener2;
-    extern EventListener* assignFn(Element* btnName, void (*fnName)(Element* elem, Event* iev), bool fReturn = false);
-    extern EventListener2* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
+    elemType regElem(const wchar_t* elemName, Element* peParent)
+    {
+        elemType result = (elemType)peParent->FindDescendent(StrToID(elemName));
+        return result;
+    }
+    EventListener* assignFn(Element* elemName, void (*fnName)(Element* elem, Event* iev), bool fReturn = false);
+    EventListener2* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
 }

@@ -17,6 +17,7 @@ namespace DirectDesktop
     IClassInfo* DDScalableElement::s_pClassInfo;
     IClassInfo* DDScalableButton::s_pClassInfo;
     IClassInfo* DDScalableRichText::s_pClassInfo;
+    IClassInfo* DDScalableTouchButton::s_pClassInfo;
     IClassInfo* DDScalableTouchEdit::s_pClassInfo;
     IClassInfo* LVItem::s_pClassInfo;
     IClassInfo* DDLVActionButton::s_pClassInfo;
@@ -182,11 +183,27 @@ namespace DirectDesktop
         Value::GetIntMinusOne,
         &dataimpDefaultColorProp
     };
+    static const int vvimpStopListeningProp[] = { 2, -1 };
+    static PropertyInfoData dataimpStopListeningProp;
+    static const PropertyInfo impStopListeningProp =
+    {
+        L"StopListening",
+        0x2 | 0x4,
+        0x1,
+        vvimpStopListeningProp,
+        nullptr,
+        Value::GetBoolFalse,
+        &dataimpStopListeningProp
+    };
 
     void RedrawImageCore(DDScalableElement* pe)
     {
-        if (!pe || pe->GetFirstScaledImage() == -1)
+        if (!pe) return;
+        if (pe->GetFirstScaledImage() == -1)
+        {
+            pe->SetBackgroundColor(0);
             return;
+        }
 
         int scaleInterval = GetCurrentScaleInterval();
         int scaleIntervalImage = pe->GetScaledImageIntervals();
@@ -278,7 +295,10 @@ namespace DirectDesktop
     {
         if (pProp == DDScalableElement::FirstScaledImageProp() || pProp == DDScalableElement::DrawTypeProp() || pProp == DDScalableElement::AssociatedColorProp())
         {
-            if (elem) ((DDScalableElement*)elem)->InitDrawImage();
+            if (elem)
+            {
+                if (!((DDScalableElement*)elem)->GetStopListening()) ((DDScalableElement*)elem)->InitDrawImage();
+            }
         }
     }
 
@@ -433,7 +453,8 @@ namespace DirectDesktop
             &impNeedsFontResizeProp,
             &impNeedsFontResize2Prop,
             &impAssociatedColorProp,
-            &impDDCPIntensityProp
+            &impDDCPIntensityProp,
+            &impStopListeningProp
         };
         return ClassInfo<DDScalableElement, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -587,6 +608,21 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
+    const PropertyInfo* WINAPI DDScalableElement::StopListeningProp()
+    {
+        return &impStopListeningProp;
+    }
+
+    bool DDScalableElement::GetStopListening()
+    {
+        return this->GetPropCommon(StopListeningProp, false);
+    }
+
+    void DDScalableElement::StopListening()
+    {
+        this->SetPropCommon(StopListeningProp, true, false);
+    }
+
     unsigned short DDScalableElement::GetGroupColor()
     {
         return _gc;
@@ -684,7 +720,8 @@ namespace DirectDesktop
             &impNeedsFontResizeProp,
             &impNeedsFontResize2Prop,
             &impAssociatedColorProp,
-            &impDDCPIntensityProp
+            &impDDCPIntensityProp,
+            &impStopListeningProp
         };
         return ClassInfo<DDScalableButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -838,6 +875,21 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
+    const PropertyInfo* WINAPI DDScalableButton::StopListeningProp()
+    {
+        return &impStopListeningProp;
+    }
+
+    bool DDScalableButton::GetStopListening()
+    {
+        return this->GetPropCommon(StopListeningProp, false);
+    }
+
+    void DDScalableButton::StopListening()
+    {
+        this->SetPropCommon(StopListeningProp, true, false);
+    }
+
     void DDScalableButton::InitDrawImage()
     {
         PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
@@ -889,9 +941,12 @@ namespace DirectDesktop
         _rkv = rkvNew;
     }
 
-    void DDScalableButton::SetAssociatedFn(void (*pfn)(bool, bool, bool))
+    void DDScalableButton::SetAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3)
     {
         _assocFn = pfn;
+        _fnb1 = fnb1;
+        _fnb2 = fnb2;
+        _fnb3 = fnb3;
     }
 
     void DDScalableButton::SetAssociatedBool(bool* pb)
@@ -904,9 +959,9 @@ namespace DirectDesktop
         _gc = sGC;
     }
 
-    void DDScalableButton::ExecAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3)
+    void DDScalableButton::ExecAssociatedFn(void (*pfn)(bool, bool, bool))
     {
-        pfn(fnb1, fnb2, fnb3);
+        pfn(_fnb1, _fnb2, _fnb3);
     }
 
     vector<DDScalableRichText*> DDScalableRichText::_arrCreatedTexts;
@@ -969,7 +1024,8 @@ namespace DirectDesktop
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
             &impNeedsFontResize2Prop,
-            &impAssociatedColorProp
+            &impAssociatedColorProp,
+            &impStopListeningProp
         };
         return ClassInfo<DDScalableRichText, RichText>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -981,6 +1037,7 @@ namespace DirectDesktop
 
     auto DDScalableRichText::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
     {
+        if (!this) return -1;
         Value* pv = GetValue(pPropertyProc, 2, nullptr);
         auto v = useInt ? pv->GetInt() : pv->GetBool();
         pv->Release();
@@ -1105,6 +1162,21 @@ namespace DirectDesktop
         this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
     }
 
+    const PropertyInfo* WINAPI DDScalableRichText::StopListeningProp()
+    {
+        return &impStopListeningProp;
+    }
+
+    bool DDScalableRichText::GetStopListening()
+    {
+        return this->GetPropCommon(StopListeningProp, false);
+    }
+
+    void DDScalableRichText::StopListening()
+    {
+        this->SetPropCommon(StopListeningProp, true, false);
+    }
+
     void DDScalableRichText::InitDrawImage()
     {
         PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
@@ -1126,6 +1198,245 @@ namespace DirectDesktop
     void DDScalableRichText::RedrawFonts()
     {
         for (DDScalableRichText* pe : _arrCreatedTexts)
+        {
+            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
+        }
+    }
+
+    vector<DDScalableTouchButton*> DDScalableTouchButton::_arrCreatedTButtons;
+
+    DDScalableTouchButton::DDScalableTouchButton()
+    {
+        _arrCreatedTButtons.push_back(this);
+    }
+
+    DDScalableTouchButton::~DDScalableTouchButton()
+    {
+        if (_pelPropChange)
+        {
+            this->RemoveListener(_pelPropChange);
+            free(_pelPropChange);
+            _pelPropChange = nullptr;
+        }
+        auto toRemove = find(_arrCreatedTButtons.begin(), _arrCreatedTButtons.end(), this);
+        if (toRemove != _arrCreatedTButtons.end())
+        {
+            _arrCreatedTButtons.erase(toRemove);
+        }
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDScalableTouchButton::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDScalableTouchButton::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDScalableTouchButton::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    HRESULT DDScalableTouchButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        HRESULT hr = CreateAndInit<DDScalableTouchButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+        if (SUCCEEDED(hr))
+        {
+            ((DDScalableTouchButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
+            ((DDScalableTouchButton*)*ppElement)->InitDrawImage();
+            ((DDScalableTouchButton*)*ppElement)->InitDrawFont();
+        }
+        return hr;
+    }
+
+    HRESULT DDScalableTouchButton::Register()
+    {
+        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        {
+            &impFirstScaledImageProp,
+            &impScaledImageIntervalsProp,
+            &impDrawTypeProp,
+            &impEnableAccentProp,
+            &impNeedsFontResizeProp,
+            &impNeedsFontResize2Prop,
+            &impAssociatedColorProp,
+            &impStopListeningProp
+        };
+        return ClassInfo<DDScalableTouchButton, TouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    void DDScalableTouchButton::SetPropChangeListener(IElementListener* pel)
+    {
+        _pelPropChange = pel;
+    }
+
+    auto DDScalableTouchButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
+    {
+        if (!this) return -1;
+        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        auto v = useInt ? pv->GetInt() : pv->GetBool();
+        pv->Release();
+        return v;
+    }
+
+    void DDScalableTouchButton::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt)
+    {
+        Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(pPropertyProc, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::FirstScaledImageProp()
+    {
+        return &impFirstScaledImageProp;
+    }
+
+    int DDScalableTouchButton::GetFirstScaledImage()
+    {
+        return this->GetPropCommon(FirstScaledImageProp, true);
+    }
+
+    void DDScalableTouchButton::SetFirstScaledImage(int iFirstImage)
+    {
+        this->SetPropCommon(FirstScaledImageProp, iFirstImage, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::ScaledImageIntervalsProp()
+    {
+        return &impScaledImageIntervalsProp;
+    }
+
+    int DDScalableTouchButton::GetScaledImageIntervals()
+    {
+        int v = this->GetPropCommon(ScaledImageIntervalsProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableTouchButton::SetScaledImageIntervals(int iScaleIntervals)
+    {
+        this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::DrawTypeProp()
+    {
+        return &impDrawTypeProp;
+    }
+
+    int DDScalableTouchButton::GetDrawType()
+    {
+        return this->GetPropCommon(DrawTypeProp, true);
+    }
+
+    void DDScalableTouchButton::SetDrawType(int iDrawType)
+    {
+        this->SetPropCommon(DrawTypeProp, iDrawType, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::EnableAccentProp()
+    {
+        return &impEnableAccentProp;
+    }
+
+    bool DDScalableTouchButton::GetEnableAccent()
+    {
+        return this->GetPropCommon(EnableAccentProp, false);
+    }
+
+    void DDScalableTouchButton::SetEnableAccent(bool bEnableAccent)
+    {
+        this->SetPropCommon(EnableAccentProp, bEnableAccent, false);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::NeedsFontResizeProp()
+    {
+        return &impNeedsFontResizeProp;
+    }
+
+    bool DDScalableTouchButton::GetNeedsFontResize()
+    {
+        return this->GetPropCommon(NeedsFontResizeProp, false);
+    }
+
+    void DDScalableTouchButton::SetNeedsFontResize(bool bNeedsFontResize)
+    {
+        this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::NeedsFontResize2Prop()
+    {
+        return &impNeedsFontResize2Prop;
+    }
+
+    bool DDScalableTouchButton::GetNeedsFontResize2()
+    {
+        return this->GetPropCommon(NeedsFontResize2Prop, false);
+    }
+
+    void DDScalableTouchButton::SetNeedsFontResize2(bool bNeedsFontResize2)
+    {
+        this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::AssociatedColorProp()
+    {
+        return &impAssociatedColorProp;
+    }
+
+    int DDScalableTouchButton::GetAssociatedColor()
+    {
+        return this->GetPropCommon(AssociatedColorProp, true);
+    }
+
+    void DDScalableTouchButton::SetAssociatedColor(int iAssociatedColor)
+    {
+        this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::StopListeningProp()
+    {
+        return &impStopListeningProp;
+    }
+
+    bool DDScalableTouchButton::GetStopListening()
+    {
+        return this->GetPropCommon(StopListeningProp, false);
+    }
+
+    void DDScalableTouchButton::StopListening()
+    {
+        this->SetPropCommon(StopListeningProp, true, false);
+    }
+
+    void DDScalableTouchButton::InitDrawImage()
+    {
+        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
+    }
+
+    void DDScalableTouchButton::RedrawImages()
+    {
+        for (DDScalableTouchButton* pe : _arrCreatedTButtons)
+        {
+            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
+        }
+    }
+
+    void DDScalableTouchButton::InitDrawFont()
+    {
+        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
+    }
+
+    void DDScalableTouchButton::RedrawFonts()
+    {
+        for (DDScalableTouchButton* pe : _arrCreatedTButtons)
         {
             PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
         }
@@ -1331,11 +1642,19 @@ namespace DirectDesktop
 
     LVItem::~LVItem()
     {
-        _childItemss.clear();
-        _childIcons.clear();
-        _childShadows.clear();
-        _childShortcutArrows.clear();
-        _childFilenames.clear();
+        if (_childItemss != nullptr)
+        {
+            _childItemss->clear();
+            _childItemss = nullptr;
+            _childIcons->clear();
+            _childIcons = nullptr;
+            _childShadows->clear();
+            _childShadows = nullptr;
+            _childShortcutArrows->clear();
+            _childShortcutArrows = nullptr;
+            _childFilenames->clear();
+            _childFilenames = nullptr;
+        }
         this->ClearAllListeners();
         for (auto pel : _pels)
         {
@@ -1492,6 +1811,11 @@ namespace DirectDesktop
         return _moving;
     }
 
+    bool LVItem::GetHasAdvancedIcon()
+    {
+        return _hai;
+    }
+
     void LVItem::SetDirState(bool dirState)
     {
         _isDirectory = dirState;
@@ -1547,6 +1871,11 @@ namespace DirectDesktop
         _moving = moving;
     }
 
+    void LVItem::SetHasAdvancedIcon(bool hai)
+    {
+        _hai = hai;
+    }
+
     unsigned short LVItem::GetPage()
     {
         return _page;
@@ -1565,16 +1894,6 @@ namespace DirectDesktop
     void LVItem::SetMemPage(unsigned short pageID)
     {
         _mem_page = pageID;
-    }
-
-    POINTFLOAT LVItem::GetAnimOrigin()
-    {
-        return _ptflAnimOrigin;
-    }
-
-    void LVItem::SetAnimOrigin(POINTFLOAT animOrigin)
-    {
-        _ptflAnimOrigin = animOrigin;
     }
 
     LVItemGroupSize LVItem::GetGroupSize()
@@ -1597,52 +1916,62 @@ namespace DirectDesktop
         _tilesize = lvits;
     }
 
-    vector<LVItem*> LVItem::GetChildItems()
+    LVItemOpenDirState LVItem::GetOpenDirState()
+    {
+        return _opendirstate;
+    }
+
+    void LVItem::SetOpenDirState(LVItemOpenDirState lviods)
+    {
+        _opendirstate = lviods;
+    }
+
+    vector<LVItem*>* LVItem::GetChildItems()
     {
         return _childItemss;
     }
 
-    vector<DDScalableElement*> LVItem::GetChildIcons()
+    vector<DDScalableElement*>* LVItem::GetChildIcons()
     {
         return _childIcons;
     }
 
-    vector<Element*> LVItem::GetChildShadows()
+    vector<Element*>* LVItem::GetChildShadows()
     {
         return _childShadows;
     }
 
-    vector<Element*> LVItem::GetChildShortcutArrows()
+    vector<Element*>* LVItem::GetChildShortcutArrows()
     {
         return _childShortcutArrows;
     }
 
-    vector<RichText*> LVItem::GetChildFilenames()
+    vector<RichText*>* LVItem::GetChildFilenames()
     {
         return _childFilenames;
     }
 
-    void LVItem::SetChildItems(vector<LVItem*> vpm)
+    void LVItem::SetChildItems(vector<LVItem*>* vpm)
     {
         _childItemss = vpm;
     }
 
-    void LVItem::SetChildIcons(vector<DDScalableElement*> vipm)
+    void LVItem::SetChildIcons(vector<DDScalableElement*>* vipm)
     {
         _childIcons = vipm;
     }
 
-    void LVItem::SetChildShadows(vector<Element*> vispm)
+    void LVItem::SetChildShadows(vector<Element*>* vispm)
     {
         _childShadows = vispm;
     }
 
-    void LVItem::SetChildShortcutArrows(vector<Element*> vspm)
+    void LVItem::SetChildShortcutArrows(vector<Element*>* vspm)
     {
         _childShortcutArrows = vspm;
     }
 
-    void LVItem::SetChildFilenames(vector<RichText*> vfpm)
+    void LVItem::SetChildFilenames(vector<RichText*>* vfpm)
     {
         _childFilenames = vfpm;
     }
@@ -2168,7 +2497,7 @@ namespace DirectDesktop
         Sleep(50);
         if (nd->wnd)
         {
-            AnimateWindow(nd->wnd->GetHWND(), 180, AW_BLEND);
+            AnimateWindow(nd->wnd->GetHWND(), 180 * (g_animCoef / 100.0f), AW_BLEND);
             nd->wnd->ShowWindow(SW_SHOW);
         }
         delete nd;
@@ -2318,7 +2647,10 @@ namespace DirectDesktop
         pHostElement->SetVisible(true);
         pHostElement->EndDefer(keyN);
         notificationwndInternal->Host(pHostElement);
-        int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+        WCHAR* WindowsBuildStr;
+        GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+        int WindowsBuild = _wtoi(WindowsBuildStr);
+        free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
         MARGINS margins = { -1, -1, -1, -1 };
         DwmExtendFrameIntoClientArea(notificationwndInternal->GetHWND(), &margins);
@@ -2336,7 +2668,7 @@ namespace DirectDesktop
 
         int cx{}, cy{};
         RECT hostpadding = *(v->GetRect());
-        cx += (hostpadding.left + hostpadding.right * g_flScaleFactor);
+        cx += (hostpadding.left + hostpadding.right + 48 * g_flScaleFactor); // 48: 28 is the icon width, 20 is extra padding
         cy += (hostpadding.top + hostpadding.bottom);
         Element* peTemp = pDDNB->GetIconElement();
         CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
@@ -2368,7 +2700,6 @@ namespace DirectDesktop
         NONCLIENTMETRICSW ncm{};
         TEXTMETRICW tm{};
         SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, NULL, g_dpi);
-        ncm.lfMessageFont.lfHeight = 19;
         HFONT hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
         SelectObject(hdcMem, hFont);
         RECT rcText{}, rcText2{};
@@ -2376,15 +2707,15 @@ namespace DirectDesktop
         {
             GetLongestLine(hdcMem, content, &rcText2);
             GetTextMetricsW(hdcMem, &tm);
-            cy += (ceil(tm.tmHeight) * CalcLines(content)) * g_flScaleFactor;
+            cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * g_flScaleFactor;
         }
         ncm.lfMessageFont.lfWeight = 700;
         hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
         SelectObject(hdcMem, hFont);
         DrawTextW(hdcMem, title, -1, &rcText, DT_CALCRECT | DT_SINGLELINE);
-        cx += (ceil(max(rcText.right, rcText2.right)) * g_flScaleFactor + 24);
+        cx += (ceil(max(rcText.right, rcText2.right) * 1.15) * g_flScaleFactor);
         GetTextMetricsW(hdcMem, &tm);
-        cy += (ceil(tm.tmHeight) + 6) * g_flScaleFactor;
+        cy += (ceil(tm.tmHeight * 1.15) + 6) * g_flScaleFactor;
         DeleteObject(hFont);
         DeleteDC(hdcMem);
 
@@ -2414,6 +2745,7 @@ namespace DirectDesktop
         CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
         pParser->GetSheet(sheetName, &sheetStorage);
         pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
+        free(sheet);
 
         // Window borders
         cx += (round(g_flScaleFactor)) * 2;
@@ -2460,7 +2792,8 @@ namespace DirectDesktop
                 SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED);
                 offset += windowRect.bottom + 18 * g_flScaleFactor;
             }
-            AnimateWindow(wnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
+            // This should use DWM later, as this would crash if it's triggered more than once within the specified time frame
+            AnimateWindow(wnd->GetHWND(), 120 * (g_animCoef / 100.0f), AW_BLEND | AW_HIDE);
             wnd->GetElement()->DestroyAll(true);
             wnd->GetElement()->Destroy(true);
             wnd->DestroyWindow();

@@ -54,6 +54,11 @@ namespace DirectDesktop
         return _colorLock;
     }
 
+    bool ThumbIcons::GetHasAdvancedIcon()
+    {
+        return _hai;
+    }
+
     void ThumbIcons::SetHiddenState(bool hiddenState)
     {
         _isHidden = hiddenState;
@@ -62,6 +67,11 @@ namespace DirectDesktop
     void ThumbIcons::SetColorLock(bool colorLockState)
     {
         _colorLock = colorLockState;
+    }
+
+    void ThumbIcons::SetHasAdvancedIcon(bool hai)
+    {
+        _hai = hai;
     }
 
     wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm)
@@ -140,25 +150,28 @@ namespace DirectDesktop
         L".jfif", L".jpe", L".jpeg", L".jpg", L".mov", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm", L".webp", L".wma", L".wmv", L".xcf"
     };
 
-    int extIterator;
+    vector<const wchar_t*> advancedIconExts = {
+        L".msc", L".url"
+    };
 
-    void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result)
+    void isSpecialProp(const wstring& filename, bool bReset, bool* result, vector<const wchar_t*>* exts)
     {
-        if (bReset) extIterator = 0;
         wstring filename2 = filename;
-        transform(filename2.begin(), filename2.end(), filename2.begin(), ::tolower);
-        size_t lastdot = filename2.find(ext);
-        if (extIterator == imageExts.size() - 1)
+        size_t lastdot = wstring::npos;
+        if (filename2.length() > 1)
         {
-            *result = false;
-            return;
+            transform(filename2.begin(), filename2.end(), filename2.begin(), ::tolower);
+            for (int i = 0; i < exts->size(); i++)
+            {
+                lastdot = filename2.find((*exts)[i]);
+                if (lastdot != wstring::npos)
+                {
+                    *result = true;
+                    return;
+                }
+            }
         }
-        if (lastdot == wstring::npos) isImage(filename, false, imageExts[++extIterator], result);
-        else
-        {
-            *result = true;
-            return;
-        }
+        *result = false;
     }
 
     bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind)
@@ -613,9 +626,12 @@ namespace DirectDesktop
                         if (isThumbnailHidden == 0)
                         {
                             bool image;
-                            isImage(foundfilename, true, imageExts[0], &image);
+                            isSpecialProp(foundfilename, true, &image, &imageExts);
                             (*pmLVItem)[*(count2)]->SetColorLock(image);
                         }
+                        bool advancedicon;
+                        isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
+                        (*pmLVItem)[*(count2)]->SetHasAdvancedIcon(advancedicon);
                         (*pmLVItem)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                         (*pmLVItem)[*(count2)]->SetFilename(foundfilename);
                         (*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
@@ -703,9 +719,12 @@ namespace DirectDesktop
                 if (isThumbnailHidden == 0)
                 {
                     bool image;
-                    isImage(foundfilename, true, imageExts[0], &image);
+                    isSpecialProp(foundfilename, true, &image, &imageExts);
                     (*strs)[runs].SetColorLock(image);
                 }
+                bool advancedicon;
+                isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
+                (*strs)[runs].SetHasAdvancedIcon(advancedicon);
                 if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2)
                 {
                     pMalloc->Free(pidl);

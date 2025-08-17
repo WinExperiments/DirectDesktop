@@ -31,7 +31,7 @@ namespace DirectDesktop
         if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
         if (touchmodeMem == !touch)
         {
-            InitLayout(false, false, false);
+            InitLayout(true, false, false);
             return;
         }
         RearrangeIcons(true, true, false);
@@ -123,7 +123,7 @@ namespace DirectDesktop
                 switch (menuItemId)
                 {
                     case 2002:
-                        InitLayout(false, false, true);
+                        InitLayout(true, false, true);
                         break;
                     case 2003:
                         ShowSimpleView(true, 0x0);
@@ -156,14 +156,14 @@ namespace DirectDesktop
                                 {
                                 case 0:
                                     TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, false, false);
-                                    TriggerFade(pm[items], transReset, 1, delay + 0.11f, delay + 0.22f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false);
+                                    TriggerFade(pm[items], transReset, 1, delay + 0.11f, delay + 0.22f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
                                     TriggerScaleOut(pm[items], transReset, 2, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, true, false);
                                     break;
                                 case 1:
                                     delay *= 2;
                                     pm[items]->SetVisible(true);
                                     TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, pm[items]->GetX(), pm[items]->GetY(), false, false);
-                                    TriggerFade(pm[items], transReset, 1, delay, delay + 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false);
+                                    TriggerFade(pm[items], transReset, 1, delay, delay + 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                                     TriggerScaleIn(pm[items], transReset, 2, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
                                     break;
                                 }

@@ -1,18 +1,20 @@
 #include "pch.h"
 
 #include "SettingsHelper.h"
-#include "DirectoryHelper.h"
+#include "..\DirectDesktop.h"
 
 using namespace std;
 using namespace DirectUI;
 
 namespace DirectDesktop
 {
+    bool g_debugmode;
     bool g_showcheckboxes;
     bool g_treatdirasgroup;
     bool g_tripleclickandhide;
     bool g_lockiconpos;
     bool g_isColorized;
+    bool g_isColorizedOld;
     bool g_isDarkIconsEnabled;
     bool g_automaticDark;
     bool g_isGlass;
@@ -69,9 +71,9 @@ namespace DirectDesktop
 
     DWORD WINAPI TempDisableToggle(LPVOID lpParam)
     {
-        SendMessageW(wnd->GetHWND(), WM_USER + 11, (WPARAM)lpParam, NULL);
+        SendMessageW(subviewwnd->GetHWND(), WM_USER + 5, (WPARAM)lpParam, NULL);
         Sleep(700);
-        SendMessageW(wnd->GetHWND(), WM_USER + 11, (WPARAM)lpParam, 1);
+        SendMessageW(subviewwnd->GetHWND(), WM_USER + 5, (WPARAM)lpParam, 1);
         return 0;
     }
 
@@ -98,7 +100,7 @@ namespace DirectDesktop
                 return;
             }
             if (ddtb->GetAssociatedFn() != nullptr)
-                ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn(), false, true, true);
+                ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
             g_atleastonesetting = true;
         }
     }

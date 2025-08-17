@@ -6,6 +6,7 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
+    DWORD g_animCoef;
 
     DWORD WINAPI DestroyElement(LPVOID lpParam)
     {
@@ -36,6 +37,8 @@ namespace DirectDesktop
     void TriggerTranslate(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float initialPosX, float initialPosY, float targetPosX, float targetPosY, bool fHide, bool fDestroy)
     {
+        flDelay *= (g_animCoef / 100.0f);
+        flDuration *= (g_animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x201;
         rgTrans[transIndex].nProperty = 1;
@@ -64,10 +67,12 @@ namespace DirectDesktop
         }
     }
     void TriggerFade(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
-        float rX0, float rY0, float rX1, float rY1, float initialOpacity, float targetOpacity, bool fHide, bool fDestroy)
+        float rX0, float rY0, float rX1, float rY1, float initialOpacity, float targetOpacity, bool fHide, bool fDestroy, bool fStuckFade)
     {
+        flDelay *= (g_animCoef / 100.0f);
+        flDuration *= (g_animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
-        rgTrans[transIndex].nFlags = 0x9;
+        rgTrans[transIndex].nFlags = fStuckFade ? 0xD : 0x9;
         rgTrans[transIndex].nProperty = 2;
         rgTrans[transIndex].dwTicket = GetGadgetTicket(pe->GetDisplayNode());
         rgTrans[transIndex].flDelay = flDelay;
@@ -95,6 +100,8 @@ namespace DirectDesktop
         float rX0, float rY0, float rX1, float rY1, float initialScaleX, float initialScaleY, float initialOriginX, float initialOriginY,
         float targetScaleX, float targetScaleY, float targetOriginX, float targetOriginY, bool fHide, bool fDestroy)
     {
+        flDelay *= (g_animCoef / 100.0f);
+        flDuration *= (g_animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x201;
         rgTrans[transIndex].nProperty = 3;
@@ -129,6 +136,8 @@ namespace DirectDesktop
     void TriggerScaleOut(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float targetScaleX, float targetScaleY, float targetOriginX, float targetOriginY, bool fHide, bool fDestroy)
     {
+        flDelay *= (g_animCoef / 100.0f);
+        flDuration *= (g_animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x204;
         rgTrans[transIndex].nProperty = 3;
@@ -157,11 +166,13 @@ namespace DirectDesktop
         }
     }
     void TriggerClip(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
-        float rX0, float rY0, float rX1, float rY1, float initialScaleX, float initialScaleY, float initialOriginX, float initialOriginY,
-        float targetScaleX, float targetScaleY, float targetOriginX, float targetOriginY, bool fHide, bool fDestroy)
+        float rX0, float rY0, float rX1, float rY1, float initialLeft, float initialTop, float initialRight, float initialBottom,
+        float targetLeft, float targetTop, float targetRight, float targetBottom, bool fHide, bool fDestroy)
     {
+        flDelay *= (g_animCoef / 100.0f);
+        flDuration *= (g_animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
-        rgTrans[transIndex].nFlags = 0x205;
+        rgTrans[transIndex].nFlags = 0x201;
         rgTrans[transIndex].nProperty = 6;
         rgTrans[transIndex].dwTicket = GetGadgetTicket(pe->GetDisplayNode());
         rgTrans[transIndex].flDelay = flDelay;
@@ -170,14 +181,14 @@ namespace DirectDesktop
         rgTrans[transIndex].Curve.ptfl1.y = rY0;
         rgTrans[transIndex].Curve.ptfl2.x = rX1;
         rgTrans[transIndex].Curve.ptfl2.y = rY1;
-        rgTrans[transIndex].vInitial.flX = initialScaleX;
-        rgTrans[transIndex].vInitial.flY = initialScaleY;
-        rgTrans[transIndex].vInitial.flOriginX = initialOriginX;
-        rgTrans[transIndex].vInitial.flOriginY = initialOriginY;
-        rgTrans[transIndex].vEnd.flX = targetScaleX;
-        rgTrans[transIndex].vEnd.flY = targetScaleY;
-        rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
-        rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
+        rgTrans[transIndex].vInitial.flX = initialRight;
+        rgTrans[transIndex].vInitial.flY = initialBottom;
+        rgTrans[transIndex].vInitial.flOriginX = initialLeft;
+        rgTrans[transIndex].vInitial.flOriginY = initialTop;
+        rgTrans[transIndex].vEnd.flX = targetRight;
+        rgTrans[transIndex].vEnd.flY = targetBottom;
+        rgTrans[transIndex].vEnd.flOriginX = targetLeft;
+        rgTrans[transIndex].vEnd.flOriginY = targetTop;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };

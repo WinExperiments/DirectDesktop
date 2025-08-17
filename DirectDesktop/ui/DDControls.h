@@ -7,6 +7,7 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
     extern int g_dpi, g_dpiLaunch;
+    extern DWORD g_animCoef;
     extern NativeHWNDHost* subviewwnd;
     extern int GetCurrentScaleInterval();
     struct yValue;
@@ -40,6 +41,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
+        static const PropertyInfo* WINAPI StopListeningProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -58,6 +60,8 @@ namespace DirectDesktop
         void SetDDCPIntensity(int intensity);
         unsigned short GetGroupColor();
         void SetGroupColor(unsigned short sGC);
+        bool GetStopListening();
+        void StopListening();
         void InitDrawImage();
         static void RedrawImages();
         void InitDrawFont();
@@ -66,7 +70,6 @@ namespace DirectDesktop
     protected:
         IElementListener* _pelPropChange{};
         static vector<DDScalableElement*> _arrCreatedElements;
-        int _intensity = 255;
         unsigned short _gc{};
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
@@ -94,6 +97,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
+        static const PropertyInfo* WINAPI StopListeningProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -110,28 +114,32 @@ namespace DirectDesktop
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void SetDDCPIntensity(int intensity);
+        bool GetStopListening();
+        void StopListening();
         void InitDrawImage();
         static void RedrawImages();
         void InitDrawFont();
         static void RedrawFonts();
 
         RegKeyValue GetRegKeyValue();
-        void (* GetAssociatedFn())(bool, bool, bool);
+        void (*GetAssociatedFn())(bool, bool, bool);
         bool* GetAssociatedBool();
         unsigned short GetGroupColor();
         void SetRegKeyValue(RegKeyValue rkvNew);
-        void SetAssociatedFn(void (*pfn)(bool, bool, bool));
+        void SetAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
         void SetAssociatedBool(bool* pb);
         void SetGroupColor(unsigned short sGC);
-        void ExecAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
+        void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
 
     protected:
         IElementListener* _pelPropChange{};
         static vector<DDScalableButton*> _arrCreatedButtons;
         RegKeyValue _rkv{};
         void (*_assocFn)(bool, bool, bool) = nullptr;
+        bool _fnb1 = false;
+        bool _fnb2 = false;
+        bool _fnb3 = false;
         bool* _assocBool = nullptr;
-        int _intensity = 255;
         unsigned short _gc{};
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
@@ -158,6 +166,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
+        static const PropertyInfo* WINAPI StopListeningProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -172,6 +181,8 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
+        bool GetStopListening();
+        void StopListening();
         void InitDrawImage();
         static void RedrawImages();
         void InitDrawFont();
@@ -180,6 +191,57 @@ namespace DirectDesktop
     protected:
         IElementListener* _pelPropChange{};
         static vector<DDScalableRichText*> _arrCreatedTexts;
+        auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+    };
+
+    //crudely done class
+    class DDScalableTouchButton : public TouchButton
+    {
+    public:
+        DDScalableTouchButton();
+        virtual ~DDScalableTouchButton();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        void SetPropChangeListener(IElementListener* pel);
+        static const PropertyInfo* WINAPI FirstScaledImageProp();
+        static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI DrawTypeProp();
+        static const PropertyInfo* WINAPI EnableAccentProp();
+        static const PropertyInfo* WINAPI NeedsFontResizeProp();
+        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
+        static const PropertyInfo* WINAPI AssociatedColorProp();
+        static const PropertyInfo* WINAPI StopListeningProp();
+        int GetFirstScaledImage();
+        int GetScaledImageIntervals();
+        int GetDrawType();
+        bool GetEnableAccent();
+        bool GetNeedsFontResize();
+        bool GetNeedsFontResize2();
+        int GetAssociatedColor();
+        void SetFirstScaledImage(int iFirstImage);
+        void SetScaledImageIntervals(int iScaleIntervals);
+        void SetDrawType(int iDrawType);
+        void SetEnableAccent(bool bEnableAccent);
+        void SetNeedsFontResize(bool bNeedsFontResize);
+        void SetNeedsFontResize2(bool bNeedsFontResize2);
+        void SetAssociatedColor(int iAssociatedColor);
+        bool GetStopListening();
+        void StopListening();
+        void InitDrawImage();
+        static void RedrawImages();
+        void InitDrawFont();
+        static void RedrawFonts();
+
+    protected:
+        IElementListener* _pelPropChange{};
+        static vector<DDScalableTouchButton*> _arrCreatedTButtons;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -245,6 +307,13 @@ namespace DirectDesktop
         LVITS_DETAILED = 2
     };
 
+    enum LVItemOpenDirState
+    {
+        LVIODS_NONE = 0,
+        LVIODS_FULLSCREEN = 1,
+        LVIODS_PINNED = 2
+    };
+
     class LVItem final : public DDScalableButton
     {
     public:
@@ -281,6 +350,7 @@ namespace DirectDesktop
         bool GetSizedFromGroup();
         bool GetFlying();
         bool GetMoving();
+        bool GetHasAdvancedIcon();
         void SetDirState(bool dirState);
         void SetGroupedDirState(bool groupedDirState);
         void SetHiddenState(bool hiddenState);
@@ -292,26 +362,27 @@ namespace DirectDesktop
         void SetSizedFromGroup(bool sfg);
         void SetFlying(bool flying);
         void SetMoving(bool moving);
+        void SetHasAdvancedIcon(bool hai);
         unsigned short GetPage();
         unsigned short GetMemPage();
         void SetPage(unsigned short pageID);
         void SetMemPage(unsigned short pageID);
-        POINTFLOAT GetAnimOrigin();
-        void SetAnimOrigin(POINTFLOAT animOrigin);
         LVItemGroupSize GetGroupSize();
         void SetGroupSize(LVItemGroupSize lvigs);
         LVItemTileSize GetTileSize();
         void SetTileSize(LVItemTileSize lvits);
-        vector<LVItem*> GetChildItems();
-        vector<DDScalableElement*> GetChildIcons();
-        vector<Element*> GetChildShadows();
-        vector<Element*> GetChildShortcutArrows();
-        vector<RichText*> GetChildFilenames();
-        void SetChildItems(vector<LVItem*> vpm);
-        void SetChildIcons(vector<DDScalableElement*> vipm);
-        void SetChildShadows(vector<Element*> vispm);
-        void SetChildShortcutArrows(vector<Element*> vspm);
-        void SetChildFilenames(vector<RichText*> vfpm);
+        LVItemOpenDirState GetOpenDirState();
+        void SetOpenDirState(LVItemOpenDirState lviods);
+        vector<LVItem*>* GetChildItems();
+        vector<DDScalableElement*>* GetChildIcons();
+        vector<Element*>* GetChildShadows();
+        vector<Element*>* GetChildShortcutArrows();
+        vector<RichText*>* GetChildFilenames();
+        void SetChildItems(vector<LVItem*>* vpm);
+        void SetChildIcons(vector<DDScalableElement*>* vipm);
+        void SetChildShadows(vector<Element*>* vispm);
+        void SetChildShortcutArrows(vector<Element*>* vspm);
+        void SetChildFilenames(vector<RichText*>* vfpm);
         void SetListeners(vector<IElementListener*> pels);
         void ClearAllListeners();
 
@@ -330,20 +401,21 @@ namespace DirectDesktop
         bool _sfg = false;
         bool _flying = false;
         bool _moving = false;
+        bool _hai = false;
         unsigned short _xPos = 65535;
         unsigned short _yPos = 65535;
         unsigned short _mem_xPos = 0;
         unsigned short _mem_yPos = 0;
         unsigned short _page{};
         unsigned short _mem_page{};
-        POINTFLOAT _ptflAnimOrigin{};
         LVItemGroupSize _groupsize = LVIGS_NORMAL;
         LVItemTileSize _tilesize = LVITS_NONE;
-        vector<LVItem*> _childItemss;
-        vector<DDScalableElement*> _childIcons;
-        vector<Element*> _childShadows;
-        vector<Element*> _childShortcutArrows;
-        vector<RichText*> _childFilenames;
+        LVItemOpenDirState _opendirstate = LVIODS_NONE;
+        vector<LVItem*>* _childItemss;
+        vector<DDScalableElement*>* _childIcons;
+        vector<Element*>* _childShadows;
+        vector<Element*>* _childShortcutArrows;
+        vector<RichText*>* _childFilenames;
         vector<IElementListener*> _pels;
     };
 

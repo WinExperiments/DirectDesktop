@@ -12,40 +12,80 @@
 			<DDCheckBoxGlyph bordercolor="argb(0,0,0,0)"/>
 			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
 			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
+			<if class="pushbuttonprimary">
+				<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
+					<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
+					<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableButton foreground="20210" FirstScaledImage="1261"/>
+					<DDLVActionButton foreground="20210" FirstScaledImage="1261"/>
+					<DDScalableTouchButton foreground="20210" FirstScaledImage="1261"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableButton foreground="rgb(248,248,248)" FirstScaledImage="1268"/>
+					<DDLVActionButton foreground="rgb(248,248,248)" FirstScaledImage="1268"/>
+					<DDScalableTouchButton foreground="rgb(248,248,248)" FirstScaledImage="1268"/>
+				</if>
+			</if>
+			<if class="pushbuttonsecondary">
+				<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
+					<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
+					<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+					<DDLVActionButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+					<DDScalableTouchButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableButton foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
+					<DDLVActionButton foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
+					<DDScalableTouchButton foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
+				</if>
+			</if>
 			<if class="popupbutton">
 				<DDScalableButton foreground="20007" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
 				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton foreground="20008" background="themeable(dtb(Explorer::ListView,1,6), argb(32,0,0,0))"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton foreground="20006" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="96" foreground="black"/>
+					<DDScalableButton foreground="rgb(128,128,128)"/>
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="black" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton foreground="black" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" padding="rect(2rp,4rp,2rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDLVActionButton FirstScaledImage="1226"/>
 				</if>
 				<if Pressed="true">
-					<DDLVActionButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDLVActionButton FirstScaledImage="1233"/>
 				</if>
 				<if Enabled="false">
-					<DDLVActionButton alpha="96"/>
+					<DDLVActionButton foreground="rgb(160,160,160)"/>
 				</if>
 			</if>
 			<if class="hyperlink">
-				<DDScalableButton foreground="20007" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20007" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton foreground="20008" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					<DDScalableButton foreground="20006" background="themeable(dtb(Explorer::ListView,1,6), argb(32,0,0,0))"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="96" foreground="black"/>
+					<DDScalableButton foreground="rgb(128,128,128)"/>
 				</if>
 			</if>
 			<if class="ScrollViewer">
@@ -270,6 +310,9 @@
 			<if class="BottomSection">
 				<DDScalableElement FirstScaledImage="1205" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
 			</if>
+			<if class="LoneSection">
+				<DDScalableElement FirstScaledImage="1212" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+			</if>
 		</style>
 		<style resid="DDBaseDark">
 			<DDScalableElement bordercolor="argb(0,0,0,0)"/>
@@ -283,40 +326,80 @@
 			<DDCheckBoxGlyph bordercolor="argb(0,0,0,0)"/>
 			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
 			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
-			<if class="popupbutton">
-				<DDScalableButton foreground="20002" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
+			<if class="pushbuttonprimary">
+				<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
 				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
+					<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
+					<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/> 
+					<DDScalableButton foreground="20209" FirstScaledImage="2261"/>
+					<DDLVActionButton foreground="20209" FirstScaledImage="2261"/>
+					<DDScalableTouchButton foreground="20209" FirstScaledImage="2261"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="96" foreground="white"/>
+					<DDScalableButton foreground="rgb(160,160,160)" FirstScaledImage="2268"/>
+					<DDLVActionButton foreground="rgb(160,160,160)" FirstScaledImage="2268"/>
+					<DDScalableTouchButton foreground="rgb(160,160,160)" FirstScaledImage="2268"/>
+				</if>
+			</if>
+			<if class="pushbuttonsecondary">
+				<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
+					<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
+					<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+					<DDLVActionButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+					<DDScalableTouchButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableButton foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
+					<DDLVActionButton foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
+					<DDScalableTouchButton foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
+				</if>
+			</if>
+			<if class="popupbutton">
+				<DDScalableButton foreground="20002" visible="false" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="iconfont" NeedsFontResize="true"/>
+				<if mousefocused="true">
+					<DDScalableButton foreground="20087" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableButton foreground="20003" background="themeable(dtb(DarkMode_Explorer::ListView,1,6), argb(32,255,255,255))"/> 
+				</if>
+				<if Enabled="false">
+					<DDScalableButton foreground="rgb(96,96,96)"/>
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="white" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(6rp,8rp,6rp,8rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
+				<DDLVActionButton foreground="white" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" padding="rect(2rp,4rp,2rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<DDLVActionButton alpha="255" background="themeable(dtb(Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDLVActionButton FirstScaledImage="2226"/>
 				</if>
 				<if Pressed="true">
-					<DDLVActionButton alpha="160" background="themeable(dtb(Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDLVActionButton FirstScaledImage="2233"/>
 				</if>
 				<if Enabled="false">
-					<DDLVActionButton alpha="96"/>
+					<DDLVActionButton foreground="rgb(96,96,96)"/>
 				</if>
 			</if>
 			<if class="hyperlink">
-				<DDScalableButton foreground="20002" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableButton foreground="20002" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;115%" NeedsFontResize="true"/>
 				<if mousefocused="true">
-					<DDScalableButton alpha="255" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDScalableButton foreground="20087" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton alpha="160" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					<DDScalableButton foreground="20003" background="themeable(dtb(DarkMode_Explorer::ListView,1,6), argb(32,255,255,255))"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton alpha="96" foreground="white"/>
+					<DDScalableButton foreground="rgb(96,96,96)"/>
 				</if>
 			</if>
 			<if class="ScrollViewer">
@@ -540,6 +623,9 @@
 			</if>
 			<if class="BottomSection">
 				<DDScalableElement FirstScaledImage="2205" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+			</if>
+			<if class="LoneSection">
+				<DDScalableElement FirstScaledImage="2212" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
 		</style>
 	</stylesheets>

@@ -628,7 +628,10 @@ namespace DirectDesktop
         ShutdownEventTracker->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
         DeleteObject(dummyi);
         DeleteObject(colorBMP2);
-        int WindowsBuild = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SYSTEM\\Software\\Microsoft\\BuildLayers\\ShellCommon", L"BuildNumber");
+        WCHAR* WindowsBuildStr;
+        GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+        int WindowsBuild = _wtoi(WindowsBuildStr);
+        free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
         BOOL value = TRUE;
         LPWSTR sheetName = (LPWSTR)L"shutdownstyle";

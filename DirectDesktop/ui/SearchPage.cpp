@@ -2,7 +2,6 @@
 
 #include "SearchPage.h"
 #include "..\DirectDesktop.h"
-#include "DDControls.h"
 #include "..\coreui\BitmapHelper.h"
 #include "..\backend\DirectoryHelper.h"
 
@@ -29,12 +28,20 @@ namespace DirectDesktop
         switch (uMsg)
         {
             case WM_CLOSE:
-                DestroySearchPage();
+                SetTimer(hWnd, 1, 50, nullptr);
                 return 0;
                 break;
             case WM_DESTROY:
                 return 0;
                 break;
+            case WM_TIMER:
+                KillTimer(hWnd, wParam);
+                switch (wParam)
+                {
+                case 1:
+                    DestroySearchPage();
+                    break;
+                }
         }
         return CallWindowProc(WndProcSearch, hWnd, uMsg, wParam, lParam);
     }
@@ -144,7 +151,8 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Click)
         {
-            DestroySearchPage();
+            ((DDScalableButton*)elem)->StopListening();
+            SetTimer(searchwnd->GetHWND(), 1, 50, nullptr);
         }
     }
 

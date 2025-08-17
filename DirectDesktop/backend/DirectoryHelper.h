@@ -33,24 +33,22 @@ namespace DirectDesktop
         void SetFilename(const wstring& wsFilename);
         bool GetHiddenState();
         bool GetColorLock();
+        bool GetHasAdvancedIcon();
         void SetHiddenState(bool hiddenState);
         void SetColorLock(bool colorLockState);
+        void SetHasAdvancedIcon(bool hai);
 
     private:
         wstring _filename{};
         bool _isHidden = false;
         bool _colorLock = false;
+        bool _hai = false;
     };
 
     extern vector<const wchar_t*> imageExts;
+    extern vector<const wchar_t*> advancedIconExts;
     wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm);
-    void isImage(const wstring& filename, bool bReset, const wchar_t* ext, bool* result);
-    bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind);
-    int GetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName);
-    void SetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, DWORD dwValue, bool find, bool* isNewValue);
-    bool GetRegistryStrValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, WCHAR** outStr);
-    bool GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE** outBytes);
-    void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE* bValue, DWORD length, bool find, bool* isNewValue);
+    void isSpecialProp(const wstring& filename, bool bReset, bool* result, vector<const wchar_t*>* exts);
     wstring GetExplorerTooltipText(const wstring& filePath);
     void StartMonitorFileChanges(const wstring& path);
     void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigned short* countedItems = nullptr, int* count2 = nullptr, unsigned short limit = 65535);
@@ -58,7 +56,5 @@ namespace DirectDesktop
     void GetPos(bool getSpotlightIcon, int* setSpotlightIcon);
     void GetPos2(bool full);
     void SetPos(bool full);
-    HWND GetWorkerW();
-    HWND GetWorkerW2(int* x, int* y);
     bool PlaceDesktopInPos(int* WindowsBuild, HWND* hWndProgman, HWND* hWorkerW, HWND* hSHELLDLL_DefView, bool findSHELLDLL_DefView);
 }

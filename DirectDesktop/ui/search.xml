@@ -5,8 +5,8 @@
 		</Element>
 		<Element layout="borderlayout()" layoutpos="client" padding="rect(48rp,48rp,48rp,48rp)" class="searchview" behaviors="PVL::EnsureLayered()">
 			<Element layout="borderlayout()" layoutpos="top" font="15pt;Normal;None;Segoe UI" margin="rect(0,0,0,16rp)" background="argb(0,0,0,0)">
-				<DDScalableButton id="atom(closebutton)" layoutpos="right" foreground="white" class="actionbutton" contentalign="middlecenter" content=" X "/>
-				<DDScalableButton id="atom(searchbutton)" layoutpos="right" foreground="gray" class="actionbutton" contentalign="middlecenter" content="Search"/>
+				<DDScalableButton id="atom(closebutton)" layoutpos="right" font="15pt;Normal;None;Segoe UI" height="40rp" margin="rect(16rp,0,0,0)" class="pushbuttonsecondary" contentalign="middlecenter" content="X" padding="rect(8rp,0,8rp,0)"/>
+				<DDScalableButton id="atom(searchbutton)" layoutpos="right" font="15pt;Normal;None;Segoe UI" height="40rp" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" contentalign="middlecenter" content="Search" padding="rect(8rp,0,8rp,0)"/>
 				<Element layoutpos="left" layout="filllayout()" height="40rp" background="argb(0,0,0,0)" padding="rect(0,0,16rp,0)">
 					<DDScalableElement id="atom(searchboxbackground)" layoutpos="client" class="Ver0_5_editbg"/>
 					<Element layoutpos="client" layout="filllayout()" padding="rect(4rp,4rp,4rp,4rp)">
@@ -43,9 +43,6 @@
 			<if class="searchview">
 				<Element background="argb(128,224,224,224)"/>
 			</if>
-			<if class="actionbutton">
-				<DDScalableButton FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" height="40rp" margin="rect(16rp,0,0,0)" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
-			</if>
 		</style>
 		<style resid="searchstyledark" base="ressheet(31, DDBaseDark)">
 			<if id="atom(searchbase)">
@@ -60,9 +57,6 @@
 			<DDScalableRichText foreground="white"/>
 			<if class="searchview">
 				<Element background="argb(128,32,32,32)"/>
-			</if>
-			<if class="actionbutton">
-				<DDScalableButton FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" height="40rp" margin="rect(16rp,0,0,0)" borderthickness="rect(8rp,8rp,8rp,8rp)" compositedtext="true" textglowsize="0"/>
 			</if>
 		</style>
 	</stylesheets>
