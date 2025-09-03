@@ -5,6 +5,7 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
 	extern DWORD g_animCoef;
+	extern bool g_AnimShiftKey;
 
 	void TriggerTranslate(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
 		float rX0, float rY0, float rX1, float rY1, float initialPosX, float initialPosY, float targetPosX, float targetPosY, bool fHide, bool fDestroy);

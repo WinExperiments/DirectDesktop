@@ -11,6 +11,7 @@
 #include <wrl.h>
 #include <wtsapi32.h>
 
+#include "build_timestamp.h"
 #include "backend\ContextMenus.h"
 #include "backend\DirectoryHelper.h"
 #include "backend\RenameCore.h"
@@ -22,6 +23,8 @@
 #include "ui\SearchPage.h"
 #include "ui\ShutdownDialog.h"
 #include "ui\Subview.h"
+
+#pragma comment(lib, "version.lib")
 
 using namespace DirectUI;
 using namespace std;
@@ -220,7 +223,6 @@ namespace DirectDesktop
     DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam);
     void ShowDirAsGroupDesktop(LVItem* lvi, bool fNew);
     void SelectItem(Element* elem, Event* iev);
-    void SelectItem2(Element* elem, Event* iev);
     void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
@@ -253,16 +255,11 @@ namespace DirectDesktop
                     SIIGBF flags = SIIGBF_RESIZETOFIT;
                     if (!hasThumbnail) flags |= SIIGBF_ICONONLY;
                     if (SUCCEEDED(pImageFactory->GetImage(size, flags, &hBitmap)));
-                    else hBitmap = nullptr;
                 }
             }
-            else
-            {
-                IconToBitmap(fallback, hBitmap, width * g_flScaleFactor, height * g_flScaleFactor);
-            }
+            else IconToBitmap(fallback, hBitmap, width * g_flScaleFactor, height * g_flScaleFactor);
         }
-        else
-            IconToBitmap(fallback, hBitmap, width * g_flScaleFactor, height * g_flScaleFactor);
+        else IconToBitmap(fallback, hBitmap, width * g_flScaleFactor, height * g_flScaleFactor);
 
         return true;
     }
@@ -350,7 +347,7 @@ namespace DirectDesktop
     {
         for (int items = 0; items < pm.size(); items++)
         {
-            if (pm[items]->GetPage() == g_currentPageID)
+            if (pm[items]->GetMemPage() == g_currentPageID)
             {
                 pm[items]->SetVisible(!g_hiddenIcons);
                 GTRANS_DESC transDesc[2];
@@ -360,51 +357,57 @@ namespace DirectDesktop
                 ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
                 DUI_SetGadgetZOrder(pm[items], -1);
             }
-            else if (!g_editmode && pm[items]->GetPage() == g_currentPageID - direction) pm[items]->SetVisible(!g_hiddenIcons);
+            else if (!g_editmode && pm[items]->GetMemPage() == g_currentPageID - direction) pm[items]->SetVisible(!g_hiddenIcons);
             else pm[items]->SetVisible(false);
         }
         short animSrc = (localeType == 1) ? direction * -1 : direction;
         float originX = 0.5f + 0.28f * animSrc;
+        float originXAmplified = 0.5f + 0.32f * animSrc;
         animSrc *= dimensions.right;
         GTRANS_DESC transDesc[5];
         TransitionStoryboardInfo tsbInfo = {};
         for (int items = 0; items < pm.size(); items++)
         {
-            if (pm[items]->GetPage() == g_currentPageID - direction)
+            if (pm[items]->GetMemPage() == g_currentPageID - direction)
             {
                 float offset = animSrc * -1.14f;
                 TriggerTranslate(pm[items], transDesc, 0, 0.1f, 0.1f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX() + offset, pm[items]->GetY(), pm[items]->GetX() + offset, pm[items]->GetY(), false, false);
-                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc) - 4, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                TriggerFade(pm[items], transDesc, 1, 0.083f, 0.217f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TriggerFade(pm[items], transDesc, 2, 0.33f, 0.33f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, true);
+                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc) - 2, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
                 DUI_SetGadgetZOrder(pm[items], -1);
             }
         }
-        TriggerScaleIn(UIContainer, transDesc, 0, 0.0f, 0.45f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
+        TriggerScaleIn(UIContainer, transDesc, 0, 0.0f, 0.25f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
         TriggerTranslate(UIContainer, transDesc, 1, 0.1f, 0.6f, 0.1f, 0.9f, 0.2f, 1.0f, animSrc, 0.0f, 0.0f, 0.0f, false, false);
-        TriggerScaleIn(UIContainer, transDesc, 2, 0.25f, 0.6f, 0.15f, 0.54f, 0.4f, 0.88f, 0.88f, 0.88f, originX, 0.5f, 1.0f, 1.0f, originX, 0.5f, false, false);
+        TriggerScaleIn(UIContainer, transDesc, 2, 0.25f, 0.6f, 0.15f, 0.54f, 0.4f, 0.88f, 0.88f, 0.88f, 0.5f, 0.5f, 1.0f, 1.0f, originX, 0.5f, false, false);
         ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc) - 2, transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         DUI_SetGadgetZOrder(UIContainer, -1);
         Element* pageVisual[2];
         for (int i = 0; i < 2; i++)
         {
-            static float animSrc2 = 0;
-            // 0.5 M9: Temporarily looks like that in case I change my mind and make it animate 2 overlays side by side
-            if (i == 1)
+            static float fade, fadedelay, animSrc2;
+            if (i == 0)
             {
-                parser->CreateElement(L"pageVisual", nullptr, nullptr, nullptr, &pageVisual[i]);
-                mainContainer->Add(&pageVisual[i], 1);
-                pageVisual[i]->SetWidth(dimensions.right);
-                pageVisual[i]->SetHeight(dimensions.bottom);
-                //TriggerScaleOut(pageVisual[i], transDesc, 0, 0.0f, 0.45f, 0.1f, 0.9f, 0.2f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
-                TriggerTranslate(pageVisual[i], transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, animSrc2, 0.0f, animSrc2, 0.0f, false, false);
-                TriggerScaleOut(pageVisual[i], transDesc, 1, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
-                TriggerTranslate(pageVisual[i], transDesc, 2, 0.1f, 0.6f, 0.1f, 0.9f, 0.2f, 1.0f, animSrc2, 0.0f, animSrc * -1, 0.0f, false, false);
-                TriggerFade(pageVisual[i], transDesc, 3, 0.33f, 0.467f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-                TriggerScaleIn(pageVisual[i], transDesc, 4, 0.25f, 0.6f, 0.15f, 0.54f, 0.4f, 0.88f, 0.88f, 0.88f, originX, 0.5f, 1.0f, 1.0f, originX, 0.5f, false, true);
-                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, pageVisual[i]->GetDisplayNode(), &tsbInfo);
-                DUI_SetGadgetZOrder(pageVisual[i], -2);
+                fade = 0.0f;
+                fadedelay = 0.083f;
+                animSrc2 = 0;
             }
+            parser->CreateElement(L"pageVisual", nullptr, nullptr, nullptr, &pageVisual[i]);
+            mainContainer->Add(&pageVisual[i], 1);
+            pageVisual[i]->SetWidth(dimensions.right);
+            pageVisual[i]->SetHeight(dimensions.bottom);
+            TriggerFade(pageVisual[i], transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleOut(pageVisual[i], transDesc, 1, 0.0f, 0.25f, 0.1f, 0.9f, 0.2f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
+            TriggerTranslate(pageVisual[i], transDesc, 2, 0.1f, 0.6f, 0.1f, 0.9f, 0.2f, 1.0f, animSrc2, 0.0f, animSrc * -1, 0.0f, false, false);
+            TriggerFade(pageVisual[i], transDesc, 3, fadedelay, fadedelay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+            TriggerScaleIn(pageVisual[i], transDesc, 4, 0.25f, 0.6f, 0.15f, 0.54f, 0.4f, 0.88f, 0.88f, 0.88f, 0.5f, 0.5f, 1.0f, 1.0f, originX, 0.5f, false, true);
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, pageVisual[i]->GetDisplayNode(), &tsbInfo);
+            DUI_SetGadgetZOrder(pageVisual[i], -2);
             animSrc2 = animSrc;
             animSrc = 0;
+            fade = 1.0f;
+            fadedelay = 0.33f;
         }
     }
 
@@ -458,7 +461,9 @@ namespace DirectDesktop
                     }
                     ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, pel->GetItem(id)->GetDisplayNode(), &tsbInfo);
                     animating.push_back(pel->GetItem(id));
-                    yValuePtrs* yV = new yValuePtrs{ &animating, pel->GetItem(id), static_cast<DWORD>(3.3f * g_animCoef) };
+                    DWORD animCoef = g_animCoef;
+                    if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                    yValuePtrs* yV = new yValuePtrs{ &animating, pel->GetItem(id), static_cast<DWORD>(3.3f * animCoef) };
                     HANDLE hRemoveFromVec = CreateThread(nullptr, 0, RemoveFromVec, yV, NULL, nullptr);
                     if (hRemoveFromVec) CloseHandle(hRemoveFromVec);
                 }
@@ -756,7 +761,7 @@ namespace DirectDesktop
                         {
                             GTRANS_DESC transDesc[1];
                             TransitionStoryboardInfo tsbInfo = {};
-                            if (lvi->GetMemPage() == lvi->GetPage())
+                            if (lvi->GetPreRefreshMemPage() == lvi->GetPage())
                             {
                                 TriggerTranslate(lvi, transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f, lvi->GetX(), lvi->GetY(), lvi->GetMemXPos(), lvi->GetMemYPos(), false, false);
                                 ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, lvi->GetDisplayNode(), &tsbInfo);
@@ -781,7 +786,9 @@ namespace DirectDesktop
                                 TriggerFade(lvi, transDesc, 0, 0.0f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                                 ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, lvi->GetDisplayNode(), &tsbInfo);
                             }
-                            DWORD dwDEA = 400 * (g_animCoef / 100.0f) + 100;
+                            DWORD animCoef = g_animCoef;
+                            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                            DWORD dwDEA = 400 * (animCoef / 100.0f) + 100;
                             DelayedElementActions* dea = new DelayedElementActions{ dwDEA, lvi, static_cast<float>(lvi->GetMemXPos()), static_cast<float>(lvi->GetMemYPos()) };
                             DWORD DelayedSetPos;
                             HANDLE hDelayedSetPos = CreateThread(nullptr, 0, SetLVIPos, dea, NULL, nullptr);
@@ -888,7 +895,6 @@ namespace DirectDesktop
                     }
                     pm[lParam]->SetBackgroundStdColor(20575);
                     pm[lParam]->SetDrawType(0);
-                    v_pels.push_back(assignFn(pm[lParam], SelectItem2, true));
                     int* itemID = (int*)(&lParam);
                     HANDLE hCreateGroup = CreateThread(nullptr, 0, InitDesktopGroup, itemID, 0, nullptr);
                     if (hCreateGroup) CloseHandle(hCreateGroup);
@@ -999,7 +1005,7 @@ namespace DirectDesktop
                         iconborders.cxRightWidth > borders.cxLeftWidth &&
                         borders.cyBottomHeight + borders.cyTopHeight > iconborders.cyTopHeight &&
                         iconborders.cyBottomHeight > borders.cyTopHeight);
-                    if (pm[items]->GetPage() == g_currentPageID)
+                    if (pm[items]->GetPage() == g_currentPageID && !(g_treatdirasgroup && pm[items]->GetGroupSize() != LVIGS_NORMAL))
                         pm[items]->SetSelected(selectstate);
                 }
                 break;
@@ -1103,13 +1109,7 @@ namespace DirectDesktop
                     short animSrc = (localeType == 1) ? 1 : -1;
                     animSrc *= dimensions.right;
                     for (int i = 0; i < internalselectedLVItems.size(); i++)
-                    {
                         internalselectedLVItems[i]->SetPage(g_currentPageID);
-                        if (g_currentPageID == internalselectedLVItems[i]->GetMemPage())
-                            internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetMemXPos());
-                        else
-                            internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetMemXPos() - animSrc);
-                    }
                     TriggerPageTransition(-1, dimensions);
                     nextpageMain->SetVisible(true);
                     if (g_currentPageID == 1) prevpageMain->SetVisible(false);
@@ -1121,13 +1121,7 @@ namespace DirectDesktop
                     short animSrc = (localeType == 1) ? -1 : 1;
                     animSrc *= dimensions.right;
                     for (int i = 0; i < internalselectedLVItems.size(); i++)
-                    {
                         internalselectedLVItems[i]->SetPage(g_currentPageID);
-                        if (g_currentPageID == internalselectedLVItems[i]->GetMemPage())
-                            internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetMemXPos());
-                        else
-                            internalselectedLVItems[i]->SetX(internalselectedLVItems[i]->GetMemXPos() - animSrc);
-                    }
                     TriggerPageTransition(1, dimensions);
                     prevpageMain->SetVisible(true);
                     if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
@@ -1216,17 +1210,22 @@ namespace DirectDesktop
                                         internalselectedLVItems[items]->SetMemYPos(finaldestY);
                                         internalselectedLVItems[items]->SetInternalXPos(saveddestX / outerSizeX);
                                         internalselectedLVItems[items]->SetInternalYPos((finaldestY - desktoppadding_y) / outerSizeY);
-                                        internalselectedLVItems[items]->SetMemPage(internalselectedLVItems[items]->GetPage());
-                                        DWORD dwDEA = 400 * (g_animCoef / 100.0f);
+                                        DWORD animCoef = g_animCoef;
+                                        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                                        DWORD dwDEA = 400 * (animCoef / 100.0f);
                                         DelayedElementActions* dea = new DelayedElementActions{ dwDEA, internalselectedLVItems[items], static_cast<float>(finaldestX), static_cast<float>(finaldestY) };
                                         DWORD DelayedSetPos;
                                         HANDLE hDelayedSetPos = CreateThread(nullptr, 0, SetLVIPos, dea, NULL, nullptr);
                                         if (hDelayedSetPos) CloseHandle(hDelayedSetPos);
                                         GTRANS_DESC transDesc[1];
                                         TransitionStoryboardInfo tsbInfo = {};
-                                        TriggerTranslate(internalselectedLVItems[items], transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f, internalselectedLVItems[items]->GetX(), internalselectedLVItems[items]->GetY(), finaldestX, finaldestY, false, false);
+                                        TriggerTranslate(internalselectedLVItems[items], transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f,
+                                            internalselectedLVItems[items]->GetX() - (g_currentPageID - internalselectedLVItems[items]->GetMemPage()) * dimensions.right,
+                                            internalselectedLVItems[items]->GetY(), finaldestX, finaldestY, false, false);
                                         ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, internalselectedLVItems[items]->GetDisplayNode(), &tsbInfo);
                                         DUI_SetGadgetZOrder(internalselectedLVItems[items], -1);
+                                        internalselectedLVItems[items]->SetMemPage(internalselectedLVItems[items]->GetPage());
+                                        internalselectedLVItems[items]->SetVisible(true);
                                     }
                                 }
                             }
@@ -1413,17 +1412,9 @@ namespace DirectDesktop
                 toRemove = nullptr;
                 break;
             }
-            //case WM_USER + 22: {
-            //    int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
-            //    LVItem* toRename = (LVItem*)wParam;
-            //    FileInfo* fi = (FileInfo*)lParam;
-            //    wstring foundfilename = (wstring)L"\"" + fi->filepath + (wstring)L"\\" + fi->filename + (wstring)L"\"";
-            //    toRename->SetFilename(foundfilename);
-            //    DWORD attr = GetFileAttributesW(RemoveQuotes(foundfilename).c_str());
-            //    toRename->SetSimpleFilename(hideExt(fi->filename, isFileExtHidden, (attr & 16), toRename));
-            //    SelectItemListener(toRename, Element::SelectedProp(), 69, NULL, NULL);
-            //    break;
-            //}
+            case WM_USER + 22: {
+                break;
+            }
             case WM_USER + 23:
             {
                 break;
@@ -1588,25 +1579,186 @@ namespace DirectDesktop
                 DelayedElementActions* dea = (DelayedElementActions*)wParam;
                 if (dea->pe)
                 {
-                    switch (lParam)
+                    if (!dea->pe->IsDestroyed())
                     {
-                    case 1:
-                        dea->pe->SetVisible(false);
-                        dea->pe->DestroyAll(true);
-                        dea->pe->Destroy(true);
-                        break;
-                    case 2:
-                        dea->pe->SetVisible(!dea->pe->GetVisible());
-                        break;
-                    case 3:
-                        if (!dea->pe->GetMouseWithin()) dea->pe->SetSelected(false);
-                        break;
-                    case 4:
-                        dea->pe->SetX(dea->val1);
-                        dea->pe->SetY(dea->val2);
+                        switch (lParam)
+                        {
+                        case 1:
+                            dea->pe->SetVisible(false);
+                            dea->pe->DestroyAll(true);
+                            dea->pe->Destroy(true);
+                            break;
+                        case 2:
+                            dea->pe->SetVisible(!dea->pe->GetVisible());
+                            break;
+                        case 3:
+                            if (!dea->pe->GetMouseWithin()) dea->pe->SetSelected(false);
+                            break;
+                        case 4:
+                            dea->pe->SetX(dea->val1);
+                            dea->pe->SetY(dea->val2);
+                        }
                     }
                 }
                 delete dea;
+                break;
+            }
+            case WM_USER + 6:
+            {
+                bool vertical = ((DDSlider*)wParam)->GetIsVertical();
+                Button* peTrackBase, *peFillBase;
+                Element* peSliderInner, *peTrackHolder;
+                DDScalableButton* peThumb;
+                DDScalableElement* peTrack, *peFill, *peThumbInner;
+                DDScalableRichText* peText;
+
+                BYTE DDSFillLayoutPos = vertical ? 3 : 0;
+                CValuePtr spvLayout;
+                BorderLayout::Create(0, nullptr, &spvLayout);
+                ((Element*)wParam)->SetValue(Element::LayoutProp, 1, spvLayout);
+
+                DDScalableRichText::Create((Element*)wParam, nullptr, (Element**)&peText);
+                ((Element*)wParam)->Add((Element**)&peText, 1);
+                peText->SetID(L"DDS_Text");
+                if (vertical) peText->SetHeight(((DDSlider*)wParam)->GetTextHeight());
+                else peText->SetWidth(((DDSlider*)wParam)->GetTextWidth());
+                peText->SetLayoutPos(DDSFillLayoutPos);
+
+                FillLayout::Create(0, nullptr, &spvLayout);
+                Element::Create(0, (Element*)wParam, nullptr, &peSliderInner);
+                ((Element*)wParam)->Add(&peSliderInner, 1);
+                peSliderInner->SetValue(Element::LayoutProp, 1, spvLayout);
+                peSliderInner->SetLayoutPos(4);
+
+                const WCHAR* szClassName = vertical ? L"DDS_Vert" : L"DDS_Horiz";
+
+                DDSFillLayoutPos = vertical ? 1 : 2;
+                BorderLayout::Create(0, nullptr, &spvLayout);
+                Element::Create(0, peSliderInner, nullptr, &peTrackHolder);
+                peSliderInner->Add(&peTrackHolder, 1);
+                peTrackHolder->SetValue(Element::LayoutProp, 1, spvLayout);
+                peTrackHolder->SetLayoutPos(DDSFillLayoutPos);
+
+                FillLayout::Create(0, nullptr, &spvLayout);
+
+                Button::Create(peTrackHolder, nullptr, (Element**)&peTrackBase);
+                peTrackHolder->Add((Element**)&peTrackBase, 1);
+                peTrackBase->SetID(L"DDS_TrackBase");
+                peTrackBase->SetValue(Element::LayoutProp, 1, spvLayout);
+                peTrackBase->SetLayoutPos(DDSFillLayoutPos);
+                assignFn(peTrackBase, SetThumbPosOnClick);
+
+                DDSFillLayoutPos = vertical ? 3 : 0;
+                Button::Create(peTrackHolder, nullptr, (Element**)&peFillBase);
+                peTrackHolder->Add((Element**)&peFillBase, 1);
+                peFillBase->SetID(L"DDS_FillBase");
+                peFillBase->SetValue(Element::LayoutProp, 1, spvLayout);
+                peFillBase->SetLayoutPos(DDSFillLayoutPos);
+                assignFn(peFillBase, SetThumbPosOnClick);
+
+                DDSFillLayoutPos = vertical ? 0 : 3;
+                DDScalableElement::Create(peTrackBase, nullptr, (Element**)&peTrack);
+                peTrackBase->Add((Element**)&peTrack, 1);
+                peTrack->SetID(L"DDS_Track");
+                peTrack->SetClass(szClassName);
+                peTrack->SetLayoutPos(DDSFillLayoutPos);
+
+                DDScalableElement::Create(peFillBase, nullptr, (Element**)&peFill);
+                peFillBase->Add((Element**)&peFill, 1);
+                peFill->SetID(L"DDS_Fill");
+                peFill->SetClass(szClassName);
+                peFill->SetLayoutPos(DDSFillLayoutPos);
+
+                DDScalableButton::Create(peSliderInner, nullptr, (Element**)&peThumb);
+                peSliderInner->Add((Element**)&peThumb, 1);
+                peThumb->SetID(L"DDS_Thumb");
+                peThumb->SetValue(Element::LayoutProp, 1, spvLayout);
+                assignExtendedFn(peThumb, SetThumbPosOnDrag);
+
+                DDScalableElement::Create(peThumb, nullptr, (Element**)&peThumbInner);
+                peThumb->Add((Element**)&peThumbInner, 1);
+                peThumbInner->SetID(L"DDS_ThumbInner");
+                float relMaxValue = ((DDSlider*)wParam)->GetMaxValue() - ((DDSlider*)wParam)->GetMinValue();
+                float relCurrValue = ((DDSlider*)wParam)->GetCurrentValue() - ((DDSlider*)wParam)->GetMinValue();
+                if (vertical)
+                {
+                    int height = ((Element*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight();
+                    peTrackHolder->SetHeight(height);
+                    peTrackBase->SetHeight(round(height * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetHeight()));
+                    peFillBase->SetHeight(round(height * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetHeight()));
+                    peThumb->SetY(round(peTrackBase->GetHeight() - peThumb->GetHeight() / 2.0f));
+                    peThumb->SetX(floor((((DDSlider*)wParam)->GetWidth() - peThumb->GetWidth()) / 2.0f));
+                    float padding = (((Element*)wParam)->GetWidth() - peTrack->GetWidth()) / 2.0f;
+                    peTrackBase->SetPadding(floor(padding), 0, ceil(padding), 0);
+                    peFillBase->SetPadding(floor(padding), 0, ceil(padding), 0);
+                }
+                else
+                {
+                    int width = ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth();
+                    peTrackHolder->SetWidth(width);
+                    peTrackBase->SetWidth(round(width * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetWidth()));
+                    peFillBase->SetWidth(round(width * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetWidth()));
+                    peThumb->SetX(((localeType == 1) ? round(peTrackBase->GetWidth()) : round(peFillBase->GetWidth())) - peThumb->GetWidth() / 2.0f);
+                    peThumb->SetY(floor((((DDSlider*)wParam)->GetHeight() - peThumb->GetHeight()) / 2.0f));
+                    float padding = (((DDSlider*)wParam)->GetHeight() - peTrack->GetHeight()) / 2.0f;
+                    peTrackBase->SetPadding(0, floor(padding), 0, ceil(padding));
+                    peFillBase->SetPadding(0, floor(padding), 0, ceil(padding));
+                }
+                WCHAR formattedNum[8];
+                StringCchPrintfW(formattedNum, 8, ((DDSlider*)wParam)->GetFormattedString(), ((DDSlider*)wParam)->GetCurrentValue());
+                peText->SetContentString(formattedNum);
+                break;
+            }
+            case WM_USER + 7:
+            {
+                CSafeElementPtr<Button> peTrack;
+                peTrack.Assign(regElem<Button*>(L"DDS_TrackBase", (Element*)wParam));
+                CSafeElementPtr<Button> peFill;
+                peFill.Assign(regElem<Button*>(L"DDS_FillBase", (Element*)wParam));
+                CSafeElementPtr<DDScalableButton> peThumb;
+                peThumb.Assign(regElem<DDScalableButton*>(L"DDS_Thumb", (Element*)wParam));
+                CSafeElementPtr<DDScalableRichText> peText;
+                peText.Assign(regElem<DDScalableRichText*>(L"DDS_Text", (Element*)wParam));
+                POINT ppt;
+                GetCursorPos(&ppt);
+                bool vertical = ((DDSlider*)wParam)->GetIsVertical();
+                float percentage{}, assocVal{};
+                if (vertical)
+                {
+                    int sliderSize = ((DDSlider*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight();
+                    float height = ((DDSlider*)wParam)->GetFillOnDragStart() + ppt.y - ((DDSlider*)wParam)->GetDragStart();
+                    if (height < floor(peThumb->GetHeight() / 2.0f)) height = floor(peThumb->GetHeight() / 2.0f);
+                    if (height > ((DDSlider*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight() - floor(peThumb->GetHeight() / 2.0f)) height = ((DDSlider*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight() - floor(peThumb->GetHeight() / 2.0f);
+                    float fillheight = ((DDSlider*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight() - height;
+                    int y = ((DDSlider*)wParam)->GetPosOnDragStart() + ppt.y - ((DDSlider*)wParam)->GetDragStart();
+                    if (y < 0) y = 0;
+                    if (y > ((DDSlider*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight() - peThumb->GetHeight()) y = ((DDSlider*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight() - peThumb->GetHeight();
+                    peTrack->SetHeight(height);
+                    peFill->SetHeight(fillheight);
+                    peThumb->SetY(y);
+                    percentage = static_cast<float>(fillheight - peThumb->GetHeight() / 2.0f) / (sliderSize - peThumb->GetHeight());
+                }
+                else
+                {
+                    int sliderSize = ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth();
+                    float width = ((DDSlider*)wParam)->GetFillOnDragStart() + ppt.x - ((DDSlider*)wParam)->GetDragStart();
+                    if (width < floor(peThumb->GetWidth() / 2.0f)) width = floor(peThumb->GetWidth() / 2.0f);
+                    if (width > ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth() - floor(peThumb->GetWidth() / 2.0f)) width = ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth() - floor(peThumb->GetWidth() / 2.0f);
+                    float fillwidth = ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth() - width;
+                    int x = ((DDSlider*)wParam)->GetPosOnDragStart() + ppt.x - ((DDSlider*)wParam)->GetDragStart();
+                    if (x < 0) x = 0;
+                    if (x > ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth() - peThumb->GetWidth()) x = ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth() - peThumb->GetWidth();
+                    peTrack->SetWidth((localeType == 1) ? width : fillwidth);
+                    peFill->SetWidth((localeType == 1) ? fillwidth : width);
+                    peThumb->SetX(x);
+                    percentage = static_cast<float>(((localeType == 1) ? fillwidth : width) - peThumb->GetWidth() / 2.0f) / (sliderSize - peThumb->GetWidth());
+                }
+                if (percentage < 0) percentage = 0;
+                if (percentage > 1) percentage = 1;
+                assocVal = ((DDSlider*)wParam)->GetMinValue() + (((DDSlider*)wParam)->GetMaxValue() - ((DDSlider*)wParam)->GetMinValue()) * percentage;
+                WCHAR formattedNum[8];
+                StringCchPrintfW(formattedNum, 8, ((DDSlider*)wParam)->GetFormattedString(), assocVal);
+                peText->SetContentString(formattedNum);
                 break;
             }
         }
@@ -2135,7 +2287,9 @@ namespace DirectDesktop
                 TriggerScaleOut(elem, transDesc2, 0, 0.0f, 0.25f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, ElemOrigin, 0.5f, false, false);
                 TransitionStoryboardInfo tsbInfo2 = {};
                 ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, elem->GetDisplayNode(), &tsbInfo2);
-                DWORD dwDEA = 250 * (g_animCoef / 100.0f);
+                DWORD animCoef = g_animCoef;
+                if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                DWORD dwDEA = 250 * (animCoef / 100.0f);
                 DelayedElementActions* dea = new DelayedElementActions{ dwDEA, elem };
                 DWORD DelayedSelect;
                 HANDLE hDelayedSelect = CreateThread(nullptr, 0, DeselectElement, dea, NULL, nullptr);
@@ -2629,6 +2783,7 @@ namespace DirectDesktop
                 emptyview.Assign(regElem<Element*>(L"emptyview", groupdirectory));
                 emptyview->SetVisible(true);
                 CSafeElementPtr<DDScalableElement> emptygraphic;
+                emptygraphic.Assign(regElem<DDScalableElement*>(L"emptygraphic", groupdirectory));
                 if (iconElement->GetGroupColor() >= 1)
                     emptygraphic->SetAssociatedColor(colorPickerPalette[iconElement->GetGroupColor() - 1]);
                 CSafeElementPtr<Element> dirtitle;
@@ -2699,7 +2854,11 @@ namespace DirectDesktop
             if (GetAsyncKeyState(VK_CONTROL) == 0 && checkbox->GetMouseFocused() == false)
             {
                 for (int items = 0; items < pm.size(); items++)
+                {
                     pm[items]->SetSelected(false);
+                    if (pm[items]->GetPage() != g_currentPageID)
+                        pm[items]->SetVisible(false);
+                }
             }
             if (elem != emptyspace && checkbox->GetMouseFocused() == false && GetAsyncKeyState(VK_CONTROL) == 0) elem->SetSelected(!elem->GetSelected());
             if (validation & 1)
@@ -2730,19 +2889,6 @@ namespace DirectDesktop
                     ShowDirAsGroup((LVItem*)elem);
                 }
                 else ShellExecuteExW(&execInfo);
-            }
-        }
-    }
-
-    void SelectItem2(Element* elem, Event* iev)
-    {
-        static int validation = 0;
-        if (iev->uidType == Button::Click)
-        {
-            elem->SetSelected(!elem->GetSelected());
-            if (validation & 1)
-            {
-                elem->SetSelected(!elem->GetSelected());
             }
         }
     }
@@ -3018,6 +3164,11 @@ namespace DirectDesktop
                         pm[items]->SetSelected(false);
                 }
                 elem->SetSelected(true);
+                /////// TEMP(?): I don't want to make folder groups selectable at the moment, maybe later, maybe not
+                if (g_treatdirasgroup && ((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL)
+                {
+                    elem->SetSelected(false);
+                }
                 for (int items = 0; items < pm.size(); items++)
                 {
                     if (pm[items]->GetSelected() == true)
@@ -3125,7 +3276,7 @@ namespace DirectDesktop
         unsigned int count = pm.size();
         for (int j = 0; j < count; j++)
         {
-            pm[j]->SetMemPage(pm[j]->GetPage());
+            pm[j]->SetPreRefreshMemPage(pm[j]->GetPage());
         }
         RECT dimensions;
         GetClientRect(wnd->GetHWND(), &dimensions);
@@ -3140,6 +3291,7 @@ namespace DirectDesktop
         {
             GetPos2(false);
             GetPos(false, nullptr);
+            g_maxPageID = 1;
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 1 of 5 complete: Imported your desktop icon positions.");
         if (reloadicons)
@@ -3254,7 +3406,7 @@ namespace DirectDesktop
                         }
                         int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
                         int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
-                        if (!pm[j]->GetMoving() || pm[j]->GetMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
+                        if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
@@ -3279,7 +3431,7 @@ namespace DirectDesktop
                     }
                     else
                     {
-                        if (!pm[j]->GetMoving() || pm[j]->GetMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
+                        if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
@@ -3365,14 +3517,14 @@ namespace DirectDesktop
                 }
                 int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
                 int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
-                if (!pm[j]->GetMoving() || pm[j]->GetMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
+                if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
                 {
                     pm[j]->SetX(xRender);
                     pm[j]->SetY(pm[j]->GetInternalYPos() * outerSizeY + y);
                 }
                 pm[j]->SetMemXPos(xRender);
                 pm[j]->SetMemYPos(pm[j]->GetInternalYPos() * outerSizeY + y);
-                if ((pm[j]->GetMemPage() == pm[j]->GetPage() == g_currentPageID && !pm[j]->GetFlying()) || pm[j]->GetSizedFromGroup()) pm[j]->SetVisible(!g_hiddenIcons);
+                if ((pm[j]->GetPage() == g_currentPageID && !pm[j]->GetFlying()) || pm[j]->GetSizedFromGroup()) pm[j]->SetVisible(!g_hiddenIcons);
                 else pm[j]->SetVisible(false);
             }
 
@@ -3381,15 +3533,16 @@ namespace DirectDesktop
 
             for (int j = 0; j < count; j++)
             {
+                pm[j]->SetMemPage(pm[j]->GetPage());
+                if (pm[j]->GetPreRefreshMemPage() == 0)
+                    pm[j]->SetPreRefreshMemPage(pm[j]->GetPage());
+            }
+            for (int j = 0; j < count; j++)
+            {
                 yValue* yV = new yValue{ j, (float)innerSizeX, (float)innerSizeY };
                 QueueUserWorkItem(RearrangeIconsHelper, yV, 0);
             }
             positions.clear();
-            for (int j = 0; j < count; j++)
-            {
-                if (pm[j]->GetMemPage() == 0)
-                    pm[j]->SetMemPage(pm[j]->GetPage());
-            }
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 5 of 5 complete: Successfully arranged the desktop items.");
         if (reloadicons) g_isColorizedOld = g_isColorized;
@@ -3568,6 +3721,85 @@ namespace DirectDesktop
                 FileInfo* fi = new FileInfo{ filepath, filename };
                 PostMessageW(wnd->GetHWND(), WM_USER + 20, (WPARAM)yV, (LPARAM)fi);
                 break;
+            }
+        }
+    }
+
+    wstring GetExeVersion()
+    {
+        WCHAR path[MAX_PATH];
+        GetModuleFileNameW(nullptr, path, MAX_PATH);
+
+        DWORD size = GetFileVersionInfoSizeW(path, nullptr);
+        if (size == 0) return L"";
+
+        vector<BYTE> buffer(size);
+        if (!GetFileVersionInfoW(path, 0, size, buffer.data()))
+            return L"";
+
+        VS_FIXEDFILEINFO* pFileInfo = nullptr;
+        UINT len = 0;
+        if (VerQueryValueW(buffer.data(), L"\\", (LPVOID*)&pFileInfo, &len)) {
+            int edition = HIWORD(pFileInfo->dwFileVersionMS);
+            int major = LOWORD(pFileInfo->dwFileVersionMS);
+            int minor = HIWORD(pFileInfo->dwFileVersionLS);
+            int rev = LOWORD(pFileInfo->dwFileVersionLS);
+
+            WCHAR ver[16];
+            StringCchPrintfW(ver, 16, L"%d.%d.%d.%d", edition, major, minor, rev);
+            return ver;
+        }
+        return L"";
+    }
+
+    void ShowDebugInfoOnDesktop(bool bUnused1, bool bUnused2, bool bUnused3)
+    {
+        if (g_debuginfo)
+        {
+            Element* peBackground;
+            Element* peTemp[3];
+            Element::Create(0, mainContainer, nullptr, &peBackground);
+            peBackground->SetLayoutPos(-2);
+            peBackground->SetX(0);
+            peBackground->SetY(0);
+            peBackground->SetWidth(220 * g_flScaleFactor);
+            peBackground->SetHeight(60 * g_flScaleFactor);
+            CValuePtr spvLayout;
+            BorderLayout::Create(0, nullptr, &spvLayout);
+            peBackground->SetValue(Element::LayoutProp, 1, spvLayout);
+            peBackground->SetBackgroundStdColor(10005);
+            peBackground->SetVisible(true);
+            peBackground->SetID(L"DesktopDebugInfo");
+            mainContainer->Add(&peBackground, 1);
+
+            for (int i = 0; i < ARRAYSIZE(peTemp); i++)
+            {
+                Element::Create(0, peBackground, nullptr, &peTemp[i]);
+                peBackground->Add(&peTemp[i], 1);
+                peTemp[i]->SetFontFace(L"Consolas");
+                peTemp[i]->SetFontSize(14 * g_flScaleFactor);
+                peTemp[i]->SetForegroundStdColor(10008);
+                peTemp[i]->SetCompositedText(true);
+                peTemp[i]->SetTextGlowSize(0);
+                peTemp[i]->SetLayoutPos(1);
+                peTemp[i]->SetHeight(20 * g_flScaleFactor);
+            }
+            WCHAR info[256];
+            StringCchPrintfW(info, 256, L"VERSION: %s", GetExeVersion().c_str());
+            peTemp[0]->SetContentString(info);
+            peTemp[1]->SetContentString(L"MILESTONE: 11");
+            StringCchPrintfW(info, 256, L"BUILD TIMESTAMP: %s", BUILD_TIMESTAMP);
+            peTemp[2]->SetContentString(info);
+            DUI_SetGadgetZOrder(peBackground, 4);
+        }
+        else
+        {
+            CSafeElementPtr<Element> DesktopDebugInfo;
+            DesktopDebugInfo.Assign(regElem<Element*>(L"DesktopDebugInfo", mainContainer));
+            if (DesktopDebugInfo)
+            {
+                DesktopDebugInfo->DestroyAll(true);
+                DesktopDebugInfo->Destroy(true);
             }
         }
     }
@@ -3871,6 +4103,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDToggleButton::Register();
     DDCheckBox::Register();
     DDCheckBoxGlyph::Register();
+    DDSlider::Register();
     DDColorPicker::Register();
     DDColorPickerButton::Register();
     DDNotificationBanner::Register();
@@ -4043,9 +4276,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDKey._path = L"Software\\DirectDesktop\\Debug";
     SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DebugMode", 0, true, nullptr);
     SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationSpeed", 100, true, nullptr);
-    g_debugmode = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop\\Debug", L"DebugMode");
-    g_animCoef = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop\\Debug", L"AnimationSpeed");
-    if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"AnimationSpeed") || !g_debugmode) g_animCoef = 100;
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationsShiftKey", 0, true, nullptr);
+    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"ShowDebugInfo", 1, true, nullptr);
+    g_debugmode = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DebugMode");
+    g_animCoef = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationSpeed");
+    g_AnimShiftKey = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationsShiftKey");
+    g_debuginfo = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"ShowDebugInfo");
+    if (!g_debugmode)
+    {
+        g_animCoef = 100;
+        g_AnimShiftKey = false;
+        g_debuginfo = false;
+    }
 
     WCHAR DesktopLayoutWithSize[24];
     if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
@@ -4075,10 +4317,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     StartMonitorFileChanges(path2);
     StartMonitorFileChanges(path3);
 
+    WCHAR notice[256];
+    StringCchPrintfW(notice, 256, L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion 0.5_preview2\nCompiled on %s", BUILD_DATE);
     DDNotificationBanner* ddnb{};
-    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Preview 1",
-                                       L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion 0.5_preview1\nCompiled on 2025-08-17",
-                                       10, false);
+    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Preview 2", notice, 10, false);
+
+    if (g_debuginfo) ShowDebugInfoOnDesktop(false, false, false);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.\n\nLogging is now complete.");
 

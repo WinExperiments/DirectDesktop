@@ -22,6 +22,7 @@ namespace DirectDesktop
 	extern void CalcDesktopIconInfo(yValue* yV, int* lines_basedOnEllipsis, DWORD* alignment, bool subdirectory, vector<LVItem*>* pmLVItem, vector<RichText*>* pmFile);
 	extern void ApplyIcons(vector<LVItem*> pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
 	extern void TriggerTabbedPageTransition(int pageID, Element*& peSettingsPage, LPCWSTR peSettingsPageResID, DDScalableButton*& pddsbSubUIContainer);
+	extern void ShowDebugInfoOnDesktop(bool bUnused1, bool bUnused2, bool bUnused3);
 
 	extern void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 	extern void OpenGroupInExplorer(Element* elem, Event* iev);

@@ -24,6 +24,7 @@ namespace DirectDesktop
     IClassInfo* DDToggleButton::s_pClassInfo;
     IClassInfo* DDCheckBox::s_pClassInfo;
     IClassInfo* DDCheckBoxGlyph::s_pClassInfo;
+    IClassInfo* DDSlider::s_pClassInfo;
     IClassInfo* DDColorPicker::s_pClassInfo;
     IClassInfo* DDColorPickerButton::s_pClassInfo;
     IClassInfo* DDNotificationBanner::s_pClassInfo;
@@ -195,10 +196,47 @@ namespace DirectDesktop
         Value::GetBoolFalse,
         &dataimpStopListeningProp
     };
+    static const int vvimpIsVerticalProp[] = { 2, -1 };
+    static PropertyInfoData dataimpIsVerticalProp;
+    static const PropertyInfo impIsVerticalProp =
+    {
+        L"IsVertical",
+        0x2 | 0x4,
+        0x1,
+        vvimpIsVerticalProp,
+        nullptr,
+        Value::GetBoolFalse,
+        &dataimpIsVerticalProp
+    };
+    static const int vvimpTextWidthProp[] = { 1, -1 };
+    static PropertyInfoData dataimpTextWidthProp;
+    static const PropertyInfo impTextWidthProp =
+    {
+        L"TextWidth",
+        0x2 | 0x4,
+        0x1,
+        vvimpTextWidthProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpTextWidthProp
+    };
+    static const int vvimpTextHeightProp[] = { 1, -1 };
+    static PropertyInfoData dataimpTextHeightProp;
+    static const PropertyInfo impTextHeightProp =
+    {
+        L"TextHeight",
+        0x2 | 0x4,
+        0x1,
+        vvimpTextHeightProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpTextHeightProp
+    };
 
     void RedrawImageCore(DDScalableElement* pe)
     {
         if (!pe) return;
+        if (pe->IsDestroyed()) return;
         if (pe->GetFirstScaledImage() == -1)
         {
             pe->SetBackgroundColor(0);
@@ -217,37 +255,42 @@ namespace DirectDesktop
             LoadPNGAsBitmap(newImage, imageID);
             IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
         }
-
-        if (pe->GetAssociatedColor() != -1)
-            IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
-        else if (pe->GetEnableAccent())
-            IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, 1, ImmersiveColor);
-
-        switch (pe->GetDrawType())
-        {
-            case 1:
-            {
-                CValuePtr spvImage = Value::CreateGraphic(newImage, 7, 0xFFFFFFFF, true, false, false);
-                if (spvImage)
-                    pe->SetValue(Element::BackgroundProp, 1, spvImage);
-                break;
-            }
-            case 2:
-            {
-                CValuePtr spvImage = Value::CreateGraphic(newImage, 2, 0xFFFFFFFF, true, false, false);
-                if (spvImage)
-                    pe->SetValue(Element::ContentProp, 1, spvImage);
-                break;
-            }
-        }
-
+        
         if (newImage != nullptr)
+        {
+            if (pe->GetAssociatedColor() != -1)
+                IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
+            else if (pe->GetEnableAccent())
+                IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, ImmersiveColor);
+            else if (pe->GetDDCPIntensity() != 255)
+                pe->SetAlpha(pe->GetDDCPIntensity());
+
+
+            switch (pe->GetDrawType())
+            {
+                case 1:
+                {
+                    CValuePtr spvImage = Value::CreateGraphic(newImage, 7, 0xFFFFFFFF, true, false, false);
+                    if (spvImage)
+                        pe->SetValue(Element::BackgroundProp, 1, spvImage);
+                    break;
+                }
+                case 2:
+                {
+                    CValuePtr spvImage = Value::CreateGraphic(newImage, 2, 0xFFFFFFFF, true, false, false);
+                    if (spvImage)
+                        pe->SetValue(Element::ContentProp, 1, spvImage);
+                    break;
+                }
+            }
             DeleteObject(newImage);
+        }
     }
 
     void RedrawFontCore(DDScalableElement* pe)
     {
         if (!pe) return;
+        if (pe->IsDestroyed()) return;
         CValuePtr v;
         if (pe->GetNeedsFontResize())
         {
@@ -316,6 +359,127 @@ namespace DirectDesktop
         }
     }
 
+    DWORD WINAPI DragThumb(LPVOID lpParam)
+    {
+        yValuePtrs* yV = (yValuePtrs*)lpParam;
+        CSafeElementPtr<DDScalableButton> peThumb;
+        peThumb.Assign(regElem<DDScalableButton*>(L"DDS_Thumb", (Element*)yV->ptr1));
+        while (true)
+        {
+            if (!peThumb->GetCaptured()) break;
+            SendMessageW(g_msgwnd, WM_USER + 7, (WPARAM)yV->ptr1, NULL);
+            Sleep(10);
+        }
+        return 0;
+    }
+    void SetThumbPosOnClick(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click)
+        {
+            CSafeElementPtr<DDSlider> slider;
+            slider.Assign((DDSlider*)elem->GetParent()->GetParent()->GetParent());
+            bool vertical = slider->GetIsVertical();
+            CSafeElementPtr<Button> peTrack;
+            peTrack.Assign(regElem<Button*>(L"DDS_TrackBase", slider));
+            CSafeElementPtr<Button> peFill;
+            peFill.Assign(regElem<Button*>(L"DDS_FillBase", slider));
+            CSafeElementPtr<DDScalableButton> peThumb;
+            peThumb.Assign(regElem<DDScalableButton*>(L"DDS_Thumb", slider));
+            CSafeElementPtr<DDScalableRichText> peText;
+            peText.Assign(regElem<DDScalableRichText*>(L"DDS_Text", slider));
+            if (vertical)
+            {
+                int y = peFill->GetHeight();
+                if (elem == peFill)
+                {
+                    y -= elem->GetParent()->GetHeight() / 5;
+                    if (y < (peThumb->GetHeight() / 2)) y = peThumb->GetHeight() / 2;
+                }
+                else if (elem == peTrack)
+                {
+                    y += elem->GetParent()->GetHeight() / 5;
+                    if (y > elem->GetParent()->GetHeight() - (peThumb->GetHeight() / 2)) y = elem->GetParent()->GetHeight() - (peThumb->GetHeight() / 2);
+                }
+                peTrack->SetHeight(elem->GetParent()->GetHeight() - y);
+                peFill->SetHeight(y);
+                peThumb->SetY(elem->GetParent()->GetHeight() - y - peThumb->GetHeight() / 2);
+            }
+            else
+            {
+                int x = peFill->GetWidth();
+                if (elem == peFill)
+                {
+                    x -= elem->GetParent()->GetWidth() / 5;
+                    if (x < (peThumb->GetWidth() / 2)) x = peThumb->GetWidth() / 2;
+                }
+                else if (elem == peTrack)
+                {
+                    x += elem->GetParent()->GetWidth() / 5;
+                    if (x > elem->GetParent()->GetWidth() - (peThumb->GetWidth() / 2)) x = elem->GetParent()->GetWidth() - (peThumb->GetWidth() / 2);
+                }
+                peTrack->SetWidth(elem->GetParent()->GetWidth() - x);
+                peFill->SetWidth(x);
+                peThumb->SetX((localeType == 1) ? elem->GetParent()->GetWidth() - x - peThumb->GetWidth() / 2 : x - peThumb->GetWidth() / 2);
+            }
+            slider->SetCurrentValue(NULL, true);
+            WCHAR formattedNum[8];
+            StringCchPrintfW(formattedNum, 8, slider->GetFormattedString(), slider->GetCurrentValue());
+            peText->SetContentString(formattedNum);
+        }
+    }
+    void SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        bool vertical = ((DDSlider*)elem->GetParent()->GetParent())->GetIsVertical();
+        CSafeElementPtr<Button> peTrack;
+        peTrack.Assign(regElem<Button*>(L"DDS_TrackBase", elem->GetParent()));
+        CSafeElementPtr<Button> peFill;
+        peFill.Assign(regElem<Button*>(L"DDS_FillBase", elem->GetParent()));
+        CSafeElementPtr<DDScalableButton> peThumbInner;
+        peThumbInner.Assign(regElem<DDScalableButton*>(L"DDS_ThumbInner", elem));
+        if (pProp == Element::MouseWithinProp())
+        {
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            float scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
+            TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
+        }
+        if (pProp == Button::CapturedProp())
+        {
+            GTRANS_DESC transDesc[2];
+            TransitionStoryboardInfo tsbInfo = {};
+            float alpha1 = (((Button*)elem)->GetCaptured()) ? 1.0f : 0.8f;
+            float alpha2 = (((Button*)elem)->GetCaptured()) ? 0.8f : 1.0f;
+            float scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
+            if (((Button*)elem)->GetCaptured())
+                TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 0.83f, 0.83f, 0.5f, 0.5f, false, false);
+            else
+            {
+                ((DDSlider*)elem->GetParent()->GetParent())->SetCurrentValue(NULL, true);
+                TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
+            }
+            TriggerFade(peThumbInner, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, alpha1, alpha2, false, false, ((Button*)elem)->GetCaptured());
+            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
+            POINT ppt;
+            GetCursorPos(&ppt);
+            if (vertical)
+            {
+                ((DDSlider*)elem->GetParent()->GetParent())->SetDragStart(ppt.y);
+                ((DDSlider*)elem->GetParent()->GetParent())->SetFillOnDragStart(peTrack->GetHeight());
+                ((DDSlider*)elem->GetParent()->GetParent())->SetPosOnDragStart(elem->GetY());
+            }
+            else
+            {
+                ((DDSlider*)elem->GetParent()->GetParent())->SetDragStart(ppt.x);
+                ((DDSlider*)elem->GetParent()->GetParent())->SetFillOnDragStart((localeType == 1) ? peTrack->GetWidth() : peFill->GetWidth());
+                ((DDSlider*)elem->GetParent()->GetParent())->SetPosOnDragStart(elem->GetX());
+            }
+            yValuePtrs* yV = new yValuePtrs{ (DDSlider*)elem->GetParent()->GetParent() };
+            HANDLE hDragThumb = CreateThread(nullptr, 0, DragThumb, yV, NULL, nullptr);
+            if (hDragThumb) CloseHandle(hDragThumb);
+        }
+    }
+
     void UpdateUICtrlColor(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
@@ -369,6 +533,12 @@ namespace DirectDesktop
     {
         PostMessageW(g_msgwnd, WM_USER + 3, (WPARAM)lpParam, NULL);
         assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
+        return 0;
+    }
+
+    DWORD WINAPI CreateSliderInnerElements(LPVOID lpParam)
+    {
+        PostMessageW(g_msgwnd, WM_USER + 6, (WPARAM)lpParam, NULL);
         return 0;
     }
 
@@ -467,6 +637,7 @@ namespace DirectDesktop
     auto DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
     {
         if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
         Value* pv = GetValue(pPropertyProc, 2, nullptr);
         auto v = useInt ? pv->GetInt() : pv->GetBool();
         pv->Release();
@@ -734,6 +905,7 @@ namespace DirectDesktop
     auto DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
     {
         if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
         Value* pv = GetValue(pPropertyProc, 2, nullptr);
         auto v = useInt ? pv->GetInt() : pv->GetBool();
         pv->Release();
@@ -1038,6 +1210,7 @@ namespace DirectDesktop
     auto DDScalableRichText::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
     {
         if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
         Value* pv = GetValue(pPropertyProc, 2, nullptr);
         auto v = useInt ? pv->GetInt() : pv->GetBool();
         pv->Release();
@@ -1277,6 +1450,7 @@ namespace DirectDesktop
     auto DDScalableTouchButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
     {
         if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
         Value* pv = GetValue(pPropertyProc, 2, nullptr);
         auto v = useInt ? pv->GetInt() : pv->GetBool();
         pv->Release();
@@ -1886,6 +2060,11 @@ namespace DirectDesktop
         return _mem_page;
     }
 
+    unsigned short LVItem::GetPreRefreshMemPage()
+    {
+        return _prmem_page;
+    }
+
     void LVItem::SetPage(unsigned short pageID)
     {
         _page = pageID;
@@ -1894,6 +2073,11 @@ namespace DirectDesktop
     void LVItem::SetMemPage(unsigned short pageID)
     {
         _mem_page = pageID;
+    }
+
+    void LVItem::SetPreRefreshMemPage(unsigned short pageID)
+    {
+        _prmem_page = pageID;
     }
 
     LVItemGroupSize LVItem::GetGroupSize()
@@ -2189,6 +2373,234 @@ namespace DirectDesktop
         this->SetPropCommon(CheckedStateProp, bChecked, false);
     }
 
+    DDSlider::~DDSlider()
+    {
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDSlider::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDSlider::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDSlider::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    HRESULT DDSlider::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        HRESULT hr = CreateAndInit<DDSlider, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+        if (SUCCEEDED(hr))
+        {
+            DWORD dw;
+            HANDLE drawingHandle = CreateThread(nullptr, 0, CreateSliderInnerElements, (LPVOID)*ppElement, NULL, &dw);
+            if (drawingHandle)
+            {
+                CloseHandle(drawingHandle);
+            }
+        }
+        return hr;
+    }
+
+    HRESULT DDSlider::Register()
+    {
+        static const PropertyInfo* const rgRegisterProps[] =
+        {
+            &impIsVerticalProp,
+            &impTextWidthProp,
+            &impTextHeightProp
+        };
+        return ClassInfo<DDSlider, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDSlider", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    int DDSlider::GetPropCommon(const PropertyProcT pPropertyProc)
+    {
+        if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
+        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        int v = pv->GetInt();
+        pv->Release();
+        return v;
+    }
+
+    void DDSlider::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt)
+    {
+        Value* pv = Value::CreateInt(iCreateInt);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(pPropertyProc, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDSlider::IsVerticalProp()
+    {
+        return &impIsVerticalProp;
+    }
+
+    bool DDSlider::GetIsVertical()
+    {
+        return this->GetPropCommon(IsVerticalProp);
+    }
+
+    void DDSlider::SetIsVertical(bool bIsVertical)
+    {
+        this->SetPropCommon(IsVerticalProp, bIsVertical);
+    }
+
+    const PropertyInfo* WINAPI DDSlider::TextWidthProp()
+    {
+        return &impTextWidthProp;
+    }
+
+    int DDSlider::GetTextWidth()
+    {
+        return this->GetPropCommon(TextWidthProp);
+    }
+
+    void DDSlider::SetTextWidth(int iTextWidth)
+    {
+        this->SetPropCommon(TextWidthProp, iTextWidth);
+    }
+
+    const PropertyInfo* WINAPI DDSlider::TextHeightProp()
+    {
+        return &impTextHeightProp;
+    }
+
+    int DDSlider::GetTextHeight()
+    {
+        return this->GetPropCommon(TextHeightProp);
+    }
+
+    void DDSlider::SetTextHeight(int iTextHeight)
+    {
+        this->SetPropCommon(TextHeightProp, iTextHeight);
+    }
+
+    RegKeyValue DDSlider::GetRegKeyValue()
+    {
+        return _rkv;
+    }
+
+    void DDSlider::SetRegKeyValue(RegKeyValue rkvNew)
+    {
+        _rkv = rkvNew;
+    }
+
+    float DDSlider::GetMinValue()
+    {
+        return _minValue;
+    }
+
+    float DDSlider::GetMaxValue()
+    {
+        return _maxValue;
+    }
+
+    float DDSlider::GetCurrentValue()
+    {
+        return _currValue;
+    }
+
+    int* DDSlider::GetAssociatedValue()
+    {
+        return _assocVal;
+    }
+
+    int DDSlider::GetDragStart()
+    {
+        return _dragStart;
+    }
+
+    int DDSlider::GetFillOnDragStart()
+    {
+        return _fodragStart;
+    }
+
+    int DDSlider::GetPosOnDragStart()
+    {
+        return _podragStart;
+    }
+
+    void DDSlider::SetMinValue(float minValue)
+    {
+        _minValue = minValue;
+    }
+
+    void DDSlider::SetMaxValue(float maxValue)
+    {
+        _maxValue = maxValue;
+    }
+
+    void DDSlider::SetCurrentValue(float currValue, bool fExternal)
+    {
+        if (currValue < _minValue) currValue = _minValue;
+        if (currValue > _maxValue) currValue = _maxValue;
+        _currValue = currValue;
+        if (fExternal)
+        {
+            bool vertical = this->GetIsVertical();
+            CSafeElementPtr<Button> peFill;
+            peFill.Assign(regElem<Button*>(L"DDS_FillBase", this));
+            CSafeElementPtr<Button> peThumb;
+            peThumb.Assign(regElem<Button*>(L"DDS_Thumb", this));
+            int thumbOffset = vertical ? peThumb->GetHeight() : peThumb->GetWidth();
+            int sliderSize = vertical ? this->GetHeight() - this->GetTextHeight() : this->GetWidth() - this->GetTextWidth();
+            float percentage{};
+            if (vertical) percentage = static_cast<float>(peFill->GetHeight() - thumbOffset / 2.0f) / (sliderSize - thumbOffset);
+            else percentage = static_cast<float>(peFill->GetWidth() - thumbOffset / 2.0f) / (sliderSize - thumbOffset);
+            if (percentage < 0) percentage = 0;
+            if (percentage > 1) percentage = 1;
+            float assocVal = _minValue + (_maxValue - _minValue) * percentage;
+            if (_assocVal)
+                (*_assocVal) = assocVal * _coef;
+            RegKeyValue rkv = this->GetRegKeyValue();
+            if (rkv._valueToFind)
+                SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, assocVal * _coef, false, nullptr);
+            g_atleastonesetting = true;
+            _currValue = assocVal;
+        }
+    }
+
+    void DDSlider::SetAssociatedValue(int* assocVal, int extValueMultiplier)
+    {
+        _assocVal = assocVal;
+        _coef = extValueMultiplier;
+    }
+
+    void DDSlider::SetDragStart(int dragStart)
+    {
+        _dragStart = dragStart;
+    }
+
+    void DDSlider::SetFillOnDragStart(int fodragStart)
+    {
+        _fodragStart = fodragStart;
+    }
+
+    void DDSlider::SetPosOnDragStart(int podragStart)
+    {
+        _podragStart = podragStart;
+    }
+
+    LPCWSTR DDSlider::GetFormattedString()
+    {
+        return _szFormatted;
+    }
+
+    void DDSlider::SetFormattedString(LPCWSTR szFormatted)
+    {
+        _szFormatted = szFormatted;
+    }
+
     DDColorPicker::~DDColorPicker()
     {
         this->DestroyAll(true);
@@ -2239,6 +2651,7 @@ namespace DirectDesktop
     int DDColorPicker::GetPropCommon(const PropertyProcT pPropertyProc)
     {
         if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
         Value* pv = GetValue(pPropertyProc, 2, nullptr);
         int v = pv->GetInt();
         pv->Release();
@@ -2497,7 +2910,9 @@ namespace DirectDesktop
         Sleep(50);
         if (nd->wnd)
         {
-            AnimateWindow(nd->wnd->GetHWND(), 180 * (g_animCoef / 100.0f), AW_BLEND);
+            DWORD animCoef = g_animCoef;
+            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            AnimateWindow(nd->wnd->GetHWND(), 180 * (animCoef / 100.0f), AW_BLEND);
             nd->wnd->ShowWindow(SW_SHOW);
         }
         delete nd;
@@ -2793,7 +3208,9 @@ namespace DirectDesktop
                 offset += windowRect.bottom + 18 * g_flScaleFactor;
             }
             // This should use DWM later, as this would crash if it's triggered more than once within the specified time frame
-            AnimateWindow(wnd->GetHWND(), 120 * (g_animCoef / 100.0f), AW_BLEND | AW_HIDE);
+            DWORD animCoef = g_animCoef;
+            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            AnimateWindow(wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
             wnd->GetElement()->DestroyAll(true);
             wnd->GetElement()->Destroy(true);
             wnd->DestroyWindow();

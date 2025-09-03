@@ -51,7 +51,7 @@
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
 		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
-			<DDScalableElement content="resstr(4046)" class="toggletext"/>
+			<DDScalableElement content="resstr(4046)" class="settingslabeltext"/>
 			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
 		</Element>
 	</Element>
@@ -80,20 +80,20 @@
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(ItemCheckboxes)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(ShowHiddenFiles)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(FilenameExts)"/>
 			</Element>
 		</DDScalableElement>
@@ -106,20 +106,20 @@
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4014)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(4014)" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(TreatDirAsGroup)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4040)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(4040)" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(TripleClickAndHide)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4043)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(4043)" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(LockIconPos)"/>
 			</Element>
 		</DDScalableElement>
@@ -134,24 +134,31 @@
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(0,0,0,16rp)">
-				<DDScalableElement content="resstr(4047)" class="toggletext"/>
+				<DDScalableElement content="resstr(4047)" class="settingslabeltext"/>
 				<DDColorPicker id="atom(DDCP_Icons)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="255" DefaultColor="0x909090" height="32rp" width="352rp"/>
 			</Element>
-			<DDScalableElement content="resstr(4015)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(4015)" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableAccent)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<DDCheckBox id="atom(AutoDarkIcons)" content="resstr(4049)" layout="flowlayout(0,2,0,2)" height="40rp" padding="rect(0,0,0,8rp)"/>
-			<DDScalableElement content="resstr(4048)" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(4048)" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableDarkIcons)"/>
 			</Element>
 		</DDScalableElement>
+		<DDScalableElement class="MiddleSection" layout="borderlayout()">
+			<DDScalableElement content="Icon size" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,1,2)" class="rightcontainer">
+				<DDSlider id="atom(IconSize)" IsVertical="false" layoutpos="right" height="20rp" width="260rp" TextWidth="45rp"/>
+				<DDScalableButton id="atom(ApplyIconSize)" class="pushbuttonsecondary" content="Apply" minsize="size(96rp,32rp)" NeedsFontResize="false" margin="rect(12rp,0,0,0)"/>
+			</Element>
+		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="toggletext"/>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(IconThumbnails)"/>
 			</Element>
 		</DDScalableElement>
@@ -173,12 +180,61 @@
 				<DDScalableElement class="headertext" content="resstr(4016)"/>
 				<DDScalableElement class="subtext" content="Enable logging for troubleshooting DirectDesktop at launch"/>
 			</Element>
-			<Element layout="flowlayout(0,2,0,0)" class="togglebuttoncontainer">
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableLogging)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
 			<DDScalableButton id="atom(ViewLastLog)" content="resstr(4033)" layoutpos="left" class="popupbutton" visible="true"/>
+		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableElement class="TopSection" layout="borderlayout()">
+			<RichText class="SettingsIcon" content="resstr(171)"/>
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="Animations"/>
+				<DDScalableElement class="subtext" content="Tweak animation speed"/>
+			</Element>
+		</DDScalableElement>
+		<DDScalableElement class="BottomSection" layout="borderlayout()">
+			<DDCheckBox id="atom(AnimShiftKey)" content="Only apply custom animation speed while pressing the Shift key" layout="flowlayout(0,2,0,2)" height="40rp" padding="rect(0,0,0,8rp)"/>
+			<DDScalableElement content="Custom animation speed" class="settingslabeltext"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDSlider id="atom(AnimSpeed)" IsVertical="false" layoutpos="right" height="20rp" width="275rp" TextWidth="60rp"/>
+			</Element>
+		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableElement class="LoneSection" layout="borderlayout()">
+			<RichText class="SettingsIcon" content="resstr(172)"/>
+			<DDScalableElement content="Show debug info" class="settingslabeltext"/>`
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDToggleButton id="atom(ShowDbgInfo)"/>
+			</Element>
+		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableElement class="TopSection" layout="borderlayout()">
+			<RichText class="SettingsIcon" content="resstr(173)"/>
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="Desktop layout"/>
+				<DDScalableElement class="subtext" content="Default area, reset layout"/>
+			</Element>
+		</DDScalableElement>
+		<DDScalableElement class="MiddleSection" layout="borderlayout()">
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="Default desktop area"/>
+				<DDScalableElement class="subtext" id="atom(CustomResDesc)"/>
+			</Element>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDScalableButton id="atom(SetCurrent)" class="pushbuttonsecondary" content="Set to current" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+			</Element>
+		</DDScalableElement>
+		<DDScalableElement class="BottomSection" layout="borderlayout()">
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="Reset desktop item layout on this view"/>
+				<DDScalableElement class="warningtext" content="This is an irreversible action."/>
+			</Element>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDScalableButton id="atom(ResetDesktop)" class="pushbuttonsecondary" content="Reset" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+			</Element>
 		</DDScalableElement>
 	</Element>
 	<stylesheets>
@@ -209,10 +265,13 @@
 			<if class="subtext">
 				<DDScalableElement foreground="rgb(128,128,128)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
-			<if class="toggletext">
+			<if class="warningtext">
+				<DDScalableElement foreground="rgb(196,43,28)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+			</if>
+			<if class="settingslabeltext">
 				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" background="argb(0,0,0,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
-			<if class="togglebuttoncontainer">
+			<if class="rightcontainer">
 				<Element layoutpos="right" background="argb(0,0,0,0)"/>
 			</if>
 			<if class="separator">
@@ -246,10 +305,13 @@
 			<if class="subtext">
 				<DDScalableElement foreground="rgb(176,176,176)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
-			<if class="toggletext">
+			<if class="warningtext">
+				<DDScalableElement foreground="rgb(255,153,164)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+			</if>
+			<if class="settingslabeltext">
 				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" background="argb(0,0,0,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
-			<if class="togglebuttoncontainer">
+			<if class="rightcontainer">
 				<Element layoutpos="right" background="argb(0,0,0,0)"/>
 			</if>
 			<if class="separator">

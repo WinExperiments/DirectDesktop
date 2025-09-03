@@ -9,6 +9,8 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
     bool g_debugmode;
+    bool g_AnimShiftKey;
+    bool g_debuginfo;
     bool g_showcheckboxes;
     bool g_treatdirasgroup;
     bool g_tripleclickandhide;

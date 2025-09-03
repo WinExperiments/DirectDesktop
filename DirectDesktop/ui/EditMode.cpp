@@ -266,6 +266,7 @@ namespace DirectDesktop
             }
             case WM_USER + 3:
             {
+                SetPos(isDefaultRes());
                 PageViewer->DestroyAll(true);
                 PageViewer->Destroy(true);
                 Event* iev = new Event{ SimpleViewPages, Button::Click };
@@ -354,9 +355,11 @@ namespace DirectDesktop
 
     DWORD WINAPI animate7(LPVOID lpParam)
     {
-        Sleep(150 * (g_animCoef / 100.0f));
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        Sleep(100 * (animCoef / 100.0f));
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
-        Sleep(200 * (g_animCoef / 100.0f));
+        Sleep(250 * (animCoef / 100.0f));
         //pEdit->DestroyAll(true);
         editwnd->DestroyWindow();
         //pEditBG->DestroyAll(true);
@@ -841,6 +844,7 @@ namespace DirectDesktop
                         DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", PV_Page);
                         if (PV_Remove)
                         {
+                            PV_Remove->SetEnabled(isDefaultRes());
                             PV_Remove->SetVisible(PV_Page->GetMouseWithin());
                             PV_Remove->SetAssociatedItem(PV_Page);
                             assignFn(PV_Remove, RemoveSelectedPage);
@@ -848,6 +852,7 @@ namespace DirectDesktop
                     }
                     if (PV_Home)
                     {
+                        PV_Home->SetEnabled(isDefaultRes());
                         PV_Home->SetVisible(PV_Page->GetMouseWithin());
                         PV_Home->SetAssociatedItem(PV_Page);
                         if (PV_Page->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);
@@ -872,11 +877,13 @@ namespace DirectDesktop
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", PageViewer);
                 if (PV_Remove)
                 {
+                    PV_Remove->SetEnabled(isDefaultRes());
                     assignFn(PV_Remove, RemoveSelectedPage);
                 }
                 DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", PageViewer);
                 if (PV_Home)
                 {
+                    PV_Home->SetEnabled(isDefaultRes());
                     assignFn(PV_Home, SetSelectedPageHome);
                 }
             }
@@ -895,6 +902,7 @@ namespace DirectDesktop
             g_maxPageID++;
             if (g_maxPageID <= 7)
             {
+                SetPos(isDefaultRes());
                 PageViewer->DestroyAll(true);
                 PageViewer->Destroy(true);
                 ShowPageViewer(elem, iev);
@@ -929,6 +937,7 @@ namespace DirectDesktop
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", elem);
                 if (PV_Remove)
                 {
+                    PV_Remove->SetEnabled(isDefaultRes());
                     PV_Remove->SetVisible(elem->GetMouseWithin());
                     PV_Remove->SetAssociatedItem((LVItem*)elem);
                     assignFn(PV_Remove, RemoveSelectedPage);
@@ -938,6 +947,7 @@ namespace DirectDesktop
             DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", elem);
             if (PV_Home)
             {
+                PV_Home->SetEnabled(isDefaultRes());
                 PV_Home->SetVisible(elem->GetMouseWithin());
                 PV_Home->SetAssociatedItem((LVItem*)elem);
                 if (((LVItem*)elem)->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);

@@ -64,6 +64,8 @@
 #define IDS_STRING169                   169
 #define IDS_STRING170                   170
 #define IDS_STRING171                   171
+#define IDS_STRING172                   172
+#define IDS_STRING173                   173
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202
@@ -155,7 +157,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        834
+#define _APS_NEXT_RESOURCE_VALUE        946
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

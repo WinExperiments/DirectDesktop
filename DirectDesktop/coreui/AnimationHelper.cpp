@@ -37,8 +37,10 @@ namespace DirectDesktop
     void TriggerTranslate(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float initialPosX, float initialPosY, float targetPosX, float targetPosY, bool fHide, bool fDestroy)
     {
-        flDelay *= (g_animCoef / 100.0f);
-        flDuration *= (g_animCoef / 100.0f);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x201;
         rgTrans[transIndex].nProperty = 1;
@@ -69,8 +71,10 @@ namespace DirectDesktop
     void TriggerFade(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float initialOpacity, float targetOpacity, bool fHide, bool fDestroy, bool fStuckFade)
     {
-        flDelay *= (g_animCoef / 100.0f);
-        flDuration *= (g_animCoef / 100.0f);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = fStuckFade ? 0xD : 0x9;
         rgTrans[transIndex].nProperty = 2;
@@ -100,8 +104,10 @@ namespace DirectDesktop
         float rX0, float rY0, float rX1, float rY1, float initialScaleX, float initialScaleY, float initialOriginX, float initialOriginY,
         float targetScaleX, float targetScaleY, float targetOriginX, float targetOriginY, bool fHide, bool fDestroy)
     {
-        flDelay *= (g_animCoef / 100.0f);
-        flDuration *= (g_animCoef / 100.0f);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x201;
         rgTrans[transIndex].nProperty = 3;
@@ -136,8 +142,10 @@ namespace DirectDesktop
     void TriggerScaleOut(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float targetScaleX, float targetScaleY, float targetOriginX, float targetOriginY, bool fHide, bool fDestroy)
     {
-        flDelay *= (g_animCoef / 100.0f);
-        flDuration *= (g_animCoef / 100.0f);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x204;
         rgTrans[transIndex].nProperty = 3;
@@ -169,8 +177,10 @@ namespace DirectDesktop
         float rX0, float rY0, float rX1, float rY1, float initialLeft, float initialTop, float initialRight, float initialBottom,
         float targetLeft, float targetTop, float targetRight, float targetBottom, bool fHide, bool fDestroy)
     {
-        flDelay *= (g_animCoef / 100.0f);
-        flDuration *= (g_animCoef / 100.0f);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
         rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
         rgTrans[transIndex].nFlags = 0x201;
         rgTrans[transIndex].nProperty = 6;

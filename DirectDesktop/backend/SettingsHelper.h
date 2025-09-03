@@ -5,6 +5,8 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
     extern bool g_debugmode;
+    extern bool g_AnimShiftKey;
+    extern bool g_debuginfo;
     extern bool g_showcheckboxes;
     extern bool g_treatdirasgroup;
     extern bool g_tripleclickandhide;

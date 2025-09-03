@@ -300,7 +300,7 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Context)
         {
-            RightClickCore((LVItem*)elem);
+           if (elem->GetMouseFocused()) RightClickCore((LVItem*)elem);
         }
     }
 }

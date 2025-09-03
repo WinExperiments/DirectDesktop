@@ -312,8 +312,10 @@ namespace DirectDesktop
 
     DWORD WINAPI animate6(LPVOID lpParam)
     {
-        Sleep(175 * (g_animCoef / 100.0f));
-        AnimateWindow(subviewwnd->GetHWND(), 120 * (g_animCoef / 100.0f), AW_BLEND | AW_HIDE);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        Sleep(175 * (animCoef / 100.0f));
+        AnimateWindow(subviewwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
         //CloakWindow(subviewwnd->GetHWND(), true);
         BlurBackground(subviewwnd->GetHWND(), false, true, fullscreenpopupbg);
         SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, NULL, NULL);
@@ -627,25 +629,6 @@ namespace DirectDesktop
         Pin->SetAssociatedItem(lvi);
     }
 
-    void OpenDeskCpl(Element* elem, Event* iev)
-    {
-        if (iev->uidType == Button::Click) ShellExecuteW(nullptr, L"open", L"control.exe", L"desk.cpl,Web,0", nullptr, SW_SHOW);
-    }
-
-    void OpenLog(Element* elem, Event* iev)
-    {
-        if (iev->uidType == Button::Click)
-        {
-            wchar_t* desktoplog = new wchar_t[260];
-            wchar_t* cBuffer = new wchar_t[260];
-            DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
-            StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
-            ShellExecuteW(nullptr, L"open", L"notepad.exe", desktoplog, nullptr, SW_SHOW);
-            delete[] desktoplog;
-            delete[] cBuffer;
-        }
-    }
-
     void DisableColorPicker(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
@@ -669,6 +652,78 @@ namespace DirectDesktop
                 SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop\\Personalize", L"DarkIcons", !g_theme, false, nullptr);
             }
             EnableDarkIcons->SetEnabled(!((DDCheckBox*)elem)->GetCheckedState());
+        }
+    }
+
+    void SetViewHelper(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click)
+        {
+            CSafeElementPtr<DDSlider> IconSize;
+            IconSize.Assign(regElem<DDSlider*>(L"IconSize", elem->GetRoot()));
+            int iconsize = IconSize->GetCurrentValue();
+            int shortcutsize{}, smallsize{};
+            shortcutsize = 32;
+            if (iconsize > 96) shortcutsize = 64;
+            else if (iconsize > 48) shortcutsize = 48;
+            smallsize = 12;
+            if (iconsize > 120) smallsize = 48;
+            else if (iconsize > 80) smallsize = 32;
+            else if (iconsize > 40) smallsize = 16;
+            SetView(iconsize, shortcutsize, smallsize, false);
+        }
+    }
+
+    void OpenDeskCpl(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click) ShellExecuteW(nullptr, L"open", L"control.exe", L"desk.cpl,Web,0", nullptr, SW_SHOW);
+    }
+
+    void OpenLog(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click)
+        {
+            wchar_t* desktoplog = new wchar_t[260];
+            wchar_t* cBuffer = new wchar_t[260];
+            DWORD d = GetEnvironmentVariableW(L"userprofile", cBuffer, 260);
+            StringCchPrintfW(desktoplog, 260, L"%s\\Documents\\DirectDesktop.log", cBuffer);
+            ShellExecuteW(nullptr, L"open", L"notepad.exe", desktoplog, nullptr, SW_SHOW);
+            delete[] desktoplog;
+            delete[] cBuffer;
+        }
+    }
+
+    void SetDefaultRes(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click)
+        {
+            RECT dimensions;
+            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+            g_defWidth = dimensions.right / g_flScaleFactor;
+            SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DefaultWidth", g_defWidth, false, nullptr);
+            g_defHeight = dimensions.bottom / g_flScaleFactor;
+            SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DefaultHeight", g_defHeight, false, nullptr);
+            elem->SetEnabled(false);
+            CSafeElementPtr<DDScalableElement> CustomResDesc;
+            CustomResDesc.Assign(regElem<DDScalableElement*>(L"CustomResDesc", elem->GetRoot()));
+            WCHAR desc[256];
+            StringCchPrintfW(desc, 256, L"Current default desktop area is %d x %d, likely %d x %d with %d dpi", g_defWidth, g_defHeight, static_cast<int>(ceil(g_defWidth * g_flScaleFactor)), static_cast<int>(ceil(g_defHeight * g_flScaleFactor)), g_dpi);
+            CustomResDesc->SetContentString(desc);
+        }
+    }
+
+    void ResetDesktopSize(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click)
+        {
+            WCHAR DesktopLayoutWithSize[24];
+            if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
+            else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
+            if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
+            {
+                RegDeleteKeyValueW(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize);
+                InitLayout(true, false, false);
+            }
         }
     }
 
@@ -756,6 +811,10 @@ namespace DirectDesktop
                 EnableDarkIcons.Assign(regElem<DDToggleButton*>(L"EnableDarkIcons", SettingsPage2));
                 CSafeElementPtr<DDCheckBox> AutoDarkIcons;
                 AutoDarkIcons.Assign(regElem<DDCheckBox*>(L"AutoDarkIcons", SettingsPage2));
+                CSafeElementPtr<DDSlider> IconSize;
+                IconSize.Assign(regElem<DDSlider*>(L"IconSize", SettingsPage2));
+                CSafeElementPtr<DDScalableButton> ApplyIconSize;
+                ApplyIconSize.Assign(regElem<DDScalableButton*>(L"ApplyIconSize", SettingsPage2));
                 CSafeElementPtr<DDToggleButton> IconThumbnails;
                 IconThumbnails.Assign(regElem<DDToggleButton*>(L"IconThumbnails", SettingsPage2));
                 CSafeElementPtr<DDScalableButton> DesktopIconSettings;
@@ -785,6 +844,12 @@ namespace DirectDesktop
                 AutoDarkIcons->SetAssociatedBool(&g_automaticDark);
                 AutoDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
                 AutoDarkIcons->SetRegKeyValue(rkvTemp);
+                IconSize->SetMinValue(32);
+                IconSize->SetMaxValue(144);
+                IconSize->SetCurrentValue(g_iconsz, false);
+                IconSize->SetFormattedString(L"%.0f");
+                IconSize->SetEnabled(!g_touchmode);
+                ApplyIconSize->SetEnabled(!g_touchmode);
                 rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
                 IconThumbnails->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
                 IconThumbnails->SetAssociatedFn(RearrangeIcons, false, true, true);
@@ -794,6 +859,7 @@ namespace DirectDesktop
                 assignFn(EnableDarkIcons, ToggleSetting);
                 assignFn(AutoDarkIcons, ToggleSetting);
                 assignFn(AutoDarkIcons, DisableDarkToggle);
+                assignFn(ApplyIconSize, SetViewHelper);
                 assignFn(IconThumbnails, ToggleSetting);
                 assignFn(DesktopIconSettings, OpenDeskCpl);
                 g_tempElem = (void*)SettingsPage2;
@@ -818,12 +884,48 @@ namespace DirectDesktop
                 EnableLogging.Assign(regElem<DDToggleButton*>(L"EnableLogging", SettingsPage3));
                 CSafeElementPtr<DDScalableButton> ViewLastLog;
                 ViewLastLog.Assign(regElem<DDScalableButton*>(L"ViewLastLog", SettingsPage3));
+                CSafeElementPtr<DDSlider> AnimSpeed;
+                AnimSpeed.Assign(regElem<DDSlider*>(L"AnimSpeed", SettingsPage3));
+                CSafeElementPtr<DDCheckBox> AnimShiftKey;
+                AnimShiftKey.Assign(regElem<DDCheckBox*>(L"AnimShiftKey", SettingsPage3));
+                CSafeElementPtr<DDToggleButton> ShowDbgInfo;
+                ShowDbgInfo.Assign(regElem<DDToggleButton*>(L"ShowDbgInfo", SettingsPage3));
+                CSafeElementPtr<DDScalableElement> CustomResDesc;
+                CustomResDesc.Assign(regElem<DDScalableElement*>(L"CustomResDesc", SettingsPage3));
+                CSafeElementPtr<DDScalableButton> SetCurrent;
+                SetCurrent.Assign(regElem<DDScalableButton*>(L"SetCurrent", SettingsPage3));
+                CSafeElementPtr<DDScalableButton> ResetDesktop;
+                ResetDesktop.Assign(regElem<DDScalableButton*>(L"ResetDesktop", SettingsPage3));
                 RegKeyValue rkvTemp{};
                 rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Debug", rkvTemp._valueToFind = L"Logging";
                 EnableLogging->SetCheckedState(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
                 EnableLogging->SetRegKeyValue(rkvTemp);
+                rkvTemp._valueToFind = L"AnimationSpeed";
+                AnimSpeed->SetMinValue(0.5f);
+                AnimSpeed->SetMaxValue(20.0f);
+                AnimSpeed->SetCurrentValue(g_animCoef / 100.0f, false);
+                AnimSpeed->SetAssociatedValue((int*)&g_animCoef, 100);
+                AnimSpeed->SetFormattedString(L"%.2f");
+                AnimSpeed->SetRegKeyValue(rkvTemp);
+                rkvTemp._valueToFind = L"AnimationsShiftKey";
+                AnimShiftKey->SetCheckedState(g_AnimShiftKey);
+                AnimShiftKey->SetAssociatedBool(&g_AnimShiftKey);
+                AnimShiftKey->SetRegKeyValue(rkvTemp);
+                rkvTemp._valueToFind = L"ShowDebugInfo";
+                ShowDbgInfo->SetCheckedState(g_debuginfo);
+                ShowDbgInfo->SetAssociatedBool(&g_debuginfo);
+                ShowDbgInfo->SetAssociatedFn(ShowDebugInfoOnDesktop, false, false, false);
+                ShowDbgInfo->SetRegKeyValue(rkvTemp);
+                WCHAR desc[256];
+                StringCchPrintfW(desc, 256, L"Current default desktop area is %d x %d, likely %d x %d with %d dpi", g_defWidth, g_defHeight, static_cast<int>(ceil(g_defWidth * g_flScaleFactor)), static_cast<int>(ceil(g_defHeight * g_flScaleFactor)), g_dpi);
+                CustomResDesc->SetContentString(desc);
+                SetCurrent->SetEnabled(!isDefaultRes());
                 assignFn(EnableLogging, ToggleSetting);
                 assignFn(ViewLastLog, OpenLog);
+                assignFn(AnimShiftKey, ToggleSetting);
+                assignFn(ShowDbgInfo, ToggleSetting);
+                assignFn(SetCurrent, SetDefaultRes);
+                assignFn(ResetDesktop, ResetDesktopSize);
             }
         }
     }

@@ -164,8 +164,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;wtsapi32.lib;powrprof.lib;shlwapi.lib</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build_timestamp.ps1"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="build_timestamp.h" />
     <ClInclude Include="coreui\AnimationHelper.h" />
     <ClInclude Include="coreui\AccentColorHelper.h" />
     <ClInclude Include="coreui\BitmapHelper.h" />
@@ -521,6 +525,62 @@
     <Image Include="ImageResources\1272.png" />
     <Image Include="ImageResources\1273.png" />
     <Image Include="ImageResources\1274.png" />
+    <Image Include="ImageResources\1275.png" />
+    <Image Include="ImageResources\1276.png" />
+    <Image Include="ImageResources\1277.png" />
+    <Image Include="ImageResources\1278.png" />
+    <Image Include="ImageResources\1279.png" />
+    <Image Include="ImageResources\1280.png" />
+    <Image Include="ImageResources\1281.png" />
+    <Image Include="ImageResources\1282.png" />
+    <Image Include="ImageResources\1283.png" />
+    <Image Include="ImageResources\1284.png" />
+    <Image Include="ImageResources\1285.png" />
+    <Image Include="ImageResources\1286.png" />
+    <Image Include="ImageResources\1287.png" />
+    <Image Include="ImageResources\1288.png" />
+    <Image Include="ImageResources\1289.png" />
+    <Image Include="ImageResources\1290.png" />
+    <Image Include="ImageResources\1291.png" />
+    <Image Include="ImageResources\1292.png" />
+    <Image Include="ImageResources\1293.png" />
+    <Image Include="ImageResources\1294.png" />
+    <Image Include="ImageResources\1295.png" />
+    <Image Include="ImageResources\1296.png" />
+    <Image Include="ImageResources\1297.png" />
+    <Image Include="ImageResources\1298.png" />
+    <Image Include="ImageResources\1299.png" />
+    <Image Include="ImageResources\1300.png" />
+    <Image Include="ImageResources\1301.png" />
+    <Image Include="ImageResources\1302.png" />
+    <Image Include="ImageResources\1303.png" />
+    <Image Include="ImageResources\1304.png" />
+    <Image Include="ImageResources\1305.png" />
+    <Image Include="ImageResources\1306.png" />
+    <Image Include="ImageResources\1307.png" />
+    <Image Include="ImageResources\1308.png" />
+    <Image Include="ImageResources\1309.png" />
+    <Image Include="ImageResources\1310.png" />
+    <Image Include="ImageResources\1311.png" />
+    <Image Include="ImageResources\1312.png" />
+    <Image Include="ImageResources\1313.png" />
+    <Image Include="ImageResources\1314.png" />
+    <Image Include="ImageResources\1315.png" />
+    <Image Include="ImageResources\1316.png" />
+    <Image Include="ImageResources\1317.png" />
+    <Image Include="ImageResources\1318.png" />
+    <Image Include="ImageResources\1319.png" />
+    <Image Include="ImageResources\1320.png" />
+    <Image Include="ImageResources\1321.png" />
+    <Image Include="ImageResources\1322.png" />
+    <Image Include="ImageResources\1323.png" />
+    <Image Include="ImageResources\1324.png" />
+    <Image Include="ImageResources\1325.png" />
+    <Image Include="ImageResources\1326.png" />
+    <Image Include="ImageResources\1327.png" />
+    <Image Include="ImageResources\1328.png" />
+    <Image Include="ImageResources\1329.png" />
+    <Image Include="ImageResources\1330.png" />
     <Image Include="ImageResources\2001.png" />
     <Image Include="ImageResources\2002.png" />
     <Image Include="ImageResources\2003.png" />
@@ -795,6 +855,62 @@
     <Image Include="ImageResources\2272.png" />
     <Image Include="ImageResources\2273.png" />
     <Image Include="ImageResources\2274.png" />
+    <Image Include="ImageResources\2275.png" />
+    <Image Include="ImageResources\2276.png" />
+    <Image Include="ImageResources\2277.png" />
+    <Image Include="ImageResources\2278.png" />
+    <Image Include="ImageResources\2279.png" />
+    <Image Include="ImageResources\2280.png" />
+    <Image Include="ImageResources\2281.png" />
+    <Image Include="ImageResources\2282.png" />
+    <Image Include="ImageResources\2283.png" />
+    <Image Include="ImageResources\2284.png" />
+    <Image Include="ImageResources\2285.png" />
+    <Image Include="ImageResources\2286.png" />
+    <Image Include="ImageResources\2287.png" />
+    <Image Include="ImageResources\2288.png" />
+    <Image Include="ImageResources\2289.png" />
+    <Image Include="ImageResources\2290.png" />
+    <Image Include="ImageResources\2291.png" />
+    <Image Include="ImageResources\2292.png" />
+    <Image Include="ImageResources\2293.png" />
+    <Image Include="ImageResources\2294.png" />
+    <Image Include="ImageResources\2295.png" />
+    <Image Include="ImageResources\2296.png" />
+    <Image Include="ImageResources\2297.png" />
+    <Image Include="ImageResources\2298.png" />
+    <Image Include="ImageResources\2299.png" />
+    <Image Include="ImageResources\2300.png" />
+    <Image Include="ImageResources\2301.png" />
+    <Image Include="ImageResources\2302.png" />
+    <Image Include="ImageResources\2303.png" />
+    <Image Include="ImageResources\2304.png" />
+    <Image Include="ImageResources\2305.png" />
+    <Image Include="ImageResources\2306.png" />
+    <Image Include="ImageResources\2307.png" />
+    <Image Include="ImageResources\2308.png" />
+    <Image Include="ImageResources\2309.png" />
+    <Image Include="ImageResources\2310.png" />
+    <Image Include="ImageResources\2311.png" />
+    <Image Include="ImageResources\2312.png" />
+    <Image Include="ImageResources\2313.png" />
+    <Image Include="ImageResources\2314.png" />
+    <Image Include="ImageResources\2315.png" />
+    <Image Include="ImageResources\2316.png" />
+    <Image Include="ImageResources\2317.png" />
+    <Image Include="ImageResources\2318.png" />
+    <Image Include="ImageResources\2319.png" />
+    <Image Include="ImageResources\2320.png" />
+    <Image Include="ImageResources\2321.png" />
+    <Image Include="ImageResources\2322.png" />
+    <Image Include="ImageResources\2323.png" />
+    <Image Include="ImageResources\2324.png" />
+    <Image Include="ImageResources\2325.png" />
+    <Image Include="ImageResources\2326.png" />
+    <Image Include="ImageResources\2327.png" />
+    <Image Include="ImageResources\2328.png" />
+    <Image Include="ImageResources\2329.png" />
+    <Image Include="ImageResources\2330.png" />
     <Image Include="ImageResources\3001.png" />
     <Image Include="ImageResources\3002.png" />
     <Image Include="ImageResources\3003.png" />
@@ -870,6 +986,7 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="build_timestamp.ps1" />
     <None Include="imageresources\uifile3.bin" />
     <None Include="imageresources\uifile5.bin" />
     <None Include="imageresources\uifile6.bin" />

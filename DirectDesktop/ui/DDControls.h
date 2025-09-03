@@ -7,12 +7,15 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
     extern int g_dpi, g_dpiLaunch;
+    extern bool g_atleastonesetting;
     extern DWORD g_animCoef;
     extern NativeHWNDHost* subviewwnd;
     extern int GetCurrentScaleInterval();
     struct yValue;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
+    void SetThumbPosOnClick(Element* elem, Event* iev);
+    void SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
     struct RegKeyValue
     {
@@ -365,8 +368,10 @@ namespace DirectDesktop
         void SetHasAdvancedIcon(bool hai);
         unsigned short GetPage();
         unsigned short GetMemPage();
+        unsigned short GetPreRefreshMemPage();
         void SetPage(unsigned short pageID);
         void SetMemPage(unsigned short pageID);
+        void SetPreRefreshMemPage(unsigned short pageID);
         LVItemGroupSize GetGroupSize();
         void SetGroupSize(LVItemGroupSize lvigs);
         LVItemTileSize GetTileSize();
@@ -408,14 +413,15 @@ namespace DirectDesktop
         unsigned short _mem_yPos = 0;
         unsigned short _page{};
         unsigned short _mem_page{};
+        unsigned short _prmem_page{};
         LVItemGroupSize _groupsize = LVIGS_NORMAL;
         LVItemTileSize _tilesize = LVITS_NONE;
         LVItemOpenDirState _opendirstate = LVIODS_NONE;
-        vector<LVItem*>* _childItemss;
-        vector<DDScalableElement*>* _childIcons;
-        vector<Element*>* _childShadows;
-        vector<Element*>* _childShortcutArrows;
-        vector<RichText*>* _childFilenames;
+        vector<LVItem*>* _childItemss{};
+        vector<DDScalableElement*>* _childIcons{};
+        vector<Element*>* _childShadows{};
+        vector<Element*>* _childShortcutArrows{};
+        vector<RichText*>* _childFilenames{};
         vector<IElementListener*> _pels;
     };
 
@@ -510,6 +516,63 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
+    };
+
+    class DDSlider final : public Button
+    {
+    public:
+        DDSlider()
+        {
+        }
+
+        ~DDSlider();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI IsVerticalProp();
+        static const PropertyInfo* WINAPI TextWidthProp();
+        static const PropertyInfo* WINAPI TextHeightProp();
+        bool GetIsVertical();
+        int GetTextWidth();
+        int GetTextHeight();
+        void SetIsVertical(bool bIsVertical);
+        void SetTextWidth(int iTextWidth);
+        void SetTextHeight(int iTextHeight);
+        RegKeyValue GetRegKeyValue();
+        void SetRegKeyValue(RegKeyValue rkvNew);
+        float GetMinValue();
+        float GetMaxValue();
+        float GetCurrentValue();
+        int* GetAssociatedValue();
+        int GetDragStart();
+        int GetFillOnDragStart();
+        int GetPosOnDragStart();
+        void SetMinValue(float minValue);
+        void SetMaxValue(float maxValue);
+        void SetCurrentValue(float currValue, bool fExternal);
+        void SetAssociatedValue(int* assocVal, int extValueMultiplier);
+        void SetDragStart(int dragStart);
+        void SetFillOnDragStart(int fodragStart);
+        void SetPosOnDragStart(int podragStart);
+        LPCWSTR GetFormattedString();
+        void SetFormattedString(LPCWSTR szFormatted);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        RegKeyValue _rkv{};
+        float _minValue{};
+        float _maxValue{};
+        float _currValue{};
+        int _dragStart{};
+        int _fodragStart{};
+        int _podragStart{};
+        int* _assocVal = nullptr;
+        int _coef = 1;
+        LPCWSTR _szFormatted = nullptr;
+        int GetPropCommon(const PropertyProcT pPropertyProc);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
     };
 
     class DDColorPicker final : public Element
