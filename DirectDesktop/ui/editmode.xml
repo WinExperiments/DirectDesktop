@@ -146,7 +146,7 @@
 				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if id="atom(PV_FolderGroup)">
-				<Element foreground="20007" font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
+				<Element font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="popupwindow">
 				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(8rp,8rp,8rp,8rp)"/>
@@ -216,7 +216,7 @@
 				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if id="atom(PV_FolderGroup)">
-				<Element foreground="20003" font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
+				<Element font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="popupwindow">
 				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(8rp,8rp,8rp,8rp)"/>

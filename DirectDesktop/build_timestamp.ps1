@@ -1,5 +1,5 @@
 $compiledate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
-$compiletime = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmm')
+$compiletime = (Get-Date).ToUniversalTime().ToString('yyMMdd-HHmm')
 
 @"
 #define BUILD_DATE L`"$compiledate`"

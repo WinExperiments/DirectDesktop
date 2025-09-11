@@ -46,6 +46,17 @@ namespace DirectDesktop
         return CallWindowProc(WndProcSearch, hWnd, uMsg, wParam, lParam);
     }
 
+    DWORD WINAPI animateSearch(LPVOID lpParam)
+    {
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        Sleep(175 * (animCoef / 100.0f));
+        AnimateWindow(searchwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
+        searchwnd->DestroyWindow();
+        SetForegroundWindow(g_hWndTaskbar);
+        return 0;
+    }
+
     void LaunchSearchResult(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
@@ -182,7 +193,7 @@ namespace DirectDesktop
         parserSearch->GetSheet(sheetName, &sheetStorage);
         pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
         searchwnd->ShowWindow(SW_SHOW);
-        searchbox = (TouchEdit2*)pSearch->FindDescendent(StrToID(L"searchbox"));
+        searchbox = regElem<TouchEdit2*>(L"searchbox", pSearch);
         free(pel_DisplayResults), free(pel_CloseSearch), free(pel_UpdateSearchBox);
         CSafeElementPtr<DDScalableButton> searchbutton;
         searchbutton.Assign(regElem<DDScalableButton*>(L"searchbutton", pSearch));
@@ -193,21 +204,34 @@ namespace DirectDesktop
         pel_UpdateSearchBox = (IElementListener*)assignExtendedFn(searchbox, UpdateSearchBox, true);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
         SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
-        GTRANS_DESC transDesc2[1];
-        TriggerScaleOut(UIContainer, transDesc2, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
-        TransitionStoryboardInfo tsbInfo2 = {};
-        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
+        GTRANS_DESC transDesc[1];
+        TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
+        TransitionStoryboardInfo tsbInfo = {};
+        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+        CSafeElementPtr<Element> pagecontent;
+        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+        GTRANS_DESC transDesc2[2];
+        TriggerFade(pagecontent, transDesc2, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+        TriggerScaleIn(pagecontent, transDesc2, 1, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, pagecontent->GetDisplayNode(), &tsbInfo);
     }
 
     void DestroySearchPage()
     {
-        pSearch->DestroyAll(true);
-        searchwnd->DestroyWindow();
-        GTRANS_DESC transDesc2[1];
-        TriggerScaleOut(UIContainer, transDesc2, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-        TransitionStoryboardInfo tsbInfo2 = {};
-        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
+        GTRANS_DESC transDesc[1];
+        TriggerScaleOut(UIContainer, transDesc, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        TransitionStoryboardInfo tsbInfo = {};
+        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         DUI_SetGadgetZOrder(UIContainer, -1);
+        CSafeElementPtr<Element> pagecontent;
+        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+        GTRANS_DESC transDesc2[2];
+        TriggerScaleOut(pagecontent, transDesc2, 0, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.95f, 0.95f, 0.5f, 0.5f, false, false);
+        TriggerFade(pagecontent, transDesc2, 1, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+        ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc2), transDesc2, pagecontent->GetDisplayNode(), &tsbInfo);
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+        DWORD animThread;
+        HANDLE animThreadHandle = CreateThread(nullptr, 0, animateSearch, nullptr, 0, &animThread);
+        if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 }

@@ -545,6 +545,7 @@ namespace DirectDesktop
         float GetMinValue();
         float GetMaxValue();
         float GetCurrentValue();
+        float GetTickValue();
         int* GetAssociatedValue();
         int GetDragStart();
         int GetFillOnDragStart();
@@ -552,6 +553,7 @@ namespace DirectDesktop
         void SetMinValue(float minValue);
         void SetMaxValue(float maxValue);
         void SetCurrentValue(float currValue, bool fExternal);
+        void SetTickValue(float tickValue);
         void SetAssociatedValue(int* assocVal, int extValueMultiplier);
         void SetDragStart(int dragStart);
         void SetFillOnDragStart(int fodragStart);
@@ -564,6 +566,7 @@ namespace DirectDesktop
         RegKeyValue _rkv{};
         float _minValue{};
         float _maxValue{};
+        float _tickValue{};
         float _currValue{};
         int _dragStart{};
         int _fodragStart{};

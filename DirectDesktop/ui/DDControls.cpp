@@ -2510,6 +2510,11 @@ namespace DirectDesktop
         return _currValue;
     }
 
+    float DDSlider::GetTickValue()
+    {
+        return _tickValue;
+    }
+
     int* DDSlider::GetAssociatedValue()
     {
         return _assocVal;
@@ -2560,6 +2565,7 @@ namespace DirectDesktop
             if (percentage < 0) percentage = 0;
             if (percentage > 1) percentage = 1;
             float assocVal = _minValue + (_maxValue - _minValue) * percentage;
+            if (_tickValue > 0) assocVal = round(assocVal / _tickValue) * _tickValue;
             if (_assocVal)
                 (*_assocVal) = assocVal * _coef;
             RegKeyValue rkv = this->GetRegKeyValue();
@@ -2568,6 +2574,11 @@ namespace DirectDesktop
             g_atleastonesetting = true;
             _currValue = assocVal;
         }
+    }
+
+    void DDSlider::SetTickValue(float tickValue)
+    {
+        _tickValue = tickValue;
     }
 
     void DDSlider::SetAssociatedValue(int* assocVal, int extValueMultiplier)

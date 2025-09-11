@@ -3,24 +3,26 @@
 		<Element layoutpos="client" layout="borderlayout()">
 			<Element id="atom(searchbase)" layoutpos="client" layout="borderlayout()" behaviors="PVL::EnsureLayered()"/>
 		</Element>
-		<Element layout="borderlayout()" layoutpos="client" padding="rect(48rp,48rp,48rp,48rp)" class="searchview" behaviors="PVL::EnsureLayered()">
-			<Element layout="borderlayout()" layoutpos="top" font="15pt;Normal;None;Segoe UI" margin="rect(0,0,0,16rp)" background="argb(0,0,0,0)">
-				<DDScalableButton id="atom(closebutton)" layoutpos="right" font="15pt;Normal;None;Segoe UI" height="40rp" margin="rect(16rp,0,0,0)" class="pushbuttonsecondary" contentalign="middlecenter" content="X" padding="rect(8rp,0,8rp,0)"/>
-				<DDScalableButton id="atom(searchbutton)" layoutpos="right" font="15pt;Normal;None;Segoe UI" height="40rp" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" contentalign="middlecenter" content="Search" padding="rect(8rp,0,8rp,0)"/>
-				<Element layoutpos="left" layout="filllayout()" height="40rp" background="argb(0,0,0,0)" padding="rect(0,0,16rp,0)">
-					<DDScalableElement id="atom(searchboxbackground)" layoutpos="client" class="Ver0_5_editbg"/>
-					<Element layoutpos="client" layout="filllayout()" padding="rect(4rp,4rp,4rp,4rp)">
-						<TouchEdit2 id="atom(searchbox)" layoutpos="client" behaviors="Windows.UI.Popups::TouchEditContextMenu()"/>
+		<Element layout="filllayout()" layoutpos="client" padding="rect(48rp,48rp,48rp,48rp)" class="searchview" behaviors="PVL::EnsureLayered()">
+			<Element id="atom(pagecontent)" layout="borderlayout()" layoutpos="client" background="argb(0,0,0,0)">
+				<Element layout="borderlayout()" layoutpos="top" font="15pt;Normal;None;Segoe UI" margin="rect(0,0,0,16rp)" background="argb(0,0,0,0)">
+					<DDScalableButton id="atom(closebutton)" layoutpos="right" font="15pt;Normal;None;Segoe UI" height="40rp" margin="rect(16rp,0,0,0)" class="pushbuttonsecondary" contentalign="middlecenter" content="X" padding="rect(8rp,0,8rp,0)"/>
+					<DDScalableButton id="atom(searchbutton)" layoutpos="right" font="15pt;Normal;None;Segoe UI" height="40rp" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" contentalign="middlecenter" content="Search" padding="rect(8rp,0,8rp,0)"/>
+					<Element layoutpos="left" layout="filllayout()" height="40rp" background="argb(0,0,0,0)" padding="rect(0,0,16rp,0)">
+						<DDScalableElement id="atom(searchboxbackground)" layoutpos="client" class="Ver0_5_editbg"/>
+						<Element layoutpos="client" layout="filllayout()" padding="rect(4rp,4rp,4rp,4rp)">
+							<TouchEdit2 id="atom(searchbox)" layoutpos="client" behaviors="Windows.UI.Popups::TouchEditContextMenu()"/>
+						</Element>
+						<Element id="atom(searchboxtext)" visible="false" layoutpos="client" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 					</Element>
-					<Element id="atom(searchboxtext)" visible="false" layoutpos="client" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 				</Element>
+				<TouchScrollViewer id="atom(SearchResults)" background="argb(0,0,0,0)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
+					<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
+						<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3059" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr" margin="rect(0,0,0,8rp)"/>
+						<DDScalableRichText background="argb(0,0,0,0)" content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
+					</Element>
+				</TouchScrollViewer>
 			</Element>
-			<TouchScrollViewer id="atom(SearchResults)" background="argb(0,0,0,0)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
-				<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
-					<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3059" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr" margin="rect(0,0,0,8rp)"/>
-					<DDScalableRichText background="argb(0,0,0,0)" content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
-				</Element>
-			</TouchScrollViewer>
 		</Element>
 	</HWNDElement>
 	<RichText resid="ResultCount" layoutpos="client" foreground="white" font="36pt;Normal;None;Segoe UI" contentalign="wrapcenter"/>

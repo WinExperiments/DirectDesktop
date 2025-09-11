@@ -14,6 +14,8 @@ namespace DirectDesktop
     extern BYTE iconColorID;
     extern const wchar_t* sheetName;
 
+    extern COLORREF g_colorPickerPalette[8];
+
     void UpdateScale();
     void UpdateModeInfo();
     void SetTheme();

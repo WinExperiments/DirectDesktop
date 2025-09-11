@@ -254,7 +254,7 @@ namespace DirectDesktop
             {
             case 1001:
                 lvi->SetTileSize(LVITS_ICONONLY);
-                RearrangeIcons(false, false, true);
+                RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
                 if (isDefaultRes())
                 {
@@ -264,7 +264,7 @@ namespace DirectDesktop
                 break;
             case 1002:
                 lvi->SetTileSize(LVITS_NONE);
-                RearrangeIcons(false, false, true);
+                RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
                 if (isDefaultRes())
                 {
@@ -274,7 +274,7 @@ namespace DirectDesktop
                 break;
             case 1003:
                 lvi->SetTileSize(LVITS_DETAILED);
-                RearrangeIcons(false, false, true);
+                RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
                 if (isDefaultRes())
                 {

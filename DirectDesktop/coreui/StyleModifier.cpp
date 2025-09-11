@@ -11,11 +11,23 @@
 
 namespace DirectDesktop
 {
-    COLORREF ImmersiveColor, ImmersiveColorL, ImmersiveColorD;
+    COLORREF ImmersiveColor, ImmersiveColorL, ImmersiveColorD, ImmersiveColor2;
     bool g_theme;
     bool g_themeOld;
     const wchar_t* sheetName;
     rgb_t WhiteText;
+
+    static COLORREF crBaseL[6] =
+    {
+        RGB(76, 194, 255), RGB(216, 141, 225), RGB(244, 103, 98),
+        RGB(251, 154, 68), RGB(255, 213, 42), RGB(38, 255, 142)
+    };
+    static COLORREF crBaseD[6] =
+    {
+        RGB(0, 103, 192), RGB(158, 58, 176), RGB(210, 14, 30),
+        RGB(224, 83, 7), RGB(225, 157, 0), RGB(0, 178, 90)
+    };
+    COLORREF g_colorPickerPalette[8];
 
     bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y)
     {
@@ -64,10 +76,23 @@ namespace DirectDesktop
     void UpdateModeInfo()
     {
         g_theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
+        static bool themeOld = !g_theme;
         ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
         ImmersiveColorL = CImmersiveColor::GetColor(IMCLR_SystemAccentLight2);
         ImmersiveColorD = CImmersiveColor::GetColor(IMCLR_SystemAccentDark1);
+        if (g_theme != themeOld)
+        {
+            g_colorPickerPalette[0] = -1;
+            g_colorPickerPalette[1] = g_theme ? ImmersiveColorD : ImmersiveColorL;
+            g_colorPickerPalette[2] = g_theme ? crBaseD[0] : crBaseL[0];
+            g_colorPickerPalette[3] = g_theme ? crBaseD[1] : crBaseL[1];
+            g_colorPickerPalette[4] = g_theme ? crBaseD[2] : crBaseL[2];
+            g_colorPickerPalette[5] = g_theme ? crBaseD[3] : crBaseL[3];
+            g_colorPickerPalette[6] = g_theme ? crBaseD[4] : crBaseL[4];
+            g_colorPickerPalette[7] = g_theme ? crBaseD[5] : crBaseL[5];
+        }
         if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", ImmersiveColor, false, nullptr);
+        themeOld = g_theme;
     }
 
     void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)

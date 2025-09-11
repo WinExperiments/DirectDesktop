@@ -330,8 +330,12 @@ namespace DirectDesktop
         {
             DWORD direction = (localeType == 1) ? DT_RIGHT : DT_LEFT;
             *alignment = direction | DT_WORD_ELLIPSIS | DT_END_ELLIPSIS;
-            int maxlines_basedOnEllipsis = (*pmFile)[yV->num]->GetHeight();
-            yV->fl1 = (*pmFile)[yV->num]->GetWidth();
+            int maxlines_basedOnEllipsis{};
+            if (pmFile)
+            {
+                maxlines_basedOnEllipsis = (*pmFile)[yV->num]->GetHeight();
+                yV->fl1 = (*pmFile)[yV->num]->GetWidth();
+            }
             *lines_basedOnEllipsis = CalcTextLines((*pmLVItem)[yV->num]->GetSimpleFilename().c_str(), yV->fl1) * textm.tmHeight;
             if (*lines_basedOnEllipsis > maxlines_basedOnEllipsis) *lines_basedOnEllipsis = maxlines_basedOnEllipsis;
         }
@@ -1203,7 +1207,20 @@ namespace DirectDesktop
                                 int saveddestX = (localeType == 1) ? dimensions.right - finaldestX - internalselectedLVItems[items]->GetWidth() - desktoppadding_x : finaldestX - desktoppadding_x;
                                 for (int items2 = 0; items2 < pm.size(); items2++)
                                 {
-                                    if (pm[items2]->GetMemXPos() == finaldestX && pm[items2]->GetMemYPos() == finaldestY && pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage() && pm[items2]->GetDragState() == false) break;
+                                    if (pm[items2]->GetMemXPos() + pm[items2]->GetWidth() >= finaldestX &&
+                                        pm[items2]->GetMemXPos() <= finaldestX + internalselectedLVItems[items]->GetWidth() &&
+                                        pm[items2]->GetMemYPos() + pm[items2]->GetHeight() >= finaldestY &&
+                                        pm[items2]->GetMemYPos() <= finaldestY + internalselectedLVItems[items]->GetHeight() &&
+                                        pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage() &&
+                                        pm[items2]->GetDragState() == false)
+                                    {
+                                        if (g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY)
+                                        {
+                                            // Actual behavior TBD
+                                            break;
+                                        }
+                                        else break;
+                                    }
                                     if (items2 == pm.size() - 1)
                                     {
                                         internalselectedLVItems[items]->SetMemXPos(finaldestX);
@@ -1756,6 +1773,7 @@ namespace DirectDesktop
                 if (percentage < 0) percentage = 0;
                 if (percentage > 1) percentage = 1;
                 assocVal = ((DDSlider*)wParam)->GetMinValue() + (((DDSlider*)wParam)->GetMaxValue() - ((DDSlider*)wParam)->GetMinValue()) * percentage;
+                if (((DDSlider*)wParam)->GetTickValue() > 0) assocVal = round(assocVal / ((DDSlider*)wParam)->GetTickValue()) * ((DDSlider*)wParam)->GetTickValue();
                 WCHAR formattedNum[8];
                 StringCchPrintfW(formattedNum, 8, ((DDSlider*)wParam)->GetFormattedString(), assocVal);
                 peText->SetContentString(formattedNum);
@@ -1872,17 +1890,7 @@ namespace DirectDesktop
             {
                 CSafeElementPtr<DDScalableElement> iconElement;
                 iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", ((DDLVActionButton*)elem)->GetAssociatedItem()));
-                COLORREF colorPickerPalette[7] =
-                {
-                    g_theme ? ImmersiveColorD : ImmersiveColorL,
-                    g_theme ? RGB(0, 103, 192) : RGB(76, 194, 255), g_theme ? RGB(158, 58, 176) : RGB(216, 141, 225),
-                    g_theme ? RGB(210, 14, 30) : RGB(244, 103, 98), g_theme ? RGB(224, 83, 7) : RGB(251, 154, 68),
-                    g_theme ? RGB(225, 157, 0) : RGB(255, 213, 42), g_theme ? RGB(0, 178, 90) : RGB(38, 255, 142)
-                };
-                if (iconElement->GetGroupColor() >= 1)
-                    emptygraphic->SetAssociatedColor(colorPickerPalette[iconElement->GetGroupColor() - 1]);
-                else
-                    emptygraphic->SetAssociatedColor(-1);
+                emptygraphic->SetAssociatedColor(g_colorPickerPalette[iconElement->GetGroupColor()]);
             }
             if (emptyview) emptyview->SetVisible(true);
             Group_BackContainer->SetLayoutPos(-3);
@@ -2651,13 +2659,6 @@ namespace DirectDesktop
         CSafeElementPtr<DDScalableButton> lvi_SubUIContainer;
         lvi_SubUIContainer.Assign(regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist));
         lvi_SubUIContainer->SetVisible(true);
-        COLORREF colorPickerPalette[7] =
-        {
-            g_theme ? ImmersiveColorD : ImmersiveColorL,
-            g_theme ? RGB(0, 103, 192) : RGB(76, 194, 255), g_theme ? RGB(158, 58, 176) : RGB(216, 141, 225),
-            g_theme ? RGB(210, 14, 30) : RGB(244, 103, 98), g_theme ? RGB(224, 83, 7) : RGB(251, 154, 68),
-            g_theme ? RGB(225, 157, 0) : RGB(255, 213, 42), g_theme ? RGB(0, 178, 90) : RGB(38, 255, 142)
-        };
         if (lviCount > 0)
         {
             vector<IElementListener*> v_pels;
@@ -2785,7 +2786,7 @@ namespace DirectDesktop
                 CSafeElementPtr<DDScalableElement> emptygraphic;
                 emptygraphic.Assign(regElem<DDScalableElement*>(L"emptygraphic", groupdirectory));
                 if (iconElement->GetGroupColor() >= 1)
-                    emptygraphic->SetAssociatedColor(colorPickerPalette[iconElement->GetGroupColor() - 1]);
+                    emptygraphic->SetAssociatedColor(g_colorPickerPalette[iconElement->GetGroupColor()]);
                 CSafeElementPtr<Element> dirtitle;
                 dirtitle.Assign(regElem<Element*>(L"dirtitle", groupdirectory));
                 dirtitle->SetVisible(true);
@@ -2831,6 +2832,7 @@ namespace DirectDesktop
         Larger->SetEnabled(true);
         if (lvi->GetGroupSize() == LVIGS_SMALL) Smaller->SetEnabled(false);
         if (lvi->GetGroupSize() == LVIGS_LARGE) Larger->SetEnabled(false);
+        Unpin->SetEnabled(isDefaultRes());
         More->SetAssociatedItem(lvi);
         Smaller->SetAssociatedItem(lvi);
         Larger->SetAssociatedItem(lvi);
@@ -3376,8 +3378,8 @@ namespace DirectDesktop
                     }
                 }
                 if (((g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL) || (g_touchmode && pm[j]->GetTileSize() != LVITS_NONE)) &&
-                    pm[j]->GetInternalXPos() < largestXPos - ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)) &&
-                    pm[j]->GetInternalYPos() < largestYPos - ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)))
+                    pm[j]->GetInternalXPos() <= largestXPos - ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)) &&
+                    pm[j]->GetInternalYPos() <= largestYPos - ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)))
                 {
                     if (!EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) pm[j]->SetPage(g_maxPageID);
                     int occupiedPos = ((pm[j]->GetPage() - 1) * largestXPos * largestYPos) + pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos;
@@ -3401,6 +3403,7 @@ namespace DirectDesktop
                                     occupiedHeight++;
                                 }
                             }
+                            else positions[occupiedPos + pt] = true;
                             pt += (largestYPos - occupiedHeight);
                             occupiedHeight = 0;
                         }
@@ -3418,7 +3421,7 @@ namespace DirectDesktop
             }
             for (int j = 0; j < count; j++)
             {
-                if (pm[j]->GetGroupSize() == LVIGS_NORMAL && pm[j]->GetInternalXPos() < largestXPos && pm[j]->GetInternalYPos() < largestYPos)
+                if (((!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL) && (!g_touchmode || pm[j]->GetTileSize() == LVITS_NONE)) && pm[j]->GetInternalXPos() < largestXPos && pm[j]->GetInternalYPos() < largestYPos)
                 {
                     int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
                     int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
@@ -3495,7 +3498,7 @@ namespace DirectDesktop
                     else pm[j]->SetPage(g_maxPageID);
                     if (pm[j]->GetPage() != g_currentPageID) pm[j]->SetFlying(false);
                     positions[y] = true;
-                    if ((pm[j]->GetGroupSize() != LVIGS_NORMAL || pm[j]->GetTileSize() != LVITS_NONE) && pm[j]->GetWidth() > outerSizeX)
+                    if ((g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL) || (g_touchmode && pm[j]->GetTileSize() != LVITS_NONE))
                     {
                         int pt = 0;
                         int occupiedHeight = 0;
@@ -3510,6 +3513,7 @@ namespace DirectDesktop
                                     occupiedHeight++;
                                 }
                             }
+                            else positions[y + pt] = true;
                             pt += (largestYPos - occupiedHeight);
                             occupiedHeight = 0;
                         }
@@ -3787,7 +3791,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"VERSION: %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"MILESTONE: 11");
+            peTemp[1]->SetContentString(L"MILESTONE: 12");
             StringCchPrintfW(info, 256, L"BUILD TIMESTAMP: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             DUI_SetGadgetZOrder(peBackground, 4);
@@ -4309,7 +4313,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else if (g_iconsz > 48) g_shiconsz = 48;
     g_gpiconsz = 12;
     if (g_iconsz > 120) g_gpiconsz = 48;
-    else if (g_iconsz > 80) g_gpiconsz = 32;
+    else if (g_iconsz >= 80) g_gpiconsz = 32;
     else if (g_iconsz > 40) g_gpiconsz = 16;
     InitLayout(true, false, false);
 
@@ -4318,9 +4322,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     StartMonitorFileChanges(path3);
 
     WCHAR notice[256];
-    StringCchPrintfW(notice, 256, L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion 0.5_preview2\nCompiled on %s", BUILD_DATE);
+    StringCchPrintfW(notice, 256, L"This is a prerelease version of DirectDesktop.\n\nVersion 0.5_rc\nCompiled on %s", BUILD_DATE);
     DDNotificationBanner* ddnb{};
-    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 Preview 2", notice, 10, false);
+    DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_WARNING, L"DDNB", L"DirectDesktop - 0.5 RC", notice, 10, false);
 
     if (g_debuginfo) ShowDebugInfoOnDesktop(false, false, false);
 

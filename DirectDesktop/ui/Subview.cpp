@@ -67,6 +67,18 @@ namespace DirectDesktop
             return 0L;
             break;
         }
+        case WM_TIMER:
+        {
+            KillTimer(hWnd, wParam);
+            switch (wParam)
+                case 1:
+                    if (g_tempElem)
+                        if (!((Element*)g_tempElem)->IsDestroyed())
+                            if (((Element*)g_tempElem)->GetID() == StrToID(L"ResetDesktop"))
+                                ((Element*)g_tempElem)->SetEnabled(true);
+                    break;
+            break;
+        }
         case WM_USER + 1:
         {
             yValueEx* yV = (yValueEx*)lParam;
@@ -485,13 +497,6 @@ namespace DirectDesktop
         groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory));
         CSafeElementPtr<DDScalableButton> lvi_SubUIContainer;
         lvi_SubUIContainer.Assign(regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist));
-        COLORREF colorPickerPalette[7] =
-        {
-            g_theme ? ImmersiveColorD : ImmersiveColorL,
-            g_theme ? RGB(0, 103, 192) : RGB(76, 194, 255), g_theme ? RGB(158, 58, 176) : RGB(216, 141, 225),
-            g_theme ? RGB(210, 14, 30) : RGB(244, 103, 98), g_theme ? RGB(224, 83, 7) : RGB(251, 154, 68),
-            g_theme ? RGB(225, 157, 0) : RGB(255, 213, 42), g_theme ? RGB(0, 178, 90) : RGB(38, 255, 142)
-        };
         if (lviCount > 0)
         {
             vector<IElementListener*> v_pels;
@@ -596,7 +601,7 @@ namespace DirectDesktop
             CSafeElementPtr<DDScalableElement> emptygraphic;
             emptygraphic.Assign(regElem<DDScalableElement*>(L"emptygraphic", groupdirectory));
             if (iconElement->GetGroupColor() >= 1)
-                emptygraphic->SetAssociatedColor(colorPickerPalette[iconElement->GetGroupColor() - 1]);
+                emptygraphic->SetAssociatedColor(g_colorPickerPalette[iconElement->GetGroupColor()]);
             CSafeElementPtr<Element> dirtitle;
             dirtitle.Assign(regElem<Element*>(L"dirtitle", groupdirectory));
             dirtitle->SetVisible(true);
@@ -621,6 +626,7 @@ namespace DirectDesktop
         CSafeElementPtr<DDLVActionButton> OpenInExplorer;
         OpenInExplorer.Assign(regElem<DDLVActionButton*>(L"OpenInExplorer", groupdirectory));
         Pin->SetVisible(true), Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
+        Pin->SetEnabled(isDefaultRes());
         assignFn(OpenInExplorer, OpenGroupInExplorer);
         assignFn(Customize, OpenCustomizePage);
         assignFn(Pin, PinGroup);
@@ -668,7 +674,7 @@ namespace DirectDesktop
             else if (iconsize > 48) shortcutsize = 48;
             smallsize = 12;
             if (iconsize > 120) smallsize = 48;
-            else if (iconsize > 80) smallsize = 32;
+            else if (iconsize >= 80) smallsize = 32;
             else if (iconsize > 40) smallsize = 16;
             SetView(iconsize, shortcutsize, smallsize, false);
         }
@@ -723,6 +729,14 @@ namespace DirectDesktop
             {
                 RegDeleteKeyValueW(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize);
                 InitLayout(true, false, false);
+                g_tempElem = elem;
+                elem->SetEnabled(false);
+                SetTimer(subviewwnd->GetHWND(), 1, 2000, nullptr);
+                WCHAR clearMsg[64];
+                if (!g_touchmode) StringCchPrintfW(clearMsg, 64, L"Reset desktop layout on icon size %d.", g_iconsz);
+                else StringCchPrintfW(clearMsg, 64, L"Reset desktop layout on square tiles view.");
+                DDNotificationBanner* ddnb{};
+                DDNotificationBanner::CreateBanner(ddnb, parser, DDNT_SUCCESS, L"DDNB", nullptr, clearMsg, 3, false);
             }
         }
     }
@@ -847,6 +861,7 @@ namespace DirectDesktop
                 IconSize->SetMinValue(32);
                 IconSize->SetMaxValue(144);
                 IconSize->SetCurrentValue(g_iconsz, false);
+                IconSize->SetTickValue(8);
                 IconSize->SetFormattedString(L"%.0f");
                 IconSize->SetEnabled(!g_touchmode);
                 ApplyIconSize->SetEnabled(!g_touchmode);
@@ -905,7 +920,8 @@ namespace DirectDesktop
                 AnimSpeed->SetMaxValue(20.0f);
                 AnimSpeed->SetCurrentValue(g_animCoef / 100.0f, false);
                 AnimSpeed->SetAssociatedValue((int*)&g_animCoef, 100);
-                AnimSpeed->SetFormattedString(L"%.2f");
+                AnimSpeed->SetTickValue(0.1f);
+                AnimSpeed->SetFormattedString(L"%.1f");
                 AnimSpeed->SetRegKeyValue(rkvTemp);
                 rkvTemp._valueToFind = L"AnimationsShiftKey";
                 AnimShiftKey->SetCheckedState(g_AnimShiftKey);

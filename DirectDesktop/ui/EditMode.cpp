@@ -238,6 +238,9 @@ namespace DirectDesktop
                     int foldericonsize = (pm[yV->num]->GetTileSize() == LVITS_ICONONLY) ? 32 : g_iconsz;
                     CSafeElementPtr<Element> PV_FolderGroup;
                     PV_FolderGroup.Assign(regElem<Element*>(L"PV_FolderGroup", PV_IconPreview));
+                    if (iconpm[yV->num]->GetGroupColor() == 0)
+                        PV_FolderGroup->SetForegroundColor((iconColorID == 1) ? g_colorPickerPalette[1] : g_colorPickerPalette[iconColorID]);
+                    else PV_FolderGroup->SetForegroundColor(g_colorPickerPalette[iconpm[yV->num]->GetGroupColor()]);
                     PV_FolderGroup->SetVisible(true);
                     int glyphiconsize = min(PV_IconPreview->GetWidth(), PV_IconPreview->GetHeight());
                     float sizeCoef = (log(glyphiconsize / (yV->fl1 * g_iconsz)) / log(100)) + 1;
@@ -410,7 +413,7 @@ namespace DirectDesktop
         {
             GTRANS_DESC transDesc[1];
             TransitionStoryboardInfo tsbInfo = {};
-            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerFade(UIContainer, transDesc, 0, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, false);
             ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
             fullscreeninnerE->DestroyAll(true);
             fullscreeninnerE->Destroy(true);
@@ -424,6 +427,7 @@ namespace DirectDesktop
             //editbgwnd->DestroyWindow();
         }
         g_editmode = false;
+        g_invokedpagechange = false;
         DUI_SetGadgetZOrder(UIContainer, -1);
     }
 
@@ -556,11 +560,11 @@ namespace DirectDesktop
         PageViewerTop.Assign(regElem<Element*>(L"PageViewerTop", PageViewer));
         CSafeElementPtr<Element> PV_Inner;
         PV_Inner.Assign(regElem<Element*>(L"PV_Inner", PageViewer));
-        if (fReverse)
+        if (!fReverse)
         {
-            g_animatePVEnter = true;
             g_invokedpagechange = true;
         }
+        g_animatePVEnter = fReverse;
         GTRANS_DESC transDesc[1];
         TransitionStoryboardInfo tsbInfo = {};
         CSafeElementPtr<Element> pagesrow1; pagesrow1.Assign(regElem<Element*>(L"pagesrow1", PV_Inner));
@@ -579,16 +583,59 @@ namespace DirectDesktop
                 {
                     if (PV_Children->GetItem(i)->GetID() == StrToID(L"PV_Page"))
                     {
-                        if (((LVItem*)PV_Children->GetItem(i))->GetPage() == g_currentPageID) continue;
                         DynamicArray<Element*>* PageChildren = PV_Children->GetItem(i)->GetChildren(&v);
+                        if (((LVItem*)PV_Children->GetItem(i))->GetPage() == g_currentPageID)
+                        {
+                            for (int j = 0; j < PageChildren->GetSize(); j++)
+                            {
+                                if (PageChildren->GetItem(j)->GetID() == StrToID(L"pagetasks"))
+                                {
+                                    PageChildren->GetItem(j)->SetVisible(true);
+                                    TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                    ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, PageChildren->GetItem(j)->GetDisplayNode(), &tsbInfo);
+                                }
+                                if (PageChildren->GetItem(j)->GetID() == StrToID(L"PV_PageIcons"))
+                                {
+                                    DynamicArray<Element*>* PVPIChildren = PageChildren->GetItem(j)->GetChildren(&v);
+                                    for (int k = 0; k < PVPIChildren->GetSize(); k++)
+                                    {
+                                        if (PVPIChildren->GetItem(k)->GetID() == StrToID(L"number"))
+                                        {
+                                            PVPIChildren->GetItem(k)->SetVisible(true);
+                                            TriggerFade(PVPIChildren->GetItem(k), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, PVPIChildren->GetItem(k)->GetDisplayNode(), &tsbInfo);
+                                            DUI_SetGadgetZOrder(PVPIChildren->GetItem(k), 4);
+                                        }
+                                    }
+                                }
+                            }
+                            continue;
+                        }
                         for (int j = 0; j < PageChildren->GetSize(); j++)
                         {
                             if (PageChildren->GetItem(j)->GetID() == StrToID(L"animateddimming"))
                             {
                                 PageChildren->GetItem(j)->SetVisible(true);
-                                TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade3, flFade4, !fReverse, false, !fReverse);
+                                TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade3, flFade4, !fReverse, false, false);
                             }
-                            else TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, fReverse);
+                            else
+                            {
+                                if (PageChildren->GetItem(j)->GetID() == StrToID(L"PV_PageIcons"))
+                                {
+                                    DynamicArray<Element*>* PVPIChildren = PageChildren->GetItem(j)->GetChildren(&v);
+                                    for (int k = 0; k < PVPIChildren->GetSize(); k++)
+                                    {
+                                        if (PVPIChildren->GetItem(k)->GetID() == StrToID(L"number"))
+                                        {
+                                            PVPIChildren->GetItem(k)->SetVisible(true);
+                                            TriggerFade(PVPIChildren->GetItem(k), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, PVPIChildren->GetItem(k)->GetDisplayNode(), &tsbInfo);
+                                            DUI_SetGadgetZOrder(PVPIChildren->GetItem(k), 4);
+                                        }
+                                    }
+                                }
+                                TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                            }
                             ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, PageChildren->GetItem(j)->GetDisplayNode(), &tsbInfo);
                         }
                     }
@@ -644,6 +691,18 @@ namespace DirectDesktop
             TriggerFade(fullscreenpopupbaseE, transDesc, 0, 0.29f, 0.29f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, true, false, false);
             ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, fullscreenpopupbaseE->GetDisplayNode(), &tsbInfo);
             DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
+            float scaleOrigin = (localeType == 1) ? 1.0f : 0.0f;
+            if (g_currentPageID > 1)
+            {
+                TriggerScaleIn(bg_left_middle, transDesc, 0, 0.29f, 0.54f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, 1.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, false, false);
+                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, bg_left_middle->GetDisplayNode(), &tsbInfo);
+            }
+            if (g_currentPageID < g_maxPageID)
+            {
+                TriggerScaleIn(bg_right_middle, transDesc, 0, 0.29f, 0.54f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, scaleOrigin, 0.5f, 1.0f, 1.0f, scaleOrigin, 0.5f, false, false);
+                ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, bg_right_middle->GetDisplayNode(), &tsbInfo);
+            }
+
         }
     }
 
@@ -830,7 +889,6 @@ namespace DirectDesktop
                     CSafeElementPtr<RichText> number;
                     number.Assign(regElem<RichText*>(L"number", PV_Page));
                     number->SetContentString(to_wstring(i).c_str());
-                    DUI_SetGadgetZOrder(number, 0);
                     CSafeElementPtr<Element> PV_HomeBadge;
                     PV_HomeBadge.Assign(regElem<Element*>(L"PV_HomeBadge", PV_Page));
                     DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", PV_Page);
@@ -1075,38 +1133,38 @@ namespace DirectDesktop
 
         if (prevpage->GetWidth() > 1)
         {
-            SetTransElementPosition(bg_left_top, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTop->GetHeight(),
-                round(dimensions.right * 0.15), prevpage->GetY() - SimpleViewTop->GetHeight());
+            SetTransElementPosition(bg_left_top, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
+                round(dimensions.right * 0.15), prevpage->GetY() - SimpleViewTopInner->GetHeight());
 
             SetTransElementPosition(bg_left_middle, round((localeType == 1) ? dimensions.right * 0.85 : dimensions.right * 0.1), bg_left_top->GetY() + bg_left_top->GetHeight(),
                 round(dimensions.right * 0.05), prevpage->GetHeight());
 
             SetTransElementPosition(bg_left_bottom, round((localeType == 1) ? dimensions.right * 0.85 : 0), bg_left_middle->GetY() + bg_left_middle->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottom->GetHeight() - bg_left_middle->GetY() - bg_left_middle->GetHeight());
+                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_left_middle->GetY() - bg_left_middle->GetHeight());
         }
         else
         {
             SetTransElementPosition(bg_left_top, 0, 0, 0, 0);
-            SetTransElementPosition(bg_left_middle, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTop->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTop->GetHeight() - SimpleViewBottom->GetHeight());
+            SetTransElementPosition(bg_left_middle, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
+                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_left_bottom, 0, 0, 0, 0);
         }
         if (nextpage->GetWidth() > 1)
         {
-            SetTransElementPosition(bg_right_top, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTop->GetHeight(),
-                round(dimensions.right * 0.15), nextpage->GetY() - SimpleViewTop->GetHeight());
+            SetTransElementPosition(bg_right_top, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
+                round(dimensions.right * 0.15), nextpage->GetY() - SimpleViewTopInner->GetHeight());
 
             SetTransElementPosition(bg_right_middle, round((localeType == 1) ? dimensions.right * 0.1 : dimensions.right * 0.85), bg_right_top->GetY() + bg_right_top->GetHeight(),
                 round(dimensions.right * 0.05), nextpage->GetHeight());
 
             SetTransElementPosition(bg_right_bottom, round((localeType == 1) ? 0 : dimensions.right * 0.85), bg_right_middle->GetY() + bg_right_middle->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottom->GetHeight() - bg_right_middle->GetY() - bg_right_middle->GetHeight());
+                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_right_middle->GetY() - bg_right_middle->GetHeight());
         }
         else
         {
             SetTransElementPosition(bg_right_top, 0, 0, 0, 0);
-            SetTransElementPosition(bg_right_middle, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTop->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTop->GetHeight() - SimpleViewBottom->GetHeight());
+            SetTransElementPosition(bg_right_middle, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
+                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_right_bottom, 0, 0, 0, 0);
         }
         g_invokedpagechange = false;
