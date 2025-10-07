@@ -5,6 +5,10 @@ namespace DirectDesktop
     extern HWND g_hWndTaskbar;
     extern DirectUI::Element* UIContainer;
     extern bool g_theme;
+    extern bool g_searchopen;
     extern DirectUI::DUIXmlParser* parser;
+
+    extern DirectUI::NativeHWNDHost* searchwnd;
     void CreateSearchPage();
+    void DestroySearchPage();
 }

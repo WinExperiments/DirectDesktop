@@ -168,7 +168,7 @@ namespace DirectDesktop
                                     break;
                                 }
                                 TransitionStoryboardInfo tsbInfo = {};
-                                ScheduleGadgetTransitions(0, ARRAYSIZE(transReset), transReset, pm[items]->GetDisplayNode(), &tsbInfo);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transReset), transReset, pm[items]->GetDisplayNode(), &tsbInfo);
                                 DUI_SetGadgetZOrder(pm[items], -1);
                             }
                         }
@@ -217,9 +217,9 @@ namespace DirectDesktop
                 MENUITEMINFOW mii{};
                 mii.cbSize = sizeof(MENUITEMINFOW);
                 mii.fMask = MIIM_STATE;
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, L"Small");
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, L"Normal");
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, L"Wide");
+                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4089).c_str());
+                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4090).c_str());
+                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4091).c_str());
                 for (int menuitem = 1001; menuitem <= 1005; menuitem++)
                 {
                     mii.fState = MFS_UNCHECKED;
@@ -229,7 +229,7 @@ namespace DirectDesktop
                 if (lvi->GetTileSize() == LVITS_ICONONLY) SetMenuItemInfoW(hsm, 1001, 0, &mii);
                 else if (lvi->GetTileSize() == LVITS_NONE) SetMenuItemInfoW(hsm, 1002, 0, &mii);
                 else SetMenuItemInfoW(hsm, 1003, 0, &mii);
-                InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, L"Tile size");
+                InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, LoadStrFromRes(4088).c_str());
                 InsertMenuW(hm, 1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
                 if (!isDefaultRes()) EnableMenuItem(hm, 0, MF_BYPOSITION | MF_DISABLED);
             }
@@ -250,9 +250,16 @@ namespace DirectDesktop
             POINT pt;
             GetCursorPos(&pt);
             int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
+            LVItemTileSize lvits = lvi->GetTileSize();
+            int tilepadding = DESKPADDING_TOUCH * g_flScaleFactor;
             switch (menuItemId)
             {
             case 1001:
+                if (localeType == 1)
+                {
+                    if (lvits == LVITS_NONE) lvi->SetX(lvi->GetX() + g_touchSizeX / 2 + tilepadding / 2);
+                    if (lvits == LVITS_DETAILED) lvi->SetX(lvi->GetX() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
+                }
                 lvi->SetTileSize(LVITS_ICONONLY);
                 RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
@@ -263,7 +270,15 @@ namespace DirectDesktop
                 }
                 break;
             case 1002:
+                if (localeType == 1)
+                {
+                    if (lvits == LVITS_ICONONLY) lvi->SetX(lvi->GetX() - g_touchSizeX / 2 - tilepadding / 2);
+                    if (lvits == LVITS_DETAILED) lvi->SetX(lvi->GetX() + g_touchSizeX + tilepadding);
+                }
+                if (lvits == LVITS_ICONONLY) lvi->GetTouchGrid()->Erase(lvi->GetSmallPos() - 1);
                 lvi->SetTileSize(LVITS_NONE);
+                lvi->SetTouchGrid(nullptr);
+                lvi->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
                 if (isDefaultRes())
@@ -273,7 +288,15 @@ namespace DirectDesktop
                 }
                 break;
             case 1003:
+                if (localeType == 1)
+                {
+                    if (lvits == LVITS_ICONONLY) lvi->SetX(lvi->GetX() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
+                    if (lvits == LVITS_NONE) lvi->SetX(lvi->GetX() - g_touchSizeX - tilepadding);
+                }
+                if (lvits == LVITS_ICONONLY) lvi->GetTouchGrid()->Erase(lvi->GetSmallPos() - 1);
                 lvi->SetTileSize(LVITS_DETAILED);
+                lvi->SetTouchGrid(nullptr);
+                lvi->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
                 if (isDefaultRes())

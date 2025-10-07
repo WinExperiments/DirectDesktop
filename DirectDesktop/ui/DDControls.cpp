@@ -31,7 +31,7 @@ namespace DirectDesktop
 
     struct NotificationData
     {
-        NativeHWNDHost* wnd;
+        DDNotificationBanner* nb;
         Element* pe;
         int val;
     };
@@ -442,7 +442,7 @@ namespace DirectDesktop
             TransitionStoryboardInfo tsbInfo = {};
             float scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
             TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
-            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
         }
         if (pProp == Button::CapturedProp())
         {
@@ -459,7 +459,7 @@ namespace DirectDesktop
                 TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
             }
             TriggerFade(peThumbInner, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, alpha1, alpha2, false, false, ((Button*)elem)->GetCaptured());
-            ScheduleGadgetTransitions(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
             POINT ppt;
             GetCursorPos(&ppt);
             if (vertical)
@@ -495,13 +495,18 @@ namespace DirectDesktop
                 rkv._dwValue = ((DDColorPickerButton*)elem)->GetOrder();
                 SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
             }
+            bool awareness = ((DDColorPicker*)elem->GetParent())->GetThemeAwareness();
+            BYTE order = ((DDColorPickerButton*)elem)->GetOrder();
             for (int i = 0; i < te.size(); i++)
             {
                 if (te[i])
                 {
                     te[i]->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
+                    if (order == 0)
+                        te[i]->SetDDCPIntensity(255);
+                    if (awareness)
+                        te[i]->SetGroupColor(order);
                     te[i]->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
-                    if (((DDColorPicker*)elem->GetParent())->GetThemeAwareness() == true) te[i]->SetGroupColor(((DDColorPickerButton*)elem)->GetOrder());
                 }
             }
             te.clear();
@@ -510,8 +515,11 @@ namespace DirectDesktop
                 if (tb[i])
                 {
                     tb[i]->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
+                    if (order == 0)
+                        tb[i]->SetDDCPIntensity(255);
+                    if (awareness)
+                        tb[i]->SetGroupColor(order);
                     tb[i]->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
-                    if (((DDColorPicker*)elem->GetParent())->GetThemeAwareness() == true) tb[i]->SetGroupColor(((DDColorPickerButton*)elem)->GetOrder());
                 }
             }
             tb.clear();
@@ -558,7 +566,7 @@ namespace DirectDesktop
 
     DWORD WINAPI CreateTEVisual(LPVOID lpParam)
     {
-        PostMessageW(g_msgwnd, WM_USER + 5, (WPARAM)lpParam, NULL);
+        PostMessageW(g_msgwnd, WM_USER + 8, (WPARAM)lpParam, NULL);
         return 0;
     }
 
@@ -1108,6 +1116,11 @@ namespace DirectDesktop
         return _gc;
     }
 
+    bool DDScalableButton::GetShellInteraction()
+    {
+        return _shellinteraction;
+    }
+
     void DDScalableButton::SetRegKeyValue(RegKeyValue rkvNew)
     {
         _rkv = rkvNew;
@@ -1129,6 +1142,11 @@ namespace DirectDesktop
     void DDScalableButton::SetGroupColor(unsigned short sGC)
     {
         _gc = sGC;
+    }
+
+    void DDScalableButton::SetShellInteraction(bool bShellInteraction)
+    {
+        _shellinteraction = bShellInteraction;
     }
 
     void DDScalableButton::ExecAssociatedFn(void (*pfn)(bool, bool, bool))
@@ -1616,21 +1634,62 @@ namespace DirectDesktop
         }
     }
 
-    vector<DDScalableTouchEdit*> DDScalableTouchEdit::_arrCreatedBoxes;
-
-    DDScalableTouchEdit::DDScalableTouchEdit()
+    RegKeyValue DDScalableTouchButton::GetRegKeyValue()
     {
-        _arrCreatedBoxes.push_back(this);
+        return _rkv;
     }
 
-    DDScalableTouchEdit::~DDScalableTouchEdit()
+    void (*DDScalableTouchButton::GetAssociatedFn())(bool, bool, bool)
     {
-        auto toRemove = find(_arrCreatedBoxes.begin(), _arrCreatedBoxes.end(), this);
-        if (toRemove != _arrCreatedBoxes.end())
-        {
-            _arrCreatedBoxes.erase(toRemove);
-        }
-        this->DestroyAll(true);
+        return _assocFn;
+    }
+
+    bool* DDScalableTouchButton::GetAssociatedBool()
+    {
+        return _assocBool;
+    }
+
+    unsigned short DDScalableTouchButton::GetGroupColor()
+    {
+        return _gc;
+    }
+
+    bool DDScalableTouchButton::GetShellInteraction()
+    {
+        return _shellinteraction;
+    }
+
+    void DDScalableTouchButton::SetRegKeyValue(RegKeyValue rkvNew)
+    {
+        _rkv = rkvNew;
+    }
+
+    void DDScalableTouchButton::SetAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3)
+    {
+        _assocFn = pfn;
+        _fnb1 = fnb1;
+        _fnb2 = fnb2;
+        _fnb3 = fnb3;
+    }
+
+    void DDScalableTouchButton::SetAssociatedBool(bool* pb)
+    {
+        _assocBool = pb;
+    }
+
+    void DDScalableTouchButton::SetGroupColor(unsigned short sGC)
+    {
+        _gc = sGC;
+    }
+
+    void DDScalableTouchButton::SetShellInteraction(bool bShellInteraction)
+    {
+        _shellinteraction = bShellInteraction;
+    }
+
+    void DDScalableTouchButton::ExecAssociatedFn(void (*pfn)(bool, bool, bool))
+    {
+        pfn(_fnb1, _fnb2, _fnb3);
     }
 
     IClassInfo* DDScalableTouchEdit::GetClassInfoPtr()
@@ -1650,12 +1709,9 @@ namespace DirectDesktop
 
     HRESULT DDScalableTouchEdit::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDScalableTouchEdit>(pParent, pdwDeferCookie, ppElement);
+        HRESULT hr = CreateAndInit<DDScalableTouchEdit, int>(0, pParent, pdwDeferCookie, ppElement);
         if (SUCCEEDED(hr))
         {
-            assignExtendedFn(*ppElement, UpdateImageOnPropChange);
-            ((DDScalableTouchEdit*)*ppElement)->InitDrawImage();
-            ((DDScalableTouchEdit*)*ppElement)->InitDrawFont();
             DWORD dw2;
             HANDLE drawingHandle2 = CreateThread(nullptr, 0, CreateTEVisual, (LPVOID)*ppElement, NULL, &dw2);
             if (drawingHandle2) CloseHandle(drawingHandle2);
@@ -1665,152 +1721,49 @@ namespace DirectDesktop
 
     HRESULT DDScalableTouchEdit::Register()
     {
-        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
-        {
-            &impFirstScaledImageProp,
-            &impScaledImageIntervalsProp,
-            &impDrawTypeProp,
-            &impEnableAccentProp,
-            &impNeedsFontResizeProp,
-            &impNeedsFontResize2Prop
-        };
-        return ClassInfo<DDScalableTouchEdit, TouchEdit2>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDScalableTouchEdit, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", nullptr, 0);
     }
 
-    auto DDScalableTouchEdit::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
+    const WCHAR* DDScalableTouchEdit::GetContentString(Value** ppv)
     {
-        Value* pv = GetValue(pPropertyProc, 2, nullptr);
-        auto v = useInt ? pv->GetInt() : pv->GetBool();
-        pv->Release();
-        return v;
+        CSafeElementPtr<TouchEdit2> peEdit;
+        peEdit.Assign(regElem<TouchEdit2*>(L"TE_EditBox", this));
+        if (peEdit) return peEdit->GetContentString(ppv);
+        else return nullptr;
     }
 
-    void DDScalableTouchEdit::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt)
+    HRESULT DDScalableTouchEdit::SetContentString(const WCHAR* v)
     {
-        Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
-        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
-        if (SUCCEEDED(hr))
+        CSafeElementPtr<TouchEdit2> peEdit;
+        peEdit.Assign(regElem<TouchEdit2*>(L"TE_EditBox", this));
+        if (peEdit) return peEdit->SetContentString(v);
+        else return E_FAIL;
+    }
+
+    void DDScalableTouchEdit::UpdateTEPreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        if (pProp == Element::KeyWithinProp())
         {
-            hr = SetValue(pPropertyProc, 1, pv);
-            pv->Release();
+            CSafeElementPtr<DDScalableElement> TE_Background;
+            TE_Background.Assign(regElem<DDScalableElement*>(L"TE_Background", elem->GetParent()->GetParent()));
+            CSafeElementPtr<Element> TE_Preview;
+            TE_Preview.Assign(regElem<Element*>(L"TE_Preview", elem->GetParent()->GetParent()));
+            CValuePtr v;
+            TE_Preview->SetVisible(!elem->GetKeyWithin());
+            TE_Preview->SetContentString(elem->GetContentString(&v));
+            TE_Background->SetSelected(elem->GetKeyWithin());
         }
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::FirstScaledImageProp()
-    {
-        return &impFirstScaledImageProp;
-    }
-
-    int DDScalableTouchEdit::GetFirstScaledImage()
-    {
-        return this->GetPropCommon(FirstScaledImageProp, true);
-    }
-
-    void DDScalableTouchEdit::SetFirstScaledImage(int iFirstImage)
-    {
-        this->SetPropCommon(FirstScaledImageProp, iFirstImage, true);
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::ScaledImageIntervalsProp()
-    {
-        return &impScaledImageIntervalsProp;
-    }
-
-    int DDScalableTouchEdit::GetScaledImageIntervals()
-    {
-        int v = this->GetPropCommon(ScaledImageIntervalsProp, true);
-        if (v < 1) v = 1;
-        return v;
-    }
-
-    void DDScalableTouchEdit::SetScaledImageIntervals(int iScaleIntervals)
-    {
-        this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::DrawTypeProp()
-    {
-        return &impDrawTypeProp;
-    }
-
-    int DDScalableTouchEdit::GetDrawType()
-    {
-        return this->GetPropCommon(DrawTypeProp, true);
-    }
-
-    void DDScalableTouchEdit::SetDrawType(int iDrawType)
-    {
-        this->SetPropCommon(DrawTypeProp, iDrawType, true);
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::EnableAccentProp()
-    {
-        return &impEnableAccentProp;
-    }
-
-    bool DDScalableTouchEdit::GetEnableAccent()
-    {
-        return this->GetPropCommon(EnableAccentProp, false);
-    }
-
-    void DDScalableTouchEdit::SetEnableAccent(bool bEnableAccent)
-    {
-        this->SetPropCommon(EnableAccentProp, bEnableAccent, false);
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::NeedsFontResizeProp()
-    {
-        return &impNeedsFontResizeProp;
-    }
-
-    bool DDScalableTouchEdit::GetNeedsFontResize()
-    {
-        return this->GetPropCommon(NeedsFontResizeProp, false);
-    }
-
-    void DDScalableTouchEdit::SetNeedsFontResize(bool bNeedsFontResize)
-    {
-        this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::NeedsFontResize2Prop()
-    {
-        return &impNeedsFontResize2Prop;
-    }
-
-    bool DDScalableTouchEdit::GetNeedsFontResize2()
-    {
-        return this->GetPropCommon(NeedsFontResize2Prop, false);
-    }
-
-    void DDScalableTouchEdit::SetNeedsFontResize2(bool bNeedsFontResize2)
-    {
-        this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
-    }
-
-    void DDScalableTouchEdit::InitDrawImage()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
-    }
-
-    void DDScalableTouchEdit::RedrawImages()
-    {
-        for (DDScalableTouchEdit* pe : _arrCreatedBoxes)
+        if (pProp == Element::MouseWithinProp())
         {
-            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
+            CSafeElementPtr<DDScalableElement> TE_Background;
+            TE_Background.Assign(regElem<DDScalableElement*>(L"TE_Background", elem->GetParent()->GetParent()));
+            TE_Background->SetOverhang(elem->GetMouseWithin());
         }
-    }
-
-    void DDScalableTouchEdit::InitDrawFont()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
-    }
-
-    void DDScalableTouchEdit::RedrawFonts()
-    {
-        for (DDScalableTouchEdit* pe : _arrCreatedBoxes)
+        if (pProp == Element::EnabledProp())
         {
-            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
+            CSafeElementPtr<DDScalableElement> TE_Background;
+            TE_Background.Assign(regElem<DDScalableElement*>(L"TE_Background", elem->GetParent()->GetParent()));
+            TE_Background->SetEnabled(elem->GetEnabled());
         }
     }
 
@@ -1820,14 +1773,6 @@ namespace DirectDesktop
         {
             _childItemss->clear();
             _childItemss = nullptr;
-            _childIcons->clear();
-            _childIcons = nullptr;
-            _childShadows->clear();
-            _childShadows = nullptr;
-            _childShortcutArrows->clear();
-            _childShortcutArrows = nullptr;
-            _childFilenames->clear();
-            _childFilenames = nullptr;
         }
         this->ClearAllListeners();
         for (auto pel : _pels)
@@ -1835,6 +1780,7 @@ namespace DirectDesktop
             delete pel;
         }
         _pels.clear();
+        if (_touchGrid) if (_touchGrid->GetItemCount() == 0) delete _touchGrid;
         this->DestroyAll(true);
     }
 
@@ -2110,54 +2056,113 @@ namespace DirectDesktop
         _opendirstate = lviods;
     }
 
+    BYTE LVItem::GetSmallPos()
+    {
+        return _smallPos;
+    }
+
+    BYTE LVItem::GetMasterSmallPos()
+    {
+        return _smallPosMaster;
+    }
+
+    void LVItem::SetSmallPos(BYTE smPos)
+    {
+        _smallPos = smPos;
+    }
+
+    void LVItem::SetMasterSmallPos(BYTE smPos)
+    {
+        _smallPosMaster = smPos;
+    }
+
+    LVItemTouchGrid* LVItem::GetTouchGrid()
+    {
+        return _touchGrid;
+    }
+
+    void LVItem::SetTouchGrid(LVItemTouchGrid* lvitg)
+    {
+        if (_touchGrid) _touchGrid->Erase(_smallPos - 1);
+        _touchGrid = lvitg;
+        if (_touchGrid) _touchGrid->Insert(this);
+    }
+
+    void LVItem::SetTouchGrid(LVItemTouchGrid* lvitg, BYTE index)
+    {
+        if (_touchGrid) _touchGrid->Erase(_smallPos - 1);
+        _touchGrid = lvitg;
+        if (_touchGrid) _touchGrid->Insert(this, index);
+    }
+
+    DDScalableElement* LVItem::GetIcon()
+    {
+        return _peIcon;
+    }
+
+    Element* LVItem::GetShadow()
+    {
+        return _peShadow;
+    }
+
+    Element* LVItem::GetShortcutArrow()
+    {
+        return _peShortcutArrow;
+    }
+
+    RichText* LVItem::GetText()
+    {
+        return _peText;
+    }
+
+    RichText* LVItem::GetTextShadow()
+    {
+        return _peTextShadow;
+    }
+
+    Button* LVItem::GetCheckbox()
+    {
+        return _peCheckbox;
+    }
+
+    void LVItem::SetIcon(DDScalableElement* peIcon)
+    {
+        _peIcon = peIcon;
+    }
+
+    void LVItem::SetShadow(Element* peShadow)
+    {
+        _peShadow = peShadow;
+    }
+
+    void LVItem::SetShortcutArrow(Element* peShortcutArrow)
+    {
+        _peShortcutArrow = peShortcutArrow;
+    }
+
+    void LVItem::SetText(RichText* peText)
+    {
+        _peText = peText;
+    }
+
+    void LVItem::SetTextShadow(RichText* peTextShadow)
+    {
+        _peTextShadow = peTextShadow;
+    }
+
+    void LVItem::SetCheckbox(Button* peCheckbox)
+    {
+        _peCheckbox = peCheckbox;
+    }
+
     vector<LVItem*>* LVItem::GetChildItems()
     {
         return _childItemss;
     }
 
-    vector<DDScalableElement*>* LVItem::GetChildIcons()
-    {
-        return _childIcons;
-    }
-
-    vector<Element*>* LVItem::GetChildShadows()
-    {
-        return _childShadows;
-    }
-
-    vector<Element*>* LVItem::GetChildShortcutArrows()
-    {
-        return _childShortcutArrows;
-    }
-
-    vector<RichText*>* LVItem::GetChildFilenames()
-    {
-        return _childFilenames;
-    }
-
     void LVItem::SetChildItems(vector<LVItem*>* vpm)
     {
         _childItemss = vpm;
-    }
-
-    void LVItem::SetChildIcons(vector<DDScalableElement*>* vipm)
-    {
-        _childIcons = vipm;
-    }
-
-    void LVItem::SetChildShadows(vector<Element*>* vispm)
-    {
-        _childShadows = vispm;
-    }
-
-    void LVItem::SetChildShortcutArrows(vector<Element*>* vspm)
-    {
-        _childShortcutArrows = vspm;
-    }
-
-    void LVItem::SetChildFilenames(vector<RichText*>* vfpm)
-    {
-        _childFilenames = vfpm;
     }
 
     void LVItem::SetListeners(vector<IElementListener*> pels)
@@ -2170,6 +2175,72 @@ namespace DirectDesktop
         for (auto pel : _pels)
         {
             this->RemoveListener(pel);
+        }
+    }
+
+    void LVItemTouchGrid::Insert(LVItem* lvi)
+    {
+        if (_itemCount == _maxCount) return;
+        _items[_itemCount] = lvi;
+        _itemCount++;
+        lvi->SetSmallPos(_itemCount);
+    }
+
+    void LVItemTouchGrid::Insert(LVItem* lvi, BYTE index)
+    {
+        if (_itemCount >= _maxCount || index >= _maxCount || index < 0) return;
+        BYTE internalIndex = index;
+        if (index > _itemCount) internalIndex = _itemCount;
+        for (int i = _itemCount - 1; i >= index; i--)
+            _items[i + 1] = _items[i];
+        _items[internalIndex] = lvi;
+        _itemCount++;
+    }
+
+    void LVItemTouchGrid::Erase(BYTE index)
+    {
+        if (index < 0 || index >= _itemCount) return;
+        for (int i = index; i < _itemCount - 1; i++)
+        {
+            _items[i] = _items[i + 1];
+            _items[i]->SetSmallPos(i + 1);
+        }
+        _itemCount--;
+        _items[_itemCount] = nullptr;
+        if (_itemCount > 0) _RefreshLVItemPositions(index, -1);
+        else delete this;
+    }
+
+    BYTE LVItemTouchGrid::GetItemCount()
+    {
+        return _itemCount;
+    }
+
+    void LVItemTouchGrid::_RefreshLVItemPositions(BYTE index, short direction)
+    {
+        short localeDirection = (localeType == 1) ? -1 : 1;
+        for (int i = index; i < _itemCount; i++)
+        {
+            if (i & 1)
+            {
+                _items[i]->SetMemXPos(_items[i]->GetMemXPos() + (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection);
+                _items[i]->SetX(_items[i]->GetMemXPos());
+                if (direction == -1)
+                {
+                    _items[i]->SetMemYPos(_items[i]->GetMemYPos() - (g_touchSizeY + DESKPADDING_TOUCH) / 2);
+                    _items[i]->SetY(_items[i]->GetMemYPos());
+                }
+            }
+            else
+            {
+                _items[i]->SetMemXPos(_items[i]->GetMemXPos() - (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection);
+                _items[i]->SetX(_items[i]->GetMemXPos());
+                if (direction == 1)
+                {
+                    _items[i]->SetMemYPos(_items[i]->GetMemYPos() + (g_touchSizeY + DESKPADDING_TOUCH) / 2);
+                    _items[i]->SetY(_items[i]->GetMemYPos());
+                }
+            }
         }
     }
 
@@ -2870,61 +2941,36 @@ namespace DirectDesktop
         _targetBtns = vtb;
     }
 
-    LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
         //WNDPROC WndProcNotification = (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
-        CValuePtr v;
-        Element* ppeTemp;
-        wstring fontOld;
-        wregex fontRegex(L".*font;.*\%.*");
-        bool isSysmetricFont;
-        NotificationData* nd{};
+        NotificationData* nd = (NotificationData*)wParam;
         switch (uMsg)
         {
             case WM_CLOSE:
                 //DDNotificationBanner::DestroyBanner(nullptr);
                 return 0;
-                break;
             case WM_DESTROY:
                 return 0;
-                break;
-            case WM_USER + 2:
-                nd = (NotificationData*)wParam;
-                ppeTemp = nd->pe;
-                if (ppeTemp != nullptr) fontOld = ppeTemp->GetFont(&v);
-                isSysmetricFont = regex_match(fontOld, fontRegex);
-                if (isSysmetricFont)
-                {
-                    size_t modifier = fontOld.find(L";");
-                    size_t modifier2 = fontOld.find(L"%");
-                    wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                    wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
-                    wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                    int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_dpi / g_dpiLaunch;
-                    wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
-                    ppeTemp->SetFont(fontNew.c_str());
-                }
-                delete nd;
-                break;
             case WM_USER + 3:
-                nd = (NotificationData*)wParam;
-                DDNotificationBanner::DestroyBanner(nullptr, nd->wnd);
+                if (nd->nb)
+                    nd->nb->DestroyBanner(nullptr, false);
                 delete nd;
                 break;
         }
-        return CallWindowProc(WndProcNotification, hWnd, uMsg, wParam, lParam);
+        return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
 
     DWORD WINAPI AnimateWindowWrapper(LPVOID lpParam)
     {
         NotificationData* nd = (NotificationData*)lpParam;
         Sleep(50);
-        if (nd->wnd)
+        if (nd->nb->GetWindowHost())
         {
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            AnimateWindow(nd->wnd->GetHWND(), 180 * (animCoef / 100.0f), AW_BLEND);
-            nd->wnd->ShowWindow(SW_SHOW);
+            AnimateWindow(nd->nb->GetWindowHost()->GetHWND(), 180 * (animCoef / 100.0f), AW_BLEND);
+            nd->nb->GetWindowHost()->ShowWindow(SW_SHOW);
         }
         delete nd;
         return 0;
@@ -2933,8 +2979,15 @@ namespace DirectDesktop
     DWORD WINAPI AutoCloseNotification(LPVOID lpParam)
     {
         NotificationData* ndTemp = (NotificationData*)lpParam;
+        HWND hWnd = ndTemp->nb->GetWindowHost()->GetHWND();
         Sleep(ndTemp->val * 1000);
-        SendMessageW(ndTemp->wnd->GetHWND(), WM_USER + 3, (WPARAM)ndTemp, NULL);
+        if (ndTemp->nb)
+        {
+            if (!ndTemp->nb->IsDestroyed())
+                SendMessageW(hWnd, WM_USER + 3, (WPARAM)ndTemp, NULL);
+            else delete ndTemp;
+        }
+        else delete ndTemp;
         return 0;
     }
 
@@ -2958,27 +3011,34 @@ namespace DirectDesktop
         return count(textStr.begin(), textStr.end(), L'\n') + 1;
     }
 
-    void GetLongestLine(HDC hdc, const wstring& textStr, RECT* rcText)
+    void GetLongestLine(HDC hdc, const wstring& textStr, SIZE* szText)
     {
         vector<wstring> divided = SplitLineBreaks(textStr);
         int saved{};
         for (int i = 0; i < divided.size(); i++)
         {
-            DrawTextW(hdc, divided[i].c_str(), -1, rcText, DT_CALCRECT | DT_SINGLELINE);
-            if (rcText->right > saved) saved = rcText->right;
+            GetTextExtentPoint32W(hdc, divided[i].c_str(), lstrlenW(divided[i].c_str()), szText);
+            if (szText->cx > saved) saved = szText->cx;
         }
-        rcText->right = saved;
+        szText->cx = saved;
     }
 
-    DWORD WINAPI AutoSizeFont(LPVOID lpParam)
+    void GetTextDimensions(Element* pe, const wstring& str, SIZE* psz, int& cy)
     {
-        InitThread(TSM_DESKTOP_DYNAMIC);
-        Sleep(20);
-        NotificationData* nd = (NotificationData*)lpParam;
-        if (!nd || !nd->wnd) return 1;
-        SendMessageW(nd->wnd->GetHWND(), WM_USER + 2, (WPARAM)nd, NULL);
-        UnInitThread();
-        return 0;
+        CValuePtr v;
+        HDC hdcMem = CreateCompatibleDC(nullptr);
+        int fontsize = pe->GetFontSize();
+        if (fontsize < 0) fontsize *= -1.5;
+        LOGFONTW lf = { fontsize, 0, 0, 0, pe->GetFontWeight(), pe->GetFontStyle() & 1, pe->GetFontStyle() & 2, pe->GetFontStyle() & 4,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_DONTCARE, NULL };
+        wcscpy_s(lf.lfFaceName, pe->GetFontFace(&v));
+        HFONT hFont = CreateFontIndirectW(&lf);
+        HGDIOBJ oldFont = SelectObject(hdcMem, hFont);
+        GetLongestLine(hdcMem, str, psz);
+        cy += (lf.lfHeight * CalcLines(str));
+        SelectObject(hdcMem, oldFont);
+        DeleteObject(hFont);
+        DeleteDC(hdcMem);
     }
 
     DDNotificationBanner::~DDNotificationBanner()
@@ -3003,33 +3063,18 @@ namespace DirectDesktop
 
     HRESULT DDNotificationBanner::Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr{};
-        HANDLE ProcessHeap{};
-        DDNotificationBanner* buffer{};
-        DDNotificationBanner* pResult{};
-        ProcessHeap = GetProcessHeap();
-        buffer = (DDNotificationBanner*)HeapAlloc(ProcessHeap, 0x8, sizeof(DDNotificationBanner));
-        pResult = buffer;
-        if (buffer)
-        {
-            hr = pResult->Initialize(hParent, fDblBuffer, nCreate, pParent, pdwDeferCookie);
-            if (FAILED(hr))
-            {
-                pResult->Destroy(true);
-                pResult = nullptr;
-            }
-        }
-        else
-        {
-            hr = E_OUTOFMEMORY;
-        }
-        *ppElement = pResult;
+        HRESULT hr = CreateAndInit<DDNotificationBanner, HWND, bool, UINT>(hParent, fDblBuffer, nCreate, pParent, pdwDeferCookie, ppElement);
         return hr;
     }
 
     HRESULT DDNotificationBanner::Register()
     {
         return ClassInfo<DDNotificationBanner, HWNDElement, EmptyCreator<DDNotificationBanner>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDNotificationBanner", nullptr, 0);
+    }
+
+    NativeHWNDHost* DDNotificationBanner::GetWindowHost()
+    {
+        return _wnd;
     }
 
     Element* DDNotificationBanner::GetIconElement()
@@ -3047,7 +3092,12 @@ namespace DirectDesktop
         return _content;
     }
 
-    void DDNotificationBanner::CreateBanner(DDNotificationBanner* pDDNB, DUIXmlParser* pParser, DDNotificationType type, LPCWSTR pszResID, LPCWSTR title, LPCWSTR content, short timeout, bool fClose)
+    void DDNotificationBanner::SetWindowHost(NativeHWNDHost* pHost)
+    {
+        _wnd = pHost;
+    }
+
+    void DDNotificationBanner::CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout)
     {
         static bool notificationopen{};
         static HANDLE AutoCloseHandle;
@@ -3056,177 +3106,217 @@ namespace DirectDesktop
         Element* pHostElement;
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        NativeHWNDHost* notificationwndInternal{};
-        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &notificationwndInternal);
-        HWNDElement::Create(notificationwndInternal->GetHWND(), true, NULL, nullptr, &keyN, (Element**)&pDDNB);
+        DDNotificationBanner* pDDNB = this;
+        DDNotificationBanner** ppDDNB = &pDDNB;
+        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &_wnd);
+        HWNDElement::Create(_wnd->GetHWND(), true, NULL, nullptr, &keyN, (Element**)ppDDNB);
         Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList;
         if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
             IID_ITaskbarList, (void**)&pTaskbarList)))
         {
             if (SUCCEEDED(pTaskbarList->HrInit()))
             {
-                pTaskbarList->DeleteTab(notificationwndInternal->GetHWND());
+                pTaskbarList->DeleteTab(_wnd->GetHWND());
             }
         }
-        pParser->CreateElement(pszResID, pDDNB, nullptr, nullptr, &pHostElement);
-        WndProcNotification = (WNDPROC)SetWindowLongPtrW(notificationwndInternal->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
-        pHostElement->SetVisible(true);
-        pHostElement->EndDefer(keyN);
-        notificationwndInternal->Host(pHostElement);
+        _pDDNB = pDDNB;
+        Element::Create(0, pDDNB, nullptr, &pHostElement);
+        _pDDNB->Add(&pHostElement, 1);
+
+        LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+        StyleSheet* sheet = pHostElement->GetSheet();
+        CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+        parser->GetSheet(sheetName, &sheetStorage);
+        pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
+        free(sheet);
+
+        pHostElement->SetID(L"DDNB_Host");
+        //WndProcNotification = (WNDPROC)SetWindowLongPtrW(_wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
+        SetWindowSubclass(_wnd->GetHWND(), NotificationProc, 1, (DWORD_PTR)this);
+        _pDDNB->SetVisible(true);
+        _pDDNB->EndDefer(keyN);
+        _wnd->Host(_pDDNB);
         WCHAR* WindowsBuildStr;
         GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
         int WindowsBuild = _wtoi(WindowsBuildStr);
         free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
         MARGINS margins = { -1, -1, -1, -1 };
-        DwmExtendFrameIntoClientArea(notificationwndInternal->GetHWND(), &margins);
+        DwmExtendFrameIntoClientArea(_wnd->GetHWND(), &margins);
         if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
         {
             DWORD cornerPreference = DWMWCP_ROUND;
-            DwmSetWindowAttribute(notificationwndInternal->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
+            DwmSetWindowAttribute(_wnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
         }
-        BlurBackground(notificationwndInternal->GetHWND(), true, false, nullptr);
-        pHostElement->SetBackgroundStdColor(7);
+        BlurBackground(_wnd->GetHWND(), true, false, nullptr);
+        _pDDNB->SetBackgroundStdColor(7);
         CValuePtr v;
-        pDDNB->GetPadding(&v);
-        pHostElement->SetValue(Element::PaddingProp, 1, v);
+        CreateAndSetLayout(_pDDNB, BorderLayout::Create, 0, nullptr);
         CreateAndSetLayout(pHostElement, BorderLayout::Create, 0, nullptr);
 
-        int cx{}, cy{};
-        RECT hostpadding = *(v->GetRect());
-        cx += (hostpadding.left + hostpadding.right + 48 * g_flScaleFactor); // 48: 28 is the icon width, 20 is extra padding
-        cy += (hostpadding.top + hostpadding.bottom);
-        Element* peTemp = pDDNB->GetIconElement();
-        CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
-        peTemp->SetID(L"DDNB_Icon");
-        pHostElement->Add(&peTemp, 1);
-        wstring titleStr{};
+        DDScalableElement::Create(pHostElement, nullptr, (Element**)&_icon);
+        _icon->SetID(L"DDNB_Icon");
+        pHostElement->Add((Element**)&_icon, 1);
         switch (type)
         {
             case DDNT_SUCCESS:
-                if (!title) titleStr = LoadStrFromRes(217);
-                peTemp->SetClass(L"DDNB_Icon_Success");
+                if (!title) _titleStr = LoadStrFromRes(217);
+                _icon->SetClass(L"DDNB_Icon_Success");
                 break;
             case DDNT_INFO:
-                if (!title) titleStr = LoadStrFromRes(218);
-                peTemp->SetClass(L"DDNB_Icon_Info");
+                if (!title) _titleStr = LoadStrFromRes(218);
+                _icon->SetClass(L"DDNB_Icon_Info");
                 break;
             case DDNT_WARNING:
-                if (!title) titleStr = LoadStrFromRes(219);
-                peTemp->SetClass(L"DDNB_Icon_Warning");
+                if (!title) _titleStr = LoadStrFromRes(219);
+                _icon->SetClass(L"DDNB_Icon_Warning");
                 break;
             case DDNT_ERROR:
-                if (!title) titleStr = LoadStrFromRes(220);
-                peTemp->SetClass(L"DDNB_Icon_Error");
+                if (!title) _titleStr = LoadStrFromRes(220);
+                _icon->SetClass(L"DDNB_Icon_Error");
                 break;
         }
-        if (title) titleStr = title;
+        if (title) _titleStr = title;
 
-        HDC hdcMem = CreateCompatibleDC(nullptr);
-        NONCLIENTMETRICSW ncm{};
-        TEXTMETRICW tm{};
-        SystemParametersInfoForDpi(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, NULL, g_dpi);
-        HFONT hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
-        SelectObject(hdcMem, hFont);
-        RECT rcText{}, rcText2{};
-        if (content)
-        {
-            GetLongestLine(hdcMem, content, &rcText2);
-            GetTextMetricsW(hdcMem, &tm);
-            cy += (ceil(tm.tmHeight * 1.15) * CalcLines(content)) * g_flScaleFactor;
-        }
-        ncm.lfMessageFont.lfWeight = 700;
-        hFont = CreateFontIndirectW(&(ncm.lfMessageFont));
-        SelectObject(hdcMem, hFont);
-        DrawTextW(hdcMem, title, -1, &rcText, DT_CALCRECT | DT_SINGLELINE);
-        cx += (ceil(max(rcText.right, rcText2.right) * 1.15) * g_flScaleFactor);
-        GetTextMetricsW(hdcMem, &tm);
-        cy += (ceil(tm.tmHeight * 1.15) + 6) * g_flScaleFactor;
-        DeleteObject(hFont);
-        DeleteDC(hdcMem);
-
-        peTemp = pDDNB->GetTitleElement();
-        CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
-        peTemp->SetID(L"DDNB_Title");
-        pHostElement->Add(&peTemp, 1);
-        NotificationData* nd = new NotificationData{ notificationwndInternal, peTemp, NULL };
-        HANDLE setFontStr = CreateThread(nullptr, 0, AutoSizeFont, nd, 0, nullptr);
-        if (setFontStr) CloseHandle(setFontStr);
-        peTemp->SetContentString(titleStr.c_str());
+        DDScalableElement::Create(pHostElement, nullptr, (Element**)&_title);
+        _title->SetID(L"DDNB_Title");
+        pHostElement->Add((Element**)&_title, 1);
+        _title->SetContentString(_titleStr.c_str());
 
         if (content)
         {
-            peTemp = pDDNB->GetContentElement();
-            CreateAndInit<Element, int>(0, pHostElement, nullptr, (Element**)&peTemp);
-            peTemp->SetID(L"DDNB_Content");
-            pHostElement->Add(&peTemp, 1);
-            NotificationData* nd = new NotificationData{ notificationwndInternal, peTemp, NULL };
-            HANDLE setFontStr2 = CreateThread(nullptr, 0, AutoSizeFont, nd, 0, nullptr);
-            if (setFontStr2) CloseHandle(setFontStr2);
-            peTemp->SetContentString(content);
+            DDScalableElement::Create(pHostElement, nullptr, (Element**)&_content);
+            _content->SetID(L"DDNB_Content");
+            pHostElement->Add((Element**)&_content, 1);
+            _content->SetContentString(content);
         }
 
-        LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
-        StyleSheet* sheet = pHostElement->GetSheet();
-        CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-        pParser->GetSheet(sheetName, &sheetStorage);
-        pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
-        free(sheet);
+        int cx{}, cy{};
+        RECT hostpadding = *(pHostElement->GetPadding(&v));
+        RECT titlepadding = *(_title->GetPadding(&v));
+        cx += (hostpadding.left + hostpadding.right + _icon->GetWidth() + 2 * g_flScaleFactor);
+        cy += (hostpadding.top + hostpadding.bottom);
+
+        SIZE szText{}, szText2{};
+        GetTextDimensions(_title, _titleStr, &szText, cy);
+        if (content)
+            GetTextDimensions(_content, content, &szText2, cy);
+
+        cx += (max(szText.cx, szText2.cx));
+        cy += (titlepadding.top + titlepadding.bottom);
+        if (content)
+        {
+            RECT contentpadding = *(_content->GetPadding(&v));
+            cy += (contentpadding.top + contentpadding.bottom);
+        }
 
         // Window borders
         cx += (round(g_flScaleFactor)) * 2;
-        cy += (round(g_flScaleFactor)) * 2;
 
-        if (notificationwndInternal)
+        if (_wnd)
         {
-            SetWindowPos(notificationwndInternal->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED);
-            int offset{};
-            offset += cy + 56 * g_flScaleFactor;
-            for (int i = g_nwnds.size() - 1; i >= 0; i--) {
-                RECT windowRect{};
-                GetClientRect(g_nwnds[i], &windowRect);
-                SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED);
-                offset += windowRect.bottom + 18 * g_flScaleFactor;
-            }
+            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED);
             notificationopen = true;
-            NotificationData* nd = new NotificationData{ notificationwndInternal, nullptr, timeout };
+            NotificationData* nd = new NotificationData{ this, nullptr, timeout };
             HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper, nd, NULL, nullptr);
             if (AnimHandle) CloseHandle(AnimHandle);
-            g_nwnds.push_back(notificationwndInternal->GetHWND());
+            g_nwnds.push_back(_wnd->GetHWND());
+            DDNotificationBanner::RepositionBanners();
             if (timeout > 0)
             {
-                NotificationData* nd = new NotificationData{ notificationwndInternal, nullptr, timeout };
+                NotificationData* nd = new NotificationData{ this, nullptr, timeout };
                 DWORD dwAutoClose;
                 AutoCloseHandle = CreateThread(nullptr, 0, AutoCloseNotification, nd, NULL, &dwAutoClose);
             }
+            _pDDNB->SetWindowHost((NativeHWNDHost*)this); // Unsafe hack
         }
     }
 
-    void DDNotificationBanner::DestroyBanner(bool* notificationopen, NativeHWNDHost* wnd)
+    void DDNotificationBanner::RepositionBanners()
     {
-        if (wnd != nullptr)
+        RECT dimensions;
+        SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+        int offset{};
+        offset += dimensions.top + 40 * g_flScaleFactor;
+        for (int i = g_nwnds.size() - 1; i >= 0; i--) {
+            RECT windowRect{};
+            GetClientRect(g_nwnds[i], &windowRect);
+            SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED);
+            offset += windowRect.bottom + 18 * g_flScaleFactor;
+        }
+    }
+
+    void DDNotificationBanner::DestroyBanner(bool* notificationopen, bool manual)
+    {
+        if (_wnd != nullptr)
         {
-            RECT dimensions;
-            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-            auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), wnd->GetHWND());
-            g_nwnds.erase(toRemove);
-            int offset{};
-            offset += 40 * g_flScaleFactor;
-            for (int i = g_nwnds.size() - 1; i >= 0; i--) {
-                RECT windowRect{};
-                GetClientRect(g_nwnds[i], &windowRect);
-                SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED);
-                offset += windowRect.bottom + 18 * g_flScaleFactor;
+            CValuePtr v;
+            if (_peButtonSection)
+            {
+                DynamicArray<Element*>* pelButtons = _peButtonSection->GetChildren(&v);
+                for (int i = 0; i < pelButtons->GetSize(); i++)
+                    ((DDScalableButton*)pelButtons->GetItem(i))->StopListening();
             }
-            // This should use DWM later, as this would crash if it's triggered more than once within the specified time frame
+            auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), _wnd->GetHWND());
+            g_nwnds.erase(toRemove);
+            DDNotificationBanner::RepositionBanners();
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            AnimateWindow(wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
-            wnd->GetElement()->DestroyAll(true);
-            wnd->GetElement()->Destroy(true);
-            wnd->DestroyWindow();
-            wnd = nullptr;
+            AnimateWindow(_wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
+            _wnd->GetElement()->DestroyAll(true);
+            _wnd->GetElement()->Destroy(true);
+            if (manual) SetWindowLongPtrW(_wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)nullptr);
+            _wnd->DestroyWindow();
+            _wnd = nullptr;
         }
         if (notificationopen != nullptr) *notificationopen = false;
+    }
+
+    void DDNotificationBanner::DestroyBannerByButton(Element* elem, Event* iev)
+    {
+        if (iev->uidType == Button::Click)
+        {
+            DDNotificationBanner* pDDNB = (DDNotificationBanner*)elem->GetParent()->GetParent();
+            DDNotificationBanner* pDestroy = (DDNotificationBanner*)pDDNB->GetWindowHost();
+            pDestroy->DestroyBanner(nullptr, true);
+        }
+    }
+
+    void DDNotificationBanner::AppendButton(LPCWSTR szButtonText, void(*pListener)(Element* elem, Event* iev), bool fClose)
+    {
+        if (_btnCount == 0)
+        {
+            Element::Create(0, _pDDNB, nullptr, &_peButtonSection);
+            _pDDNB->Add(&_peButtonSection, 1);
+
+            LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+            StyleSheet* sheet = _peButtonSection->GetSheet();
+            CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+            parser->GetSheet(sheetName, &sheetStorage);
+            _peButtonSection->SetValue(Element::SheetProp, 1, sheetStorage);
+            free(sheet);
+
+            _peButtonSection->SetID(L"DDNB_Buttons");
+            int cy{};
+            RECT windowRect{};
+            GetClientRect(_wnd->GetHWND(), &windowRect);
+            cy = (_peButtonSection->GetHeight() + windowRect.bottom);
+            SetWindowPos(_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right, cy, SWP_NOMOVE | SWP_NOZORDER);
+            DDNotificationBanner::RepositionBanners();
+        }
+        _btnCount++;
+        int flowlayoutParams[2] = { 1, _btnCount };
+        CreateAndSetLayout(_peButtonSection, GridLayout::Create, ARRAYSIZE(flowlayoutParams), flowlayoutParams);
+        DDScalableButton* pBtn{};
+        DDScalableButton::Create(_peButtonSection, nullptr, (Element**)&pBtn);
+        pBtn->SetNeedsFontResize(false);
+        pBtn->SetNeedsFontResize2(false);
+        pBtn->SetClass(L"pushbuttonsecondary");
+        pBtn->SetHeight(32 * g_flScaleFactor);
+        pBtn->SetMargin(8 * g_flScaleFactor, 0, 0, 0);
+        pBtn->SetContentString(szButtonText);
+        _peButtonSection->Add((Element**)&pBtn, 1);
+        if (pListener) assignFn(pBtn, pListener);
+        if (fClose) assignFn(pBtn, DDNotificationBanner::DestroyBannerByButton);
     }
 }

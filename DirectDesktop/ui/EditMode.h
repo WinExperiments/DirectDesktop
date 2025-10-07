@@ -9,9 +9,8 @@ namespace DirectDesktop
     extern bool g_editmode;
     extern bool g_invokedpagechange;
     extern bool g_hiddenIcons;
+    extern bool g_pageviewer;
     extern std::vector<LVItem*> pm;
-    extern std::vector<DDScalableElement*> iconpm;
-    extern std::vector<Element*> shadowpm, shortpm;
     extern struct DesktopIcon;
     extern DUIXmlParser* parser;
     extern Element* pEdit;
@@ -26,6 +25,7 @@ namespace DirectDesktop
     extern void SetPopupSize(Element* elem, int width, int height);
     extern void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
     extern void ApplyIcons(vector<LVItem*> pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
+    extern TouchButton *nextpageMain, *prevpageMain;
     extern DDScalableTouchButton *nextpage, *prevpage;
     extern DDScalableRichText* pageinfo;
     extern DDScalableElement* fullscreeninnerE;

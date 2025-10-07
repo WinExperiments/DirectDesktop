@@ -11,6 +11,7 @@ namespace DirectDesktop
     bool g_debugmode;
     bool g_AnimShiftKey;
     bool g_debuginfo;
+    bool g_enableexit;
     bool g_showcheckboxes;
     bool g_treatdirasgroup;
     bool g_tripleclickandhide;
@@ -92,8 +93,11 @@ namespace DirectDesktop
             if (rkv._valueToFind == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
             if (rkv._valueToFind == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
             if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
-            SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
-            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, nullptr);
+            if (ddtb->GetShellInteraction())
+            {
+                SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
+                SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
+            }
             if (rkv._valueToFind == L"Hidden")
             {
                 DWORD dwDisableToggle;

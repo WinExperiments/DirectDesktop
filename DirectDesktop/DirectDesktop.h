@@ -16,10 +16,12 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
     extern float g_flScaleFactor;
+    extern int g_touchSizeX, g_touchSizeY;
     extern unsigned short g_defWidth, g_defHeight, g_lastWidth, g_lastHeight;
     extern int g_iconsz, g_iconszOld, g_shiconsz, g_gpiconsz;
     extern int g_currentPageID, g_maxPageID, g_homePageID;
     extern HWND g_msgwnd;
+    extern bool DWMActive;
 
     struct yValue
     {
@@ -34,10 +36,6 @@ namespace DirectDesktop
         float fl1{};
         float fl2{};
         std::vector<LVItem*>* vpm{};
-        std::vector<DDScalableElement*>* vipm{};
-        std::vector<Element*>* vispm{};
-        std::vector<Element*>* vspm{};
-        std::vector<RichText*>* vfpm{};
         Element* peOptionalTarget1{};
         Element* peOptionalTarget2{};
     };
@@ -145,6 +143,7 @@ namespace DirectDesktop
     std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
     std::wstring RemoveQuotes(const std::wstring& input);
     extern void DUI_SetGadgetZOrder(DirectUI::Element* pe, UINT uZOrder);
+    BOOL ScheduleGadgetTransitions_DWMCheck(UINT uOrder, UINT rgTransSize, const GTRANS_DESC* rgTrans, HGADGET hgad, TransitionStoryboardInfo* ptsbInfo);
     extern void CALLBACK DUI_ParserErrorCB(const WCHAR* pszError, const WCHAR* pszToken, int dLine, void* pContext);
     extern bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind);
     extern int GetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName);

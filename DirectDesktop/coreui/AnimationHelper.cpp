@@ -55,15 +55,16 @@ namespace DirectDesktop
         rgTrans[transIndex].vInitial.flY = initialPosY;
         rgTrans[transIndex].vEnd.flX = targetPosX;
         rgTrans[transIndex].vEnd.flY = targetPosY;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
             if (hDestroy) CloseHandle(hDestroy);
         }
         else if (fHide)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
         }
@@ -87,15 +88,16 @@ namespace DirectDesktop
         rgTrans[transIndex].Curve.ptfl2.y = rY1;
         rgTrans[transIndex].vInitial.flScalar = initialOpacity;
         rgTrans[transIndex].vEnd.flScalar = targetOpacity;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
             if (hDestroy) CloseHandle(hDestroy);
         }
         else if (fHide)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
         }
@@ -126,15 +128,16 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetScaleY;
         rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
         rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
             if (hDestroy) CloseHandle(hDestroy);
         }
         else if (fHide)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
         }
@@ -160,15 +163,16 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetScaleY;
         rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
         rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
             if (hDestroy) CloseHandle(hDestroy);
         }
         else if (fHide)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
         }
@@ -199,15 +203,16 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetBottom;
         rgTrans[transIndex].vEnd.flOriginX = targetLeft;
         rgTrans[transIndex].vEnd.flOriginY = targetTop;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
             if (hDestroy) CloseHandle(hDestroy);
         }
         else if (fHide)
         {
-            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDuration * 1000), pe };
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
         }

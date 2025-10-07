@@ -7,6 +7,7 @@ namespace DirectDesktop
     extern bool g_debugmode;
     extern bool g_AnimShiftKey;
     extern bool g_debuginfo;
+    extern bool g_enableexit;
     extern bool g_showcheckboxes;
     extern bool g_treatdirasgroup;
     extern bool g_tripleclickandhide;
@@ -23,6 +24,7 @@ namespace DirectDesktop
 
     extern Element* UIContainer;
     extern NativeHWNDHost* wnd;
+    extern NativeHWNDHost* subviewwnd;
     extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
     extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
 

@@ -82,7 +82,7 @@ namespace DirectDesktop
         ImmersiveColorD = CImmersiveColor::GetColor(IMCLR_SystemAccentDark1);
         if (g_theme != themeOld)
         {
-            g_colorPickerPalette[0] = -1;
+            g_colorPickerPalette[0] = g_theme ? 0 : -1;
             g_colorPickerPalette[1] = g_theme ? ImmersiveColorD : ImmersiveColorL;
             g_colorPickerPalette[2] = g_theme ? crBaseD[0] : crBaseL[0];
             g_colorPickerPalette[3] = g_theme ? crBaseD[1] : crBaseL[1];

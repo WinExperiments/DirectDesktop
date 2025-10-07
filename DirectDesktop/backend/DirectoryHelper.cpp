@@ -82,14 +82,14 @@ namespace DirectDesktop
             {
                 return filename;
             }
-            size_t lastdot = filename.find(L".lnk");
-            if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
+            size_t lastdot = filename.rfind(L".lnk");
+            if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
             {
                 if (shortpm != nullptr) shortpm->SetShortcutState(true);
                 return filename.substr(0, lastdot);
             }
-            if (lastdot == wstring::npos) lastdot = filename.find(L".url");
+            if (lastdot == wstring::npos) lastdot = filename.rfind(L".url");
             else
             {
                 if (shortpm != nullptr) shortpm->SetShortcutState(true);
@@ -107,14 +107,14 @@ namespace DirectDesktop
         }
         if (!isEnabled)
         {
-            size_t lastdot = filename.find(L".lnk");
-            if (lastdot == wstring::npos) lastdot = filename.find(L".pif");
+            size_t lastdot = filename.rfind(L".lnk");
+            if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
             {
                 if (shortpm != nullptr) shortpm->SetShortcutState(true);
                 return filename.substr(0, lastdot);
             }
-            if (lastdot == wstring::npos) lastdot = filename.find(L".url");
+            if (lastdot == wstring::npos) lastdot = filename.rfind(L".url");
             else
             {
                 if (shortpm != nullptr) shortpm->SetShortcutState(true);
@@ -803,8 +803,8 @@ namespace DirectDesktop
                     hWndResult = SetParent(*hSHELLDLL_DefView, *hWndProgman);
                     if (logging == IDYES)
                     {
-                        if (hWndResult != nullptr) MainLogger.WriteLine(L"Information: Added DirectDesktop inside the new 24H2 Progman.");
-                        else MainLogger.WriteLine(L"Error: Could not add DirectDesktop inside the new 24H2 Progman.");
+                        if (hWndResult != nullptr) MainLogger.WriteLine(L"Information: Added DirectDesktop inside Progman.");
+                        else MainLogger.WriteLine(L"Error: Could not add DirectDesktop inside Progman.");
                     }
                 }
                 else hWndResult = SetParent(*hSHELLDLL_DefView, *hWorkerW);
@@ -813,12 +813,15 @@ namespace DirectDesktop
         return 1;
     }
 
-    // A portion of this function (till parsing position tables) was sourced from
+    // A portion of this function (parsing) was sourced from
     // https://stackoverflow.com/questions/70039190/how-to-read-the-values-of-iconlayouts-reg-binary-registry-file
     // and "translated" to C++ using AI.
 
     void GetPos(bool getSpotlightIcon, int* setSpotlightIcon)
     {
+        SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
+        SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
+
         int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
         HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
         HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
@@ -826,7 +829,7 @@ namespace DirectDesktop
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconLayouts", &value);
 
         // Parse header at offset 0x10
-        if (logging == IDYES) MainLogger.WriteLine(L"Information: Preparing to parse icon layout registry at offset 0x10.");
+        if (logging == IDYES && !getSpotlightIcon) MainLogger.WriteLine(L"Information: Preparing to parse icon layout registry at offset 0x10.");
         size_t offset = 0x10;
         vector<uint16_t> head;
         for (int i = 0; i < 4; ++i)
@@ -839,7 +842,7 @@ namespace DirectDesktop
         uint32_t number_of_items = head[4];
         offset += 12;
 
-        if (logging == IDYES)
+        if (logging == IDYES && !getSpotlightIcon)
         {
             WCHAR regReport[96];
             StringCchPrintfW(regReport, 96, L"\nInformation: Registry reports you have %d items.", number_of_items);
@@ -848,10 +851,10 @@ namespace DirectDesktop
 
         // Start parsing desktop items
         vector<DesktopItem> desktop_items;
-        if (logging == IDYES) MainLogger.WriteLine(L"Information: Preparing to parse desktop item names.");
+        if (logging == IDYES && !getSpotlightIcon) MainLogger.WriteLine(L"Information: Preparing to parse desktop item names.");
         for (uint32_t x = 0; x < number_of_items; x++)
         {
-            if (logging == IDYES)
+            if (logging == IDYES && !getSpotlightIcon)
             {
                 WCHAR pReport[96];
                 StringCchPrintfW(pReport, 96, L"\nInformation: Preparing to parse item %d of %d...", x + 1, number_of_items);
@@ -970,24 +973,14 @@ namespace DirectDesktop
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Parsed position table.");
 
         // This is such a bad way to sort...
-        vector<LVItem*> pmBuf;
-        vector<Element*> pmShortcutBuf;
-        vector<DDScalableElement*> pmIconBuf;
-        vector<Element*> pmIconShadowBuf;
-        vector<RichText*> pmFileBuf;
-        vector<RichText*> pmFileShadowBuf;
-        vector<Element*> pmCBBuf;
+        vector<LVItem*> pmBuf, pmBuf2;
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Created temporary arrays to arrange icons.");
         pmBuf.resize(pm.size());
-        pmShortcutBuf.resize(pm.size());
-        pmIconBuf.resize(pm.size());
-        pmIconShadowBuf.resize(pm.size());
-        pmFileBuf.resize(pm.size());
-        pmFileShadowBuf.resize(pm.size());
-        pmCBBuf.resize(pm.size());
+        pmBuf2.resize(pm.size());
         vector<DesktopItem> new_desktop_items;
         for (int index = 0; index < number_of_items; index++)
         {
+            pmBuf2[index] = pm[index];
             for (int index2 = 0; index2 < pm.size(); index2++)
             {
                 if (desktop_items[index].name == pm[index2]->GetSimpleFilename())
@@ -1008,12 +1001,6 @@ namespace DirectDesktop
                 {
                     new_desktop_items[index2].name = L"?";
                     pmBuf[index2] = pm[index];
-                    pmShortcutBuf[index2] = shortpm[index];
-                    pmIconBuf[index2] = iconpm[index];
-                    pmIconShadowBuf[index2] = shadowpm[index];
-                    pmFileBuf[index2] = filepm[index];
-                    pmFileShadowBuf[index2] = fileshadowpm[index];
-                    pmCBBuf[index2] = cbpm[index];
                     fileCount++;
                     break;
                 }
@@ -1022,12 +1009,6 @@ namespace DirectDesktop
         for (int index = 0; index < pm.size(); index++)
         {
             pm[index] = pmBuf[index];
-            shortpm[index] = pmShortcutBuf[index];
-            iconpm[index] = pmIconBuf[index];
-            shadowpm[index] = pmIconShadowBuf[index];
-            filepm[index] = pmFileBuf[index];
-            fileshadowpm[index] = pmFileShadowBuf[index];
-            cbpm[index] = pmCBBuf[index];
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Filled the temporary arrays.");
         ////////////////////////////////////
@@ -1046,8 +1027,7 @@ namespace DirectDesktop
             {
                 if (c == 0)
                 {
-                    BYTE coef = 1;// g_touchmode ? 2 : 1;
-                    pm[index]->SetInternalXPos(tempXPos * coef);
+                    pm[index]->SetInternalXPos(tempXPos);
                     break;
                 }
                 if (tempXPos == 0)
@@ -1070,8 +1050,7 @@ namespace DirectDesktop
             {
                 if (r == 0)
                 {
-                    BYTE coef = 1;// g_touchmode ? 2 : 1;
-                    pm[index]->SetInternalYPos(tempYPos * coef);
+                    pm[index]->SetInternalYPos(tempYPos);
                     if (logging == IDYES)
                     {
                         WCHAR details[320];
@@ -1096,14 +1075,10 @@ namespace DirectDesktop
                 tempYPos++;
                 if (tempYPos > 200) break;
             }
+            pm[index] = pmBuf2[index];
         }
         pmBuf.clear();
-        pmShortcutBuf.clear();
-        pmIconBuf.clear();
-        pmIconShadowBuf.clear();
-        pmFileBuf.clear();
-        pmFileShadowBuf.clear();
-        pmCBBuf.clear();
+        pmBuf2.clear();
         free(value);
     }
 
@@ -1124,122 +1099,128 @@ namespace DirectDesktop
             g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
             g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
         };
-        BYTE* value2{};
-        GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
-        size_t offset2 = 0;
+        BYTE* valueSizeKey{}, *valueCommon{};
+        GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &valueSizeKey);
+        //GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DesktopLayoutCommon", &valueCommon);
+        size_t offsetSizeKey = 0, offsetCommon = 0;
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
         {
-            g_maxPageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-            offset2 += 2;
-            g_homePageID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-            offset2 += 2;
+            g_maxPageID = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+            offsetSizeKey += 2;
+            g_homePageID = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+            offsetSizeKey += 2;
         }
         if (full)
         {
             for (int i = 0; i < pm.size(); i++)
             {
-                unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                offset2 += 2;
-                wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
-                offset2 += (namelen * 2);
+                unsigned short namelen = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                offsetSizeKey += 2;
+                wstring filename = wstring(reinterpret_cast<WCHAR*>(&valueSizeKey[offsetSizeKey]), namelen);
+                offsetSizeKey += (namelen * 2);
                 bool match = false;
                 for (int j = 0; j < pm.size(); j++)
                 {
                     if (pm[j]->GetFilename() == filename)
                     {
-                        unsigned short xPos = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                        offset2 += 2;
+                        unsigned short xPos = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                        offsetSizeKey += 2;
                         pm[j]->SetInternalXPos(xPos);
-                        unsigned short yPos = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                        offset2 += 6;
+                        unsigned short yPos = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                        offsetSizeKey += 6;
                         pm[j]->SetInternalYPos(yPos);
-                        unsigned short page = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                        offset2 += 2;
+                        unsigned short page = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                        offsetSizeKey += 2;
                         pm[j]->SetPage(page);
                         if (page > g_maxPageID) g_maxPageID = page;
                         if (g_touchmode)
                         {
-                            unsigned short tilesize = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                            offset2 += 2;
+                            unsigned short tilesize = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                            offsetSizeKey += 2;
                             pm[j]->SetTileSize(static_cast<LVItemTileSize>(tilesize));
+                            unsigned short smpos = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                            offsetSizeKey += 2;
+                            pm[j]->SetSmallPos(smpos);
                         }
                         match = true;
                         break;
                     }
                 }
-                if (!match) offset2 += g_touchmode ? 12 : 10;
+                if (!match) offsetSizeKey += g_touchmode ? 14 : 10;
             }
         }
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable"))
         {
-            free(value2);
-            value2 = nullptr;
-            GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", &value2);
-            offset2 = 0;
+            free(valueSizeKey);
+            valueSizeKey = nullptr;
+            GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", &valueSizeKey);
+            offsetSizeKey = 0;
             for (int i = 0; i < pm.size(); i++)
             {
+                DDScalableElement* peIcon = pm[i]->GetIcon();
                 if (pm[i]->GetDirState() == true)
                 {
-                    unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                    offset2 += 2;
-                    wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
-                    offset2 += (namelen * 2);
+                    unsigned short namelen = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                    offsetSizeKey += 2;
+                    wstring filename = wstring(reinterpret_cast<WCHAR*>(&valueSizeKey[offsetSizeKey]), namelen);
+                    offsetSizeKey += (namelen * 2);
                     bool match = false;
                     for (int j = 0; j < pm.size(); j++)
                     {
                         if (pm[j]->GetFilename() == filename)
                         {
-                            unsigned short colorID = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                            offset2 += 2;
-                            iconpm[j]->SetGroupColor(colorID);
-                            iconpm[j]->SetAssociatedColor(colorPickerPalette[colorID]);
-                            unsigned short intensity = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                            offset2 += 2;
-                            iconpm[j]->SetDDCPIntensity(intensity);
+                            unsigned short colorID = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                            offsetSizeKey += 2;
+                            peIcon->SetGroupColor(colorID);
+                            peIcon->SetAssociatedColor(colorPickerPalette[colorID]);
+                            unsigned short intensity = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                            offsetSizeKey += 2;
+                            peIcon->SetDDCPIntensity(intensity);
                             match = true;
                             break;
                         }
                     }
-                    if (!match) offset2 += 4;
+                    if (!match) offsetSizeKey += 4;
                 }
             }
         }
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable"))
         {
-            free(value2);
-            value2 = nullptr;
-            GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", &value2);
-            offset2 = 0;
+            free(valueSizeKey);
+            valueSizeKey = nullptr;
+            GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", &valueSizeKey);
+            offsetSizeKey = 0;
             for (int i = 0; i < pm.size(); i++)
             {
                 if (pm[i]->GetDirState() == true)
                 {
-                    unsigned short namelen = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                    offset2 += 2;
-                    wstring filename = wstring(reinterpret_cast<WCHAR*>(&value2[offset2]), namelen);
-                    offset2 += (namelen * 2);
+                    unsigned short namelen = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                    offsetSizeKey += 2;
+                    wstring filename = wstring(reinterpret_cast<WCHAR*>(&valueSizeKey[offsetSizeKey]), namelen);
+                    offsetSizeKey += (namelen * 2);
                     bool match = false;
                     for (int j = 0; j < pm.size(); j++)
                     {
                         if (pm[j]->GetFilename() == filename)
                         {
-                            unsigned short size = *reinterpret_cast<unsigned short*>(&value2[offset2]);
-                            offset2 += 2;
+                            unsigned short size = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
+                            offsetSizeKey += 2;
                             pm[j]->SetGroupSize(static_cast<LVItemGroupSize>(size));
                             match = true;
                             break;
                         }
                     }
-                    if (!match) offset2 += 2;
+                    if (!match) offsetSizeKey += 2;
                 }
             }
         }
-        free(value2);
+        free(valueSizeKey);
     }
 
     void SetPos(bool full)
     {
         vector<BYTE> DesktopLayout;
+        //vector<BYTE> DesktopLayoutCommon;
         if (full)
         {
             RECT dimensions;
@@ -1289,18 +1270,25 @@ namespace DirectDesktop
                     const BYTE* tilesizeBinary = reinterpret_cast<const BYTE*>(&temp);
                     DesktopLayout.push_back(tilesizeBinary[0]);
                     DesktopLayout.push_back(tilesizeBinary[1]);
+                    temp = static_cast<unsigned short>(pm[i]->GetSmallPos());
+                    const BYTE* smposBinary = reinterpret_cast<const BYTE*>(&temp);
+                    DesktopLayout.push_back(smposBinary[0]);
+                    DesktopLayout.push_back(smposBinary[1]);
                 }
             }
             WCHAR DesktopLayoutWithSize[24];
             if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
             else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
             SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, DesktopLayout.data(), DesktopLayout.size(), false, nullptr);
+            //SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DesktopLayoutCommon", DesktopLayoutCommon.data(), DesktopLayoutCommon.size(), false, nullptr);
             DesktopLayout.clear();
+            //DesktopLayoutCommon.clear();
         }
         for (int i = 0; i < pm.size(); i++)
         {
             if (pm[i]->GetDirState() == true)
             {
+                DDScalableElement* peIcon = pm[i]->GetIcon();
                 wstring filename = pm[i]->GetFilename();
                 unsigned short temp = filename.length();
                 const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);
@@ -1309,11 +1297,11 @@ namespace DirectDesktop
                 const BYTE* bytes = reinterpret_cast<const BYTE*>(filename.c_str());
                 size_t len = (filename.length()) * sizeof(WCHAR);
                 DesktopLayout.insert(DesktopLayout.end(), bytes, bytes + len);
-                temp = iconpm[i]->GetGroupColor();
+                temp = peIcon->GetGroupColor();
                 const BYTE* colorBinary = reinterpret_cast<const BYTE*>(&temp);
                 DesktopLayout.push_back(colorBinary[0]);
                 DesktopLayout.push_back(colorBinary[1]);
-                temp = static_cast<unsigned short>(iconpm[i]->GetDDCPIntensity());
+                temp = static_cast<unsigned short>(peIcon->GetDDCPIntensity());
                 const BYTE* intensityBinary = reinterpret_cast<const BYTE*>(&temp);
                 DesktopLayout.push_back(intensityBinary[0]);
                 DesktopLayout.push_back(intensityBinary[1]);

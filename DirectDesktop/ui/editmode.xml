@@ -3,7 +3,7 @@
 		<Element id="atom(centered)" layoutpos="client" background="sgraphic(2064,7,-1,0,0,1,1)"/>
 	</HWNDElement-->
 	<HWNDElement resid="editmode" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="edit">
-		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" background="argb(0,0,0,0)" behaviors="PVL::EnsureLayered();PVL::AnimationTrap()">
+		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" background="argb(0,0,0,0)" behaviors="PVL::AnimationTrap()">
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 			</Element>
@@ -20,7 +20,7 @@
 			<DDScalableTouchButton id="atom(prevpage)" layout="filllayout()" class="pageselectoreditmode"/>
 			<DDScalableTouchButton id="atom(nextpage)" layout="filllayout()" class="pageselectoreditmode"/>
 		</TouchButton>
-		<TouchButton id="atom(SimpleViewTop)" layout="filllayout()" layoutpos="top" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)" behaviors="PVL::EnsureLayered()">
+		<TouchButton id="atom(SimpleViewTop)" layout="filllayout()" layoutpos="top" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
 			<Element layout="flowlayout(0,2,2,3)" layoutpos="client">
 				<DDScalableRichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" contentalign="middlecenter" NeedsFontResize2="true"/>
 				<RichText id="atom(SimpleViewHomeBadge)" layoutpos="none" class="simpleview" content="resstr(164)" font="resstr(156)" contentalign="middlecenter" margin="rect(4rp,0,0,0)"/>
@@ -30,25 +30,33 @@
 				<Button id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
 			</Element>
 		</TouchButton>
-		<TouchButton id="atom(SimpleViewBottom)" layout="flowlayout(0,2,1,0)" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)" behaviors="PVL::EnsureLayered()">
-			<Button id="atom(SimpleViewClose)" layoutpos="right" width="80rp" height="80rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,16rp,0)">
-				<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-				<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
-			</Button>
-			<Button id="atom(SimpleViewPages)" layoutpos="right" width="80rp" height="80rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,16rp,0)">
-				<RichText content="resstr(155)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-				<DDScalableRichText content="resstr(4055)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
-			</Button>
-			<Button id="atom(SimpleViewSettings)" layoutpos="right" width="80rp" height="80rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
-				<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-				<DDScalableRichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
-			</Button>
+		<TouchButton id="atom(SimpleViewBottom)" layout="borderlayout()" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
+			<TouchScrollViewer id="atom(svBottomOptions)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="false" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
+				<Element layout="flowlayout(0,2,1,0)">
+					<Button id="atom(SimpleViewClose)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
+						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+						<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
+					</Button>
+					<Button id="atom(SimpleViewSoftClose)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
+						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+						<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
+					</Button>
+					<Button id="atom(SimpleViewPages)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
+						<RichText content="resstr(155)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+						<DDScalableRichText content="resstr(4055)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
+					</Button>
+					<Button id="atom(SimpleViewSettings)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+						<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
+						<DDScalableRichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)" NeedsFontResize2="true"/>
+					</Button>
+				</Element>
+			</TouchScrollViewer>
 		</TouchButton>
 	</HWNDElement>
 	<DDScalableElement resid="fullscreeninner" layoutpos="absolute" background="argb(0,0,0,0)"/>
 	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1"/>
 	<Element resid="deskpreviewmask" background="rgb(0,0,0)" layoutpos="absolute"/>
-	<Button resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()" behaviors="PVL::EnsureLayered()">
+	<Button resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()">
 		<Element id="atom(PV_Inner)" layoutpos="client" layout="filllayout()">
 			<Element class="popupbg" id="atom(bg)" layoutpos="client" visible="false"/>
 			<Element class="popupbg" id="atom(bg_left)" layoutpos="absolute" visible="false"/>
@@ -59,26 +67,6 @@
 				<Element id="atom(pagesrow1)" layout="flowlayout(0,2,2,2)"/>
 				<Element class="popupbg" id="atom(rowpadding)"/>
 				<Element id="atom(pagesrow2)" layout="flowlayout(0,2,2,2)"/>
-			</Element>
-			<Element id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client" visible="false">
-				<DDScalableElement class="popupwindow" layout="verticalflowlayout(0,2,2,2)">
-					<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true"/>
-					<DDScalableRichText background="argb(0,0,0,0)" content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
-					<Element background="argb(0,0,0,0)" height="48rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
-						<DDScalableElement id="atom(PV_EnterPageBackground)" class="Ver0_5_editbg"/>
-						<Element layoutpos="client" layout="filllayout()" padding="rect(4rp,4rp,4rp,4rp)">
-							<TouchEdit2 id="atom(PV_EnterPage)" font="iconfont;133%" layoutpos="client" behaviors="Windows.UI.Popups::TouchEditContextMenu()"/>
-						</Element>
-						<Element id="atom(PV_EnterPagePreview)" visible="false" layoutpos="left" width="248rp" font="iconfont;133%" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
-						<Element padding="rect(0,4rp,4rp,4rp)" layoutpos="right" layout="borderlayout()" height="48rp">
-							<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="right" class="enterbutton" font="resstr(156)" content="resstr(157)" padding="rect(0,2rp,0,0)"/>
-						</Element>
-					</Element>
-					<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
-						<DDLVActionButton id="atom(PV_Remove)" height="40rp" class="pushbuttonsecondary" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
-						<DDLVActionButton id="atom(PV_Home)" height="40rp" class="pushbuttonsecondary" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
-					</Element>
-				</DDScalableElement>
 			</Element>
 		</Element>
 		<Element layoutpos="top" layout="filllayout()" id="atom(PageViewerTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)">
@@ -115,6 +103,22 @@
 		<Element id="atom(PV_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
 	</DDScalableElement>
 	<Element resid="PV_IconShortcutTouchPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
+	<Element resid="overflow" id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client">
+		<DDScalableElement class="popupwindow" layout="verticalflowlayout(0,2,2,2)">
+			<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true"/>
+			<DDScalableRichText background="argb(0,0,0,0)" content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0" NeedsFontResize2="true"/>
+			<Element background="argb(0,0,0,0)" height="48rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
+				<DDScalableTouchEdit id="atom(PV_EnterPage)" font="iconfont;133%" layoutpos="client"/>
+				<Element padding="rect(0,4rp,4rp,4rp)" layoutpos="right" layout="borderlayout()" height="48rp">
+					<LVItem id="atom(PV_ConfirmEnterPage)" layoutpos="right" class="enterbutton" font="resstr(156)" content="resstr(157)" padding="rect(0,2rp,0,0)"/>
+				</Element>
+			</Element>
+			<Element layout="flowlayout(0,0,0,0)" height="48rp" background="argb(0,0,0,0)" padding="rect(0,8rp,0,0)">
+				<DDLVActionButton id="atom(PV_Remove)" height="40rp" class="pushbuttonsecondary" content="resstr(4057)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true" margin="rect(0,0,8rp,0)"/>
+				<DDLVActionButton id="atom(PV_Home)" height="40rp" class="pushbuttonsecondary" content="resstr(4058)" font="12pt;Normal;None;Segoe UI" width="156rp" visible="true"/>
+			</Element>
+		</DDScalableElement>
+	</Element>
 	<stylesheets>
 		<style resid="edit" base="ressheet(31, DDBase)">
 			<Element foreground="black"/>

@@ -15,12 +15,6 @@ namespace DirectDesktop
     extern int localeType;
     extern int g_iconsz;
     extern vector<LVItem*> pm;
-    extern vector<DirectUI::Element*> shortpm;
-    extern vector<DDScalableElement*> iconpm;
-    extern vector<DirectUI::Element*> shadowpm;
-    extern vector<DirectUI::RichText*> filepm;
-    extern vector<DirectUI::RichText*> fileshadowpm;
-    extern vector<DirectUI::Element*> cbpm;
     extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
     extern void InitNewLVItem(const wstring& filepath, const wstring& filename);
     extern void RemoveLVItem(const wstring& filepath, const wstring& filename);

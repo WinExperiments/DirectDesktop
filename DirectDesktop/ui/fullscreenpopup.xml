@@ -1,13 +1,13 @@
 <duixml>
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
 		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
-			<Element id="atom(fullscreenpopupbg)" layoutpos="client" behaviors="PVL::EnsureLayered()"/>
+			<Element id="atom(fullscreenpopupbg)" layoutpos="client"/>
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)" alpha="255" animation="alpha|s|veryfast">
-				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)" behaviors="PVL::EnsureLayered()"/>
+				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 			</Element>
 		</Button>
 	</HWNDElement>
-	<DDScalableButton resid="fullscreeninner" id="atom(fullscreeninner)" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()"/>
+	<DDScalableButton resid="fullscreeninner" id="atom(fullscreeninner)" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1"/>
 	<Element resid="groupdirectory" id="atom(groupdirectory)" layoutpos="client" layout="filllayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element layout="borderlayout()" layoutpos="client">
 			<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)" visible="false">
@@ -50,10 +50,12 @@
 		</Element>
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
-		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
-			<DDScalableElement content="resstr(4046)" class="settingslabeltext"/>
-			<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
-		</Element>
+		<TouchScrollViewer id="atom(svOptions)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="false" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
+			<Element id="atom(content)" layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
+				<DDScalableElement content="resstr(4046)" class="settingslabeltext"/>
+				<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
+			</Element>
+		</TouchScrollViewer>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element id="atom(title)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)">
@@ -66,7 +68,7 @@
 			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
 		</Element>
 		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-			<TouchScrollViewer id="atom(settingslist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
+			<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer|keyboard|nosyncfocus" height="1rp" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="asneeded" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()" InteractionMode="TranslateY|Inertia">
 				<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 			</TouchScrollViewer>
 		</Element>
@@ -75,61 +77,61 @@
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(167)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Files and folders"/>
-				<DDScalableElement class="subtext" content="Adjust file and folder management on the desktop"/>
+				<DDScalableElement class="headertext" content="resstr(4064)"/>
+				<DDScalableElement class="subtext" content="resstr(4065)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(ItemCheckboxes)"/>
 			</Element>
+			<DDScalableElement content="resstr(30522, library(shell32.dll))" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(ShowHiddenFiles)"/>
 			</Element>
+			<DDScalableElement content="resstr(24155, library(shell32.dll))" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(FilenameExts)"/>
 			</Element>
+			<DDScalableElement content="resstr(30503, library(shell32.dll))" class="settingslabeltext"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(168)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Desktop interaction"/>
-				<DDScalableElement class="subtext" content="Control how you interact with the desktop"/>
+				<DDScalableElement class="headertext" content="resstr(4066)"/>
+				<DDScalableElement class="subtext" content="resstr(4067)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4014)" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(TreatDirAsGroup)"/>
 			</Element>
+			<DDScalableElement content="resstr(4014)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4040)" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(TripleClickAndHide)"/>
 			</Element>
+			<DDScalableElement content="resstr(4040)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(4043)" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(LockIconPos)"/>
 			</Element>
+			<DDScalableElement content="resstr(4043)" class="settingslabeltext"/>
 		</DDScalableElement>
 	</Element>
 	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(169)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Icons"/>
-				<DDScalableElement class="subtext" content="Customize the appearance of desktop icons"/>
+				<DDScalableElement class="headertext" content="resstr(4068)"/>
+				<DDScalableElement class="subtext" content="resstr(4069)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
@@ -137,36 +139,36 @@
 				<DDScalableElement content="resstr(4047)" class="settingslabeltext"/>
 				<DDColorPicker id="atom(DDCP_Icons)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="255" DefaultColor="0x909090" height="32rp" width="352rp"/>
 			</Element>
-			<DDScalableElement content="resstr(4015)" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableAccent)"/>
 			</Element>
+			<DDScalableElement content="resstr(4015)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDCheckBox id="atom(AutoDarkIcons)" content="resstr(4049)" layout="flowlayout(0,2,0,2)" height="40rp" padding="rect(0,0,0,8rp)"/>
-			<DDScalableElement content="resstr(4048)" class="settingslabeltext"/>
+			<DDCheckBox id="atom(AutoDarkIcons)" content="resstr(4049)" layout="flowlayout(0,2,0,2)" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableDarkIcons)"/>
 			</Element>
+			<DDScalableElement content="resstr(4048)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDScalableElement content="Icon size" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,1,2)" class="rightcontainer">
-				<DDSlider id="atom(IconSize)" IsVertical="false" layoutpos="right" height="20rp" width="260rp" TextWidth="45rp"/>
-				<DDScalableButton id="atom(ApplyIconSize)" class="pushbuttonsecondary" content="Apply" minsize="size(96rp,32rp)" NeedsFontResize="false" margin="rect(12rp,0,0,0)"/>
+				<DDSlider id="atom(IconSize)" IsVertical="false" layoutpos="right" width="260rp" TextWidth="45rp"/>
+				<DDScalableButton id="atom(ApplyIconSize)" class="pushbuttonsecondary" content="resstr(4071)" minsize="size(96rp,32rp)" NeedsFontResize="false" margin="rect(12rp,0,0,0)"/>
 			</Element>
+			<DDScalableElement content="resstr(4070)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="settingslabeltext"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(IconThumbnails)"/>
 			</Element>
+			<DDScalableElement content="resstr(30554, library(shell32.dll))" class="settingslabeltext"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content=""/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="See also"/>
+				<DDScalableElement class="headertext" content="resstr(31091, library(shell32.dll))"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
@@ -175,13 +177,13 @@
 	</Element>
 	<Element resid="SettingsPage3" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
-			<RichText class="SettingsIcon" content="resstr(170)"/>
-			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="resstr(4016)"/>
-				<DDScalableElement class="subtext" content="Enable logging for troubleshooting DirectDesktop at launch"/>
-			</Element>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableLogging)"/>
+			</Element>
+			<RichText class="SettingsIcon" content="resstr(170)"/>
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="resstr(4072)"/>
+				<DDScalableElement class="subtext" content="resstr(4073)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
@@ -191,49 +193,57 @@
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(171)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Animations"/>
-				<DDScalableElement class="subtext" content="Tweak animation speed"/>
+				<DDScalableElement class="headertext" content="resstr(4074)"/>
+				<DDScalableElement class="subtext" content="resstr(4075)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDCheckBox id="atom(AnimShiftKey)" content="Only apply custom animation speed while pressing the Shift key" layout="flowlayout(0,2,0,2)" height="40rp" padding="rect(0,0,0,8rp)"/>
-			<DDScalableElement content="Custom animation speed" class="settingslabeltext"/>
+			<DDCheckBox id="atom(AnimShiftKey)" content="resstr(4077)" layout="flowlayout(0,2,0,2)" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
-				<DDSlider id="atom(AnimSpeed)" IsVertical="false" layoutpos="right" height="20rp" width="275rp" TextWidth="60rp"/>
+				<DDSlider id="atom(AnimSpeed)" IsVertical="false" layoutpos="right" width="275rp" TextWidth="60rp"/>
 			</Element>
+			<DDScalableElement content="resstr(4076)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableElement class="LoneSection" layout="borderlayout()">
-			<RichText class="SettingsIcon" content="resstr(172)"/>
-			<DDScalableElement content="Show debug info" class="settingslabeltext"/>`
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(ShowDbgInfo)"/>
 			</Element>
+			<RichText class="SettingsIcon" content="resstr(172)"/>
+			<DDScalableElement content="resstr(4078)" class="settingslabeltext"/>
+		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableElement class="LoneSection" layout="borderlayout()">
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDToggleButton id="atom(EnableExit)"/>
+			</Element>
+			<RichText class="SettingsIcon" content="resstr(138)"/>
+			<DDScalableElement content="resstr(4079)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(173)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Desktop layout"/>
-				<DDScalableElement class="subtext" content="Default area, reset layout"/>
+				<DDScalableElement class="headertext" content="resstr(4080)"/>
+				<DDScalableElement class="subtext" content="resstr(4081)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Default desktop area"/>
-				<DDScalableElement class="subtext" id="atom(CustomResDesc)"/>
-			</Element>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
-				<DDScalableButton id="atom(SetCurrent)" class="pushbuttonsecondary" content="Set to current" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+				<DDScalableButton id="atom(SetCurrent)" class="pushbuttonsecondary" content="resstr(4084)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+			</Element>
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="resstr(4082)"/>
+				<DDScalableElement class="subtext" id="atom(CustomResDesc)"/>
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
-				<DDScalableElement class="headertext" content="Reset desktop item layout on this view"/>
-				<DDScalableElement class="warningtext" content="This is an irreversible action."/>
-			</Element>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
-				<DDScalableButton id="atom(ResetDesktop)" class="pushbuttonsecondary" content="Reset" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+				<DDScalableButton id="atom(ResetDesktop)" class="pushbuttonsecondary" content="resstr(4087)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+			</Element>
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="resstr(4085)"/>
+				<DDScalableElement class="warningtext" content="resstr(4086)"/>
 			</Element>
 		</DDScalableElement>
 	</Element>
@@ -260,16 +270,16 @@
 				<RichText layoutpos="left" background="argb(0,0,0,0)" foreground="black" font="resstr(166)" contentalign="middlecenter" width="56rp"/>
 			</if>
 			<if class="headertext">
-				<DDScalableElement foreground="black" font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement foreground="black" font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="topleft|endellipsis"/>
 			</if>
 			<if class="subtext">
-				<DDScalableElement foreground="rgb(128,128,128)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement foreground="rgb(128,128,128)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="topleft|endellipsis"/>
 			</if>
 			<if class="warningtext">
-				<DDScalableElement foreground="rgb(196,43,28)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement foreground="rgb(196,43,28)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="topleft|endellipsis"/>
 			</if>
 			<if class="settingslabeltext">
-				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" background="argb(0,0,0,0)" foreground="black" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" background="argb(0,0,0,0)" foreground="black" font="messagefont;115%" contentalign="middleleft|endellipsis" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="rightcontainer">
 				<Element layoutpos="right" background="argb(0,0,0,0)"/>
@@ -300,16 +310,16 @@
 				<RichText layoutpos="left" background="argb(0,0,0,0)" foreground="white" font="resstr(166)" contentalign="middlecenter" width="56rp"/>
 			</if>
 			<if class="headertext">
-				<DDScalableElement foreground="white" font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement foreground="white" font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="topleft|endellipsis"/>
 			</if>
 			<if class="subtext">
-				<DDScalableElement foreground="rgb(176,176,176)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement foreground="rgb(176,176,176)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="topleft|endellipsis"/>
 			</if>
 			<if class="warningtext">
-				<DDScalableElement foreground="rgb(255,153,164)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement foreground="rgb(255,153,164)" font="messagefont;100%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="topleft|endellipsis"/>
 			</if>
 			<if class="settingslabeltext">
-				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" background="argb(0,0,0,0)" foreground="white" font="messagefont;115%" contentalign="middleleft" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
+				<DDScalableElement layoutpos="left" padding="rect(0,0,8rp,0)" background="argb(0,0,0,0)" foreground="white" font="messagefont;115%" contentalign="middleleft|endellipsis" minsize="size(0,40rp)" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if class="rightcontainer">
 				<Element layoutpos="right" background="argb(0,0,0,0)"/>
