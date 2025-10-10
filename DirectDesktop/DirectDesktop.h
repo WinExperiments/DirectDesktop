@@ -154,6 +154,8 @@ namespace DirectDesktop
     extern HRESULT CloakWindow(HWND hwnd, bool fCloak);
 
     extern bool isDefaultRes();
+    extern bool IsDesktopActive();
+    extern bool IsDesktopOrSubviewActive();
 
     DWORD WINAPI fastin(LPVOID lpParam);
 

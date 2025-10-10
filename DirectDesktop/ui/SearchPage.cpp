@@ -135,7 +135,6 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Click)
         {
-            ((DDScalableButton*)elem)->StopListening();
             SetTimer(searchwnd->GetHWND(), 1, 50, nullptr);
         }
     }

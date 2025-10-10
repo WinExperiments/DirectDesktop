@@ -216,17 +216,14 @@ namespace DirectDesktop
     bool g_hiddenIcons;
     bool g_editmode = false;
     bool g_invokedpagechange = false;
-    bool g_delayGroupsForDpi = false;
     bool g_ensureNoRefresh = false;
     bool g_pageviewer = false;
     bool g_searchopen = false;
     void fullscreenAnimation(int width, int height, float animstartscale, float desktopanimstartscale);
-    void HidePopupCore(bool WinDInvoked);
     void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
     void ApplyIcons(vector<LVItem*> pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
     void IconThumbHelper(int id);
     DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam);
-    DWORD WINAPI InitDesktopGroup(LPVOID lpParam);
     DWORD WINAPI SetLVIPos(LPVOID lpParam);
     DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam);
     void ShowDirAsGroupDesktop(LVItem* lvi, bool fNew);
@@ -582,9 +579,11 @@ namespace DirectDesktop
                 if (wParam == SPI_SETWORKAREA && !g_ignoreWorkAreaChange)
                 {
                     if (isDefaultRes()) SetPos(true);
+                    short lastWidth = g_lastWidth, lastHeight = g_lastHeight;
                     g_lastWidth = 0, g_lastHeight = 0;
                     AdjustWindowSizes(false);
-                    RearrangeIcons(!g_editmode, false, true);
+                    if (dimensions.right - dimensions.left == lastWidth && dimensions.bottom - dimensions.top == lastHeight)
+                        RearrangeIcons(!g_editmode, false, true);
                 }
                 if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0)
                 {
@@ -595,9 +594,6 @@ namespace DirectDesktop
                     SetTheme();
                     SetPos(false);
                     GetPos2(false);
-                    g_delayGroupsForDpi = true;
-                    //DDScalableElement::RedrawImages();
-                    //DDScalableButton::RedrawImages();
                     if (g_themeOld != g_theme)
                     {
                         if (g_automaticDark)
@@ -930,9 +926,7 @@ namespace DirectDesktop
                     }
                     pm[lParam]->SetBackgroundStdColor(20575);
                     pm[lParam]->SetDrawType(0);
-                    int* itemID = (int*)(&lParam);
-                    HANDLE hCreateGroup = CreateThread(nullptr, 0, InitDesktopGroup, itemID, 0, nullptr);
-                    if (hCreateGroup) CloseHandle(hCreateGroup);
+                    ShowDirAsGroupDesktop(pm[lParam], true);
                 }
                 else if (!g_touchmode)
                 {
@@ -1517,7 +1511,6 @@ namespace DirectDesktop
             }
             case WM_USER + 24:
             {
-                ShowDirAsGroupDesktop(pm[lParam], true);
                 break;
             }
             case WM_USER + 25:
@@ -1559,115 +1552,18 @@ namespace DirectDesktop
         {
             case WM_USER + 1:
             {
-                if (wParam < 4096) break;
-                RedrawImageCore((DDScalableElement*)wParam);
                 break;
             }
             case WM_USER + 2:
             {
-                if (wParam < 4096) break;
-                RedrawFontCore((DDScalableElement*)wParam);
                 break;
             }
             case WM_USER + 3:
             {
-                DDCheckBoxGlyph* peGlyph;
-                DDScalableElement* peText;
-                DDCheckBoxGlyph::Create((Element*)wParam, nullptr, (Element**)&peGlyph);
-                ((Element*)wParam)->Add((Element**)&peGlyph, 1);
-                peGlyph->SetCheckedState(((DDCheckBox*)wParam)->GetCheckedState());
-                peGlyph->SetID(L"DDCB_Glyph");
-                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peText);
-                ((Element*)wParam)->Add((Element**)&peText, 1);
-                CValuePtr v;
-                peText->SetContentString(((Element*)wParam)->GetContentString(&v));
-                peText->SetID(L"DDCB_Text");
-                ((Element*)wParam)->SetContentString(L"");
                 break;
             }
             case WM_USER + 4:
             {
-                DDColorPickerButton* peTemp;
-                int scaleInterval = GetCurrentScaleInterval();
-                int scaleIntervalImage = ((DDColorPicker*)wParam)->GetScaledImageIntervals();
-                if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
-                int imageID = ((DDColorPicker*)wParam)->GetFirstScaledImage() + scaleInterval;
-                HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-                if (newImage == nullptr)
-                {
-                    LoadPNGAsBitmap(newImage, imageID);
-                    IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
-                }
-                COLORREF* pImmersiveColor = ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? &ImmersiveColorL : &ImmersiveColorD : &ImmersiveColor;
-                COLORREF colorPickerPalette[8] =
-                {
-                    ((DDColorPicker*)wParam)->GetDefaultColor(),
-                    *pImmersiveColor,
-                    ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? RGB(76, 194, 255) : RGB(0, 103, 192) : RGB(0, 120, 215),
-                    ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176) : RGB(177, 70, 194),
-                    ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30) : RGB(232, 17, 35),
-                    ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7) : RGB(247, 99, 12),
-                    ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0) : RGB(255, 185, 0),
-                    ((DDColorPicker*)wParam)->GetThemeAwareness() ? g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90) : RGB(0, 204, 106)
-                };
-                BITMAP bm{};
-                GetObject(newImage, sizeof(BITMAP), &bm);
-                int btnWidth = bm.bmWidth / 8;
-                int btnHeight = bm.bmHeight;
-                int btnX = ((Element*)wParam)->GetWidth() / 8;
-                int btnY = (((Element*)wParam)->GetHeight() - bm.bmHeight) / 2;
-
-                HDC hdc = GetDC(nullptr);
-                HDC hdcSrc = CreateCompatibleDC(hdc);
-                HDC hdcDst = CreateCompatibleDC(hdc);
-                SelectObject(hdcSrc, newImage);
-                for (int i = 0; i < 8; i++)
-                {
-                    int xPos = (localeType == 1) ? ((Element*)wParam)->GetWidth() - i * btnX - btnWidth : i * btnX;
-                    HBITMAP hbmPickerBtn = CreateCompatibleBitmap(hdc, btnWidth, btnHeight);
-                    SelectObject(hdcDst, hbmPickerBtn);
-                    BitBlt(hdcDst, 0, 0, btnWidth, btnHeight, hdcSrc, i * btnWidth, 0, SRCCOPY);
-                    DDColorPickerButton::Create((Element*)wParam, nullptr, (Element**)&peTemp);
-                    ((Element*)wParam)->Add((Element**)&peTemp, 1);
-                    peTemp->SetLayoutPos(-2);
-                    peTemp->SetX(xPos);
-                    peTemp->SetY(btnY);
-                    peTemp->SetWidth(bm.bmWidth / 8);
-                    peTemp->SetHeight(btnHeight);
-                    CValuePtr spvPickerBtn = Value::CreateGraphic(hbmPickerBtn, 2, 0xffffffff, true, false, false);
-                    if (spvPickerBtn) peTemp->SetValue(Element::ContentProp, 1, spvPickerBtn);
-                    peTemp->SetAssociatedColor(colorPickerPalette[i]);
-                    peTemp->SetOrder(i);
-                    peTemp->SetTargetElements(((DDColorPicker*)wParam)->GetTargetElements());
-                    peTemp->SetTargetButtons(((DDColorPicker*)wParam)->GetTargetButtons());
-                    DeleteObject(hbmPickerBtn);
-                    peTemp->SetPropChangeListener(assignExtendedFn(peTemp, ShowHoverCircle, true));
-                }
-                if (newImage) DeleteObject(newImage);
-                DeleteDC(hdcSrc);
-                DeleteDC(hdcDst);
-                ReleaseDC(nullptr, hdc);
-
-                RegKeyValue rkv = ((DDColorPicker*)wParam)->GetRegKeyValue();
-                int order = (rkv._hKeyName) ? GetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind) * btnX : rkv._dwValue * btnX;
-                int checkedBtnX = (localeType == 1) ? ((Element*)wParam)->GetWidth() - order - btnWidth : order;
-                DDScalableElement* peCircle;
-                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peCircle);
-                ((Element*)wParam)->Add((Element**)&peCircle, 1);
-                peCircle->SetLayoutPos(-2);
-                peCircle->SetX(-9999);
-                peCircle->SetY(btnY);
-                peCircle->SetWidth(bm.bmWidth / 8);
-                peCircle->SetHeight(btnHeight);
-                peCircle->SetID(L"DDColorPicker_HoverCircle");
-                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peCircle);
-                ((Element*)wParam)->Add((Element**)&peCircle, 1);
-                peCircle->SetLayoutPos(-2);
-                peCircle->SetX(checkedBtnX);
-                peCircle->SetY(btnY);
-                peCircle->SetWidth(bm.bmWidth / 8);
-                peCircle->SetHeight(btnHeight);
-                peCircle->SetID(L"DDColorPicker_CheckedCircle");
                 break;
             }
             case WM_USER + 5:
@@ -1701,108 +1597,6 @@ namespace DirectDesktop
             }
             case WM_USER + 6:
             {
-                bool vertical = ((DDSlider*)wParam)->GetIsVertical();
-                Button* peTrackBase, *peFillBase;
-                Element* peSliderInner, *peTrackHolder;
-                DDScalableButton* peThumb;
-                DDScalableElement* peTrack, *peFill, *peThumbInner;
-                DDScalableRichText* peText;
-
-                BYTE DDSFillLayoutPos = vertical ? 3 : 0;
-                CValuePtr spvLayout;
-                BorderLayout::Create(0, nullptr, &spvLayout);
-                ((Element*)wParam)->SetValue(Element::LayoutProp, 1, spvLayout);
-
-                DDScalableRichText::Create((Element*)wParam, nullptr, (Element**)&peText);
-                ((Element*)wParam)->Add((Element**)&peText, 1);
-                peText->SetID(L"DDS_Text");
-                if (vertical) peText->SetHeight(((DDSlider*)wParam)->GetTextHeight());
-                else peText->SetWidth(((DDSlider*)wParam)->GetTextWidth());
-                peText->SetLayoutPos(DDSFillLayoutPos);
-
-                FillLayout::Create(0, nullptr, &spvLayout);
-                Element::Create(0, (Element*)wParam, nullptr, &peSliderInner);
-                ((Element*)wParam)->Add(&peSliderInner, 1);
-                peSliderInner->SetValue(Element::LayoutProp, 1, spvLayout);
-                peSliderInner->SetLayoutPos(4);
-
-                const WCHAR* szClassName = vertical ? L"DDS_Vert" : L"DDS_Horiz";
-
-                DDSFillLayoutPos = vertical ? 1 : 2;
-                BorderLayout::Create(0, nullptr, &spvLayout);
-                Element::Create(0, peSliderInner, nullptr, &peTrackHolder);
-                peSliderInner->Add(&peTrackHolder, 1);
-                peTrackHolder->SetValue(Element::LayoutProp, 1, spvLayout);
-                peTrackHolder->SetLayoutPos(DDSFillLayoutPos);
-
-                FillLayout::Create(0, nullptr, &spvLayout);
-
-                Button::Create(peTrackHolder, nullptr, (Element**)&peTrackBase);
-                peTrackHolder->Add((Element**)&peTrackBase, 1);
-                peTrackBase->SetID(L"DDS_TrackBase");
-                peTrackBase->SetValue(Element::LayoutProp, 1, spvLayout);
-                peTrackBase->SetLayoutPos(DDSFillLayoutPos);
-                assignFn(peTrackBase, SetThumbPosOnClick);
-
-                DDSFillLayoutPos = vertical ? 3 : 0;
-                Button::Create(peTrackHolder, nullptr, (Element**)&peFillBase);
-                peTrackHolder->Add((Element**)&peFillBase, 1);
-                peFillBase->SetID(L"DDS_FillBase");
-                peFillBase->SetValue(Element::LayoutProp, 1, spvLayout);
-                peFillBase->SetLayoutPos(DDSFillLayoutPos);
-                assignFn(peFillBase, SetThumbPosOnClick);
-
-                DDSFillLayoutPos = vertical ? 0 : 3;
-                DDScalableElement::Create(peTrackBase, nullptr, (Element**)&peTrack);
-                peTrackBase->Add((Element**)&peTrack, 1);
-                peTrack->SetID(L"DDS_Track");
-                peTrack->SetClass(szClassName);
-                peTrack->SetLayoutPos(DDSFillLayoutPos);
-
-                DDScalableElement::Create(peFillBase, nullptr, (Element**)&peFill);
-                peFillBase->Add((Element**)&peFill, 1);
-                peFill->SetID(L"DDS_Fill");
-                peFill->SetClass(szClassName);
-                peFill->SetLayoutPos(DDSFillLayoutPos);
-
-                DDScalableButton::Create(peSliderInner, nullptr, (Element**)&peThumb);
-                peSliderInner->Add((Element**)&peThumb, 1);
-                peThumb->SetID(L"DDS_Thumb");
-                peThumb->SetValue(Element::LayoutProp, 1, spvLayout);
-                assignExtendedFn(peThumb, SetThumbPosOnDrag);
-
-                DDScalableElement::Create(peThumb, nullptr, (Element**)&peThumbInner);
-                peThumb->Add((Element**)&peThumbInner, 1);
-                peThumbInner->SetID(L"DDS_ThumbInner");
-                float relMaxValue = ((DDSlider*)wParam)->GetMaxValue() - ((DDSlider*)wParam)->GetMinValue();
-                float relCurrValue = ((DDSlider*)wParam)->GetCurrentValue() - ((DDSlider*)wParam)->GetMinValue();
-                if (vertical)
-                {
-                    int height = ((Element*)wParam)->GetHeight() - ((DDSlider*)wParam)->GetTextHeight();
-                    peTrackHolder->SetHeight(height);
-                    peTrackBase->SetHeight(round(height * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetHeight()));
-                    peFillBase->SetHeight(round(height * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetHeight()));
-                    peThumb->SetY(round(peTrackBase->GetHeight() - peThumb->GetHeight() / 2.0f));
-                    peThumb->SetX(floor((((DDSlider*)wParam)->GetWidth() - peThumb->GetWidth()) / 2.0f));
-                    float padding = (((Element*)wParam)->GetWidth() - peTrack->GetWidth()) / 2.0f;
-                    peTrackBase->SetPadding(floor(padding), 0, ceil(padding), 0);
-                    peFillBase->SetPadding(floor(padding), 0, ceil(padding), 0);
-                }
-                else
-                {
-                    int width = ((DDSlider*)wParam)->GetWidth() - ((DDSlider*)wParam)->GetTextWidth();
-                    peTrackHolder->SetWidth(width);
-                    peTrackBase->SetWidth(round(width * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetWidth()));
-                    peFillBase->SetWidth(round(width * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * peThumb->GetWidth()));
-                    peThumb->SetX(((localeType == 1) ? round(peTrackBase->GetWidth()) : round(peFillBase->GetWidth())) - peThumb->GetWidth() / 2.0f);
-                    peThumb->SetY(floor((((DDSlider*)wParam)->GetHeight() - peThumb->GetHeight()) / 2.0f));
-                    float padding = (((DDSlider*)wParam)->GetHeight() - peTrack->GetHeight()) / 2.0f;
-                    peTrackBase->SetPadding(0, floor(padding), 0, ceil(padding));
-                    peFillBase->SetPadding(0, floor(padding), 0, ceil(padding));
-                }
-                WCHAR formattedNum[8];
-                StringCchPrintfW(formattedNum, 8, ((DDSlider*)wParam)->GetFormattedString(), ((DDSlider*)wParam)->GetCurrentValue());
-                peText->SetContentString(formattedNum);
                 break;
             }
             case WM_USER + 7:
@@ -1856,43 +1650,6 @@ namespace DirectDesktop
                 WCHAR formattedNum[8];
                 StringCchPrintfW(formattedNum, 8, ((DDSlider*)wParam)->GetFormattedString(), assocVal);
                 peText->SetContentString(formattedNum);
-                break;
-            }
-            case WM_USER + 8:
-            {
-                DDScalableElement* peBackground;
-                Element* pePaddedPane;
-                TouchEdit2* peEdit;
-                Element* pePreview;
-                CValuePtr v;
-
-                FillLayout::Create(0, nullptr, &v);
-                ((Element*)wParam)->SetValue(Element::LayoutProp, 1, v);
-
-                DDScalableElement::Create((Element*)wParam, nullptr, (Element**)&peBackground);
-                ((Element*)wParam)->Add((Element**)&peBackground, 1);
-                peBackground->SetID(L"TE_Background");
-                peBackground->SetEnabled(((Element*)wParam)->GetEnabled());
-
-                Element::Create(0, (Element*)wParam, nullptr, &pePaddedPane);
-                ((Element*)wParam)->Add(&pePaddedPane, 1);
-                RECT rc = *(RECT*)peBackground->GetBorderThickness(&v);
-                pePaddedPane->SetPadding(rc.left, rc.top, rc.right, rc.bottom);
-                FillLayout::Create(0, nullptr, &v);
-                pePaddedPane->SetValue(Element::LayoutProp, 1, v);
-                pePaddedPane->SetLayoutPos(4);
-
-                TouchEdit2::Create(pePaddedPane, nullptr, (Element**)&peEdit);
-                pePaddedPane->Add((Element**)&peEdit, 1);
-                peEdit->SetID(L"TE_EditBox");
-                assignExtendedFn(peEdit, DDScalableTouchEdit::UpdateTEPreview);
-
-                Element::Create(0, (Element*)wParam, nullptr, &pePreview);
-                ((Element*)wParam)->Add(&pePreview, 1);
-                pePreview->SetID(L"TE_Preview");
-                pePreview->SetFont(peEdit->GetFont(&v));
-                const Fill* pf = peEdit->GetForegroundColor(&v);
-                pePreview->SetForegroundColor(pf->ref.cr);
                 break;
             }
         }
@@ -1974,18 +1731,6 @@ namespace DirectDesktop
         return 0;
     }
 
-    DWORD WINAPI InitDesktopGroup(LPVOID lpParam)
-    {
-        int itemID = *((int*)lpParam);
-        if (pm[itemID]->GetGroupSize() == LVIGS_NORMAL) return 1;
-        if (g_touchmode) Sleep(500);
-        if (g_delayGroupsForDpi) Sleep(2250);
-        Sleep(250);
-        g_delayGroupsForDpi = false;
-        PostMessageW(wnd->GetHWND(), WM_USER + 24, NULL, itemID);
-        return 0;
-    }
-
     void CloseCustomizePage(Element* elem, Event* iev)
     {
         if (iev->uidType == DDLVActionButton::Click)
@@ -2016,7 +1761,8 @@ namespace DirectDesktop
             {
                 CSafeElementPtr<DDScalableElement> iconElement;
                 iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", ((DDLVActionButton*)elem)->GetAssociatedItem()));
-                emptygraphic->SetAssociatedColor(g_colorPickerPalette[iconElement->GetGroupColor()]);
+                if (iconElement->GetGroupColor() > 0) emptygraphic->SetAssociatedColor(g_colorPickerPalette[iconElement->GetGroupColor()]);
+                else emptygraphic->SetAssociatedColor(-1);
             }
             if (emptyview) emptyview->SetVisible(true);
             Group_BackContainer->SetLayoutPos(-3);
@@ -2130,7 +1876,6 @@ namespace DirectDesktop
         static int i{};
         if (iev->uidType == DDLVActionButton::Click)
         {
-            ((DDLVActionButton*)elem)->StopListening();
             CSafeElementPtr<LVItem> lviTarget;
             lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
             lviTarget->SetMemorySelected(false);
@@ -3474,6 +3219,15 @@ namespace DirectDesktop
             int largestYPos = (dimensions.bottom - (2 * desktoppadding_y) + desktoppadding) / outerSizeY;
             if (largestXPos == 0) largestXPos = 1;
             if (largestYPos == 0) largestYPos = 1;
+            bool*** positions = new bool**[g_maxPageID];
+            for (int page = 0; page < g_maxPageID; page++)
+            {
+                positions[page] = new bool*[largestXPos];
+                for (int x = 0; x < largestXPos; x++)
+                {
+                    positions[page][x] = new bool[largestYPos]{};
+                }
+            }
             if (g_touchmode)
             {
                 x = (dimensions.right - largestXPos * outerSizeX + desktoppadding) / 2;
@@ -3484,12 +3238,10 @@ namespace DirectDesktop
                     lvitgMap[page] = new LVItemTouchGrid**[largestXPos];
                     for (int x = 0; x < largestXPos; x++)
                     {
-                        lvitgMap[page][x] = new LVItemTouchGrid*[largestYPos] {};
+                        lvitgMap[page][x] = new LVItemTouchGrid*[largestYPos]{};
                     }
                 }
             }
-            vector<bool> positions{};
-            positions.resize(g_maxPageID * largestXPos * largestYPos - 1);
             if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
             for (int j = 0; j < count; j++)
             {
@@ -3540,36 +3292,27 @@ namespace DirectDesktop
                     pm[j]->GetInternalYPos() <= largestYPos - ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)))
                 {
                     if (!EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) pm[j]->SetPage(g_maxPageID);
-                    int occupiedPos = ((pm[j]->GetPage() - 1) * largestXPos * largestYPos) + pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos;
-                    if (occupiedPos < 0) occupiedPos = 0;
-                    int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
-                    int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
-                    int yRender = pm[j]->GetInternalYPos()* outerSizeY + y;
-                    if (positions[occupiedPos] == true)
+                    short page = pm[j]->GetPage();
+                    short xPos = pm[j]->GetInternalXPos();
+                    short yPos = pm[j]->GetInternalYPos();
+                    short widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
+                    short xRender = (localeType == 1) ? dimensions.right - (xPos * outerSizeX) - widthForRender - x : xPos * outerSizeX + x;
+                    short yRender = yPos * outerSizeY + y;
+                    if (positions[page - 1][xPos][yPos] == true)
                     {
                         pm[j]->SetInternalXPos(65535);
                         pm[j]->SetInternalYPos(65535);
                     }
                     else
                     {
-                        int pt = 0;
-                        int occupiedHeight = 0;
-                        for (int i = 1; i <= ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)); i++)
+                        for (int i = 0; i < ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)); i++)
                         {
                             if (pm[j]->GetHeight() > outerSizeY)
-                            {
-                                for (int k = 1; k <= ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)); k++)
-                                {
-                                    positions[occupiedPos + pt] = true;
-                                    pt++;
-                                    occupiedHeight++;
-                                }
-                            }
-                            else positions[occupiedPos + pt] = true;
-                            pt += (largestYPos - occupiedHeight);
-                            occupiedHeight = 0;
+                                for (int k = 0; k < ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)); k++)
+                                    positions[page - 1][xPos + i][yPos + k] = true;
+                            else positions[page - 1][xPos + i][yPos] = true;
                         }
-                        if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
+                        if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != page || pm[j]->GetSizedFromGroup())
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(yRender);
@@ -3583,12 +3326,14 @@ namespace DirectDesktop
             {
                 if (((!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL) && (!g_touchmode || pm[j]->GetTileSize() <= LVITS_NONE)) && pm[j]->GetInternalXPos() < largestXPos && pm[j]->GetInternalYPos() < largestYPos)
                 {
-                    int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
-                    int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
-                    int yRender = pm[j]->GetInternalYPos() * outerSizeY + y;
                     if (!EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize)) pm[j]->SetPage(g_maxPageID);
-                    int occupiedPos = ((pm[j]->GetPage() - 1) * largestXPos * largestYPos) + pm[j]->GetInternalYPos() + pm[j]->GetInternalXPos() * largestYPos;
-                    if (positions[occupiedPos] == true && !(g_touchmode && pm[j]->GetTileSize() == LVITS_ICONONLY))
+                    short page = pm[j]->GetPage();
+                    short xPos = pm[j]->GetInternalXPos();
+                    short yPos = pm[j]->GetInternalYPos();
+                    short widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
+                    short xRender = (localeType == 1) ? dimensions.right - (xPos * outerSizeX) - widthForRender - x : xPos * outerSizeX + x;
+                    short yRender = yPos * outerSizeY + y;
+                    if (positions[page - 1][xPos][yPos] == true && !(g_touchmode && pm[j]->GetTileSize() == LVITS_ICONONLY))
                     {
                         pm[j]->SetInternalXPos(65535);
                         pm[j]->SetInternalYPos(65535);
@@ -3603,7 +3348,7 @@ namespace DirectDesktop
                         }
                         pm[j]->SetMemXPos(xRender);
                         pm[j]->SetMemYPos(yRender);
-                        positions[occupiedPos] = true;
+                        positions[page - 1][xPos][yPos] = true;
                     }
                 }
             }
@@ -3613,7 +3358,7 @@ namespace DirectDesktop
             {
                 int modifierX = 0;
                 int modifierY = 0;
-                if (pm[j]->GetGroupSize() != LVIGS_NORMAL || pm[j]->GetTileSize() != LVITS_NONE)
+                if (pm[j]->GetGroupSize() != LVIGS_NORMAL || pm[j]->GetTileSize() > LVITS_NONE)
                 {
                     modifierX = (pm[j]->GetWidth() - outerSizeX + desktoppadding) / outerSizeX;
                     modifierY = (pm[j]->GetHeight() - outerSizeY + desktoppadding) / outerSizeY;
@@ -3621,74 +3366,100 @@ namespace DirectDesktop
                 if (pm[j]->GetInternalXPos() >= largestXPos - modifierX ||
                     pm[j]->GetInternalYPos() >= largestYPos - modifierY)
                 {
-                    int y{};
-                    while (positions[y] == true)
+                    int arrX{}, arrY{}, arrPage{};
+                    while (positions[arrPage][arrX][arrY] == true)
                     {
-                        y++;
-                        if (y > positions.size())
+                        arrY++;
+                        if (arrY == largestYPos)
                         {
-                            y = 0;
-                            positions.resize((g_maxPageID + 1) * largestXPos * largestYPos - 1);
-                            for (int p = 0; p <= g_maxPageID * largestXPos * largestYPos; p++)
-                            {
-                                positions[p] = true;
-                            }
-                            for (int p = g_maxPageID * largestXPos * largestYPos + 1; p <= positions.size(); p++)
-                            {
-                                positions[p] = false;
-                            }
+                            arrY = 0;
+                            arrX++;
+                        }
+                        if (arrX == largestXPos)
+                        {
+                            arrX = 0;
+                            arrPage++;
+                        }
+                        if (arrPage == g_maxPageID)
+                        {
                             g_maxPageID++;
+                            bool*** positionsTemp = new bool** [g_maxPageID];
+                            for (int page = 0; page < g_maxPageID; page++)
+                            {
+                                positionsTemp[page] = new bool* [largestXPos];
+                                for (int x = 0; x < largestXPos; x++)
+                                {
+                                    positionsTemp[page][x] = new bool[largestYPos] {};
+                                    for (int y = 0; y < largestYPos && page < g_maxPageID - 1; y++)
+                                        positionsTemp[page][x][y] = positions[page][x][y];
+                                }
+                            }
+                            for (int page = 0; page < g_maxPageID - 1; page++)
+                            {
+                                for (int x = 0; x < largestXPos; x++)
+                                {
+                                    delete[] positions[page][x];
+                                }
+                                delete[] positions[page];
+                            }
+                            delete[] positions;
+                            positions = positionsTemp;
+                            if (g_touchmode)
+                            {
+                                LVItemTouchGrid**** lvitgMapTemp = new LVItemTouchGrid***[g_maxPageID];
+                                for (int page = 0; page < g_maxPageID; page++)
+                                {
+                                    lvitgMapTemp[page] = new LVItemTouchGrid**[largestXPos];
+                                    for (int x = 0; x < largestXPos; x++)
+                                    {
+                                        lvitgMapTemp[page][x] = new LVItemTouchGrid*[largestYPos]{};
+                                        for (int y = 0; y < largestYPos && page < g_maxPageID - 1; y++)
+                                            lvitgMapTemp[page][x][y] = lvitgMap[page][x][y];
+                                    }
+                                }
+                                for (int page = 0; page < g_maxPageID - 1; page++)
+                                {
+                                    for (int x = 0; x < largestXPos; x++)
+                                    {
+                                        delete[] lvitgMap[page][x];
+                                    }
+                                    delete[] lvitgMap[page];
+                                }
+                                delete[] lvitgMap;
+                                lvitgMap = lvitgMapTemp;
+                            }
                             forcenewpage = true;
                             break;
                         }
                     }
-                    int pageID = 1;
-                    int y2 = y;
-                    while (y2 >= largestXPos * largestYPos)
-                    {
-                        y2 -= largestXPos * largestYPos;
-                        pageID++;
-                    }
-                    int xRenderPos = y2 / largestYPos;
-                    if (xRenderPos == largestXPos) pm[j]->SetInternalXPos(0);
-                    else pm[j]->SetInternalXPos(xRenderPos);
-                    pm[j]->SetInternalYPos(y % largestYPos);
+                    pm[j]->SetInternalXPos(arrX);
+                    pm[j]->SetInternalYPos(arrY);
                     if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize) && !forcenewpage)
                     {
-                        pm[j]->SetPage(pageID);
+                        pm[j]->SetPage(arrPage + 1);
                     }
                     else pm[j]->SetPage(g_maxPageID);
                     if (pm[j]->GetPage() != g_currentPageID) pm[j]->SetFlying(false);
-                    positions[y] = true;
-                    if ((g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL) || (g_touchmode && pm[j]->GetTileSize() != LVITS_NONE))
+                    positions[arrPage][arrX][arrY] = true;
+                    if ((g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL) || (g_touchmode && pm[j]->GetTileSize() > LVITS_NONE))
                     {
-                        int pt = 0;
-                        int occupiedHeight = 0;
-                        for (int i = 1; i <= ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)); i++)
+                        for (int i = 0; i < ceil((pm[j]->GetWidth() + desktoppadding) / static_cast<float>(outerSizeX)); i++)
                         {
                             if (pm[j]->GetHeight() > outerSizeY)
-                            {
-                                for (int k = 1; k <= ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)); k++)
-                                {
-                                    positions[y + pt] = true;
-                                    pt++;
-                                    occupiedHeight++;
-                                }
-                            }
-                            else positions[y + pt] = true;
-                            pt += (largestYPos - occupiedHeight);
-                            occupiedHeight = 0;
+                                for (int k = 0; k < ceil((pm[j]->GetHeight() + desktoppadding) / static_cast<float>(outerSizeY)); k++)
+                                    positions[arrPage][arrX + i][arrY + k] = true;
+                            else positions[arrPage][arrX + i][arrY] = true;
                         }
                     }
                 }
-                int widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
-                int xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
-                int yRender = pm[j]->GetInternalYPos() * outerSizeY + y;
+                short widthForRender = (!g_touchmode && (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)) ? innerSizeX : pm[j]->GetWidth();
+                short xRender = (localeType == 1) ? dimensions.right - (pm[j]->GetInternalXPos() * outerSizeX) - widthForRender - x : pm[j]->GetInternalXPos() * outerSizeX + x;
+                short yRender = pm[j]->GetInternalYPos() * outerSizeY + y;
                 BYTE smPos = pm[j]->GetSmallPos() - 1;
                 if (smPos >= 0 && smPos < 4 && g_touchmode && pm[j]->GetTileSize() == LVITS_ICONONLY)
                 {
-                        if (!lvitgMap[pm[j]->GetPage() - 1][pm[j]->GetInternalXPos()][pm[j]->GetInternalYPos()])
-                            lvitgMap[pm[j]->GetPage() - 1][pm[j]->GetInternalXPos()][pm[j]->GetInternalYPos()] = new LVItemTouchGrid;
+                    if (!lvitgMap[pm[j]->GetPage() - 1][pm[j]->GetInternalXPos()][pm[j]->GetInternalYPos()])
+                        lvitgMap[pm[j]->GetPage() - 1][pm[j]->GetInternalXPos()][pm[j]->GetInternalYPos()] = new LVItemTouchGrid;
                         pm[j]->SetTouchGrid(lvitgMap[pm[j]->GetPage() - 1][pm[j]->GetInternalXPos()][pm[j]->GetInternalYPos()], smPos);
                         yRender += (outerSizeY / 2) * (smPos / 2);
                         if (smPos & 1)
@@ -3719,7 +3490,18 @@ namespace DirectDesktop
                 yValue* yV = new yValue{ j, (float)innerSizeX, (float)innerSizeY };
                 QueueUserWorkItem(RearrangeIconsHelper, yV, 0);
             }
-            positions.clear();
+            if (g_touchmode)
+            {
+                for (int page = 0; page < g_maxPageID; page++)
+                {
+                    for (int x = 0; x < largestXPos; x++)
+                    {
+                        delete[] positions[page][x];
+                    }
+                    delete[] positions[page];
+                }
+                delete[] positions;
+            }
             if (g_touchmode)
             {
                 for (int page = 0; page < g_maxPageID; page++)
@@ -3728,7 +3510,7 @@ namespace DirectDesktop
                     {
                         delete[] lvitgMap[page][x];
                     }
-                    delete lvitgMap[page];
+                    delete[] lvitgMap[page];
                 }
                 delete[] lvitgMap;
             }
@@ -3945,13 +3727,13 @@ namespace DirectDesktop
         if (g_debuginfo)
         {
             Element* peBackground;
-            Element* peTemp[3];
+            Element* peTemp[4];
             Element::Create(0, mainContainer, nullptr, &peBackground);
             peBackground->SetLayoutPos(-2);
             peBackground->SetX(0);
             peBackground->SetY(0);
             peBackground->SetWidth(220 * g_flScaleFactor);
-            peBackground->SetHeight(60 * g_flScaleFactor);
+            peBackground->SetHeight(80 * g_flScaleFactor);
             CValuePtr spvLayout;
             BorderLayout::Create(0, nullptr, &spvLayout);
             peBackground->SetValue(Element::LayoutProp, 1, spvLayout);
@@ -3973,11 +3755,13 @@ namespace DirectDesktop
                 peTemp[i]->SetHeight(20 * g_flScaleFactor);
             }
             WCHAR info[256];
-            StringCchPrintfW(info, 256, L"VERSION: %s", GetExeVersion().c_str());
+            StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"MILESTONE: 13");
-            StringCchPrintfW(info, 256, L"BUILD TIMESTAMP: %s", BUILD_TIMESTAMP);
+            peTemp[1]->SetContentString(L"Build 80");
+            StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
+            StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
+            peTemp[3]->SetContentString(info);
             DUI_SetGadgetZOrder(peBackground, 4);
         }
         else
@@ -4017,7 +3801,7 @@ namespace DirectDesktop
         HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
         HWND hWnd = GetForegroundWindow();
         if (hWnd == nullptr) return false;
-        return (hWnd == hWndProgman || hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == subviewwnd->GetHWND() ||
+        return (hWnd == hWndProgman || hWnd == g_hWorkerW || hWnd == g_hWndTaskbar || hWnd == GetWindowIfPresent(subviewwnd) ||
             hWnd == GetWindowIfPresent(searchwnd) || hWnd == GetWindowIfPresent(editwnd) || hWnd == GetWindowIfPresent(shutdownwnd));
     }
 
@@ -4123,7 +3907,7 @@ namespace DirectDesktop
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
-                if (pKeyInfo->vkCode == 'S' && GetAsyncKeyState(VK_LWIN) & 0x8000 && GetAsyncKeyState(VK_MENU) & 0x8000)
+                if (pKeyInfo->vkCode == VK_F3 || (pKeyInfo->vkCode == 'S' && GetAsyncKeyState(VK_LWIN) & 0x8000 && GetAsyncKeyState(VK_MENU) & 0x8000))
                 {
                     if (!keyHold[pKeyInfo->vkCode] && !g_issubviewopen)
                     {

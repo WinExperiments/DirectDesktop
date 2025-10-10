@@ -61,7 +61,7 @@
 		<Element id="atom(SeparatorLine2)" layoutpos="bottom" height="1rp"/>
 		<Element id="atom(AdvancedOptions)" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)" height="108rp">
 			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
-				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,4rp,0,0)" content="resstr(4035)" layout="flowlayout(0,2,0,2)"/>
+				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,4rp,0,0)" content="resstr(4035)"/>
 				<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')"/>
 				<RichText content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>
 			</Element>

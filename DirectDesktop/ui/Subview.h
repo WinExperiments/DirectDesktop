@@ -42,6 +42,7 @@ namespace DirectDesktop
 	extern HMODULE g_hModTWinUI;
 
 	void ShowPopupCore();
+	void HidePopupCore(bool WinDInvoked);
 	void InitSubview();
 
 	void ShowDirAsGroup(LVItem* lvi);

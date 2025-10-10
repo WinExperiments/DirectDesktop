@@ -48,7 +48,6 @@ namespace DirectDesktop
         case WM_DPICHANGED:
         {
             g_lastDpiChangeTick = GetTickCount64();
-            g_delayGroupsForDpi = true;
             UpdateScale();
             SetTimer(wnd->GetHWND(), 10, 1000, nullptr);
             break;
@@ -64,7 +63,7 @@ namespace DirectDesktop
         }
         case WM_CLOSE:
         {
-            return 0L;
+            return 0;
         }
         case WM_TIMER:
         {

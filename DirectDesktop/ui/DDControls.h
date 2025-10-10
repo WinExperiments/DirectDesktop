@@ -14,8 +14,6 @@ namespace DirectDesktop
     struct yValue;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
-    void SetThumbPosOnClick(Element* elem, Event* iev);
-    void SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
     struct RegKeyValue
     {
@@ -28,14 +26,18 @@ namespace DirectDesktop
     class DDScalableElement : public Element
     {
     public:
-        DDScalableElement();
+        DDScalableElement()
+        {
+        }
+
         virtual ~DDScalableElement();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
-        void SetPropChangeListener(IElementListener* pel);
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
@@ -44,7 +46,6 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
-        static const PropertyInfo* WINAPI StopListeningProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -63,16 +64,8 @@ namespace DirectDesktop
         void SetDDCPIntensity(int intensity);
         unsigned short GetGroupColor();
         void SetGroupColor(unsigned short sGC);
-        bool GetStopListening();
-        void StopListening();
-        void InitDrawImage();
-        static void RedrawImages();
-        void InitDrawFont();
-        static void RedrawFonts();
 
     protected:
-        IElementListener* _pelPropChange{};
-        static vector<DDScalableElement*> _arrCreatedElements;
         unsigned short _gc{};
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
@@ -84,14 +77,18 @@ namespace DirectDesktop
     class DDScalableButton : public Button
     {
     public:
-        DDScalableButton();
+        DDScalableButton()
+        {
+        }
+
         virtual ~DDScalableButton();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
-        void SetPropChangeListener(IElementListener* pel);
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
@@ -100,7 +97,6 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
-        static const PropertyInfo* WINAPI StopListeningProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -117,12 +113,6 @@ namespace DirectDesktop
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void SetDDCPIntensity(int intensity);
-        bool GetStopListening();
-        void StopListening();
-        void InitDrawImage();
-        static void RedrawImages();
-        void InitDrawFont();
-        static void RedrawFonts();
 
         RegKeyValue GetRegKeyValue();
         void (*GetAssociatedFn())(bool, bool, bool);
@@ -137,8 +127,6 @@ namespace DirectDesktop
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
 
     protected:
-        IElementListener* _pelPropChange{};
-        static vector<DDScalableButton*> _arrCreatedButtons;
         RegKeyValue _rkv{};
         void (*_assocFn)(bool, bool, bool) = nullptr;
         bool _fnb1 = false;
@@ -157,14 +145,18 @@ namespace DirectDesktop
     class DDScalableRichText : public RichText
     {
     public:
-        DDScalableRichText();
+        DDScalableRichText()
+        {
+        }
+
         virtual ~DDScalableRichText();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
-        void SetPropChangeListener(IElementListener* pel);
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
@@ -172,7 +164,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
-        static const PropertyInfo* WINAPI StopListeningProp();
+        static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -180,6 +172,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         bool GetNeedsFontResize2();
         int GetAssociatedColor();
+        int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetDrawType(int iDrawType);
@@ -187,16 +180,9 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
-        bool GetStopListening();
-        void StopListening();
-        void InitDrawImage();
-        static void RedrawImages();
-        void InitDrawFont();
-        static void RedrawFonts();
+        void SetDDCPIntensity(int intensity);
 
     protected:
-        IElementListener* _pelPropChange{};
-        static vector<DDScalableRichText*> _arrCreatedTexts;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -207,14 +193,18 @@ namespace DirectDesktop
     class DDScalableTouchButton : public TouchButton
     {
     public:
-        DDScalableTouchButton();
+        DDScalableTouchButton()
+        {
+        }
+
         virtual ~DDScalableTouchButton();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
-        void SetPropChangeListener(IElementListener* pel);
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
@@ -222,7 +212,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
-        static const PropertyInfo* WINAPI StopListeningProp();
+        static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetDrawType();
@@ -230,6 +220,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         bool GetNeedsFontResize2();
         int GetAssociatedColor();
+        int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetDrawType(int iDrawType);
@@ -237,12 +228,7 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
-        bool GetStopListening();
-        void StopListening();
-        void InitDrawImage();
-        static void RedrawImages();
-        void InitDrawFont();
-        static void RedrawFonts();
+        void SetDDCPIntensity(int intensity);
 
         RegKeyValue GetRegKeyValue();
         void (*GetAssociatedFn())(bool, bool, bool);
@@ -257,8 +243,6 @@ namespace DirectDesktop
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
 
     protected:
-        IElementListener* _pelPropChange{};
-        static vector<DDScalableTouchButton*> _arrCreatedTButtons;
         RegKeyValue _rkv{};
         void (*_assocFn)(bool, bool, bool) = nullptr;
         bool _fnb1 = false;
@@ -266,7 +250,7 @@ namespace DirectDesktop
         bool _fnb3 = false;
         bool* _assocBool = nullptr;
         unsigned short _gc{};
-        bool _shellinteraction;
+        bool _shellinteraction = false;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -284,18 +268,23 @@ namespace DirectDesktop
         virtual ~DDScalableTouchEdit()
         {
         }
-
+        
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
         const WCHAR* GetContentString(Value** ppv);
-        HRESULT SetContentString(const WCHAR* v);
-        static void UpdateTEPreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
     private:
         static IClassInfo* s_pClassInfo;
+        DDScalableElement* _peBackground{};
+        TouchEdit2* _peEdit{};
+        Element* _pePreview{};
+        HRESULT _CreateTEVisual();
     };
 
     enum LVItemGroupSize
@@ -385,9 +374,7 @@ namespace DirectDesktop
         LVItemOpenDirState GetOpenDirState();
         void SetOpenDirState(LVItemOpenDirState lviods);
         BYTE GetSmallPos();
-        BYTE GetMasterSmallPos();
         void SetSmallPos(BYTE smPos);
-        void SetMasterSmallPos(BYTE smPos);
         LVItemTouchGrid* GetTouchGrid();
         void SetTouchGrid(LVItemTouchGrid* lvitg);
         void SetTouchGrid(LVItemTouchGrid* lvitg, BYTE index);
@@ -435,7 +422,6 @@ namespace DirectDesktop
         LVItemTileSize _tilesize = LVITS_NONE;
         LVItemOpenDirState _opendirstate = LVIODS_NONE;
         BYTE _smallPos = 1;
-        BYTE _smallPosMaster = 1;
         LVItemTouchGrid* _touchGrid{};
         DDScalableElement* _peIcon{};
         Element* _peShadow{};
@@ -515,30 +501,6 @@ namespace DirectDesktop
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDCheckBox final : public DDScalableButton
-    {
-    public:
-        DDCheckBox()
-        {
-        }
-
-        ~DDCheckBox()
-        {
-        }
-
-        static IClassInfo* GetClassInfoPtr();
-        static void SetClassInfoPtr(IClassInfo* pClass);
-        IClassInfo* GetClassInfoW() override;
-        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
-        static HRESULT Register();
-        static const PropertyInfo* WINAPI CheckedStateProp();
-        bool GetCheckedState();
-        void SetCheckedState(bool bChecked);
-
-    private:
-        static IClassInfo* s_pClassInfo;
-    };
-
     class DDCheckBoxGlyph final : public DDScalableElement
     {
     public:
@@ -563,6 +525,36 @@ namespace DirectDesktop
         static IClassInfo* s_pClassInfo;
     };
 
+    class DDCheckBox final : public DDScalableButton
+    {
+    public:
+        DDCheckBox()
+        {
+        }
+
+        ~DDCheckBox()
+        {
+        }
+
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI CheckedStateProp();
+        bool GetCheckedState();
+        void SetCheckedState(bool bChecked);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        DDCheckBoxGlyph* _peGlyph{};
+        DDScalableElement* _peText{};
+        HRESULT _CreateCBVisual();
+    };
+
     class DDSlider final : public Button
     {
     public:
@@ -574,7 +566,9 @@ namespace DirectDesktop
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
         static const PropertyInfo* WINAPI IsVerticalProp();
         static const PropertyInfo* WINAPI TextWidthProp();
@@ -619,8 +613,55 @@ namespace DirectDesktop
         int* _assocVal = nullptr;
         int _coef = 1;
         LPCWSTR _szFormatted = nullptr;
+        Button* _peTrackBase{};
+        Button* _peFillBase{};
+        Element* _peSliderInner{};
+        Element* _peTrackHolder{};
+        DDScalableButton* _peThumb{};
+        DDScalableElement* _peTrack{};
+        DDScalableElement* _peFill{};
+        DDScalableElement* _peThumbInner{};
+        DDScalableRichText* _peText{};
         int GetPropCommon(const PropertyProcT pPropertyProc);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+        HRESULT _CreateDDSVisual();
+        void _RedrawSlider();
+        static void _SetThumbPosOnClick(Element* elem, Event* iev);
+        static void _SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+    };
+
+    class DDColorPickerButton final : public Button
+    {
+    public:
+        DDColorPickerButton()
+        {
+        }
+
+        ~DDColorPickerButton();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnEvent(Event* pEvent) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        void SetPropChangeListener(IElementListener* pel);
+        COLORREF GetAssociatedColor();
+        BYTE GetOrder();
+        vector<DDScalableElement*> GetTargetElements();
+        vector<DDScalableButton*> GetTargetButtons();
+        void SetAssociatedColor(COLORREF cr);
+        void SetOrder(BYTE bOrder);
+        void SetTargetElements(vector<DDScalableElement*> vte);
+        void SetTargetButtons(vector<DDScalableButton*> vtb);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        IElementListener* _pelPropChange{};
+        COLORREF _assocCR{};
+        BYTE _order{};
+        vector<DDScalableElement*> _targetElems{};
+        vector<DDScalableButton*> _targetBtns{};
     };
 
     class DDColorPicker final : public Element
@@ -634,7 +675,9 @@ namespace DirectDesktop
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
@@ -659,44 +702,18 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
+        int _btnX{};
+        int _btnWidth{};
         RegKeyValue _rkv{};
+        DDScalableElement* _peOverlayHover{};
+        DDScalableElement* _peOverlayCheck{};
+        DDColorPickerButton* _rgpeColorButtons[8]{};
         vector<DDScalableElement*> _targetElems{};
         vector<DDScalableButton*> _targetBtns{};
         bool _themeAwareness{};
         int GetPropCommon(const PropertyProcT pPropertyProc);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
-    };
-
-    class DDColorPickerButton final : public Button
-    {
-    public:
-        DDColorPickerButton()
-        {
-        }
-
-        ~DDColorPickerButton();
-        static IClassInfo* GetClassInfoPtr();
-        static void SetClassInfoPtr(IClassInfo* pClass);
-        IClassInfo* GetClassInfoW() override;
-        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
-        static HRESULT Register();
-        void SetPropChangeListener(IElementListener* pel);
-        COLORREF GetAssociatedColor();
-        BYTE GetOrder();
-        vector<DDScalableElement*> GetTargetElements();
-        vector<DDScalableButton*> GetTargetButtons();
-        void SetAssociatedColor(COLORREF cr);
-        void SetOrder(BYTE bOrder);
-        void SetTargetElements(vector<DDScalableElement*> vte);
-        void SetTargetButtons(vector<DDScalableButton*> vtb);
-
-    private:
-        static IClassInfo* s_pClassInfo;
-        IElementListener* _pelPropChange{};
-        COLORREF _assocCR{};
-        BYTE _order{};
-        vector<DDScalableElement*> _targetElems{};
-        vector<DDScalableButton*> _targetBtns{};
+        HRESULT _CreateCLRVisual();
     };
 
     enum DDNotificationType
@@ -744,8 +761,4 @@ namespace DirectDesktop
         Element* _peButtonSection{};
         BYTE _btnCount{};
     };
-
-    void RedrawImageCore(DDScalableElement* pe);
-    void RedrawFontCore(DDScalableElement* pe);
-    void ShowHoverCircle(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 }

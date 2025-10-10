@@ -211,10 +211,11 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
+			<DDScalableTouchEdit foreground="rgb(0,0,0)"/>
 			<if id="atom(TE_EditBox)">
-				<TouchEdit2 padding="rect(0,999rp,0,999rp)" foreground="rgb(0,0,0)" cursor="ibeam" alpha="0"/>
+				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0"/>
 				<if keywithin="true">
-					<TouchEdit2 padding="rect(0,0,0,0)" alpha="255"/>
+					<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
 				</if>
 			</if>
 			<if id="atom(TouchEdit_TextContainer)">
@@ -263,7 +264,7 @@
 			<if class="DDNB_Icon_Error">
 				<DDScalableElement content="resstr(216)" foreground="rgb(196, 43, 28)"/>
 			</if>
-			<DDCheckBox minsize="size(0,32rp)" background="argb(0,0,0,0)"/>
+			<DDCheckBox minsize="size(0,32rp)" background="argb(0,0,0,0)" contentalign="endellipsis" accessible="true" accrole="checkbutton"/>
 			<if id="atom(DDCB_Glyph)">
 				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="1107" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
 				<if mousefocused="true">
@@ -289,7 +290,7 @@
 				</if>
 			</if>
 			<if id="atom(DDCB_Text)">
-				<DDScalableElement padding="rect(6rp,0,0,0)" font="messagefont;115%" foreground="black" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="middleleft|endellipsis"/>
+				<DDScalableElement padding="rect(6rp,0,0,0)" font="messagefont;115%" foreground="black" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="wrapleft|endellipsis"/>
 				<if Enabled="false">
 					<DDScalableElement foreground="rgb(128,128,128)"/>
 				</if>
@@ -585,10 +586,11 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
+			<DDScalableTouchEdit foreground="rgb(255,255,255)"/>
 			<if id="atom(TE_EditBox)">
-				<TouchEdit2 padding="rect(0,999rp,0,999rp)" foreground="rgb(255,255,255)" cursor="ibeam" alpha="0"/>
+				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0"/>
 				<if keywithin="true">
-					<TouchEdit2 padding="rect(0,0,0,0)" alpha="255"/>
+					<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
 				</if>
 			</if>
 			<if id="atom(TouchEdit_TextContainer)">
@@ -637,7 +639,7 @@
 			<if class="DDNB_Icon_Error">
 				<DDScalableElement content="resstr(216)" foreground="rgb(255, 153, 164)"/>
 			</if>
-			<DDCheckBox minsize="size(0,32rp)" background="argb(0,0,0,0)"/>
+			<DDCheckBox minsize="size(0,32rp)" background="argb(0,0,0,0)" contentalign="endellipsis" accessible="true" accrole="checkbutton"/>
 			<if id="atom(DDCB_Glyph)">
 				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="2107" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
 				<if mousefocused="true">
@@ -663,7 +665,7 @@
 				</if>
 			</if>
 			<if id="atom(DDCB_Text)">
-				<DDScalableElement padding="rect(6rp,0,0,0)" font="messagefont;115%" foreground="white" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="middleleft|endellipsis"/>
+				<DDScalableElement padding="rect(6rp,0,0,0)" font="messagefont;115%" foreground="white" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="wrapleft|endellipsis"/>
 				<if Enabled="false">
 					<DDScalableElement foreground="rgb(160,160,160)"/>
 				</if>

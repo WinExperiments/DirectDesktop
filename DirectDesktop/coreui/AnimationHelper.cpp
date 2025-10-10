@@ -177,6 +177,45 @@ namespace DirectDesktop
             if (hHide) CloseHandle(hHide);
         }
     }
+    void TriggerSkew(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
+        float rX0, float rY0, float rX1, float rY1, float initialAngleX, float initialAngleY, float targetAngleX, float targetAngleY, bool fHide, bool fDestroy)
+    {
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
+        rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
+        rgTrans[transIndex].nFlags = 0x201;
+        rgTrans[transIndex].nProperty = 5;
+        rgTrans[transIndex].dwTicket = GetGadgetTicket(pe->GetDisplayNode());
+        rgTrans[transIndex].flDelay = flDelay;
+        rgTrans[transIndex].flDuration = flDuration;
+        rgTrans[transIndex].Curve.ptfl1.x = rX0;
+        rgTrans[transIndex].Curve.ptfl1.y = rY0;
+        rgTrans[transIndex].Curve.ptfl2.x = rX1;
+        rgTrans[transIndex].Curve.ptfl2.y = rY1;
+        rgTrans[transIndex].vInitial.flX = initialAngleX;
+        rgTrans[transIndex].vInitial.flY = initialAngleY;
+        rgTrans[transIndex].vInitial.flOriginX = 0.5f;
+        rgTrans[transIndex].vInitial.flOriginY = 0.5f;
+        rgTrans[transIndex].vEnd.flX = targetAngleX;
+        rgTrans[transIndex].vEnd.flY = targetAngleY;
+        rgTrans[transIndex].vEnd.flOriginX = 0.5f;
+        rgTrans[transIndex].vEnd.flOriginY = 0.5f;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        if (fDestroy)
+        {
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
+            HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
+            if (hDestroy) CloseHandle(hDestroy);
+        }
+        else if (fHide)
+        {
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
+            HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
+            if (hHide) CloseHandle(hHide);
+        }
+    }
     void TriggerClip(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float initialLeft, float initialTop, float initialRight, float initialBottom,
         float targetLeft, float targetTop, float targetRight, float targetBottom, bool fHide, bool fDestroy)

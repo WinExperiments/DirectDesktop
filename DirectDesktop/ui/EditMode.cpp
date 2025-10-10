@@ -782,7 +782,6 @@ namespace DirectDesktop
                 delete[] errorcontent;
                 return;
             }
-            ((LVItem*)elem)->StopListening();
             ((LVItem*)elem)->SetPage(page);
             if (page == g_currentPageID) ClosePageViewer(elem, iev);
             else if (page < g_currentPageID) GoToPrevPage(elem, iev);
@@ -1147,8 +1146,8 @@ namespace DirectDesktop
         SetPopupSize(centeredE, dimensions.right * 0.7, dimensions.bottom * 0.7);
         SetPopupSize(fullscreeninnerE, dimensions.right * 0.7, dimensions.bottom * 0.7);
         SetPopupSize(simpleviewoverlay, dimensions.right * 0.7, dimensions.bottom * 0.7);
-        SimpleViewTop->SetHeight(dimensions.bottom * 0.15);
-        SimpleViewTopInner->SetHeight(dimensions.bottom * 0.15);
+        SimpleViewTop->SetHeight(floor(dimensions.bottom * 0.15));
+        SimpleViewTopInner->SetHeight(floor(dimensions.bottom * 0.15));
         SimpleViewBottom->SetHeight(dimensions.bottom - SimpleViewTop->GetHeight() - fullscreeninnerE->GetHeight());
         SimpleViewBottomInner->SetHeight(dimensions.bottom - SimpleViewTopInner->GetHeight() - fullscreeninnerE->GetHeight());
         if (dimensions.bottom * 0.15 < 80 * g_flScaleFactor) SimpleViewTop->SetHeight(80 * g_flScaleFactor);
@@ -1156,38 +1155,38 @@ namespace DirectDesktop
 
         if (prevpage->GetWidth() > 1)
         {
-            SetTransElementPosition(bg_left_top, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
-                round(dimensions.right * 0.15), prevpage->GetY() - SimpleViewTopInner->GetHeight());
+            SetTransElementPosition(bg_left_top, ceil((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
+                floor(dimensions.right * 0.15), prevpage->GetY() - SimpleViewTopInner->GetHeight());
 
-            SetTransElementPosition(bg_left_middle, round((localeType == 1) ? dimensions.right * 0.85 : dimensions.right * 0.1), bg_left_top->GetY() + bg_left_top->GetHeight(),
-                round(dimensions.right * 0.05), prevpage->GetHeight());
+            SetTransElementPosition(bg_left_middle, ceil((localeType == 1) ? dimensions.right * 0.85 : dimensions.right * 0.1), bg_left_top->GetY() + bg_left_top->GetHeight(),
+                floor(dimensions.right * 0.05), prevpage->GetHeight());
 
-            SetTransElementPosition(bg_left_bottom, round((localeType == 1) ? dimensions.right * 0.85 : 0), bg_left_middle->GetY() + bg_left_middle->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_left_middle->GetY() - bg_left_middle->GetHeight());
+            SetTransElementPosition(bg_left_bottom, ceil((localeType == 1) ? dimensions.right * 0.85 : 0), bg_left_middle->GetY() + bg_left_middle->GetHeight(),
+                floor(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_left_middle->GetY() - bg_left_middle->GetHeight());
         }
         else
         {
             SetTransElementPosition(bg_left_top, 0, 0, 0, 0);
-            SetTransElementPosition(bg_left_middle, round((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
+            SetTransElementPosition(bg_left_middle, ceil((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
+                floor(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_left_bottom, 0, 0, 0, 0);
         }
         if (nextpage->GetWidth() > 1)
         {
-            SetTransElementPosition(bg_right_top, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
-                round(dimensions.right * 0.15), nextpage->GetY() - SimpleViewTopInner->GetHeight());
+            SetTransElementPosition(bg_right_top, floor((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
+                ceil(dimensions.right * 0.15), nextpage->GetY() - SimpleViewTopInner->GetHeight());
 
-            SetTransElementPosition(bg_right_middle, round((localeType == 1) ? dimensions.right * 0.1 : dimensions.right * 0.85), bg_right_top->GetY() + bg_right_top->GetHeight(),
-                round(dimensions.right * 0.05), nextpage->GetHeight());
+            SetTransElementPosition(bg_right_middle, floor((localeType == 1) ? dimensions.right * 0.1 : dimensions.right * 0.85), bg_right_top->GetY() + bg_right_top->GetHeight(),
+                ceil(dimensions.right * 0.05), nextpage->GetHeight());
 
-            SetTransElementPosition(bg_right_bottom, round((localeType == 1) ? 0 : dimensions.right * 0.85), bg_right_middle->GetY() + bg_right_middle->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_right_middle->GetY() - bg_right_middle->GetHeight());
+            SetTransElementPosition(bg_right_bottom, floor((localeType == 1) ? 0 : dimensions.right * 0.85), bg_right_middle->GetY() + bg_right_middle->GetHeight(),
+                ceil(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_right_middle->GetY() - bg_right_middle->GetHeight());
         }
         else
         {
             SetTransElementPosition(bg_right_top, 0, 0, 0, 0);
-            SetTransElementPosition(bg_right_middle, round((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
-                round(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
+            SetTransElementPosition(bg_right_middle, floor((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
+                ceil(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_right_bottom, 0, 0, 0, 0);
         }
         g_invokedpagechange = false;

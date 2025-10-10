@@ -145,7 +145,7 @@
 			<DDScalableElement content="resstr(4015)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
-			<DDCheckBox id="atom(AutoDarkIcons)" content="resstr(4049)" layout="flowlayout(0,2,0,2)" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)"/>
+			<DDCheckBox id="atom(AutoDarkIcons)" content="resstr(4049)" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableDarkIcons)"/>
 			</Element>
@@ -198,7 +198,7 @@
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDCheckBox id="atom(AnimShiftKey)" content="resstr(4077)" layout="flowlayout(0,2,0,2)" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)"/>
+			<DDCheckBox id="atom(AnimShiftKey)" content="resstr(4077)" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDSlider id="atom(AnimSpeed)" IsVertical="false" layoutpos="right" width="275rp" TextWidth="60rp"/>
 			</Element>

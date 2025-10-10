@@ -19,4 +19,6 @@ namespace DirectDesktop
 	void TriggerClip(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
 		float rX0, float rY0, float rX1, float rY1, float initialLeft, float initialTop, float initialRight, float initialBottom,
 		float targetLeft, float targetTop, float targetRight, float targetBottom, bool fHide, bool fDestroy);
+	void TriggerSkew(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
+		float rX0, float rY0, float rX1, float rY1,	float initialAngleX, float initialAngleY, float targetAngleX, float targetAngleY, bool fHide, bool fDestroy);
 }

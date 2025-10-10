@@ -52,6 +52,124 @@ namespace DirectDesktop
         return hr;
     }
 
+    void ElementSetValue(Element* peTo, const PropertyInfo* ppi, Value* pvNew, Element* peFrom)
+    {
+        Value* v;
+        if (peTo)
+        {
+            v = pvNew;
+            if (pvNew)
+                pvNew->AddRef();
+            else
+                v = peFrom->GetValue(ppi, 2, 0);
+            peTo->SetValue(ppi, 1, v);
+            v->Release();
+        }
+    }
+
+    template <typename T>
+    void RedrawImageCore(T* pe)
+    {
+        int scaleInterval = GetCurrentScaleInterval();
+        int scaleIntervalImage = pe->GetScaledImageIntervals();
+        if (scaleInterval > scaleIntervalImage - 1)
+            scaleInterval = scaleIntervalImage - 1;
+        int imageID = pe->GetFirstScaledImage() + scaleInterval;
+
+        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        if (newImage == nullptr)
+        {
+            LoadPNGAsBitmap(newImage, imageID);
+            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
+        }
+
+        if (newImage != nullptr)
+        {
+            if (pe->GetAssociatedColor() != -1)
+                IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
+            else if (pe->GetEnableAccent())
+                IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, ImmersiveColor);
+            else if (pe->GetDDCPIntensity() != 255)
+                pe->SetAlpha(pe->GetDDCPIntensity());
+
+
+            switch (pe->GetDrawType())
+            {
+            case 1:
+            {
+                CValuePtr spvImage = Value::CreateGraphic(newImage, 7, 0xFFFFFFFF, true, false, false);
+                if (spvImage)
+                    pe->SetValue(Element::BackgroundProp, 1, spvImage);
+                break;
+            }
+            case 2:
+            {
+                CValuePtr spvImage = Value::CreateGraphic(newImage, 2, 0xFFFFFFFF, true, false, false);
+                if (spvImage)
+                    pe->SetValue(Element::ContentProp, 1, spvImage);
+                break;
+            }
+            }
+            DeleteObject(newImage);
+        }
+    }
+
+    template <typename T>
+    void RedrawFontCore(T* pe, bool* result)
+    {
+        CValuePtr v;
+        if (pe->GetNeedsFontResize())
+        {
+            if (pe->GetFont(&v) == nullptr)
+            {
+                if (result) *result = true;
+                return;
+            }
+            wstring fontOld = pe->GetFont(&v);
+            wregex fontRegex(L".*font;.*\%.*");
+            bool isSysmetricFont = regex_match(fontOld, fontRegex);
+            if (isSysmetricFont)
+            {
+                size_t modifier = fontOld.find(L";");
+                size_t modifier2 = fontOld.find(L"%");
+                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
+                int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_dpi / static_cast<float>(g_dpiLaunch);
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
+                pe->SetFont(fontNew.c_str());
+                if (result) *result = false;
+            }
+            else if (pe->GetFontSize() > 0)
+            {
+                pe->SetFontSize(pe->GetFontSize() * g_flScaleFactor);
+            }
+        }
+        else if (pe->GetNeedsFontResize2() && g_dpiLaunch != 96 && g_dpi == 96)
+        {
+            if (pe->GetFont(&v) == nullptr)
+            {
+                if (result) *result = true;
+                return;
+            }
+            wstring fontOld = pe->GetFont(&v);
+            wregex fontRegex(L".*font;.*\%.*");
+            bool isSysmetricFont = regex_match(fontOld, fontRegex);
+            if (isSysmetricFont)
+            {
+                size_t modifier = fontOld.find(L";");
+                size_t modifier2 = fontOld.find(L"%");
+                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
+                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
+                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
+                int newFontSize = _wtoi(fontIntermediate2.c_str()) * 1;
+                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
+                pe->SetFont(fontNew.c_str());
+                if (result) *result = false;
+            }
+        }
+    }
+
     static const int vvimpFirstScaledImageProp[] = { 1, -1 };
     static PropertyInfoData dataimpFirstScaledImageProp;
     static const PropertyInfo impFirstScaledImageProp =
@@ -233,132 +351,6 @@ namespace DirectDesktop
         &dataimpTextHeightProp
     };
 
-    void RedrawImageCore(DDScalableElement* pe)
-    {
-        if (!pe) return;
-        if (pe->IsDestroyed()) return;
-        if (pe->GetFirstScaledImage() == -1)
-        {
-            pe->SetBackgroundColor(0);
-            return;
-        }
-
-        int scaleInterval = GetCurrentScaleInterval();
-        int scaleIntervalImage = pe->GetScaledImageIntervals();
-        if (scaleInterval > scaleIntervalImage - 1)
-            scaleInterval = scaleIntervalImage - 1;
-        int imageID = pe->GetFirstScaledImage() + scaleInterval;
-
-        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-        if (newImage == nullptr)
-        {
-            LoadPNGAsBitmap(newImage, imageID);
-            IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
-        }
-        
-        if (newImage != nullptr)
-        {
-            if (pe->GetAssociatedColor() != -1)
-                IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
-            else if (pe->GetEnableAccent())
-                IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, ImmersiveColor);
-            else if (pe->GetDDCPIntensity() != 255)
-                pe->SetAlpha(pe->GetDDCPIntensity());
-
-
-            switch (pe->GetDrawType())
-            {
-                case 1:
-                {
-                    CValuePtr spvImage = Value::CreateGraphic(newImage, 7, 0xFFFFFFFF, true, false, false);
-                    if (spvImage)
-                        pe->SetValue(Element::BackgroundProp, 1, spvImage);
-                    break;
-                }
-                case 2:
-                {
-                    CValuePtr spvImage = Value::CreateGraphic(newImage, 2, 0xFFFFFFFF, true, false, false);
-                    if (spvImage)
-                        pe->SetValue(Element::ContentProp, 1, spvImage);
-                    break;
-                }
-            }
-            DeleteObject(newImage);
-        }
-    }
-
-    void RedrawFontCore(DDScalableElement* pe)
-    {
-        if (!pe) return;
-        if (pe->IsDestroyed()) return;
-        CValuePtr v;
-        if (pe->GetNeedsFontResize())
-        {
-            if (pe->GetFont(&v) == nullptr) return;
-            wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%.*");
-            bool isSysmetricFont = regex_match(fontOld, fontRegex);
-            if (isSysmetricFont)
-            {
-                size_t modifier = fontOld.find(L";");
-                size_t modifier2 = fontOld.find(L"%");
-                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
-                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_dpi / static_cast<float>(g_dpiLaunch);
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
-                pe->SetFont(fontNew.c_str());
-            }
-            else if (pe->GetFontSize() > 0)
-            {
-                pe->SetFontSize(pe->GetFontSize() * g_flScaleFactor);
-            }
-        }
-        else if (pe->GetNeedsFontResize2() && g_dpiLaunch != 96 && g_dpi == 96)
-        {
-            if (pe->GetFont(&v) == nullptr) return;
-            wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%.*");
-            bool isSysmetricFont = regex_match(fontOld, fontRegex);
-            if (isSysmetricFont)
-            {
-                size_t modifier = fontOld.find(L";");
-                size_t modifier2 = fontOld.find(L"%");
-                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
-                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                int newFontSize = _wtoi(fontIntermediate2.c_str()) * 1;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
-                pe->SetFont(fontNew.c_str());
-            }
-        }
-    }
-
-    void UpdateImageOnPropChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        if (pProp == DDScalableElement::FirstScaledImageProp() || pProp == DDScalableElement::DrawTypeProp() || pProp == DDScalableElement::AssociatedColorProp())
-        {
-            if (elem)
-            {
-                if (!((DDScalableElement*)elem)->GetStopListening()) ((DDScalableElement*)elem)->InitDrawImage();
-            }
-        }
-    }
-
-    void UpdateGlyphOnPress(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        CSafeElementPtr<DDCheckBoxGlyph> glyph;
-        glyph.Assign((DDCheckBoxGlyph*)elem->GetParent()->FindDescendent(StrToID(L"DDCB_Glyph")));
-        if ((pProp == Button::PressedProp() || pProp == Button::MouseWithinProp()) && glyph)
-        {
-            glyph->SetSelected(((Button*)elem)->GetPressed());
-        }
-        if (pProp == DDCheckBox::CheckedStateProp() && glyph)
-        {
-            ((DDCheckBoxGlyph*)glyph)->SetCheckedState(((DDCheckBox*)elem)->GetCheckedState());
-        }
-    }
-
     DWORD WINAPI DragThumb(LPVOID lpParam)
     {
         yValuePtrs* yV = (yValuePtrs*)lpParam;
@@ -372,7 +364,7 @@ namespace DirectDesktop
         }
         return 0;
     }
-    void SetThumbPosOnClick(Element* elem, Event* iev)
+    void DDSlider::_SetThumbPosOnClick(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
         {
@@ -427,7 +419,7 @@ namespace DirectDesktop
             peText->SetContentString(formattedNum);
         }
     }
-    void SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    void DDSlider::_SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
         bool vertical = ((DDSlider*)elem->GetParent()->GetParent())->GetIsVertical();
         CSafeElementPtr<Button> peTrack;
@@ -480,116 +472,8 @@ namespace DirectDesktop
         }
     }
 
-    void UpdateUICtrlColor(Element* elem, Event* iev)
-    {
-        if (iev->uidType == Button::Click)
-        {
-            CSafeElementPtr<DDScalableElement> DDCPCC;
-            DDCPCC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", elem->GetParent()));
-            DDCPCC->SetX(elem->GetX());
-            vector<DDScalableElement*> te = ((DDColorPickerButton*)elem)->GetTargetElements();
-            vector<DDScalableButton*> tb = ((DDColorPickerButton*)elem)->GetTargetButtons();
-            RegKeyValue rkv = ((DDColorPicker*)elem->GetParent())->GetRegKeyValue();
-            if (rkv._hKeyName != nullptr)
-            {
-                rkv._dwValue = ((DDColorPickerButton*)elem)->GetOrder();
-                SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
-            }
-            bool awareness = ((DDColorPicker*)elem->GetParent())->GetThemeAwareness();
-            BYTE order = ((DDColorPickerButton*)elem)->GetOrder();
-            for (int i = 0; i < te.size(); i++)
-            {
-                if (te[i])
-                {
-                    te[i]->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
-                    if (order == 0)
-                        te[i]->SetDDCPIntensity(255);
-                    if (awareness)
-                        te[i]->SetGroupColor(order);
-                    te[i]->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
-                }
-            }
-            te.clear();
-            for (int i = 0; i < tb.size(); i++)
-            {
-                if (tb[i])
-                {
-                    tb[i]->SetDDCPIntensity(((DDColorPicker*)elem->GetParent())->GetColorIntensity());
-                    if (order == 0)
-                        tb[i]->SetDDCPIntensity(255);
-                    if (awareness)
-                        tb[i]->SetGroupColor(order);
-                    tb[i]->SetAssociatedColor(((DDColorPickerButton*)elem)->GetAssociatedColor());
-                }
-            }
-            tb.clear();
-        }
-    }
-
-    void ShowHoverCircle(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        if (pProp == Button::MouseFocusedProp())
-        {
-            CSafeElementPtr<DDScalableElement> DDCPHC;
-            DDCPHC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_HoverCircle", elem->GetParent()));
-            DDCPHC->SetVisible(elem->GetMouseFocused());
-            DDCPHC->SetX(elem->GetX());
-        }
-    }
-
-    DWORD WINAPI CreateCBInnerElements(LPVOID lpParam)
-    {
-        PostMessageW(g_msgwnd, WM_USER + 3, (WPARAM)lpParam, NULL);
-        assignExtendedFn((Element*)lpParam, UpdateGlyphOnPress);
-        return 0;
-    }
-
-    DWORD WINAPI CreateSliderInnerElements(LPVOID lpParam)
-    {
-        PostMessageW(g_msgwnd, WM_USER + 6, (WPARAM)lpParam, NULL);
-        return 0;
-    }
-
-    DWORD WINAPI ColorPickerLayout(LPVOID lpParam)
-    {
-        PostMessageW(g_msgwnd, WM_USER + 4, (WPARAM)lpParam, NULL);
-        return 0;
-    }
-
-    DWORD WINAPI PickerBtnFn(LPVOID lpParam)
-    {
-        InitThread(TSM_DESKTOP_DYNAMIC);
-        assignFn((Element*)lpParam, UpdateUICtrlColor);
-        UnInitThread();
-        return 0;
-    }
-
-    DWORD WINAPI CreateTEVisual(LPVOID lpParam)
-    {
-        PostMessageW(g_msgwnd, WM_USER + 8, (WPARAM)lpParam, NULL);
-        return 0;
-    }
-
-    vector<DDScalableElement*> DDScalableElement::_arrCreatedElements;
-
-    DDScalableElement::DDScalableElement()
-    {
-        _arrCreatedElements.push_back(this);
-    }
-
     DDScalableElement::~DDScalableElement()
     {
-        if (_pelPropChange)
-        {
-            this->RemoveListener(_pelPropChange);
-            free(_pelPropChange);
-            _pelPropChange = nullptr;
-        }
-        auto toRemove = find(_arrCreatedElements.begin(), _arrCreatedElements.end(), this);
-        if (toRemove != _arrCreatedElements.end())
-        {
-            _arrCreatedElements.erase(toRemove);
-        }
         this->DestroyAll(true);
     }
 
@@ -608,16 +492,42 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    bool DDScalableElement::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        //if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FontProp))
+        //{
+        //    RedrawFontCore<DDScalableElement>(this, &result);
+        //}
+        return result;
+    }
+
+    void DDScalableElement::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
+        {
+            if (this->GetFirstScaledImage() == -1)
+            {
+                this->SetBackgroundColor(0);
+                Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+                return;
+            }
+            RedrawImageCore<DDScalableElement>(this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
+        {
+            RedrawFontCore<DDScalableElement>(this, nullptr);
+        }
+        Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDScalableElement::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDScalableElement, int>(0, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableElement*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableElement*)*ppElement)->InitDrawImage();
-            ((DDScalableElement*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<DDScalableElement, int>(0, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDScalableElement::Register()
@@ -635,11 +545,6 @@ namespace DirectDesktop
             &impStopListeningProp
         };
         return ClassInfo<DDScalableElement, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
-    }
-
-    void DDScalableElement::SetPropChangeListener(IElementListener* pel)
-    {
-        _pelPropChange = pel;
     }
 
     auto DDScalableElement::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
@@ -787,21 +692,6 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
-    const PropertyInfo* WINAPI DDScalableElement::StopListeningProp()
-    {
-        return &impStopListeningProp;
-    }
-
-    bool DDScalableElement::GetStopListening()
-    {
-        return this->GetPropCommon(StopListeningProp, false);
-    }
-
-    void DDScalableElement::StopListening()
-    {
-        this->SetPropCommon(StopListeningProp, true, false);
-    }
-
     unsigned short DDScalableElement::GetGroupColor()
     {
         return _gc;
@@ -812,52 +702,8 @@ namespace DirectDesktop
         _gc = sGC;
     }
 
-    void DDScalableElement::InitDrawImage()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
-    }
-
-    void DDScalableElement::RedrawImages()
-    {
-        for (DDScalableElement* pe : _arrCreatedElements)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
-        }
-    }
-
-    void DDScalableElement::InitDrawFont()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
-    }
-
-    void DDScalableElement::RedrawFonts()
-    {
-        for (DDScalableElement* pe : _arrCreatedElements)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
-        }
-    }
-
-    vector<DDScalableButton*> DDScalableButton::_arrCreatedButtons;
-
-    DDScalableButton::DDScalableButton()
-    {
-        _arrCreatedButtons.push_back(this);
-    }
-
     DDScalableButton::~DDScalableButton()
     {
-        if (_pelPropChange)
-        {
-            this->RemoveListener(_pelPropChange);
-            free(_pelPropChange);
-            _pelPropChange = nullptr;
-        }
-        auto toRemove = find(_arrCreatedButtons.begin(), _arrCreatedButtons.end(), this);
-        if (toRemove != _arrCreatedButtons.end())
-        {
-            _arrCreatedButtons.erase(toRemove);
-        }
         this->DestroyAll(true);
     }
 
@@ -876,16 +722,41 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    bool DDScalableButton::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = Button::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        //if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FontProp))
+        //{
+        //    RedrawFontCore<DDScalableButton>(this, &result);
+        //}
+        return result;
+    }
+    void DDScalableButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
+        {
+            if (this->GetFirstScaledImage() == -1)
+            {
+                this->SetBackgroundColor(0);
+                Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+                return;
+            }
+            RedrawImageCore<DDScalableButton>(this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
+        {
+            RedrawFontCore<DDScalableButton>(this, nullptr);
+        }
+        Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDScalableButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDScalableButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableButton*)*ppElement)->InitDrawImage();
-            ((DDScalableButton*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<DDScalableButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDScalableButton::Register()
@@ -903,11 +774,6 @@ namespace DirectDesktop
             &impStopListeningProp
         };
         return ClassInfo<DDScalableButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
-    }
-
-    void DDScalableButton::SetPropChangeListener(IElementListener* pel)
-    {
-        _pelPropChange = pel;
     }
 
     auto DDScalableButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
@@ -1055,47 +921,6 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
-    const PropertyInfo* WINAPI DDScalableButton::StopListeningProp()
-    {
-        return &impStopListeningProp;
-    }
-
-    bool DDScalableButton::GetStopListening()
-    {
-        return this->GetPropCommon(StopListeningProp, false);
-    }
-
-    void DDScalableButton::StopListening()
-    {
-        this->SetPropCommon(StopListeningProp, true, false);
-    }
-
-    void DDScalableButton::InitDrawImage()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
-    }
-
-    void DDScalableButton::RedrawImages()
-    {
-        for (DDScalableButton* pe : _arrCreatedButtons)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
-        }
-    }
-
-    void DDScalableButton::InitDrawFont()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
-    }
-
-    void DDScalableButton::RedrawFonts()
-    {
-        for (DDScalableButton* pe : _arrCreatedButtons)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
-        }
-    }
-
     RegKeyValue DDScalableButton::GetRegKeyValue()
     {
         return _rkv;
@@ -1154,26 +979,8 @@ namespace DirectDesktop
         pfn(_fnb1, _fnb2, _fnb3);
     }
 
-    vector<DDScalableRichText*> DDScalableRichText::_arrCreatedTexts;
-
-    DDScalableRichText::DDScalableRichText()
-    {
-        _arrCreatedTexts.push_back(this);
-    }
-
     DDScalableRichText::~DDScalableRichText()
     {
-        if (_pelPropChange)
-        {
-            this->RemoveListener(_pelPropChange);
-            free(_pelPropChange);
-            _pelPropChange = nullptr;
-        }
-        auto toRemove = find(_arrCreatedTexts.begin(), _arrCreatedTexts.end(), this);
-        if (toRemove != _arrCreatedTexts.end())
-        {
-            _arrCreatedTexts.erase(toRemove);
-        }
         this->DestroyAll(true);
     }
 
@@ -1192,16 +999,41 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    bool DDScalableRichText::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = RichText::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        //if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FontProp))
+        //{
+        //    RedrawFontCore<DDScalableRichText>(this, &result);
+        //}
+        return result;
+    }
+    void DDScalableRichText::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
+        {
+            if (this->GetFirstScaledImage() == -1)
+            {
+                this->SetBackgroundColor(0);
+                RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+                return;
+            }
+            RedrawImageCore<DDScalableRichText>(this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
+        {
+            RedrawFontCore<DDScalableRichText>(this, nullptr);
+        }
+        RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDScalableRichText::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDScalableRichText>(pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableRichText*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableRichText*)*ppElement)->InitDrawImage();
-            ((DDScalableRichText*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<DDScalableRichText>(pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDScalableRichText::Register()
@@ -1218,11 +1050,6 @@ namespace DirectDesktop
             &impStopListeningProp
         };
         return ClassInfo<DDScalableRichText, RichText>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
-    }
-
-    void DDScalableRichText::SetPropChangeListener(IElementListener* pel)
-    {
-        _pelPropChange = pel;
     }
 
     auto DDScalableRichText::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
@@ -1353,67 +1180,25 @@ namespace DirectDesktop
         this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
     }
 
-    const PropertyInfo* WINAPI DDScalableRichText::StopListeningProp()
+    const PropertyInfo* WINAPI DDScalableRichText::DDCPIntensityProp()
     {
-        return &impStopListeningProp;
+        return &impDDCPIntensityProp;
     }
 
-    bool DDScalableRichText::GetStopListening()
+    int DDScalableRichText::GetDDCPIntensity()
     {
-        return this->GetPropCommon(StopListeningProp, false);
+        int v = this->GetPropCommon(DDCPIntensityProp, true);
+        if (v < 0) v += 256;
+        return v;
     }
 
-    void DDScalableRichText::StopListening()
+    void DDScalableRichText::SetDDCPIntensity(int intensity)
     {
-        this->SetPropCommon(StopListeningProp, true, false);
-    }
-
-    void DDScalableRichText::InitDrawImage()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
-    }
-
-    void DDScalableRichText::RedrawImages()
-    {
-        for (DDScalableRichText* pe : _arrCreatedTexts)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
-        }
-    }
-
-    void DDScalableRichText::InitDrawFont()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
-    }
-
-    void DDScalableRichText::RedrawFonts()
-    {
-        for (DDScalableRichText* pe : _arrCreatedTexts)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
-        }
-    }
-
-    vector<DDScalableTouchButton*> DDScalableTouchButton::_arrCreatedTButtons;
-
-    DDScalableTouchButton::DDScalableTouchButton()
-    {
-        _arrCreatedTButtons.push_back(this);
+        this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
     DDScalableTouchButton::~DDScalableTouchButton()
     {
-        if (_pelPropChange)
-        {
-            this->RemoveListener(_pelPropChange);
-            free(_pelPropChange);
-            _pelPropChange = nullptr;
-        }
-        auto toRemove = find(_arrCreatedTButtons.begin(), _arrCreatedTButtons.end(), this);
-        if (toRemove != _arrCreatedTButtons.end())
-        {
-            _arrCreatedTButtons.erase(toRemove);
-        }
         this->DestroyAll(true);
     }
 
@@ -1432,16 +1217,41 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    bool DDScalableTouchButton::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = TouchButton::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        //if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FontProp))
+        //{
+        //    RedrawFontCore<DDScalableTouchButton>(this, &result);
+        //}
+        return result;
+    }
+    void DDScalableTouchButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
+        {
+            if (this->GetFirstScaledImage() == -1)
+            {
+                this->SetBackgroundColor(0);
+                TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+                return;
+            }
+            RedrawImageCore<DDScalableTouchButton>(this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
+        {
+            RedrawFontCore<DDScalableTouchButton>(this, nullptr);
+        }
+        TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDScalableTouchButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDScalableTouchButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableTouchButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableTouchButton*)*ppElement)->InitDrawImage();
-            ((DDScalableTouchButton*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<DDScalableTouchButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDScalableTouchButton::Register()
@@ -1458,11 +1268,6 @@ namespace DirectDesktop
             &impStopListeningProp
         };
         return ClassInfo<DDScalableTouchButton, TouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
-    }
-
-    void DDScalableTouchButton::SetPropChangeListener(IElementListener* pel)
-    {
-        _pelPropChange = pel;
     }
 
     auto DDScalableTouchButton::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
@@ -1593,45 +1398,21 @@ namespace DirectDesktop
         this->SetPropCommon(AssociatedColorProp, iAssociatedColor, true);
     }
 
-    const PropertyInfo* WINAPI DDScalableTouchButton::StopListeningProp()
+    const PropertyInfo* WINAPI DDScalableTouchButton::DDCPIntensityProp()
     {
-        return &impStopListeningProp;
+        return &impDDCPIntensityProp;
     }
 
-    bool DDScalableTouchButton::GetStopListening()
+    int DDScalableTouchButton::GetDDCPIntensity()
     {
-        return this->GetPropCommon(StopListeningProp, false);
+        int v = this->GetPropCommon(DDCPIntensityProp, true);
+        if (v < 0) v += 256;
+        return v;
     }
 
-    void DDScalableTouchButton::StopListening()
+    void DDScalableTouchButton::SetDDCPIntensity(int intensity)
     {
-        this->SetPropCommon(StopListeningProp, true, false);
-    }
-
-    void DDScalableTouchButton::InitDrawImage()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)this, NULL);
-    }
-
-    void DDScalableTouchButton::RedrawImages()
-    {
-        for (DDScalableTouchButton* pe : _arrCreatedTButtons)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 1, (WPARAM)pe, NULL);
-        }
-    }
-
-    void DDScalableTouchButton::InitDrawFont()
-    {
-        PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)this, NULL);
-    }
-
-    void DDScalableTouchButton::RedrawFonts()
-    {
-        for (DDScalableTouchButton* pe : _arrCreatedTButtons)
-        {
-            PostMessageW(g_msgwnd, WM_USER + 2, (WPARAM)pe, NULL);
-        }
+        this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
     RegKeyValue DDScalableTouchButton::GetRegKeyValue()
@@ -1707,15 +1488,46 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    bool DDScalableTouchEdit::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
+        {
+            result = false;
+            this->_SetValue(Element::AccNameProp, 1, pvNew, false);
+            ElementSetValue(_peEdit, ppi, pvNew, this);
+            ElementSetValue(_pePreview, ppi, pvNew, this);
+        }
+        return result;
+    }
+
+    void DDScalableTouchEdit::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::KeyWithinProp))
+        {
+            CValuePtr v;
+            _pePreview->SetVisible(!_peEdit->GetKeyWithin());
+            _pePreview->SetContentString(_peEdit->GetContentString(&v));
+            ElementSetValue(_peBackground, Element::SelectedProp(), pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::MouseWithinProp))
+            ElementSetValue(_peBackground, Element::OverhangProp(), pvNew, this);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::EnabledProp))
+            ElementSetValue(_peBackground, ppi, pvNew, this);
+        Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDScalableTouchEdit::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDScalableTouchEdit, int>(0, pParent, pdwDeferCookie, ppElement);
+        return CreateAndInit<DDScalableTouchEdit, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDScalableTouchEdit::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
         if (SUCCEEDED(hr))
-        {
-            DWORD dw2;
-            HANDLE drawingHandle2 = CreateThread(nullptr, 0, CreateTEVisual, (LPVOID)*ppElement, NULL, &dw2);
-            if (drawingHandle2) CloseHandle(drawingHandle2);
-        }
+            hr = this->_CreateTEVisual();
         return hr;
     }
 
@@ -1726,45 +1538,38 @@ namespace DirectDesktop
 
     const WCHAR* DDScalableTouchEdit::GetContentString(Value** ppv)
     {
-        CSafeElementPtr<TouchEdit2> peEdit;
-        peEdit.Assign(regElem<TouchEdit2*>(L"TE_EditBox", this));
-        if (peEdit) return peEdit->GetContentString(ppv);
+        if (_peEdit) return _peEdit->GetContentString(ppv);
         else return nullptr;
     }
 
-    HRESULT DDScalableTouchEdit::SetContentString(const WCHAR* v)
+    HRESULT DDScalableTouchEdit::_CreateTEVisual()
     {
-        CSafeElementPtr<TouchEdit2> peEdit;
-        peEdit.Assign(regElem<TouchEdit2*>(L"TE_EditBox", this));
-        if (peEdit) return peEdit->SetContentString(v);
-        else return E_FAIL;
-    }
+        HRESULT hr = S_OK;
+        CValuePtr v;
 
-    void DDScalableTouchEdit::UpdateTEPreview(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        if (pProp == Element::KeyWithinProp())
+        FillLayout::Create(0, nullptr, &v);
+        this->SetValue(Element::LayoutProp, 1, v);
+
+        hr = DDScalableElement::Create(this, nullptr, (Element**)&_peBackground);
+        if (SUCCEEDED(hr))
         {
-            CSafeElementPtr<DDScalableElement> TE_Background;
-            TE_Background.Assign(regElem<DDScalableElement*>(L"TE_Background", elem->GetParent()->GetParent()));
-            CSafeElementPtr<Element> TE_Preview;
-            TE_Preview.Assign(regElem<Element*>(L"TE_Preview", elem->GetParent()->GetParent()));
-            CValuePtr v;
-            TE_Preview->SetVisible(!elem->GetKeyWithin());
-            TE_Preview->SetContentString(elem->GetContentString(&v));
-            TE_Background->SetSelected(elem->GetKeyWithin());
+            this->Add((Element**)&_peBackground, 1);
+            _peBackground->SetID(L"TE_Background");
+            _peBackground->SetEnabled(this->GetEnabled());;
+            hr = TouchEdit2::Create(this, nullptr, (Element**)&_peEdit);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peEdit, 1);
+                _peEdit->SetID(L"TE_EditBox");
+                hr = Element::Create(0, this, nullptr, &_pePreview);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add(&_pePreview, 1);
+                    _pePreview->SetID(L"TE_Preview");
+                }
+            }
         }
-        if (pProp == Element::MouseWithinProp())
-        {
-            CSafeElementPtr<DDScalableElement> TE_Background;
-            TE_Background.Assign(regElem<DDScalableElement*>(L"TE_Background", elem->GetParent()->GetParent()));
-            TE_Background->SetOverhang(elem->GetMouseWithin());
-        }
-        if (pProp == Element::EnabledProp())
-        {
-            CSafeElementPtr<DDScalableElement> TE_Background;
-            TE_Background.Assign(regElem<DDScalableElement*>(L"TE_Background", elem->GetParent()->GetParent()));
-            TE_Background->SetEnabled(elem->GetEnabled());
-        }
+        return hr;
     }
 
     LVItem::~LVItem()
@@ -1801,14 +1606,7 @@ namespace DirectDesktop
 
     HRESULT LVItem::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableButton*)*ppElement)->InitDrawImage();
-            ((DDScalableButton*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<LVItem, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT LVItem::Register()
@@ -2061,19 +1859,9 @@ namespace DirectDesktop
         return _smallPos;
     }
 
-    BYTE LVItem::GetMasterSmallPos()
-    {
-        return _smallPosMaster;
-    }
-
     void LVItem::SetSmallPos(BYTE smPos)
     {
         _smallPos = smPos;
-    }
-
-    void LVItem::SetMasterSmallPos(BYTE smPos)
-    {
-        _smallPosMaster = smPos;
     }
 
     LVItemTouchGrid* LVItem::GetTouchGrid()
@@ -2266,14 +2054,7 @@ namespace DirectDesktop
 
     HRESULT DDLVActionButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDLVActionButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableButton*)*ppElement)->InitDrawImage();
-            ((DDScalableButton*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<DDLVActionButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDLVActionButton::Register()
@@ -2308,14 +2089,7 @@ namespace DirectDesktop
 
     HRESULT DDToggleButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            ((DDScalableButton*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableButton*)*ppElement)->InitDrawImage();
-            ((DDScalableButton*)*ppElement)->InitDrawFont();
-        }
-        return hr;
+        return CreateAndInit<DDToggleButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDToggleButton::Register()
@@ -2342,6 +2116,50 @@ namespace DirectDesktop
         this->SetPropCommon(CheckedStateProp, bChecked, false);
     }
 
+    IClassInfo* DDCheckBoxGlyph::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDCheckBoxGlyph::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDCheckBoxGlyph::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    HRESULT DDCheckBoxGlyph::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDCheckBoxGlyph, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDCheckBoxGlyph::Register()
+    {
+        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        {
+            &impCheckedStateProp
+        };
+        return ClassInfo<DDCheckBoxGlyph, DDScalableElement>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBoxGlyph", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    const PropertyInfo* WINAPI DDCheckBoxGlyph::CheckedStateProp()
+    {
+        return &impCheckedStateProp;
+    }
+
+    bool DDCheckBoxGlyph::GetCheckedState()
+    {
+        return this->GetPropCommon(CheckedStateProp, false);
+    }
+
+    void DDCheckBoxGlyph::SetCheckedState(bool bChecked)
+    {
+        this->SetPropCommon(CheckedStateProp, bChecked, false);
+    }
+
     IClassInfo* DDCheckBox::GetClassInfoPtr()
     {
         return s_pClassInfo;
@@ -2357,15 +2175,45 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    bool DDCheckBox::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
+        {
+            result = false;
+            this->_SetValue(Element::AccNameProp, 1, pvNew, false);
+            ElementSetValue(_peText, ppi, pvNew, this);
+        }
+        return result;
+    }
+
+    void DDCheckBox::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp()))
+        {
+            ElementSetValue(_peGlyph, ppi, pvNew, this);
+            ElementSetValue(_peText, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp()))
+            ElementSetValue(_peText, ppi, pvNew, this);
+        if (PropNotify::IsEqual(ppi, iIndex, Button::PressedProp()))
+            ElementSetValue(_peGlyph, Element::SelectedProp(), pvNew, this);
+        if (PropNotify::IsEqual(ppi, iIndex, DDCheckBox::CheckedStateProp()))
+            ElementSetValue(_peGlyph, ppi, pvNew, this);
+        DDScalableButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDCheckBox::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDCheckBox, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+        return CreateAndInit<DDCheckBox, int>(0x1 | 0x2 | 0x8, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDCheckBox::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((DDScalableButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
         if (SUCCEEDED(hr))
-        {
-            DWORD dw;
-            HANDLE drawingHandle = CreateThread(nullptr, 0, CreateCBInnerElements, (LPVOID)*ppElement, NULL, &dw);
-            if (drawingHandle) CloseHandle(drawingHandle);
-        }
+            hr = this->_CreateCBVisual();
         return hr;
     }
 
@@ -2393,55 +2241,31 @@ namespace DirectDesktop
         this->SetPropCommon(CheckedStateProp, bChecked, false);
     }
 
-    IClassInfo* DDCheckBoxGlyph::GetClassInfoPtr()
+    HRESULT DDCheckBox::_CreateCBVisual()
     {
-        return s_pClassInfo;
-    }
+        HRESULT hr = S_OK;
 
-    void DDCheckBoxGlyph::SetClassInfoPtr(IClassInfo* pClass)
-    {
-        s_pClassInfo = pClass;
-    }
-
-    IClassInfo* DDCheckBoxGlyph::GetClassInfoW()
-    {
-        return s_pClassInfo;
-    }
-
-    HRESULT DDCheckBoxGlyph::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
-    {
-        HRESULT hr = CreateAndInit<DDCheckBoxGlyph, int>(0, pParent, pdwDeferCookie, ppElement);
+        int layoutParams[4] = { 0, 2, 0, 2 };
+        CValuePtr spvLayout;
+        FlowLayout::Create(ARRAYSIZE(layoutParams), layoutParams, &spvLayout);
+        hr = this->_SetValue(Element::LayoutProp, 1, spvLayout, true);
         if (SUCCEEDED(hr))
         {
-            ((DDScalableElement*)*ppElement)->SetPropChangeListener((IElementListener*)assignExtendedFn(*ppElement, UpdateImageOnPropChange, true));
-            ((DDScalableElement*)*ppElement)->InitDrawImage();
-            ((DDScalableElement*)*ppElement)->InitDrawFont();
+            hr = DDCheckBoxGlyph::Create(this, nullptr, (Element**)&_peGlyph);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peGlyph, 1);
+                _peGlyph->SetCheckedState(this->GetCheckedState());
+                _peGlyph->SetID(L"DDCB_Glyph");
+                hr = DDScalableElement::Create(this, nullptr, (Element**)&_peText);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_peText, 1);
+                    _peText->SetID(L"DDCB_Text");
+                }
+            }
         }
         return hr;
-    }
-
-    HRESULT DDCheckBoxGlyph::Register()
-    {
-        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
-        {
-            &impCheckedStateProp
-        };
-        return ClassInfo<DDCheckBoxGlyph, DDScalableElement>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBoxGlyph", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
-    }
-
-    const PropertyInfo* WINAPI DDCheckBoxGlyph::CheckedStateProp()
-    {
-        return &impCheckedStateProp;
-    }
-
-    bool DDCheckBoxGlyph::GetCheckedState()
-    {
-        return this->GetPropCommon(CheckedStateProp, false);
-    }
-
-    void DDCheckBoxGlyph::SetCheckedState(bool bChecked)
-    {
-        this->SetPropCommon(CheckedStateProp, bChecked, false);
     }
 
     DDSlider::~DDSlider()
@@ -2464,18 +2288,32 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    void DDSlider::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp()))
+        {
+            ElementSetValue(_peTrack, ppi, pvNew, this);
+            ElementSetValue(_peFill, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDSlider::IsVerticalProp) ||
+            PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDSlider::TextWidthProp) || PropNotify::IsEqual(ppi, iIndex, DDSlider::TextHeightProp))
+        {
+            _RedrawSlider();
+        }
+        Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDSlider::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDSlider, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+        return CreateAndInit<DDSlider, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDSlider::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Button*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
         if (SUCCEEDED(hr))
-        {
-            DWORD dw;
-            HANDLE drawingHandle = CreateThread(nullptr, 0, CreateSliderInnerElements, (LPVOID)*ppElement, NULL, &dw);
-            if (drawingHandle)
-            {
-                CloseHandle(drawingHandle);
-            }
-        }
+            hr = this->_CreateDDSVisual();
         return hr;
     }
 
@@ -2609,11 +2447,13 @@ namespace DirectDesktop
     void DDSlider::SetMinValue(float minValue)
     {
         _minValue = minValue;
+        _RedrawSlider();
     }
 
     void DDSlider::SetMaxValue(float maxValue)
     {
         _maxValue = maxValue;
+        _RedrawSlider();
     }
 
     void DDSlider::SetCurrentValue(float currValue, bool fExternal)
@@ -2645,6 +2485,7 @@ namespace DirectDesktop
             g_atleastonesetting = true;
             _currValue = assocVal;
         }
+        else _RedrawSlider();
     }
 
     void DDSlider::SetTickValue(float tickValue)
@@ -2681,6 +2522,274 @@ namespace DirectDesktop
     void DDSlider::SetFormattedString(LPCWSTR szFormatted)
     {
         _szFormatted = szFormatted;
+        WCHAR formattedNum[8];
+        StringCchPrintfW(formattedNum, 8, _szFormatted, _currValue);
+        _peText->SetContentString(formattedNum);
+    }
+
+    HRESULT DDSlider::_CreateDDSVisual()
+    {
+        HRESULT hr = S_OK;
+        CValuePtr spvLayout;
+        BorderLayout::Create(0, nullptr, &spvLayout);
+        this->SetValue(Element::LayoutProp, 1, spvLayout);
+        hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peText);
+        if (SUCCEEDED(hr))
+        {
+            this->Add((Element**)&_peText, 1);
+            _peText->SetID(L"DDS_Text");
+            FillLayout::Create(0, nullptr, &spvLayout);
+            hr = Element::Create(0, this, nullptr, &_peSliderInner);
+            if (SUCCEEDED(hr))
+            {
+                this->Add(&_peSliderInner, 1);
+                _peSliderInner->SetValue(Element::LayoutProp, 1, spvLayout);
+                _peSliderInner->SetLayoutPos(4);
+                BorderLayout::Create(0, nullptr, &spvLayout);
+                hr = Element::Create(0, _peSliderInner, nullptr, &_peTrackHolder);
+                if (SUCCEEDED(hr))
+                {
+                    _peSliderInner->Add(&_peTrackHolder, 1);
+                    _peTrackHolder->SetValue(Element::LayoutProp, 1, spvLayout);
+                    FillLayout::Create(0, nullptr, &spvLayout);
+                    hr = Button::Create(_peTrackHolder, nullptr, (Element**)&_peTrackBase);
+                    if (SUCCEEDED(hr))
+                    {
+                        _peTrackHolder->Add((Element**)&_peTrackBase, 1);
+                        _peTrackBase->SetID(L"DDS_TrackBase");
+                        _peTrackBase->SetValue(Element::LayoutProp, 1, spvLayout);
+                        assignFn(_peTrackBase, _SetThumbPosOnClick);
+                        hr = Button::Create(_peTrackHolder, nullptr, (Element**)&_peFillBase);
+                        if (SUCCEEDED(hr))
+                        {
+                            _peTrackHolder->Add((Element**)&_peFillBase, 1);
+                            _peFillBase->SetID(L"DDS_FillBase");
+                            _peFillBase->SetValue(Element::LayoutProp, 1, spvLayout);
+                            assignFn(_peFillBase, DDSlider::_SetThumbPosOnClick);
+                            hr = DDScalableElement::Create(_peTrackBase, nullptr, (Element**)&_peTrack);
+                            if (SUCCEEDED(hr))
+                            {
+                                _peTrackBase->Add((Element**)&_peTrack, 1);
+                                _peTrack->SetID(L"DDS_Track");
+                                hr = DDScalableElement::Create(_peFillBase, nullptr, (Element**)&_peFill);
+                                if (SUCCEEDED(hr))
+                                {
+                                    _peFillBase->Add((Element**)&_peFill, 1);
+                                    _peFill->SetID(L"DDS_Fill");
+                                    hr = DDScalableButton::Create(_peSliderInner, nullptr, (Element**)&_peThumb);
+                                    if (SUCCEEDED(hr))
+                                    {
+                                        _peSliderInner->Add((Element**)&_peThumb, 1);
+                                        _peThumb->SetID(L"DDS_Thumb");
+                                        _peThumb->SetValue(Element::LayoutProp, 1, spvLayout);
+                                        assignExtendedFn(_peThumb, DDSlider::_SetThumbPosOnDrag);
+                                        hr = DDScalableElement::Create(_peThumb, nullptr, (Element**)&_peThumbInner);
+                                        if (SUCCEEDED(hr))
+                                        {
+                                            _peThumb->Add((Element**)&_peThumbInner, 1);
+                                            _peThumbInner->SetID(L"DDS_ThumbInner");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
+    void DDSlider::_RedrawSlider()
+    {
+        bool vertical = this->GetIsVertical();
+        const WCHAR* szClassName = vertical ? L"DDS_Vert" : L"DDS_Horiz";
+        this->SetClass(szClassName);
+
+        BYTE DDSFillLayoutPos = vertical ? 3 : 0;
+        if (vertical) _peText->SetHeight(this->GetTextHeight());
+        else _peText->SetWidth(this->GetTextWidth());
+        _peText->SetLayoutPos(DDSFillLayoutPos);
+
+        DDSFillLayoutPos = vertical ? 1 : 2;
+        _peTrackHolder->SetLayoutPos(DDSFillLayoutPos);
+        _peTrackBase->SetLayoutPos(DDSFillLayoutPos);
+
+        DDSFillLayoutPos = vertical ? 3 : 0;
+        _peFillBase->SetLayoutPos(DDSFillLayoutPos);
+
+        DDSFillLayoutPos = vertical ? 0 : 3;
+        _peTrack->SetLayoutPos(DDSFillLayoutPos);
+        _peFill->SetLayoutPos(DDSFillLayoutPos);
+
+        float relMaxValue = _maxValue - _minValue;
+        float relCurrValue = _currValue - _minValue;
+        if (vertical)
+        {
+            int height = this->GetHeight() - this->GetTextHeight();
+            _peTrackHolder->SetHeight(height);
+            _peTrackBase->SetHeight(round(height * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * _peThumb->GetHeight()));
+            _peFillBase->SetHeight(round(height * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * _peThumb->GetHeight()));
+            _peThumb->SetY(round(_peTrackBase->GetHeight() - _peThumb->GetHeight() / 2.0f));
+            _peThumb->SetX(floor((this->GetWidth() - _peThumb->GetWidth()) / 2.0f));
+            float padding = (this->GetWidth() - _peTrack->GetWidth()) / 2.0f;
+            _peTrackBase->SetPadding(floor(padding), 0, ceil(padding), 0);
+            _peFillBase->SetPadding(floor(padding), 0, ceil(padding), 0);
+        }
+        else
+        {
+            int width = this->GetWidth() - this->GetTextWidth();
+            _peTrackHolder->SetWidth(width);
+            _peTrackBase->SetWidth(round(width * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * _peThumb->GetWidth()));
+            _peFillBase->SetWidth(round(width * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * _peThumb->GetWidth()));
+            _peThumb->SetX(((localeType == 1) ? round(_peTrackBase->GetWidth()) : round(_peFillBase->GetWidth())) - _peThumb->GetWidth() / 2.0f);
+            _peThumb->SetY(floor((this->GetHeight() - _peThumb->GetHeight()) / 2.0f));
+            float padding = (this->GetHeight() - _peTrack->GetHeight()) / 2.0f;
+            _peTrackBase->SetPadding(0, floor(padding), 0, ceil(padding));
+            _peFillBase->SetPadding(0, floor(padding), 0, ceil(padding));
+        }
+    }
+
+    DDColorPickerButton::~DDColorPickerButton()
+    {
+        if (_pelPropChange)
+        {
+            this->RemoveListener(_pelPropChange);
+            free(_pelPropChange);
+            _pelPropChange = nullptr;
+        }
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDColorPickerButton::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDColorPickerButton::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDColorPickerButton::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDColorPickerButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::MouseFocusedProp))
+        {
+            CSafeElementPtr<DDScalableElement> DDCPHC;
+            DDCPHC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_HoverCircle", this->GetParent()));
+            if (DDCPHC)
+            {
+                ElementSetValue(DDCPHC, Element::VisibleProp(), pvNew, this);
+                DDCPHC->SetX(this->GetX());
+            }
+        }
+        Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    void DDColorPickerButton::OnEvent(Event* pEvent)
+    {
+        if (pEvent->uidType == Button::Click())
+        {
+            DDColorPicker* peParent = (DDColorPicker*)this->GetParent();
+            if (peParent)
+            {
+                CSafeElementPtr<DDScalableElement> DDCPCC;
+                DDCPCC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", peParent));
+                DDCPCC->SetX(this->GetX());
+                RegKeyValue rkv = peParent->GetRegKeyValue();
+                if (rkv._hKeyName != nullptr)
+                {
+                    rkv._dwValue = _order;
+                    SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
+                }
+                bool awareness = peParent->GetThemeAwareness();
+                for (int i = 0; i < _targetElems.size(); i++)
+                {
+                    if (_targetElems[i])
+                    {
+                        _targetElems[i]->SetDDCPIntensity(peParent->GetColorIntensity());
+                        if (_order == 0)
+                            _targetElems[i]->SetDDCPIntensity(255);
+                        if (awareness)
+                            _targetElems[i]->SetGroupColor(_order);
+                        _targetElems[i]->SetAssociatedColor(_assocCR);
+                    }
+                }
+                for (int i = 0; i < _targetBtns.size(); i++)
+                {
+                    if (_targetBtns[i])
+                    {
+                        _targetBtns[i]->SetDDCPIntensity(peParent->GetColorIntensity());
+                        if (_order == 0)
+                            _targetBtns[i]->SetDDCPIntensity(255);
+                        if (awareness)
+                            _targetBtns[i]->SetGroupColor(_order);
+                        _targetBtns[i]->SetAssociatedColor(_assocCR);
+                    }
+                }
+            }
+        }
+        Button::OnEvent(pEvent);
+    }
+
+    HRESULT DDColorPickerButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDColorPickerButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDColorPickerButton::Register()
+    {
+        return ClassInfo<DDColorPickerButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
+    }
+
+    void DDColorPickerButton::SetPropChangeListener(IElementListener* pel)
+    {
+        _pelPropChange = pel;
+    }
+
+    COLORREF DDColorPickerButton::GetAssociatedColor()
+    {
+        return _assocCR;
+    }
+
+    BYTE DDColorPickerButton::GetOrder()
+    {
+        return _order;
+    }
+
+    vector<DDScalableElement*> DDColorPickerButton::GetTargetElements()
+    {
+        return _targetElems;
+    }
+
+    vector<DDScalableButton*> DDColorPickerButton::GetTargetButtons()
+    {
+        return _targetBtns;
+    }
+
+    void DDColorPickerButton::SetAssociatedColor(COLORREF cr)
+    {
+        _assocCR = cr;
+    }
+
+    void DDColorPickerButton::SetOrder(BYTE bOrder)
+    {
+        _order = bOrder;
+    }
+
+    void DDColorPickerButton::SetTargetElements(vector<DDScalableElement*> vte)
+    {
+        _targetElems = vte;
+    }
+
+    void DDColorPickerButton::SetTargetButtons(vector<DDScalableButton*> vtb)
+    {
+        _targetBtns = vtb;
     }
 
     DDColorPicker::~DDColorPicker()
@@ -2703,18 +2812,71 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    void DDColorPicker::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::WidthProp()) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp()) ||
+            PropNotify::IsEqual(ppi, iIndex, DDColorPicker::FirstScaledImageProp()))
+        {
+            int scaleInterval = GetCurrentScaleInterval();
+            int scaleIntervalImage = this->GetScaledImageIntervals();
+            if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+            int imageID = this->GetFirstScaledImage() + scaleInterval;
+            HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+            if (newImage == nullptr)
+            {
+                LoadPNGAsBitmap(newImage, imageID);
+                IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
+            }
+            BITMAP bm{};
+            GetObject(newImage, sizeof(BITMAP), &bm);
+            _btnWidth = bm.bmWidth / 8;
+            int btnHeight = bm.bmHeight;
+            _btnX = this->GetWidth() / 8;
+            int btnY = (this->GetHeight() - bm.bmHeight) / 2;
+
+            HDC hdc = GetDC(nullptr);
+            HDC hdcSrc = CreateCompatibleDC(hdc);
+            HDC hdcDst = CreateCompatibleDC(hdc);
+            SelectObject(hdcSrc, newImage);
+            for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
+            {
+                int xPos = (localeType == 1) ? this->GetWidth() - i * _btnX - _btnWidth : i * _btnX;
+                HBITMAP hbmPickerBtn = CreateCompatibleBitmap(hdc, _btnWidth, btnHeight);
+                SelectObject(hdcDst, hbmPickerBtn);
+                BitBlt(hdcDst, 0, 0, _btnWidth, btnHeight, hdcSrc, i * _btnWidth, 0, SRCCOPY);
+                _rgpeColorButtons[i]->SetX(xPos);
+                _rgpeColorButtons[i]->SetY(btnY);
+                _rgpeColorButtons[i]->SetWidth(bm.bmWidth / 8);
+                _rgpeColorButtons[i]->SetHeight(btnHeight);
+                CValuePtr spvPickerBtn = Value::CreateGraphic(hbmPickerBtn, 2, 0xffffffff, true, false, false);
+                if (spvPickerBtn) _rgpeColorButtons[i]->SetValue(Element::ContentProp, 1, spvPickerBtn);
+                DeleteObject(hbmPickerBtn);
+            }
+            if (newImage) DeleteObject(newImage);
+            DeleteDC(hdcSrc);
+            DeleteDC(hdcDst);
+            ReleaseDC(nullptr, hdc);
+
+            _peOverlayHover->SetY(btnY);
+            _peOverlayHover->SetWidth(bm.bmWidth / 8);
+            _peOverlayHover->SetHeight(btnHeight);
+            _peOverlayCheck->SetY(btnY);
+            _peOverlayCheck->SetWidth(bm.bmWidth / 8);
+            _peOverlayCheck->SetHeight(btnHeight);
+        }
+        Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDColorPicker::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDColorPicker, int>(0, pParent, pdwDeferCookie, ppElement);
+        return CreateAndInit<DDColorPicker, int>(0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDColorPicker::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
         if (SUCCEEDED(hr))
-        {
-            DWORD dw;
-            HANDLE drawingHandle = CreateThread(nullptr, 0, ColorPickerLayout, (LPVOID)*ppElement, NULL, &dw);
-            if (drawingHandle)
-            {
-                CloseHandle(drawingHandle);
-            }
-        }
+            hr = this->_CreateCLRVisual();
         return hr;
     }
 
@@ -2734,7 +2896,7 @@ namespace DirectDesktop
     {
         if (!this) return -1;
         if (this->IsDestroyed()) return -1;
-        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        Value* pv = GetValue(pPropertyProc, 3, nullptr);
         int v = pv->GetInt();
         pv->Release();
         return v;
@@ -2749,6 +2911,40 @@ namespace DirectDesktop
             hr = SetValue(pPropertyProc, 1, pv);
             pv->Release();
         }
+    }
+
+    HRESULT DDColorPicker::_CreateCLRVisual()
+    {
+        HRESULT hr = S_OK;
+        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
+        {
+            hr = DDColorPickerButton::Create(this, nullptr, (Element**)&_rgpeColorButtons[i]);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_rgpeColorButtons[i], 1);
+                _rgpeColorButtons[i]->SetLayoutPos(-2);
+                _rgpeColorButtons[i]->SetOrder(i);
+            }
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = DDScalableElement::Create(this, nullptr, (Element**)&_peOverlayHover);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peOverlayHover, 1);
+                _peOverlayHover->SetLayoutPos(-2);
+                _peOverlayHover->SetX(-9999);
+                _peOverlayHover->SetID(L"DDColorPicker_HoverCircle");
+                hr = DDScalableElement::Create(this, nullptr, (Element**)&_peOverlayCheck);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_peOverlayCheck, 1);
+                    _peOverlayCheck->SetLayoutPos(-2);
+                    _peOverlayCheck->SetID(L"DDColorPicker_CheckedCircle");
+                }
+            }
+        }
+        return hr;
     }
 
     const PropertyInfo* WINAPI DDColorPicker::FirstScaledImageProp()
@@ -2836,109 +3032,42 @@ namespace DirectDesktop
     void DDColorPicker::SetRegKeyValue(RegKeyValue rkvNew)
     {
         _rkv = rkvNew;
+        int order = (_rkv._hKeyName) ? GetRegistryValues(_rkv._hKeyName, _rkv._path, _rkv._valueToFind) * _btnX : _rkv._dwValue * _btnX;
+        int checkedBtnX = (localeType == 1) ? this->GetWidth() - order - _btnWidth : order;
+        _peOverlayCheck->SetX(checkedBtnX);
     }
 
     void DDColorPicker::SetTargetElements(vector<DDScalableElement*> vte)
     {
         _targetElems = vte;
+        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
+            _rgpeColorButtons[i]->SetTargetElements(_targetElems);
     }
 
     void DDColorPicker::SetTargetButtons(vector<DDScalableButton*> vtb)
     {
         _targetBtns = vtb;
+        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
+            _rgpeColorButtons[i]->SetTargetButtons(_targetBtns);
     }
 
     void DDColorPicker::SetThemeAwareness(bool ta)
     {
         _themeAwareness = ta;
-    }
-
-    DDColorPickerButton::~DDColorPickerButton()
-    {
-        if (_pelPropChange)
+        COLORREF* pImmersiveColor = this->GetThemeAwareness() ? g_theme ? &ImmersiveColorL : &ImmersiveColorD : &ImmersiveColor;
+        COLORREF colorPickerPalette[8] =
         {
-            this->RemoveListener(_pelPropChange);
-            free(_pelPropChange);
-            _pelPropChange = nullptr;
-        }
-        this->DestroyAll(true);
-    }
-
-    IClassInfo* DDColorPickerButton::GetClassInfoPtr()
-    {
-        return s_pClassInfo;
-    }
-
-    void DDColorPickerButton::SetClassInfoPtr(IClassInfo* pClass)
-    {
-        s_pClassInfo = pClass;
-    }
-
-    IClassInfo* DDColorPickerButton::GetClassInfoW()
-    {
-        return s_pClassInfo;
-    }
-
-    HRESULT DDColorPickerButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
-    {
-        HRESULT hr = CreateAndInit<DDColorPickerButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-        if (SUCCEEDED(hr))
-        {
-            DWORD dw;
-            HANDLE drawingHandle = CreateThread(nullptr, 0, PickerBtnFn, (LPVOID)*ppElement, NULL, &dw);
-            if (drawingHandle) CloseHandle(drawingHandle);
-        }
-        return hr;
-    }
-
-    HRESULT DDColorPickerButton::Register()
-    {
-        return ClassInfo<DDColorPickerButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
-    }
-
-    void DDColorPickerButton::SetPropChangeListener(IElementListener* pel)
-    {
-        _pelPropChange = pel;
-    }
-
-    COLORREF DDColorPickerButton::GetAssociatedColor()
-    {
-        return _assocCR;
-    }
-
-    BYTE DDColorPickerButton::GetOrder()
-    {
-        return _order;
-    }
-
-    vector<DDScalableElement*> DDColorPickerButton::GetTargetElements()
-    {
-        return _targetElems;
-    }
-
-    vector<DDScalableButton*> DDColorPickerButton::GetTargetButtons()
-    {
-        return _targetBtns;
-    }
-
-    void DDColorPickerButton::SetAssociatedColor(COLORREF cr)
-    {
-        _assocCR = cr;
-    }
-
-    void DDColorPickerButton::SetOrder(BYTE bOrder)
-    {
-        _order = bOrder;
-    }
-
-    void DDColorPickerButton::SetTargetElements(vector<DDScalableElement*> vte)
-    {
-        _targetElems = vte;
-    }
-
-    void DDColorPickerButton::SetTargetButtons(vector<DDScalableButton*> vtb)
-    {
-        _targetBtns = vtb;
+            this->GetDefaultColor(),
+            *pImmersiveColor,
+            _themeAwareness ? g_theme ? RGB(76, 194, 255) : RGB(0, 103, 192) : RGB(0, 120, 215),
+            _themeAwareness ? g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176) : RGB(177, 70, 194),
+            _themeAwareness ? g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30) : RGB(232, 17, 35),
+            _themeAwareness ? g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7) : RGB(247, 99, 12),
+            _themeAwareness ? g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0) : RGB(255, 185, 0),
+            _themeAwareness ? g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90) : RGB(0, 204, 106)
+        };
+        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
+            _rgpeColorButtons[i]->SetAssociatedColor(colorPickerPalette[i]);
     }
 
     LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -3063,8 +3192,7 @@ namespace DirectDesktop
 
     HRESULT DDNotificationBanner::Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
-        HRESULT hr = CreateAndInit<DDNotificationBanner, HWND, bool, UINT>(hParent, fDblBuffer, nCreate, pParent, pdwDeferCookie, ppElement);
-        return hr;
+        return CreateAndInit<DDNotificationBanner, HWND, bool, UINT>(hParent, fDblBuffer, nCreate, pParent, pdwDeferCookie, ppElement);
     }
 
     HRESULT DDNotificationBanner::Register()
@@ -3254,8 +3382,6 @@ namespace DirectDesktop
             if (_peButtonSection)
             {
                 DynamicArray<Element*>* pelButtons = _peButtonSection->GetChildren(&v);
-                for (int i = 0; i < pelButtons->GetSize(); i++)
-                    ((DDScalableButton*)pelButtons->GetItem(i))->StopListening();
             }
             auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), _wnd->GetHWND());
             g_nwnds.erase(toRemove);
