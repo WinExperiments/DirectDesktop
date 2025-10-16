@@ -509,7 +509,25 @@ namespace DirectDesktop
         }
     }
 
-    void EnumerateFolder(LPWSTR path, vector<LVItem*>* pmLVItem, bool bCountItems, unsigned short* countedItems, int* count2, unsigned short limit)
+    unsigned short EnumerateFolder_Helper(LPWSTR path)
+    {
+        WIN32_FIND_DATAW fd;
+        wstring searchPath = wstring(path) + L"\\*";
+        HANDLE hFind = FindFirstFileW(searchPath.c_str(), &fd);
+        if (hFind == INVALID_HANDLE_VALUE) return 0;
+
+        unsigned short count = 0;
+        do
+        {
+            if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0) continue;
+            count++;
+        } while (FindNextFileW(hFind, &fd));
+
+        FindClose(hFind);
+        return count;
+    }
+
+    void EnumerateFolder(LPWSTR path, vector<LVItem*>* pmLVItem, int* count2, unsigned short limit)
     {
         if (!PathFileExistsW(path) && wcscmp(path, L"InternalCodeForNamespace") != 0)
         {
@@ -606,36 +624,33 @@ namespace DirectDesktop
             {
                 WIN32_FIND_DATAW fd;
                 hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
-                if (!bCountItems)
+                if (count2 != nullptr)
                 {
-                    if (count2 != nullptr)
+                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), (*pmLVItem)[*(count2)]);
+                    foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
+                    if (fd.dwFileAttributes & 16)
                     {
-                        foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), (*pmLVItem)[*(count2)]);
-                        foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
-                        if (fd.dwFileAttributes & 16)
-                        {
-                            (*pmLVItem)[*(count2)]->SetDirState(true);
-                            unsigned short itemsInside{};
-                            EnumerateFolder((LPWSTR)RemoveQuotes(foundfilename).c_str(), nullptr, true, &itemsInside);
-                            if (pmLVItem == &pm && itemsInside <= 192) (*pmLVItem)[*(count2)]->SetGroupedDirState(true);
-                        }
-                        else (*pmLVItem)[*(count2)]->SetDirState(false);
-                        if (fd.dwFileAttributes & 2) (*pmLVItem)[*(count2)]->SetHiddenState(true);
-                        else (*pmLVItem)[*(count2)]->SetHiddenState(false);
-                        filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
-                        if (isThumbnailHidden == 0)
-                        {
-                            bool image;
-                            isSpecialProp(foundfilename, true, &image, &imageExts);
-                            (*pmLVItem)[*(count2)]->SetColorLock(image);
-                        }
-                        bool advancedicon;
-                        isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
-                        (*pmLVItem)[*(count2)]->SetHasAdvancedIcon(advancedicon);
-                        (*pmLVItem)[*(count2)]->SetSimpleFilename(foundsimplefilename);
-                        (*pmLVItem)[*(count2)]->SetFilename(foundfilename);
-                        (*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
+                        (*pmLVItem)[*(count2)]->SetDirState(true);
+                        unsigned short itemsInside = EnumerateFolder_Helper((LPWSTR)RemoveQuotes(foundfilename).c_str());
+                        if (pmLVItem == &pm && itemsInside <= 192) (*pmLVItem)[*(count2)]->SetGroupedDirState(true);
+                        (*pmLVItem)[*(count2)]->SetItemCount(itemsInside);
                     }
+                    else (*pmLVItem)[*(count2)]->SetDirState(false);
+                    if (fd.dwFileAttributes & 2) (*pmLVItem)[*(count2)]->SetHiddenState(true);
+                    else (*pmLVItem)[*(count2)]->SetHiddenState(false);
+                    filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
+                    if (isThumbnailHidden == 0)
+                    {
+                        bool image;
+                        isSpecialProp(foundfilename, true, &image, &imageExts);
+                        (*pmLVItem)[*(count2)]->SetColorLock(image);
+                    }
+                    bool advancedicon;
+                    isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
+                    (*pmLVItem)[*(count2)]->SetHasAdvancedIcon(advancedicon);
+                    (*pmLVItem)[*(count2)]->SetSimpleFilename(foundsimplefilename);
+                    (*pmLVItem)[*(count2)]->SetFilename(foundfilename);
+                    (*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
                 }
                 if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2)
                 {
@@ -675,7 +690,6 @@ namespace DirectDesktop
             StringCchPrintfW(details, 320, L"Information: Finished searching in %s.", path);
             MainLogger.WriteLine(details);
         }
-        if (bCountItems) *countedItems = runs;
     }
 
     void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit)
@@ -753,7 +767,6 @@ namespace DirectDesktop
     {
         WCHAR className[64];
         HWND hWndProgman = FindWindowW(L"Progman", L"Program Manager");
-        SendMessageTimeoutW(hWndProgman, 0x052C, 0, 0, SMTO_NORMAL, 250, nullptr);
         GetClassNameW(hwnd, className, sizeof(className) / 2);
         if (wcscmp(className, L"WorkerW") == 0)
         {

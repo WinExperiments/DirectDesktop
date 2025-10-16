@@ -6,7 +6,7 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-    extern int g_dpi, g_dpiLaunch;
+    extern int g_dpi, g_dpiOld, g_dpiLaunch;
     extern bool g_atleastonesetting;
     extern DWORD g_animCoef;
     extern DUIXmlParser* parser;
@@ -43,7 +43,6 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
-        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
@@ -51,7 +50,6 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        bool GetNeedsFontResize2();
         int GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
@@ -59,7 +57,6 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void SetDDCPIntensity(int intensity);
         unsigned short GetGroupColor();
@@ -94,7 +91,6 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
-        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
@@ -102,7 +98,6 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        bool GetNeedsFontResize2();
         int GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
@@ -110,7 +105,6 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void SetDDCPIntensity(int intensity);
 
@@ -162,7 +156,6 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
-        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
@@ -170,7 +163,6 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        bool GetNeedsFontResize2();
         int GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
@@ -178,7 +170,6 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void SetDDCPIntensity(int intensity);
 
@@ -210,7 +201,6 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
-        static const PropertyInfo* WINAPI NeedsFontResize2Prop();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
@@ -218,7 +208,6 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        bool GetNeedsFontResize2();
         int GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
@@ -226,7 +215,6 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetNeedsFontResize2(bool bNeedsFontResize2);
         void SetAssociatedColor(int iAssociatedColor);
         void SetDDCPIntensity(int intensity);
 
@@ -278,6 +266,7 @@ namespace DirectDesktop
         HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
         const WCHAR* GetContentString(Value** ppv);
+        void SetKeyFocus() override;
 
     private:
         static IClassInfo* s_pClassInfo;
@@ -364,9 +353,15 @@ namespace DirectDesktop
         unsigned short GetPage();
         unsigned short GetMemPage();
         unsigned short GetPreRefreshMemPage();
+        unsigned short GetMemIconSize();
+        unsigned short GetItemCount();
+        unsigned short GetItemIndex();
         void SetPage(unsigned short pageID);
         void SetMemPage(unsigned short pageID);
         void SetPreRefreshMemPage(unsigned short pageID);
+        void SetMemIconSize(unsigned short iconsz);
+        void SetItemCount(unsigned short itemCount);
+        void SetItemIndex(unsigned short itemIndex);
         LVItemGroupSize GetGroupSize();
         void SetGroupSize(LVItemGroupSize lvigs);
         LVItemTileSize GetTileSize();
@@ -418,6 +413,9 @@ namespace DirectDesktop
         unsigned short _page{};
         unsigned short _mem_page{};
         unsigned short _prmem_page{};
+        unsigned short _mem_iconsize{};
+        unsigned short _itemCount{};
+        unsigned short _itemIndex{};
         LVItemGroupSize _groupsize = LVIGS_NORMAL;
         LVItemTileSize _tilesize = LVITS_NONE;
         LVItemOpenDirState _opendirstate = LVIODS_NONE;
@@ -451,9 +449,11 @@ namespace DirectDesktop
 
     private:
         LVItem* _items[4] = { nullptr };
+        unsigned short _xFirstTile;
+        unsigned short _yFirstTile;
         BYTE _maxCount = 4;
         BYTE _itemCount{};
-        void _RefreshLVItemPositions(BYTE index, short direction);
+        void _RefreshLVItemPositions(BYTE index);
     };
 
     class DDLVActionButton final : public DDScalableButton
@@ -738,10 +738,6 @@ namespace DirectDesktop
         static HRESULT Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
         NativeHWNDHost* GetWindowHost();
-        Element* GetIconElement();
-        DDScalableElement* GetTitleElement();
-        DDScalableElement* GetContentElement();
-        void SetWindowHost(NativeHWNDHost* pHost);
         void CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout);
         static void RepositionBanners();
         void DestroyBanner(bool* notificationopen, bool manual);

@@ -51,7 +51,7 @@ namespace DirectDesktop
         Sleep(175 * (animCoef / 100.0f));
         AnimateWindow(searchwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
         searchwnd->DestroyWindow();
-        SetForegroundWindow(g_hWndTaskbar);
+        SetForegroundWindow(wnd->GetHWND());
         g_searchopen = false;
         return 0;
     }
@@ -151,7 +151,7 @@ namespace DirectDesktop
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x38;
+            dwCreateFlags = 0x30;
             dwHostFlags = 0x43;
         }
         NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", nullptr, nullptr,
@@ -202,6 +202,7 @@ namespace DirectDesktop
             DwmExtendFrameIntoClientArea(searchwnd->GetHWND(), &m);
         }
         BlurBackground(searchwnd->GetHWND(), true, true, searchbase);
+        searchbox->SetKeyFocus();
     }
 
     void DestroySearchPage()

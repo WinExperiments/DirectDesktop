@@ -21,7 +21,6 @@ namespace DirectDesktop
     {
         if (iconsz == g_iconsz && touch == g_touchmode) return;
         if (isDefaultRes()) SetPos(true);
-        if (!touch) g_iconszOld = g_iconsz;
         g_iconsz = iconsz;
         g_shiconsz = shiconsz;
         g_gpiconsz = gpiconsz;
@@ -257,10 +256,19 @@ namespace DirectDesktop
             case 1001:
                 if (localeType == 1)
                 {
-                    if (lvits == LVITS_NONE) lvi->SetX(lvi->GetX() + g_touchSizeX / 2 + tilepadding / 2);
-                    if (lvits == LVITS_DETAILED) lvi->SetX(lvi->GetX() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
+                    if (lvits == LVITS_NONE)
+                    {
+                        lvi->SetMemXPos(lvi->GetMemXPos() + g_touchSizeX / 2 + tilepadding / 2);
+                        lvi->SetX(lvi->GetMemXPos());
+                    }
+                    if (lvits == LVITS_DETAILED)
+                    {
+                        lvi->SetMemXPos(lvi->GetMemXPos() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
+                        lvi->SetX(lvi->GetMemXPos());
+                    }
                 }
                 lvi->SetTileSize(LVITS_ICONONLY);
+                lvi->SetTouchGrid(new LVItemTouchGrid);
                 RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
                 if (isDefaultRes())
@@ -272,12 +280,19 @@ namespace DirectDesktop
             case 1002:
                 if (localeType == 1)
                 {
-                    if (lvits == LVITS_ICONONLY) lvi->SetX(lvi->GetX() - g_touchSizeX / 2 - tilepadding / 2);
-                    if (lvits == LVITS_DETAILED) lvi->SetX(lvi->GetX() + g_touchSizeX + tilepadding);
+                    if (lvits == LVITS_ICONONLY)
+                    {
+                        lvi->SetMemXPos(lvi->GetMemXPos() - g_touchSizeX / 2 - tilepadding / 2);
+                        lvi->SetX(lvi->GetMemXPos());
+                    }
+                    if (lvits == LVITS_DETAILED)
+                    {
+                        lvi->SetMemXPos(lvi->GetMemXPos() + g_touchSizeX + tilepadding);
+                        lvi->SetX(lvi->GetMemXPos());
+                    }
                 }
-                if (lvits == LVITS_ICONONLY) lvi->GetTouchGrid()->Erase(lvi->GetSmallPos() - 1);
-                lvi->SetTileSize(LVITS_NONE);
                 lvi->SetTouchGrid(nullptr);
+                lvi->SetTileSize(LVITS_NONE);
                 lvi->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);
@@ -290,12 +305,19 @@ namespace DirectDesktop
             case 1003:
                 if (localeType == 1)
                 {
-                    if (lvits == LVITS_ICONONLY) lvi->SetX(lvi->GetX() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
-                    if (lvits == LVITS_NONE) lvi->SetX(lvi->GetX() - g_touchSizeX - tilepadding);
+                    if (lvits == LVITS_ICONONLY)
+                    {
+                        lvi->SetMemXPos(lvi->GetMemXPos() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
+                        lvi->SetX(lvi->GetMemXPos());
+                    }
+                    if (lvits == LVITS_NONE)
+                    {
+                        lvi->SetMemXPos(lvi->GetMemXPos() - g_touchSizeX - tilepadding);
+                        lvi->SetX(lvi->GetMemXPos());
+                    }
                 }
-                if (lvits == LVITS_ICONONLY) lvi->GetTouchGrid()->Erase(lvi->GetSmallPos() - 1);
-                lvi->SetTileSize(LVITS_DETAILED);
                 lvi->SetTouchGrid(nullptr);
+                lvi->SetTileSize(LVITS_DETAILED);
                 lvi->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 lvi->SetRefreshState(true);

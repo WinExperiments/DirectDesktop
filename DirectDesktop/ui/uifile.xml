@@ -12,9 +12,46 @@
 					<RichText id="atom(togglepageGlyph)" layoutpos="client" background="argb(0,0,0,0)" content="resstr(141)"/>
 				</TouchButton>
 				<Element id="atom(selector)" layout="borderlayout()" class="selector" visible="false" layoutpos="absolute" background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
-				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="flowlayout(0,2,2,0)" background="themeable(dtb(Desktop::ListView,1,3), highlight)">
-					<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
-							 foreground="themeable(gtc(DragDrop,8,0,3803), black)" padding="themeable(gtmar(DragDrop,8,0,3602), rect(5rp,1rp,5rp,1rp))" compositedtext="true" textglowsize="0"/>
+				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="filllayout()" background="argb(0,0,0,0)">
+					<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
+					<Element id="atom(iconElemShadow)" contentalign="bottomcenter" layoutpos="absolute"/>
+					<Element id="atom(iconElem)" contentalign="bottomcenter" layout="filllayout()" layoutpos="absolute">
+						<Element id="atom(DP_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
+					</Element>
+					<Element id="atom(shortcutElem)" direction="ltr" layoutpos="absolute" contentalign="bottomleft"/>
+					<RichText id="atom(textElemShadow)" layoutpos="bottom" contentalign="topcenter"/>
+					<RichText id="atom(textElem)" layoutpos="bottom" contentalign="topcenter"/>
+					<Element layout="ninegridlayout()" layoutpos="ninetopleft">
+						<Button id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopleft" margin="rect(6rp,6rp,0,0)"/>
+					</Element>
+					<Element layout="flowlayout(0,2,2,2)" layoutpos="client" background="argb(0,0,0,0)">
+						<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
+								 foreground="themeable(gtc(DragDrop,8,0,3803), black)" padding="themeable(gtmar(DragDrop,8,0,3602), rect(5rp,1rp,5rp,1rp))" compositedtext="true" textglowsize="0"/>
+					</Element>
+				</Element>
+				<Element id="atom(dragpreviewTouch)" visible="false" layoutpos="absolute" alpha="160" layout="filllayout()" bordercolor="argb(0,0,0,0)">
+					<Element id="atom(innerElem)"/>
+					<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()">
+						<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()">
+							<Element id="atom(iconElemShadow)" contentalign="bottomleft" layoutpos="left"/>
+							<Element layoutpos="left" layout="borderlayout()">
+								<Element id="atom(iconElem)" contentalign="bottomleft" layout="filllayout()" layoutpos="bottom" width="48rp" height="48rp">
+									<Element id="atom(DP_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
+								</Element>
+							</Element>
+							<Element id="atom(shortcutElem)" direction="ltr" contentalign="bottomleft" layoutpos="left"/>
+						</Element>
+						<Element layoutpos="top" layout="borderlayout()">
+							<RichText id="atom(textElem)" layoutpos="top"/>
+						</Element>
+					</Element>
+					<Element layout="ninegridlayout()" layoutpos="ninetopright">
+						<Button id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopright" margin="rect(0,8rp,8rp,0)"/>
+					</Element>
+					<Element layout="flowlayout(0,2,2,2)" layoutpos="client" background="argb(0,0,0,0)">
+						<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
+								 foreground="themeable(gtc(DragDrop,8,0,3803), black)" padding="themeable(gtmar(DragDrop,8,0,3602), rect(5rp,1rp,5rp,1rp))" compositedtext="true" textglowsize="0"/>
+					</Element>
 				</Element>
 			</Element>
 		</Element>
@@ -31,7 +68,7 @@
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
-		<Element layout="ninegridlayout()" layoutpos="ninetopleft">
+		<Element layout="ninegridlayout()" layoutpos="ninetopleft" background="argb(0,0,0,0)">
 			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
 		</Element>
 	</LVItem>
@@ -118,6 +155,9 @@
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
+			<if id="atom(DP_FolderGroup)">
+				<Element font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
+			</if>
 			<if id="atom(pageVisual)">
 				<Element background="argb(72,208,208,208)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(216,208,208,208)"/>
 			</if>
@@ -176,6 +216,9 @@
 			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+			</if>
+			<if id="atom(DP_FolderGroup)">
+				<Element font="resstr(158)" content="resstr(159)" compositedtext="true" textglowsize="0"/>
 			</if>
 			<if id="atom(pageVisual)">
 				<Element background="argb(72,48,48,48)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(216,48,48,48)"/>

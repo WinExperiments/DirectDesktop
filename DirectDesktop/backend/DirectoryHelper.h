@@ -45,7 +45,8 @@ namespace DirectDesktop
     void isSpecialProp(const wstring& filename, bool bReset, bool* result, vector<const wchar_t*>* exts);
     wstring GetExplorerTooltipText(const wstring& filePath);
     void StartMonitorFileChanges(const wstring& path);
-    void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, bool bCountItems, unsigned short* countedItems = nullptr, int* count2 = nullptr, unsigned short limit = 65535);
+    unsigned short EnumerateFolder_Helper(LPWSTR path);
+    void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, int* count2 = nullptr, unsigned short limit = 65535);
     void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit);
     void GetPos(bool getSpotlightIcon, int* setSpotlightIcon);
     void GetPos2(bool full);

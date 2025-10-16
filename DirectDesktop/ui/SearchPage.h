@@ -8,6 +8,7 @@ namespace DirectDesktop
     extern bool g_searchopen;
     extern DirectUI::DUIXmlParser* parser;
 
+    extern DirectUI::NativeHWNDHost* wnd;
     extern DirectUI::NativeHWNDHost* searchwnd;
     void CreateSearchPage();
     void DestroySearchPage();

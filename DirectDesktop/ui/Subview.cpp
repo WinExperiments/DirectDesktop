@@ -160,10 +160,12 @@ namespace DirectDesktop
                 groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", yV->peOptionalTarget1->GetParent()->GetParent()));
                 groupdirlist->SetVisible(true);
 
+                RECT rcList;
+                groupdirlist->GetVisibleRect(&rcList);
                 GTRANS_DESC transDesc[3];
                 TriggerTranslate(groupdirlist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false);
                 TriggerFade(groupdirlist, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-                TriggerClip(groupdirlist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, ((groupdirlist->GetHeight() - 100 * g_flScaleFactor) / groupdirlist->GetHeight()), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                TriggerClip(groupdirlist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
                 TransitionStoryboardInfo tsbInfo = {};
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, groupdirlist->GetDisplayNode(), &tsbInfo);
 
@@ -216,6 +218,11 @@ namespace DirectDesktop
                 ((DDScalableButton*)peTemp)->ExecAssociatedFn(((DDScalableButton*)peTemp)->GetAssociatedFn());
                 g_pendingaction = false;
             }
+            break;
+        }
+        case WM_USER + 6:
+        {
+            fullscreeninner->SetVisible(true);
             break;
         }
         }
@@ -335,14 +342,17 @@ namespace DirectDesktop
         //CloakWindow(subviewwnd->GetHWND(), true);
         BlurBackground(subviewwnd->GetHWND(), false, true, fullscreenpopupbg);
         SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, NULL, NULL);
-        SetForegroundWindow(g_hWndTaskbar);
+        SetForegroundWindow(wnd->GetHWND());
         return 0;
     }
 
     DWORD WINAPI AnimateWindowWrapper2(LPVOID lpParam)
     {
-        subviewwnd->ShowWindow(SW_SHOW);
-        //AnimateWindow(subviewwnd->GetHWND(), 180, AW_BLEND);
+        //subviewwnd->ShowWindow(SW_SHOW);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        AnimateWindow(subviewwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+        SendMessageW(subviewwnd->GetHWND(), WM_USER + 6, NULL, NULL);
         return 0;
     }
 
@@ -374,7 +384,7 @@ namespace DirectDesktop
     {
         CValuePtr v;
         RECT dimensions;
-        GetClientRect(wnd->GetHWND(), &dimensions);
+        GetClientRect(subviewwnd->GetHWND(), &dimensions);
         RECT padding = *(popupcontainer->GetPadding(&v));
         int maxwidth = dimensions.right - dimensions.left - padding.left - padding.right;
         int maxheight = dimensions.bottom - dimensions.top - padding.top - padding.bottom;
@@ -391,10 +401,9 @@ namespace DirectDesktop
         SetPopupSize(fullscreeninner, width, height);
         centered->SetBackgroundColor(0);
         fullscreenpopupbase->SetVisible(true);
-        fullscreeninner->SetVisible(true);
         GTRANS_DESC transDesc[2];
-        TriggerFade(fullscreeninner, transDesc, 0, 0.2f, 0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, true);
-        TriggerScaleIn(fullscreeninner, transDesc, 1, 0.2f, 0.45f, 0.0f, 0.0f, 0.0f, 1.0f, animstartscale, animstartscale, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        TriggerFade(fullscreeninner, transDesc, 0, 0.15f, 0.25f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, true);
+        TriggerScaleIn(fullscreeninner, transDesc, 1, 0.15f, 0.4f, 0.0f, 0.0f, 0.0f, 1.0f, animstartscale, animstartscale, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
         TransitionStoryboardInfo tsbInfo = {};
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
         GTRANS_DESC transDesc2[1];
@@ -402,9 +411,6 @@ namespace DirectDesktop
         TransitionStoryboardInfo tsbInfo2 = {};
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
         if (!g_editmode) BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbg);
-        //CloakWindow(subviewwnd->GetHWND(), false);
-        HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
-        if (AnimHandle) CloseHandle(AnimHandle);
         SetTimer(wnd->GetHWND(), 7, 100, nullptr);
         g_issubviewopen = true;
     }
@@ -418,12 +424,13 @@ namespace DirectDesktop
 
     void ShowPopupCore()
     {
+        if (g_issubviewopen) HidePopupCore(true, false);
         fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.88);
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
     }
 
-    void HidePopupCore(bool WinDInvoked)
+    void HidePopupCore(bool WinDInvoked, bool fNoRefresh)
     {
         if (!WinDInvoked) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
         for (LVItem* lvi : pm)
@@ -434,7 +441,7 @@ namespace DirectDesktop
                 lvi->SetOpenDirState(LVIODS_NONE);
             }
         }
-        if (g_issubviewopen)
+        if (g_issubviewopen && fNoRefresh)
         {
             CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
             GTRANS_DESC transDesc[2];
@@ -458,7 +465,12 @@ namespace DirectDesktop
         g_issettingsopen = false;
         g_atleastonesetting = false;
         SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        fullscreenAnimation2();
+        if (fNoRefresh) fullscreenAnimation2();
+        else
+        {
+            g_checkifelemexists = false;
+            centered->DestroyAll(true);
+        }
     }
 
     void SelectSubItem(Element* elem, Event* iev)
@@ -487,11 +499,10 @@ namespace DirectDesktop
 
     void ShowDirAsGroup(LVItem* lvi)
     {
-        unsigned short lviCount = 0;
         int count2{};
-        EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), nullptr, true, &lviCount);
+        unsigned short lviCount = lvi->GetItemCount();
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
-        fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.88);
+        ShowPopupCore();
         SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         lvi->SetMemorySelected(true);
         lvi->SetOpenDirState(LVIODS_FULLSCREEN);
@@ -538,7 +549,7 @@ namespace DirectDesktop
             CSafeElementPtr<LVItem> PendingContainer;
             PendingContainer.Assign(regElem<LVItem*>(L"PendingContainer", groupdirectory));
             PendingContainer->SetVisible(true);
-            EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), subpm, false, nullptr, &count2, lviCount);
+            EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), subpm, &count2, lviCount);
             int x = 0, y = 0;
             int maxX{}, xRuns{};
             CValuePtr v;
@@ -583,10 +594,11 @@ namespace DirectDesktop
             lvi_SubUIContainer->SetHeight(y);
             CSafeElementPtr<Element> dirtitle;
             dirtitle.Assign(regElem<Element*>(L"dirtitle", groupdirectory));
-            groupdirlist->SetHeight(480 * g_flScaleFactor - (dirtitle->GetHeight() + dimensions.top + dimensions.bottom));
+            RECT rcList;
+            groupdirlist->GetVisibleRect(&rcList);
             for (int j = 0; j < lviCount; j++)
             {
-                if (localeType == 1 && y > groupdirlist->GetHeight())
+                if (localeType == 1 && y > rcList.bottom - rcList.top)
                     (*subpm)[j]->SetX((*subpm)[j]->GetX() - GetSystemMetricsForDpi(SM_CXVSCROLL, g_dpi));
             }
             lvi->SetChildItems(subpm);
@@ -971,7 +983,7 @@ namespace DirectDesktop
         if (iev->uidType == Button::Click)
         {
             g_editmode = false;
-            fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.88);
+            ShowPopupCore();
             SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             g_issubviewopen = true;
             g_issettingsopen = true;
@@ -998,26 +1010,20 @@ namespace DirectDesktop
             dimensions = *(settingsview->GetPadding(&v));
             CSafeElementPtr<DDScalableRichText> title;
             title.Assign(regElem<DDScalableRichText*>(L"title", settingsview));
-            settingslist->SetWidth((800 * g_flScaleFactor - (dimensions.left + dimensions.right)));
-            settingslist->SetHeight((480 * g_flScaleFactor - (title->GetHeight() + dimensions.top + dimensions.bottom)));
 
             CSafeElementPtr<DDScalableRichText> name;
             name.Assign(regElem<DDScalableRichText*>(L"name", settingsview));
 
+            RECT rcList;
+            settingslist->GetVisibleRect(&rcList);
             GTRANS_DESC transDesc[3];
             TriggerTranslate(settingslist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false);
             TriggerFade(settingslist, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerClip(settingslist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, ((settingslist->GetHeight() - 100 * g_flScaleFactor) / settingslist->GetHeight()), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+            TriggerClip(settingslist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
             TransitionStoryboardInfo tsbInfo = {};
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, settingslist->GetDisplayNode(), &tsbInfo);
 
-            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-            if (dimensions.right < 600 * g_flScaleFactor) settingslist->SetXScrollable(true);
-            RECT rc1{}, rc2{};
-            rc1 = *(popupcontainer->GetPadding(&v));
-            rc2 = *(settingsview->GetPadding(&v));
-            SubUIContainer->SetMinSize(600 * g_flScaleFactor - rc1.left - rc1.right - rc2.left - rc2.right, 0);
-
+            SubUIContainer->SetMinSize(540 * g_flScaleFactor, 0);
             g_checkifelemexists = true;
         }
     }
@@ -1031,7 +1037,7 @@ namespace DirectDesktop
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x38;
+            dwCreateFlags = 0x30;
             dwHostFlags = 0x43;
         }
         NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, 9999, 9999, dwExStyle, WS_POPUP, nullptr, dwHostFlags, &subviewwnd);

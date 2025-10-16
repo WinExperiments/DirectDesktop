@@ -18,7 +18,7 @@ namespace DirectDesktop
     extern float g_flScaleFactor;
     extern int g_touchSizeX, g_touchSizeY;
     extern unsigned short g_defWidth, g_defHeight, g_lastWidth, g_lastHeight;
-    extern int g_iconsz, g_iconszOld, g_shiconsz, g_gpiconsz;
+    extern int g_iconsz, g_shiconsz, g_gpiconsz;
     extern int g_currentPageID, g_maxPageID, g_homePageID;
     extern HWND g_msgwnd;
     extern bool DWMActive;

@@ -145,29 +145,6 @@ namespace DirectDesktop
                 pe->SetFontSize(pe->GetFontSize() * g_flScaleFactor);
             }
         }
-        else if (pe->GetNeedsFontResize2() && g_dpiLaunch != 96 && g_dpi == 96)
-        {
-            if (pe->GetFont(&v) == nullptr)
-            {
-                if (result) *result = true;
-                return;
-            }
-            wstring fontOld = pe->GetFont(&v);
-            wregex fontRegex(L".*font;.*\%.*");
-            bool isSysmetricFont = regex_match(fontOld, fontRegex);
-            if (isSysmetricFont)
-            {
-                size_t modifier = fontOld.find(L";");
-                size_t modifier2 = fontOld.find(L"%");
-                wstring fontIntermediate = fontOld.substr(0, modifier + 1);
-                wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
-                wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                int newFontSize = _wtoi(fontIntermediate2.c_str()) * 1;
-                wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
-                pe->SetFont(fontNew.c_str());
-                if (result) *result = false;
-            }
-        }
     }
 
     static const int vvimpFirstScaledImageProp[] = { 1, -1 };
@@ -230,18 +207,6 @@ namespace DirectDesktop
         Value::GetBoolFalse,
         &dataimpNeedsFontResizeProp
     };
-    static const int vvimpNeedsFontResize2Prop[] = { 2, -1 };
-    static PropertyInfoData dataimpNeedsFontResize2Prop;
-    static const PropertyInfo impNeedsFontResize2Prop =
-    {
-        L"NeedsFontResize2",
-        0x2 | 0x4,
-        0x1,
-        vvimpNeedsFontResize2Prop,
-        nullptr,
-        Value::GetBoolFalse,
-        &dataimpNeedsFontResize2Prop
-    };
     static const int vvimpCheckedStateProp[] = { 2, -1 };
     static PropertyInfoData dataimpCheckedStateProp;
     static const PropertyInfo impCheckedStateProp =
@@ -301,18 +266,6 @@ namespace DirectDesktop
         nullptr,
         Value::GetIntMinusOne,
         &dataimpDefaultColorProp
-    };
-    static const int vvimpStopListeningProp[] = { 2, -1 };
-    static PropertyInfoData dataimpStopListeningProp;
-    static const PropertyInfo impStopListeningProp =
-    {
-        L"StopListening",
-        0x2 | 0x4,
-        0x1,
-        vvimpStopListeningProp,
-        nullptr,
-        Value::GetBoolFalse,
-        &dataimpStopListeningProp
     };
     static const int vvimpIsVerticalProp[] = { 2, -1 };
     static PropertyInfoData dataimpIsVerticalProp;
@@ -507,6 +460,7 @@ namespace DirectDesktop
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
         {
             if (this->GetFirstScaledImage() == -1)
@@ -517,11 +471,8 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableElement>(this);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
-            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
-        {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableElement>(this, nullptr);
-        }
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -539,10 +490,8 @@ namespace DirectDesktop
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
-            &impNeedsFontResize2Prop,
             &impAssociatedColorProp,
-            &impDDCPIntensityProp,
-            &impStopListeningProp
+            &impDDCPIntensityProp
         };
         return ClassInfo<DDScalableElement, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -645,21 +594,6 @@ namespace DirectDesktop
         this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
     }
 
-    const PropertyInfo* WINAPI DDScalableElement::NeedsFontResize2Prop()
-    {
-        return &impNeedsFontResize2Prop;
-    }
-
-    bool DDScalableElement::GetNeedsFontResize2()
-    {
-        return this->GetPropCommon(NeedsFontResize2Prop, false);
-    }
-
-    void DDScalableElement::SetNeedsFontResize2(bool bNeedsFontResize2)
-    {
-        this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
-    }
-
     const PropertyInfo* WINAPI DDScalableElement::AssociatedColorProp()
     {
         return &impAssociatedColorProp;
@@ -736,6 +670,7 @@ namespace DirectDesktop
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
         {
             if (this->GetFirstScaledImage() == -1)
@@ -746,11 +681,8 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableButton>(this);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
-            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
-        {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableButton>(this, nullptr);
-        }
         Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -768,10 +700,8 @@ namespace DirectDesktop
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
-            &impNeedsFontResize2Prop,
             &impAssociatedColorProp,
-            &impDDCPIntensityProp,
-            &impStopListeningProp
+            &impDDCPIntensityProp
         };
         return ClassInfo<DDScalableButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -872,21 +802,6 @@ namespace DirectDesktop
     void DDScalableButton::SetNeedsFontResize(bool bNeedsFontResize)
     {
         this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
-    }
-
-    const PropertyInfo* WINAPI DDScalableButton::NeedsFontResize2Prop()
-    {
-        return &impNeedsFontResize2Prop;
-    }
-
-    bool DDScalableButton::GetNeedsFontResize2()
-    {
-        return this->GetPropCommon(NeedsFontResize2Prop, false);
-    }
-
-    void DDScalableButton::SetNeedsFontResize2(bool bNeedsFontResize2)
-    {
-        this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
     }
 
     const PropertyInfo* WINAPI DDScalableButton::AssociatedColorProp()
@@ -1013,6 +928,7 @@ namespace DirectDesktop
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
         {
             if (this->GetFirstScaledImage() == -1)
@@ -1023,11 +939,8 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableRichText>(this);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
-            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
-        {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableRichText>(this, nullptr);
-        }
         RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -1045,9 +958,7 @@ namespace DirectDesktop
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
-            &impNeedsFontResize2Prop,
-            &impAssociatedColorProp,
-            &impStopListeningProp
+            &impAssociatedColorProp
         };
         return ClassInfo<DDScalableRichText, RichText>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -1150,21 +1061,6 @@ namespace DirectDesktop
         this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
     }
 
-    const PropertyInfo* WINAPI DDScalableRichText::NeedsFontResize2Prop()
-    {
-        return &impNeedsFontResize2Prop;
-    }
-
-    bool DDScalableRichText::GetNeedsFontResize2()
-    {
-        return this->GetPropCommon(NeedsFontResize2Prop, false);
-    }
-
-    void DDScalableRichText::SetNeedsFontResize2(bool bNeedsFontResize2)
-    {
-        this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
-    }
-
     const PropertyInfo* WINAPI DDScalableRichText::AssociatedColorProp()
     {
         return &impAssociatedColorProp;
@@ -1231,6 +1127,7 @@ namespace DirectDesktop
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
         {
             if (this->GetFirstScaledImage() == -1)
@@ -1241,17 +1138,15 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableTouchButton>(this);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp) ||
-            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResize2Prop))
-        {
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableTouchButton>(this, nullptr);
-        }
         TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
     HRESULT DDScalableTouchButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
         return CreateAndInit<DDScalableTouchButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+        DirectUI::ActiveState;
     }
 
     HRESULT DDScalableTouchButton::Register()
@@ -1263,9 +1158,7 @@ namespace DirectDesktop
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
-            &impNeedsFontResize2Prop,
-            &impAssociatedColorProp,
-            &impStopListeningProp
+            &impAssociatedColorProp
         };
         return ClassInfo<DDScalableTouchButton, TouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -1366,21 +1259,6 @@ namespace DirectDesktop
     void DDScalableTouchButton::SetNeedsFontResize(bool bNeedsFontResize)
     {
         this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchButton::NeedsFontResize2Prop()
-    {
-        return &impNeedsFontResize2Prop;
-    }
-
-    bool DDScalableTouchButton::GetNeedsFontResize2()
-    {
-        return this->GetPropCommon(NeedsFontResize2Prop, false);
-    }
-
-    void DDScalableTouchButton::SetNeedsFontResize2(bool bNeedsFontResize2)
-    {
-        this->SetPropCommon(NeedsFontResize2Prop, bNeedsFontResize2, false);
     }
 
     const PropertyInfo* WINAPI DDScalableTouchButton::AssociatedColorProp()
@@ -1540,6 +1418,12 @@ namespace DirectDesktop
     {
         if (_peEdit) return _peEdit->GetContentString(ppv);
         else return nullptr;
+    }
+
+    void DDScalableTouchEdit::SetKeyFocus()
+    {
+        _peEdit->SetKeyFocus();
+        Element::SetKeyFocus();
     }
 
     HRESULT DDScalableTouchEdit::_CreateTEVisual()
@@ -1809,6 +1693,21 @@ namespace DirectDesktop
         return _prmem_page;
     }
 
+    unsigned short LVItem::GetMemIconSize()
+    {
+        return _mem_iconsize;
+    }
+
+    unsigned short LVItem::GetItemCount()
+    {
+        return _itemCount;
+    }
+
+    unsigned short LVItem::GetItemIndex()
+    {
+        return _itemIndex;
+    }
+
     void LVItem::SetPage(unsigned short pageID)
     {
         _page = pageID;
@@ -1822,6 +1721,21 @@ namespace DirectDesktop
     void LVItem::SetPreRefreshMemPage(unsigned short pageID)
     {
         _prmem_page = pageID;
+    }
+
+    void LVItem::SetMemIconSize(unsigned short iconsz)
+    {
+        _mem_iconsize = iconsz;
+    }
+
+    void LVItem::SetItemCount(unsigned short itemCount)
+    {
+        _itemCount = itemCount;
+    }
+
+    void LVItem::SetItemIndex(unsigned short itemIndex)
+    {
+        _itemIndex = itemIndex;
     }
 
     LVItemGroupSize LVItem::GetGroupSize()
@@ -1968,10 +1882,16 @@ namespace DirectDesktop
 
     void LVItemTouchGrid::Insert(LVItem* lvi)
     {
-        if (_itemCount == _maxCount) return;
+        if (_itemCount >= _maxCount) return;
         _items[_itemCount] = lvi;
+        if (_itemCount == 0)
+        {
+            _xFirstTile = lvi->GetMemXPos();
+            _yFirstTile = lvi->GetMemYPos();
+        }
         _itemCount++;
         lvi->SetSmallPos(_itemCount);
+        _RefreshLVItemPositions(_itemCount - 1);
     }
 
     void LVItemTouchGrid::Insert(LVItem* lvi, BYTE index)
@@ -1982,7 +1902,13 @@ namespace DirectDesktop
         for (int i = _itemCount - 1; i >= index; i--)
             _items[i + 1] = _items[i];
         _items[internalIndex] = lvi;
+        if (_itemCount == 0)
+        {
+            _xFirstTile = lvi->GetMemXPos();
+            _yFirstTile = lvi->GetMemYPos();
+        }
         _itemCount++;
+        _RefreshLVItemPositions(internalIndex);
     }
 
     void LVItemTouchGrid::Erase(BYTE index)
@@ -1995,7 +1921,7 @@ namespace DirectDesktop
         }
         _itemCount--;
         _items[_itemCount] = nullptr;
-        if (_itemCount > 0) _RefreshLVItemPositions(index, -1);
+        if (_itemCount > 0) _RefreshLVItemPositions(index);
         else delete this;
     }
 
@@ -2004,31 +1930,15 @@ namespace DirectDesktop
         return _itemCount;
     }
 
-    void LVItemTouchGrid::_RefreshLVItemPositions(BYTE index, short direction)
+    void LVItemTouchGrid::_RefreshLVItemPositions(BYTE index)
     {
         short localeDirection = (localeType == 1) ? -1 : 1;
         for (int i = index; i < _itemCount; i++)
         {
-            if (i & 1)
-            {
-                _items[i]->SetMemXPos(_items[i]->GetMemXPos() + (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection);
-                _items[i]->SetX(_items[i]->GetMemXPos());
-                if (direction == -1)
-                {
-                    _items[i]->SetMemYPos(_items[i]->GetMemYPos() - (g_touchSizeY + DESKPADDING_TOUCH) / 2);
-                    _items[i]->SetY(_items[i]->GetMemYPos());
-                }
-            }
-            else
-            {
-                _items[i]->SetMemXPos(_items[i]->GetMemXPos() - (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection);
-                _items[i]->SetX(_items[i]->GetMemXPos());
-                if (direction == 1)
-                {
-                    _items[i]->SetMemYPos(_items[i]->GetMemYPos() + (g_touchSizeY + DESKPADDING_TOUCH) / 2);
-                    _items[i]->SetY(_items[i]->GetMemYPos());
-                }
-            }
+            _items[i]->SetMemXPos(_xFirstTile + ((i & 1) * (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection));
+            _items[i]->SetX(_items[i]->GetMemXPos());
+            _items[i]->SetMemYPos(_yFirstTile + (i / 2) * (g_touchSizeY + DESKPADDING_TOUCH) / 2);
+            _items[i]->SetY(_items[i]->GetMemYPos());
         }
     }
 
@@ -3072,12 +2982,10 @@ namespace DirectDesktop
 
     LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
-        //WNDPROC WndProcNotification = (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
         NotificationData* nd = (NotificationData*)wParam;
         switch (uMsg)
         {
             case WM_CLOSE:
-                //DDNotificationBanner::DestroyBanner(nullptr);
                 return 0;
             case WM_DESTROY:
                 return 0;
@@ -3093,13 +3001,13 @@ namespace DirectDesktop
     DWORD WINAPI AnimateWindowWrapper(LPVOID lpParam)
     {
         NotificationData* nd = (NotificationData*)lpParam;
-        Sleep(50);
+        Sleep(10);
         if (nd->nb->GetWindowHost())
         {
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            AnimateWindow(nd->nb->GetWindowHost()->GetHWND(), 180 * (animCoef / 100.0f), AW_BLEND);
-            nd->nb->GetWindowHost()->ShowWindow(SW_SHOW);
+            AnimateWindow(nd->nb->GetWindowHost()->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+            nd->nb->GetWindowHost()->ShowWindow(SW_SHOWNOACTIVATE);
         }
         delete nd;
         return 0;
@@ -3205,26 +3113,6 @@ namespace DirectDesktop
         return _wnd;
     }
 
-    Element* DDNotificationBanner::GetIconElement()
-    {
-        return _icon;
-    }
-
-    DDScalableElement* DDNotificationBanner::GetTitleElement()
-    {
-        return _title;
-    }
-
-    DDScalableElement* DDNotificationBanner::GetContentElement()
-    {
-        return _content;
-    }
-
-    void DDNotificationBanner::SetWindowHost(NativeHWNDHost* pHost)
-    {
-        _wnd = pHost;
-    }
-
     void DDNotificationBanner::CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout)
     {
         static bool notificationopen{};
@@ -3259,7 +3147,6 @@ namespace DirectDesktop
         free(sheet);
 
         pHostElement->SetID(L"DDNB_Host");
-        //WndProcNotification = (WNDPROC)SetWindowLongPtrW(_wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)NotificationProc);
         SetWindowSubclass(_wnd->GetHWND(), NotificationProc, 1, (DWORD_PTR)this);
         _pDDNB->SetVisible(true);
         _pDDNB->EndDefer(keyN);
@@ -3343,7 +3230,7 @@ namespace DirectDesktop
 
         if (_wnd)
         {
-            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED);
+            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED | SWP_NOACTIVATE);
             notificationopen = true;
             NotificationData* nd = new NotificationData{ this, nullptr, timeout };
             HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper, nd, NULL, nullptr);
@@ -3356,7 +3243,7 @@ namespace DirectDesktop
                 DWORD dwAutoClose;
                 AutoCloseHandle = CreateThread(nullptr, 0, AutoCloseNotification, nd, NULL, &dwAutoClose);
             }
-            _pDDNB->SetWindowHost((NativeHWNDHost*)this); // Unsafe hack
+            _pDDNB->_wnd = (NativeHWNDHost*)this; // Unsafe hack
         }
     }
 
@@ -3369,7 +3256,7 @@ namespace DirectDesktop
         for (int i = g_nwnds.size() - 1; i >= 0; i--) {
             RECT windowRect{};
             GetClientRect(g_nwnds[i], &windowRect);
-            SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED);
+            SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
             offset += windowRect.bottom + 18 * g_flScaleFactor;
         }
     }
@@ -3378,11 +3265,6 @@ namespace DirectDesktop
     {
         if (_wnd != nullptr)
         {
-            CValuePtr v;
-            if (_peButtonSection)
-            {
-                DynamicArray<Element*>* pelButtons = _peButtonSection->GetChildren(&v);
-            }
             auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), _wnd->GetHWND());
             g_nwnds.erase(toRemove);
             DDNotificationBanner::RepositionBanners();
@@ -3396,14 +3278,14 @@ namespace DirectDesktop
             _wnd = nullptr;
         }
         if (notificationopen != nullptr) *notificationopen = false;
+        delete this;
     }
 
     void DDNotificationBanner::DestroyBannerByButton(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
         {
-            DDNotificationBanner* pDDNB = (DDNotificationBanner*)elem->GetParent()->GetParent();
-            DDNotificationBanner* pDestroy = (DDNotificationBanner*)pDDNB->GetWindowHost();
+            DDNotificationBanner* pDestroy = (DDNotificationBanner*)((DDNotificationBanner*)elem->GetParent()->GetParent())->_wnd;
             pDestroy->DestroyBanner(nullptr, true);
         }
     }
@@ -3427,7 +3309,7 @@ namespace DirectDesktop
             RECT windowRect{};
             GetClientRect(_wnd->GetHWND(), &windowRect);
             cy = (_peButtonSection->GetHeight() + windowRect.bottom);
-            SetWindowPos(_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right, cy, SWP_NOMOVE | SWP_NOZORDER);
+            SetWindowPos(_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
             DDNotificationBanner::RepositionBanners();
         }
         _btnCount++;
@@ -3436,7 +3318,6 @@ namespace DirectDesktop
         DDScalableButton* pBtn{};
         DDScalableButton::Create(_peButtonSection, nullptr, (Element**)&pBtn);
         pBtn->SetNeedsFontResize(false);
-        pBtn->SetNeedsFontResize2(false);
         pBtn->SetClass(L"pushbuttonsecondary");
         pBtn->SetHeight(32 * g_flScaleFactor);
         pBtn->SetMargin(8 * g_flScaleFactor, 0, 0, 0);

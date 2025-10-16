@@ -48,7 +48,6 @@ namespace DirectDesktop
     bool ValidateStrDigits(const WCHAR* str);
     bool g_animatePVEnter = true;
     bool g_editingpages = false;
-    DWORD WINAPI ReloadPV(LPVOID lpParam);
 
     LRESULT CALLBACK EditModeWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
@@ -133,11 +132,14 @@ namespace DirectDesktop
                                 }
                             }
                             g_maxPageID--;
+                            g_animatePVEnter = false;
                             if (g_maxPageID <= 6)
                             {
-                                DWORD dwReload;
-                                HANDLE hReload = CreateThread(nullptr, 0, ReloadPV, nullptr, 0, &dwReload);
-                                if (hReload) CloseHandle(hReload);
+                                SetPos(isDefaultRes());
+                                PageViewer->DestroyAll(true);
+                                PageViewer->Destroy(true);
+                                Event* iev = new Event{ PageViewer, Button::Click };
+                                ShowPageViewer(PageViewer, iev);
                             }
                         }
                         break;
@@ -177,11 +179,14 @@ namespace DirectDesktop
                                 }
                             }
                             g_homePageID = page;
+                            g_animatePVEnter = false;
                             if (g_maxPageID <= 6)
                             {
-                                DWORD dwReload;
-                                HANDLE hReload = CreateThread(nullptr, 0, ReloadPV, nullptr, 0, &dwReload);
-                                if (hReload) CloseHandle(hReload);
+                                SetPos(isDefaultRes());
+                                PageViewer->DestroyAll(true);
+                                PageViewer->Destroy(true);
+                                Event* iev = new Event{ PageViewer, Button::Click };
+                                ShowPageViewer(PageViewer, iev);
                             }
                         }
                         break;
@@ -306,19 +311,6 @@ namespace DirectDesktop
                 if (spvBitmapShortcut != nullptr && pm[yV->num]->GetShortcutState() == true) PV_IconShortcutPreview->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
                 break;
             }
-            case WM_USER + 2:
-            {
-                break;
-            }
-            case WM_USER + 3:
-            {
-                SetPos(isDefaultRes());
-                PageViewer->DestroyAll(true);
-                PageViewer->Destroy(true);
-                Event* iev = new Event{ SimpleViewPages, Button::Click };
-                ShowPageViewer(SimpleViewPages, iev);
-                break;
-            }
         }
         return CallWindowProc(WndProcEdit, hWnd, uMsg, wParam, lParam);
     }
@@ -355,6 +347,7 @@ namespace DirectDesktop
         PV_PageRow_Dim2->SetWidth(cx);
         PV_PageRow_Dim2->SetHeight(cy);
         peParent->Add(&PV_PageRow_Dim2, 1);
+        peParent->SetWidth(peParent->GetWidth() + cx);
     }
 
     DWORD WINAPI CreateDesktopPreview(LPVOID lpParam)
@@ -410,12 +403,12 @@ namespace DirectDesktop
         return 0;
     }
 
-    void fullscreenAnimation3(int width, int height, float animstartscale, bool animate)
+    void fullscreenAnimation3(int width, int height)
     {
         parserEdit->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninnerE);
         centeredE->Add((Element**)&fullscreeninnerE, 1);
         SetPopupSize(centeredE, width, height);
-        SetPopupSize(fullscreeninnerE, width, height);
+        //SetPopupSize(fullscreeninnerE, width, height);
         fullscreenpopupbaseE->SetVisible(true);
         fullscreeninnerE->SetVisible(true);
     }
@@ -756,14 +749,6 @@ namespace DirectDesktop
         }
     }
 
-    DWORD WINAPI ReloadPV(LPVOID lpParam)
-    {
-        g_animatePVEnter = false;
-        Sleep(100);
-        SendMessageW(editwnd->GetHWND(), WM_USER + 3, NULL, NULL);
-        return 0;
-    }
-
     void EnterSelectedPage(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
@@ -847,57 +832,59 @@ namespace DirectDesktop
                 pagesrow1.Assign(regElem<Element*>(L"pagesrow1", PageViewer));
                 CSafeElementPtr<Element> pagesrow2;
                 pagesrow2.Assign(regElem<Element*>(L"pagesrow2", PageViewer));
-                pagesrow1->SetHeight(round(dimensions.bottom * 0.25));
+                pagesrow1->SetHeight(ceil(dimensions.bottom * 0.25));
                 int row1 = g_maxPageID;
                 int row2 = 0;
                 CSafeElementPtr<Element> bg_left; bg_left.Assign(regElem<Element*>(L"bg_left", PageViewer));
                 CSafeElementPtr<Element> bg_top; bg_top.Assign(regElem<Element*>(L"bg_top", PageViewer));
                 CSafeElementPtr<Element> bg_right; bg_right.Assign(regElem<Element*>(L"bg_right", PageViewer));
                 CSafeElementPtr<Element> bg_bottom; bg_bottom.Assign(regElem<Element*>(L"bg_bottom", PageViewer));
-                int horizEdgeFill = g_maxPageID >= 2 ? g_maxPageID >= 5 ? round(dimensions.right * 0.1) : round(dimensions.right * 0.2375) : round(dimensions.right * 0.375);
-                int bottomYPos = floor(dimensions.bottom * 0.375) + round(dimensions.bottom * 0.25);
-                SetTransElementPosition(bg_top, 0, 0, dimensions.right, floor(dimensions.bottom * 0.375));
-                SetTransElementPosition(bg_bottom, 0, bottomYPos, dimensions.right, dimensions.bottom - bottomYPos);
+                CSafeElementPtr<Element> rowpadding; rowpadding.Assign(regElem<Element*>(L"rowpadding", PageViewer));
+                int topYHeight = floor(dimensions.bottom * 0.375);
+                int bottomYPos = topYHeight + ceil(dimensions.bottom * 0.25);
                 if (g_maxPageID >= 3)
                 {
-                    CSafeElementPtr<Element> rowpadding; rowpadding.Assign(regElem<Element*>(L"rowpadding", PageViewer));
-                    rowpadding->SetHeight(round(dimensions.right * 0.025));
-                    rowpadding->SetWidth(g_maxPageID >= 5 ? round(dimensions.right * 0.8) : round(dimensions.right * 0.525));
-                    pagesrow2->SetHeight(round(dimensions.bottom * 0.25));
-                    row1 = ceil(g_maxPageID / 2.0);
-                    row2 = floor(g_maxPageID / 2.0);
-                    bottomYPos = floor(dimensions.bottom * 0.25 - dimensions.right * 0.0125) + round(dimensions.right * 0.025) + round(dimensions.bottom * 0.25) * 2;
-                    SetTransElementPosition(bg_top, 0, 0, dimensions.right, floor(dimensions.bottom * 0.25 - dimensions.right * 0.0125));
-                    SetTransElementPosition(bg_bottom, 0, round(dimensions.bottom * 0.75 + dimensions.right * 0.0125), dimensions.right, round(dimensions.bottom * 0.25 - dimensions.right * 0.0125));
+                    rowpadding->SetHeight(floor(dimensions.right * 0.025));
+                    pagesrow2->SetHeight(ceil(dimensions.bottom * 0.25));
+                    row1 = ceil(g_maxPageID / 2.0f);
+                    row2 = floor(g_maxPageID / 2.0f);
+                    topYHeight = floor((dimensions.bottom - 2 * ceil(dimensions.bottom * 0.25) - rowpadding->GetHeight()) / 2.0f);
+                    bottomYPos = topYHeight + 2 * ceil(dimensions.bottom * 0.25) + rowpadding->GetHeight();
                 }
-                SetTransElementPosition(bg_left, 0, bg_top->GetHeight(), horizEdgeFill, dimensions.bottom - bg_top->GetHeight() - bg_bottom->GetHeight() + (g_maxPageID >= 3 ? 1 : 0));
-                SetTransElementPosition(bg_right, dimensions.right - horizEdgeFill, bg_top->GetHeight(), horizEdgeFill, dimensions.bottom - bg_top->GetHeight() - bg_bottom->GetHeight() + (g_maxPageID >= 3 ? 1 : 0));
                 for (int i = 1; i <= g_maxPageID; i++)
                 {
                     LVItem* PV_Page{};
                     parserEdit->CreateElement(L"PV_Page", nullptr, nullptr, nullptr, (Element**)&PV_Page);
-                    PV_Page->SetWidth(round(dimensions.right * 0.25));
-                    PV_Page->SetHeight(round(dimensions.bottom * 0.25));
+                    PV_Page->SetWidth(ceil(dimensions.right * 0.25));
+                    PV_Page->SetHeight(ceil(dimensions.bottom * 0.25));
                     PV_Page->SetPage(i);
                     Element* PV_PageRow_Dim{};
                     parserEdit->CreateElement(L"PV_PageRow_Dim", nullptr, nullptr, nullptr, &PV_PageRow_Dim);
-                    PV_PageRow_Dim->SetWidth(round(dimensions.right * 0.025));
-                    PV_PageRow_Dim->SetHeight(round(dimensions.bottom * 0.25));
+                    PV_PageRow_Dim->SetWidth(ceil(dimensions.right * 0.025));
+                    PV_PageRow_Dim->SetHeight(ceil(dimensions.bottom * 0.25));
                     if (i <= row1)
                     {
                         pagesrow1->Add((Element**)&PV_Page, 1);
+                        pagesrow1->SetWidth(pagesrow1->GetWidth() + PV_Page->GetWidth());
                         if (i < row1)
+                        {
                             pagesrow1->Add(&PV_PageRow_Dim, 1);
+                            pagesrow1->SetWidth(pagesrow1->GetWidth() + PV_PageRow_Dim->GetWidth());
+                        }
                     }
                     else
                     {
                         if (g_maxPageID & 1 && i == row1 + 1)
-                            PV_CreateDimRect(pagesrow2, round(dimensions.right * 0.1375), round(dimensions.bottom * 0.25));
+                            PV_CreateDimRect(pagesrow2, round(dimensions.right * 0.1375 + 0.25), ceil(dimensions.bottom * 0.25));
                         pagesrow2->Add((Element**)&PV_Page, 1);
+                        pagesrow2->SetWidth(pagesrow2->GetWidth() + PV_Page->GetWidth());
                         if (i < g_maxPageID)
+                        {
                             pagesrow2->Add(&PV_PageRow_Dim, 1);
+                            pagesrow2->SetWidth(pagesrow2->GetWidth() + PV_PageRow_Dim->GetWidth());
+                        }
                         if (g_maxPageID & 1 && i == g_maxPageID)
-                            PV_CreateDimRect(pagesrow2, round(dimensions.right * 0.1375), round(dimensions.bottom * 0.25));
+                            PV_CreateDimRect(pagesrow2, ceil(dimensions.right * 0.1375), ceil(dimensions.bottom * 0.25));
                     }
                     if (i == g_currentPageID) assignFn(PV_Page, ClosePageViewer);
                     else if (i < g_currentPageID) assignFn(PV_Page, GoToPrevPage);
@@ -946,6 +933,12 @@ namespace DirectDesktop
                     }
                     if (isDefaultRes()) assignExtendedFn(PV_Page, ShowPageOptionsOnHover);
                 }
+                if (g_maxPageID >= 3) rowpadding->SetWidth(pagesrow1->GetWidth());
+                SetTransElementPosition(bg_top, 0, 0, dimensions.right, topYHeight);
+                SetTransElementPosition(bg_bottom, 0, bottomYPos, dimensions.right, dimensions.bottom - bottomYPos);
+                SetTransElementPosition(bg_left, 0, bg_top->GetHeight(), floor((dimensions.right - pagesrow1->GetWidth()) / 2.0f), dimensions.bottom - bg_top->GetHeight() - bg_bottom->GetHeight());
+                SetTransElementPosition(bg_right, bg_left->GetWidth() + pagesrow1->GetWidth(), bg_top->GetHeight(),
+                    dimensions.right - bg_left->GetWidth() + pagesrow1->GetWidth(), dimensions.bottom - bg_top->GetHeight() - bg_bottom->GetHeight());
             }
             else
             {
@@ -1143,9 +1136,9 @@ namespace DirectDesktop
             }
         }
 
-        SetPopupSize(centeredE, dimensions.right * 0.7, dimensions.bottom * 0.7);
-        SetPopupSize(fullscreeninnerE, dimensions.right * 0.7, dimensions.bottom * 0.7);
-        SetPopupSize(simpleviewoverlay, dimensions.right * 0.7, dimensions.bottom * 0.7);
+        SetPopupSize(centeredE, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
+        SetPopupSize(fullscreeninnerE, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
+        SetPopupSize(simpleviewoverlay, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
         SimpleViewTop->SetHeight(floor(dimensions.bottom * 0.15));
         SimpleViewTopInner->SetHeight(floor(dimensions.bottom * 0.15));
         SimpleViewBottom->SetHeight(dimensions.bottom - SimpleViewTop->GetHeight() - fullscreeninnerE->GetHeight());
@@ -1153,46 +1146,53 @@ namespace DirectDesktop
         if (dimensions.bottom * 0.15 < 80 * g_flScaleFactor) SimpleViewTop->SetHeight(80 * g_flScaleFactor);
         if (dimensions.bottom * 0.15 < 106 * g_flScaleFactor) SimpleViewBottom->SetHeight(106 * g_flScaleFactor);
 
+        unsigned short leftX = (localeType == 1) ? round(dimensions.right * 0.15) + fullscreeninnerE->GetWidth() : 0;
+        unsigned short leftWidth = (localeType == 1) ? dimensions.right - leftX : floor(dimensions.right * 0.15);
+        unsigned short leftXSmall = (localeType == 1) ? leftX : prevpage->GetX() + prevpage->GetWidth();
+        unsigned short leftWidthSmall = (localeType == 1) ? prevpage->GetX() - leftXSmall : leftWidth - (prevpage->GetX() + prevpage->GetWidth());
+        unsigned short rightX = (localeType == 1) ? 0 : floor(dimensions.right * 0.15) + fullscreeninnerE->GetWidth();
+        unsigned short rightWidth = (localeType == 1) ? round(dimensions.right * 0.15) : ceil(dimensions.right * 0.15);
+        unsigned short rightXSmall = (localeType == 1) ? nextpage->GetX() + nextpage->GetWidth() : rightX;
+        unsigned short rightWidthSmall = (localeType == 1) ? rightWidth - (nextpage->GetX() + nextpage->GetWidth()) : nextpage->GetX() - rightXSmall;
         if (prevpage->GetWidth() > 1)
         {
-            SetTransElementPosition(bg_left_top, ceil((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
-                floor(dimensions.right * 0.15), prevpage->GetY() - SimpleViewTopInner->GetHeight());
+            SetTransElementPosition(bg_left_top, leftX, SimpleViewTopInner->GetHeight(),
+                leftWidth, prevpage->GetY() - SimpleViewTopInner->GetHeight());
 
-            SetTransElementPosition(bg_left_middle, ceil((localeType == 1) ? dimensions.right * 0.85 : dimensions.right * 0.1), bg_left_top->GetY() + bg_left_top->GetHeight(),
-                floor(dimensions.right * 0.05), prevpage->GetHeight());
+            SetTransElementPosition(bg_left_middle, leftXSmall, bg_left_top->GetY() + bg_left_top->GetHeight(),
+                leftWidthSmall, prevpage->GetHeight());
 
-            SetTransElementPosition(bg_left_bottom, ceil((localeType == 1) ? dimensions.right * 0.85 : 0), bg_left_middle->GetY() + bg_left_middle->GetHeight(),
-                floor(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_left_middle->GetY() - bg_left_middle->GetHeight());
+            SetTransElementPosition(bg_left_bottom, leftX, bg_left_middle->GetY() + bg_left_middle->GetHeight(),
+                leftWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_left_middle->GetY() - bg_left_middle->GetHeight());
         }
         else
         {
             SetTransElementPosition(bg_left_top, 0, 0, 0, 0);
-            SetTransElementPosition(bg_left_middle, ceil((localeType == 1) ? dimensions.right * 0.85 : 0), SimpleViewTopInner->GetHeight(),
-                floor(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
+            SetTransElementPosition(bg_left_middle, leftX, SimpleViewTopInner->GetHeight(),
+                leftWidth, dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_left_bottom, 0, 0, 0, 0);
         }
         if (nextpage->GetWidth() > 1)
         {
-            SetTransElementPosition(bg_right_top, floor((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
-                ceil(dimensions.right * 0.15), nextpage->GetY() - SimpleViewTopInner->GetHeight());
+            SetTransElementPosition(bg_right_top, rightX, SimpleViewTopInner->GetHeight(),
+                rightWidth, nextpage->GetY() - SimpleViewTopInner->GetHeight());
 
-            SetTransElementPosition(bg_right_middle, floor((localeType == 1) ? dimensions.right * 0.1 : dimensions.right * 0.85), bg_right_top->GetY() + bg_right_top->GetHeight(),
-                ceil(dimensions.right * 0.05), nextpage->GetHeight());
+            SetTransElementPosition(bg_right_middle, rightXSmall, bg_right_top->GetY() + bg_right_top->GetHeight(),
+                rightWidthSmall, nextpage->GetHeight());
 
-            SetTransElementPosition(bg_right_bottom, floor((localeType == 1) ? 0 : dimensions.right * 0.85), bg_right_middle->GetY() + bg_right_middle->GetHeight(),
-                ceil(dimensions.right * 0.15), dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_right_middle->GetY() - bg_right_middle->GetHeight());
+            SetTransElementPosition(bg_right_bottom, rightX, bg_right_middle->GetY() + bg_right_middle->GetHeight(),
+                rightWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_right_middle->GetY() - bg_right_middle->GetHeight());
         }
         else
         {
             SetTransElementPosition(bg_right_top, 0, 0, 0, 0);
-            SetTransElementPosition(bg_right_middle, floor((localeType == 1) ? 0 : dimensions.right * 0.85), SimpleViewTopInner->GetHeight(),
-                ceil(dimensions.right * 0.15), dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
+            SetTransElementPosition(bg_right_middle, rightX, SimpleViewTopInner->GetHeight(),
+                rightWidth, dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_right_bottom, 0, 0, 0, 0);
         }
         g_invokedpagechange = false;
         CSafeElementPtr<TouchScrollViewer> svBottomOptions;
         svBottomOptions.Assign(regElem<TouchScrollViewer*>(L"svBottomOptions", SimpleViewBottom));
-        if (dimensions.right < 446 * g_flScaleFactor) svBottomOptions->SetXScrollable(true);
     }
     void RefreshSimpleView(DWORD animFlags)
     {
@@ -1225,7 +1225,7 @@ namespace DirectDesktop
         if (DWMActive)
         {
             dwExStyle |= WS_EX_NOINHERITLAYOUT | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x38;
+            dwCreateFlags = 0x30;
             dwHostFlags = 0x43;
         }
         NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Edit Mode", nullptr, nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
@@ -1333,14 +1333,12 @@ namespace DirectDesktop
         }
         //DwmExtendFrameIntoClientArea(editbgwnd->GetHWND(), &m);
 
-        fullscreenAnimation3(dimensions.right * 0.7, dimensions.bottom * 0.7, 1.4285f, animate);
+        fullscreenAnimation3(dimensions.right * 0.7, dimensions.bottom * 0.7);
 
         parserEdit->CreateElement(L"simpleviewoverlay", nullptr, nullptr, nullptr, (Element**)&simpleviewoverlay);
         centeredE->Add((Element**)&simpleviewoverlay, 1);
-        SetPopupSize(simpleviewoverlay, round(dimensions.right * 0.7), round(dimensions.bottom * 0.7));
         parserEdit->CreateElement(L"deskpreviewmask", nullptr, nullptr, nullptr, (Element**)&deskpreviewmask);
         //centeredEBG->Add((Element**)&deskpreviewmask, 1);
-        SetPopupSize(deskpreviewmask, round(dimensions.right * 0.7), round(dimensions.bottom * 0.7));
         deskpreviewmask->SetX(dimensions.right * 0.15);
         deskpreviewmask->SetY(dimensions.bottom * 0.15);
 
