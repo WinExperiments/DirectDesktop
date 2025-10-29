@@ -7,7 +7,7 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-    extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
+    extern void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen);
     extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
     extern bool g_hiddenIcons;
     extern bool g_touchmode;

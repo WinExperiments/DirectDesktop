@@ -20,16 +20,13 @@ namespace DirectDesktop
     Element* pSubview;
     unsigned long key2 = 0;
 
-    Button* fullscreenpopupbase;
+    TouchButton* fullscreenpopupbase;
     Element* fullscreenpopupbg;
-    DDScalableButton* fullscreeninner;
-    Button* centered;
+    DDScalableTouchButton* fullscreeninner;
+    TouchButton* centered;
     Element* popupcontainer;
-    DDScalableButton* PageTab1, *PageTab2, *PageTab3;
-    DDScalableButton* SubUIContainer;
     void* g_tempElem;
 
-    int g_settingsPageID = 1;
     bool g_checkifelemexists = false;
     bool g_issubviewopen = false;
     bool g_issettingsopen = false;
@@ -213,9 +210,9 @@ namespace DirectDesktop
             g_pendingaction = true;
             Element* peTemp = reinterpret_cast<Element*>(wParam);
             peTemp->SetEnabled(!peTemp->GetEnabled());
-            if (lParam == 1 && ((DDScalableButton*)peTemp)->GetAssociatedFn() != nullptr)
+            if (lParam == 1 && ((DDScalableTouchButton*)peTemp)->GetAssociatedFn() != nullptr)
             {
-                ((DDScalableButton*)peTemp)->ExecAssociatedFn(((DDScalableButton*)peTemp)->GetAssociatedFn());
+                ((DDScalableTouchButton*)peTemp)->ExecAssociatedFn(((DDScalableTouchButton*)peTemp)->GetAssociatedFn());
                 g_pendingaction = false;
             }
             break;
@@ -327,7 +324,7 @@ namespace DirectDesktop
             }
         }
         SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, NULL, (LPARAM)yV);
-        SendMessageW(subviewwnd->GetHWND(), WM_USER + 4, NULL, (LPARAM)yV);
+        if (!g_touchmode) SendMessageW(subviewwnd->GetHWND(), WM_USER + 4, NULL, (LPARAM)yV);
         SendMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)&vdi, (LPARAM)yV);
         UnInitThread();
         return 0;
@@ -380,16 +377,50 @@ namespace DirectDesktop
         return hr;
     }
 
-    void fullscreenAnimation(int width, int height, float animstartscale, float desktopanimstartscale)
+    void fullscreenAnimation(int width, int height, float animstartscale, float desktopanimstartscale, POINT peIconOrigin, Element* peAnimateFrom)
     {
         CValuePtr v;
         RECT dimensions;
         GetClientRect(subviewwnd->GetHWND(), &dimensions);
+        RECT dimensionsAnim;
+        GetClientRect(wnd->GetHWND(), &dimensionsAnim);
         RECT padding = *(popupcontainer->GetPadding(&v));
-        int maxwidth = dimensions.right - dimensions.left - padding.left - padding.right;
-        int maxheight = dimensions.bottom - dimensions.top - padding.top - padding.bottom;
+        int maxwidth = dimensions.right - padding.left - padding.right;
+        int maxheight = dimensions.bottom - padding.top - padding.bottom;
         if (width > maxwidth) width = maxwidth;
         if (height > maxheight) height = maxheight;
+        float flOriginX = 0.5f, flOriginY = 0.5f;
+        float flFade = 0.0f;
+        float flScaleStart = 0.15f;
+        float flScaleDuration = 0.4f;
+        float flrX0 = 0.0f;
+        float flrY0 = 0.0f;
+        float flrX1 = 0.0f;
+        float flrY1 = 1.0f;
+        float animstartscaleX = animstartscale;
+        float animstartscaleY = animstartscale;
+        TransitionStoryboardInfo tsbInfo = {};
+        if (peIconOrigin.x > -1 && peIconOrigin.y > -1)
+        {
+            flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / width;
+            flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / height;
+            float flOriginX2 = 0.5f + (flOriginX - 0.5f) * desktopanimstartscale;
+            float flOriginY2 = 0.5f + (flOriginY - 0.5f) * desktopanimstartscale;
+            animstartscaleX = peAnimateFrom->GetWidth() / static_cast<float>(width);
+            animstartscaleY = peAnimateFrom->GetHeight() / static_cast<float>(height);
+            flFade = 0.5f;
+            flScaleStart = 0.0f;
+            flScaleDuration = 0.5f;
+            flrX0 = 0.8f;
+            flrY0 = 0.0f;
+            flrX1 = 0.0f;
+            flrY1 = 1.0f;
+            GTRANS_DESC transDesc_peAnimate[2];
+            TriggerFade(peAnimateFrom, transDesc_peAnimate, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+            TriggerScaleIn(peAnimateFrom, transDesc_peAnimate, 1, 0.0f, 0.5f, flrX0, flrY0, flrX1, flrY1, 1.0f, 1.0f,
+                flOriginX2, flOriginY2, 1 / animstartscaleX / desktopanimstartscale, 1 / animstartscaleY / desktopanimstartscale, flOriginX2, flOriginY2, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc_peAnimate), transDesc_peAnimate, peAnimateFrom->GetDisplayNode(), &tsbInfo);
+        }
         parserSubview->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninner);
         centered->Add((Element**)&fullscreeninner, 1);
         if (DWMActive)
@@ -402,57 +433,121 @@ namespace DirectDesktop
         centered->SetBackgroundColor(0);
         fullscreenpopupbase->SetVisible(true);
         GTRANS_DESC transDesc[2];
-        TriggerFade(fullscreeninner, transDesc, 0, 0.15f, 0.25f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, true);
-        TriggerScaleIn(fullscreeninner, transDesc, 1, 0.15f, 0.4f, 0.0f, 0.0f, 0.0f, 1.0f, animstartscale, animstartscale, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-        TransitionStoryboardInfo tsbInfo = {};
+        TriggerFade(fullscreeninner, transDesc, 0, 0.15f, 0.25f, 0.0f, 0.0f, 1.0f, 1.0f, flFade, 1.0f, false, false, true);
+        TriggerScaleIn(fullscreeninner, transDesc, 1, flScaleStart, flScaleDuration, flrX0, flrY0, flrX1, flrY1,
+            animstartscaleX, animstartscaleY, flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
         GTRANS_DESC transDesc2[1];
         TriggerScaleOut(UIContainer, transDesc2, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, desktopanimstartscale, desktopanimstartscale, 0.5f, 0.5f, false, false);
-        TransitionStoryboardInfo tsbInfo2 = {};
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
-        if (!g_editmode) BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbg);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
         SetTimer(wnd->GetHWND(), 7, 100, nullptr);
         g_issubviewopen = true;
     }
 
-    void fullscreenAnimation2()
+    void fullscreenAnimation2(Element* peAnimateTo)
     {
+        if (g_issubviewopen)
+        {
+            RECT dimensionsAnim;
+            GetClientRect(wnd->GetHWND(), &dimensionsAnim);
+            float flOriginX = 0.5f, flOriginY = 0.5f;
+            float flFade = 0.0f;
+            float flFadeDuration = 0.0f;
+            float flScaleDuration = 0.175f;
+            float flrX0 = 1.0f;
+            float flrY0 = 1.0f;
+            float flrX1 = 0.0f;
+            float flrY1 = 1.0f;
+            float animstartscaleX = 0.95f;
+            float animstartscaleY = 0.95f;
+            GTRANS_DESC transDesc[2];
+            TransitionStoryboardInfo tsbInfo = {};
+            if (peAnimateTo && fullscreeninner)
+            {
+                POINT peIconOrigin{};
+                peIconOrigin.x = peAnimateTo->GetX() + peAnimateTo->GetWidth() / 2;
+                peIconOrigin.y = peAnimateTo->GetY() + peAnimateTo->GetHeight() / 2;
+                Element* peParent = peAnimateTo->GetParent();
+                while (peParent)
+                {
+                    peIconOrigin.x += peParent->GetX();
+                    peIconOrigin.y += peParent->GetY();
+                    peParent = peParent->GetParent();
+                }
+                int width = fullscreeninner->GetWidth();
+                int height = fullscreeninner->GetHeight();
+                flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / width;
+                flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / height;
+                animstartscaleX = peAnimateTo->GetWidth() / static_cast<float>(width);
+                animstartscaleY = peAnimateTo->GetHeight() / static_cast<float>(height);
+                flFade = 0.5f;
+                flScaleDuration = 0.4f;
+                flrX0 = 0.8f;
+                flrY0 = 0.0f;
+                flrX1 = 0.0f;
+                flrY1 = 1.0f;
+                TriggerFade(peAnimateTo, transDesc, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
+                TriggerScaleIn(peAnimateTo, transDesc, 1, 0.0f, 0.4f, flrX0, flrY0, flrX1, flrY1, 1 / animstartscaleX, 1 / animstartscaleY,
+                    flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peAnimateTo->GetDisplayNode(), &tsbInfo);
+                DUI_SetGadgetZOrder(peAnimateTo, -1);
+            }
+            if (fullscreeninner)
+            {
+                TriggerScaleOut(fullscreeninner, transDesc, 0, 0.0f, flScaleDuration, flrX0, flrY0, flrX1, flrY1, animstartscaleX, animstartscaleY, flOriginX, flOriginY, false, false);
+                TriggerFade(fullscreeninner, transDesc, 1, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flFade, true, false, true);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
+            }
+            GTRANS_DESC transDesc2[1];
+            TriggerScaleOut(UIContainer, transDesc2, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
+            DUI_SetGadgetZOrder(UIContainer, -1);
+        }
         DWORD animThread;
         HANDLE animThreadHandle = CreateThread(nullptr, 0, animate6, nullptr, 0, &animThread);
         if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 
-    void ShowPopupCore()
+    void ShowPopupCore(Element* peAnimateFrom)
     {
         if (g_issubviewopen) HidePopupCore(true, false);
-        fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.88);
+        POINT ptIcon{};
+        if (!peAnimateFrom) ptIcon.x = -1, ptIcon.y = -1;
+        else
+        {
+            ptIcon.x = peAnimateFrom->GetX() + peAnimateFrom->GetWidth() / 2;
+            ptIcon.y = peAnimateFrom->GetY() + peAnimateFrom->GetHeight() / 2;
+            Element* peParent = peAnimateFrom->GetParent();
+            while (peParent)
+            {
+                ptIcon.x += peParent->GetX();
+                ptIcon.y += peParent->GetY();
+                peParent = peParent->GetParent();
+            }
+        }
+        fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.92, ptIcon, peAnimateFrom);
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
+        BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbg);
+        SendMessageW(subviewwnd->GetHWND(), WM_CHANGEUISTATE, 3, NULL);
     }
 
     void HidePopupCore(bool WinDInvoked, bool fNoRefresh)
     {
         if (!WinDInvoked) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+        Element* peAnimateTo{};
         for (LVItem* lvi : pm)
         {
+            if (lvi->GetOpenDirState() == LVIODS_FULLSCREEN)
+            {
+                if (g_touchmode) peAnimateTo = lvi;
+                else peAnimateTo = lvi->GetIcon();
+            }
             if (!(g_treatdirasgroup && lvi->GetGroupSize() != LVIGS_NORMAL))
             {
                 lvi->SetMemorySelected(false);
                 lvi->SetOpenDirState(LVIODS_NONE);
             }
-        }
-        if (g_issubviewopen && fNoRefresh)
-        {
-            CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
-            GTRANS_DESC transDesc[2];
-            TriggerScaleOut(fullscreeninner, transDesc, 0, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.95f, 0.95f, 0.5f, 0.5f, false, false);
-            TriggerFade(fullscreeninner, transDesc, 1, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
-            GTRANS_DESC transDesc2[1];
-            TriggerScaleOut(UIContainer, transDesc2, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-            TransitionStoryboardInfo tsbInfo2 = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo2);
         }
         if (g_issettingsopen && g_atleastonesetting)
         {
@@ -460,40 +555,50 @@ namespace DirectDesktop
             ddnb.Assign(new DDNotificationBanner);
             ddnb->CreateBanner(DDNT_SUCCESS, LoadStrFromRes(4042).c_str(), nullptr, 3);
         }
-        DUI_SetGadgetZOrder(UIContainer, -1);
-        g_issubviewopen = false;
-        g_issettingsopen = false;
-        g_atleastonesetting = false;
         SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        if (fNoRefresh) fullscreenAnimation2();
+        if (fNoRefresh) fullscreenAnimation2(peAnimateTo);
         else
         {
             g_checkifelemexists = false;
             centered->DestroyAll(true);
         }
+        g_issubviewopen = false;
+        g_issettingsopen = false;
+        g_atleastonesetting = false;
     }
 
     void SelectSubItem(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == LVItem::Click)
         {
-            SHELLEXECUTEINFOW execInfo = {};
-            execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-            execInfo.lpVerb = L"open";
-            execInfo.nShow = SW_SHOWNORMAL;
             wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
-            execInfo.lpFile = temp.c_str();
-            ShellExecuteExW(&execInfo);
+            LaunchItem(temp.c_str());
         }
     }
 
     void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
-        if (g_touchmode && pProp == Button::PressedProp())
+        if (g_touchmode)
         {
-            CSafeElementPtr<Element> innerElem;
-            innerElem.Assign(regElem<Element*>(L"innerElem", elem));
-            innerElem->SetEnabled(!((LVItem*)elem)->GetPressed());
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            float coef{};
+            if (pProp == TouchButton::PressedProp())
+            {
+                CSafeElementPtr<Element> innerElem;
+                innerElem.Assign(regElem<Element*>(L"innerElem", elem));
+                innerElem->SetEnabled(!((LVItem*)elem)->GetPressed());
+                coef = ((LVItem*)elem)->GetPressed() ? 0.9325f : 1.0f;
+                goto TLVITEMANIMATION;
+            }
+            if (pProp == TouchButton::MouseWithinProp())
+            {
+                coef = ((LVItem*)elem)->GetMouseWithin() ? 1.0625f : 1.0f;
+            TLVITEMANIMATION:
+                TriggerScaleOut(elem, transDesc, 0, 0.0f, 0.25f, 0.25f, 0.1f, 0.25f, 1.0f, coef, coef, 0.5f, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, elem->GetDisplayNode(), &tsbInfo);
+                DUI_SetGadgetZOrder(elem, -1);
+            }
         }
     }
 
@@ -501,14 +606,16 @@ namespace DirectDesktop
     {
         int count2{};
         unsigned short lviCount = lvi->GetItemCount();
+        Element* peAnimate = lvi->GetIcon();
+        if (g_touchmode) peAnimate = lvi;
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
-        ShowPopupCore();
+        ShowPopupCore(peAnimate);
         SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         lvi->SetMemorySelected(true);
         lvi->SetOpenDirState(LVIODS_FULLSCREEN);
         Element* groupdirectory{};
         parserSubview->CreateElement(L"groupdirectory", nullptr, nullptr, nullptr, (Element**)&groupdirectory);
-        CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
+        CSafeElementPtr<DDScalableTouchButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableTouchButton*>(L"fullscreeninner", centered));
         fullscreeninner->Add((Element**)&groupdirectory, 1);
         CSafeElementPtr<DDScalableElement> iconElement;
         iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", lvi));
@@ -516,8 +623,8 @@ namespace DirectDesktop
         fullscreeninner->SetAssociatedColor(iconElement->GetAssociatedColor());
         CSafeElementPtr<TouchScrollViewer> groupdirlist;
         groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", groupdirectory));
-        CSafeElementPtr<DDScalableButton> lvi_SubUIContainer;
-        lvi_SubUIContainer.Assign(regElem<DDScalableButton*>(L"SubUIContainer", groupdirlist));
+        CSafeElementPtr<DDScalableElement> lvi_SubUIContainer;
+        lvi_SubUIContainer.Assign(regElem<DDScalableElement*>(L"SubUIContainer", groupdirlist));
         if (lviCount > 0)
         {
             vector<IElementListener*> v_pels;
@@ -651,7 +758,7 @@ namespace DirectDesktop
 
     void DisableColorPicker(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == DDToggleButton::Click)
         {
             CSafeElementPtr<DDColorPicker> DDCP_Icons;
             DDCP_Icons.Assign(regElem<DDColorPicker*>(L"DDCP_Icons", (Element*)g_tempElem));
@@ -661,7 +768,7 @@ namespace DirectDesktop
 
     void DisableDarkToggle(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == DDToggleButton::Click)
         {
             CSafeElementPtr<DDToggleButton> EnableDarkIcons;
             EnableDarkIcons.Assign(regElem<DDToggleButton*>(L"EnableDarkIcons", (Element*)g_tempElem));
@@ -677,7 +784,7 @@ namespace DirectDesktop
 
     void SetViewHelper(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             CSafeElementPtr<DDSlider> IconSize;
             IconSize.Assign(regElem<DDSlider*>(L"IconSize", elem->GetRoot()));
@@ -696,12 +803,12 @@ namespace DirectDesktop
 
     void OpenDeskCpl(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click) ShellExecuteW(nullptr, L"open", L"control.exe", L"desk.cpl,Web,0", nullptr, SW_SHOW);
+        if (iev->uidType == TouchButton::Click) ShellExecuteW(nullptr, L"open", L"control.exe", L"desk.cpl,Web,0", nullptr, SW_SHOW);
     }
 
     void OpenLog(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             wchar_t* desktoplog = new wchar_t[260];
             wchar_t* cBuffer = new wchar_t[260];
@@ -715,7 +822,7 @@ namespace DirectDesktop
 
     void SetDefaultRes(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             RECT dimensions;
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -737,7 +844,7 @@ namespace DirectDesktop
 
     void ResetDesktopSize(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             WCHAR DesktopLayoutWithSize[24];
             if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
@@ -761,249 +868,215 @@ namespace DirectDesktop
         }
     }
 
-    void ShowPage1(Element* elem, Event* iev)
+    void ShowPage1(Element* pePage)
     {
-        if (iev->uidType == Button::Click)
+        if (pePage)
         {
-            PageTab1->SetSelected(true);
-            PageTab2->SetSelected(false);
-            PageTab3->SetSelected(false);
-
-            Element* SettingsPage1{};
-            TriggerTabbedPageTransition(1, SettingsPage1, L"SettingsPage1", SubUIContainer);
-
-            if (SettingsPage1)
-            {
-                CSafeElementPtr<DDToggleButton> ItemCheckboxes;
-                ItemCheckboxes.Assign(regElem<DDToggleButton*>(L"ItemCheckboxes", SettingsPage1));
-                CSafeElementPtr<DDToggleButton> ShowHiddenFiles;
-                ShowHiddenFiles.Assign(regElem<DDToggleButton*>(L"ShowHiddenFiles", SettingsPage1));
-                CSafeElementPtr<DDToggleButton> FilenameExts;
-                FilenameExts.Assign(regElem<DDToggleButton*>(L"FilenameExts", SettingsPage1));
-                CSafeElementPtr<DDToggleButton> TreatDirAsGroup;
-                TreatDirAsGroup.Assign(regElem<DDToggleButton*>(L"TreatDirAsGroup", SettingsPage1));
-                CSafeElementPtr<DDToggleButton> TripleClickAndHide;
-                TripleClickAndHide.Assign(regElem<DDToggleButton*>(L"TripleClickAndHide", SettingsPage1));
-                CSafeElementPtr<DDToggleButton> LockIconPos;
-                LockIconPos.Assign(regElem<DDToggleButton*>(L"LockIconPos", SettingsPage1));
-                RegKeyValue rkvTemp{};
-                rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
-                rkvTemp._valueToFind = L"AutoCheckSelect";
-                ItemCheckboxes->SetCheckedState(g_showcheckboxes);
-                ItemCheckboxes->SetAssociatedBool(&g_showcheckboxes);
-                ItemCheckboxes->SetRegKeyValue(rkvTemp);
-                ItemCheckboxes->SetShellInteraction(true);
-                rkvTemp._valueToFind = L"Hidden";
-                if (GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind) == 1) ShowHiddenFiles->SetCheckedState(true);
-                else ShowHiddenFiles->SetCheckedState(false);
-                ShowHiddenFiles->SetAssociatedFn(InitLayout, false, false, true);
-                ShowHiddenFiles->SetRegKeyValue(rkvTemp);
-                ShowHiddenFiles->SetShellInteraction(true);
-                rkvTemp._valueToFind = L"HideFileExt";
-                FilenameExts->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
-                FilenameExts->SetAssociatedFn(InitLayout, false, false, true);
-                FilenameExts->SetRegKeyValue(rkvTemp);
-                FilenameExts->SetShellInteraction(true);
-                rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"TreatDirAsGroup";
-                TreatDirAsGroup->SetCheckedState(g_treatdirasgroup);
-                TreatDirAsGroup->SetAssociatedBool(&g_treatdirasgroup);
-                TreatDirAsGroup->SetAssociatedFn(InitLayout, false, false, true);
-                TreatDirAsGroup->SetRegKeyValue(rkvTemp);
-                TreatDirAsGroup->SetShellInteraction(true);
-                rkvTemp._valueToFind = L"TripleClickAndHide";
-                TripleClickAndHide->SetCheckedState(g_tripleclickandhide);
-                TripleClickAndHide->SetAssociatedBool(&g_tripleclickandhide);
-                TripleClickAndHide->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"LockIconPos";
-                LockIconPos->SetCheckedState(g_lockiconpos);
-                LockIconPos->SetAssociatedBool(&g_lockiconpos);
-                LockIconPos->SetRegKeyValue(rkvTemp);
-                assignFn(ItemCheckboxes, ToggleSetting);
-                assignFn(ShowHiddenFiles, ToggleSetting);
-                assignFn(FilenameExts, ToggleSetting);
-                assignFn(TreatDirAsGroup, ToggleSetting);
-                assignFn(TripleClickAndHide, ToggleSetting);
-                assignFn(LockIconPos, ToggleSetting);
-            }
+            CSafeElementPtr<DDToggleButton> ItemCheckboxes;
+            ItemCheckboxes.Assign(regElem<DDToggleButton*>(L"ItemCheckboxes", pePage));
+            CSafeElementPtr<DDToggleButton> ShowHiddenFiles;
+            ShowHiddenFiles.Assign(regElem<DDToggleButton*>(L"ShowHiddenFiles", pePage));
+            CSafeElementPtr<DDToggleButton> FilenameExts;
+            FilenameExts.Assign(regElem<DDToggleButton*>(L"FilenameExts", pePage));
+            CSafeElementPtr<DDToggleButton> TreatDirAsGroup;
+            TreatDirAsGroup.Assign(regElem<DDToggleButton*>(L"TreatDirAsGroup", pePage));
+            CSafeElementPtr<DDToggleButton> TripleClickAndHide;
+            TripleClickAndHide.Assign(regElem<DDToggleButton*>(L"TripleClickAndHide", pePage));
+            CSafeElementPtr<DDToggleButton> LockIconPos;
+            LockIconPos.Assign(regElem<DDToggleButton*>(L"LockIconPos", pePage));
+            RegKeyValue rkvTemp{};
+            rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
+            rkvTemp._valueToFind = L"AutoCheckSelect";
+            ItemCheckboxes->SetCheckedState(g_showcheckboxes);
+            ItemCheckboxes->SetAssociatedBool(&g_showcheckboxes);
+            ItemCheckboxes->SetRegKeyValue(rkvTemp);
+            ItemCheckboxes->SetShellInteraction(true);
+            rkvTemp._valueToFind = L"Hidden";
+            if (GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind) == 1) ShowHiddenFiles->SetCheckedState(true);
+            else ShowHiddenFiles->SetCheckedState(false);
+            ShowHiddenFiles->SetAssociatedFn(InitLayout, false, false, true);
+            ShowHiddenFiles->SetRegKeyValue(rkvTemp);
+            ShowHiddenFiles->SetShellInteraction(true);
+            rkvTemp._valueToFind = L"HideFileExt";
+            FilenameExts->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+            FilenameExts->SetAssociatedFn(InitLayout, false, false, true);
+            FilenameExts->SetRegKeyValue(rkvTemp);
+            FilenameExts->SetShellInteraction(true);
+            rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"TreatDirAsGroup";
+            TreatDirAsGroup->SetCheckedState(g_treatdirasgroup);
+            TreatDirAsGroup->SetAssociatedBool(&g_treatdirasgroup);
+            TreatDirAsGroup->SetAssociatedFn(InitLayout, false, false, true);
+            TreatDirAsGroup->SetRegKeyValue(rkvTemp);
+            TreatDirAsGroup->SetShellInteraction(true);
+            rkvTemp._valueToFind = L"TripleClickAndHide";
+            TripleClickAndHide->SetCheckedState(g_tripleclickandhide);
+            TripleClickAndHide->SetAssociatedBool(&g_tripleclickandhide);
+            TripleClickAndHide->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"LockIconPos";
+            LockIconPos->SetCheckedState(g_lockiconpos);
+            LockIconPos->SetAssociatedBool(&g_lockiconpos);
+            LockIconPos->SetRegKeyValue(rkvTemp);
+            assignFn(ItemCheckboxes, ToggleSetting);
+            assignFn(ShowHiddenFiles, ToggleSetting);
+            assignFn(FilenameExts, ToggleSetting);
+            assignFn(TreatDirAsGroup, ToggleSetting);
+            assignFn(TripleClickAndHide, ToggleSetting);
+            assignFn(LockIconPos, ToggleSetting);
         }
     }
 
-    void ShowPage2(Element* elem, Event* iev)
+    void ShowPage2(Element* pePage)
     {
-        if (iev->uidType == Button::Click)
+        if (pePage)
         {
-            PageTab1->SetSelected(false);
-            PageTab2->SetSelected(true);
-            PageTab3->SetSelected(false);
-
-            Element* SettingsPage2{};
-            TriggerTabbedPageTransition(2, SettingsPage2, L"SettingsPage2", SubUIContainer);
-
-            if (SettingsPage2)
-            {
-                CSafeElementPtr<DDToggleButton> EnableAccent;
-                EnableAccent.Assign(regElem<DDToggleButton*>(L"EnableAccent", SettingsPage2));
-                CSafeElementPtr<DDColorPicker> DDCP_Icons;
-                DDCP_Icons.Assign(regElem<DDColorPicker*>(L"DDCP_Icons", SettingsPage2));
-                CSafeElementPtr<DDToggleButton> EnableDarkIcons;
-                EnableDarkIcons.Assign(regElem<DDToggleButton*>(L"EnableDarkIcons", SettingsPage2));
-                CSafeElementPtr<DDCheckBox> AutoDarkIcons;
-                AutoDarkIcons.Assign(regElem<DDCheckBox*>(L"AutoDarkIcons", SettingsPage2));
-                CSafeElementPtr<DDSlider> IconSize;
-                IconSize.Assign(regElem<DDSlider*>(L"IconSize", SettingsPage2));
-                CSafeElementPtr<DDScalableButton> ApplyIconSize;
-                ApplyIconSize.Assign(regElem<DDScalableButton*>(L"ApplyIconSize", SettingsPage2));
-                CSafeElementPtr<DDToggleButton> IconThumbnails;
-                IconThumbnails.Assign(regElem<DDToggleButton*>(L"IconThumbnails", SettingsPage2));
-                CSafeElementPtr<DDScalableButton> DesktopIconSettings;
-                DesktopIconSettings.Assign(regElem<DDScalableButton*>(L"DesktopIconSettings", SettingsPage2));
-                RegKeyValue rkvTemp{};
-                rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Personalize", rkvTemp._valueToFind = L"AccentColorIcons";
-                EnableAccent->SetCheckedState(g_isColorized);
-                EnableAccent->SetAssociatedBool(&g_isColorized);
-                EnableAccent->SetAssociatedFn(RearrangeIcons, false, true, true);
-                EnableAccent->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"IconColorID";
-                DDCP_Icons->SetThemeAwareness(false);
-                DDCP_Icons->SetEnabled(g_isColorized);
-                DDCP_Icons->SetRegKeyValue(rkvTemp);
-                vector<DDScalableElement*> elemTargets{};
-                elemTargets.push_back(RegistryListener);
-                DDCP_Icons->SetTargetElements(elemTargets);
-                elemTargets.clear();
-                rkvTemp._valueToFind = L"DarkIcons";
-                EnableDarkIcons->SetEnabled(!g_automaticDark);
-                EnableDarkIcons->SetCheckedState(g_isDarkIconsEnabled);
-                EnableDarkIcons->SetAssociatedBool(&g_isDarkIconsEnabled);
-                EnableDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
-                EnableDarkIcons->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"AutoDarkIcons";
-                AutoDarkIcons->SetCheckedState(g_automaticDark);
-                AutoDarkIcons->SetAssociatedBool(&g_automaticDark);
-                AutoDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
-                AutoDarkIcons->SetRegKeyValue(rkvTemp);
-                IconSize->SetMinValue(32);
-                IconSize->SetMaxValue(144);
-                IconSize->SetCurrentValue(g_iconsz, false);
-                IconSize->SetTickValue(8);
-                IconSize->SetFormattedString(L"%.0f");
-                IconSize->SetEnabled(!g_touchmode);
-                ApplyIconSize->SetEnabled(!g_touchmode);
-                rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
-                IconThumbnails->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
-                IconThumbnails->SetAssociatedFn(RearrangeIcons, false, true, true);
-                IconThumbnails->SetRegKeyValue(rkvTemp);
-                IconThumbnails->SetShellInteraction(true);
-                assignFn(EnableAccent, ToggleSetting);
-                assignFn(EnableAccent, DisableColorPicker);
-                assignFn(EnableDarkIcons, ToggleSetting);
-                assignFn(AutoDarkIcons, ToggleSetting);
-                assignFn(AutoDarkIcons, DisableDarkToggle);
-                assignFn(ApplyIconSize, SetViewHelper);
-                assignFn(IconThumbnails, ToggleSetting);
-                assignFn(DesktopIconSettings, OpenDeskCpl);
-                g_tempElem = (void*)SettingsPage2;
-            }
+            CSafeElementPtr<DDToggleButton> EnableAccent;
+            EnableAccent.Assign(regElem<DDToggleButton*>(L"EnableAccent", pePage));
+            CSafeElementPtr<DDColorPicker> DDCP_Icons;
+            DDCP_Icons.Assign(regElem<DDColorPicker*>(L"DDCP_Icons", pePage));
+            CSafeElementPtr<DDToggleButton> EnableDarkIcons;
+            EnableDarkIcons.Assign(regElem<DDToggleButton*>(L"EnableDarkIcons", pePage));
+            CSafeElementPtr<DDCheckBox> AutoDarkIcons;
+            AutoDarkIcons.Assign(regElem<DDCheckBox*>(L"AutoDarkIcons", pePage));
+            CSafeElementPtr<DDSlider> IconSize;
+            IconSize.Assign(regElem<DDSlider*>(L"IconSize", pePage));
+            CSafeElementPtr<DDScalableTouchButton> ApplyIconSize;
+            ApplyIconSize.Assign(regElem<DDScalableTouchButton*>(L"ApplyIconSize", pePage));
+            CSafeElementPtr<DDToggleButton> IconThumbnails;
+            IconThumbnails.Assign(regElem<DDToggleButton*>(L"IconThumbnails", pePage));
+            CSafeElementPtr<DDScalableTouchButton> DesktopIconSettings;
+            DesktopIconSettings.Assign(regElem<DDScalableTouchButton*>(L"DesktopIconSettings", pePage));
+            RegKeyValue rkvTemp{};
+            rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Personalize", rkvTemp._valueToFind = L"AccentColorIcons";
+            EnableAccent->SetCheckedState(g_isColorized);
+            EnableAccent->SetAssociatedBool(&g_isColorized);
+            EnableAccent->SetAssociatedFn(RearrangeIcons, false, true, true);
+            EnableAccent->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"IconColorID";
+            DDCP_Icons->SetThemeAwareness(false);
+            DDCP_Icons->SetEnabled(g_isColorized);
+            DDCP_Icons->SetRegKeyValue(rkvTemp);
+            vector<DDScalableElement*> elemTargets{};
+            elemTargets.push_back(RegistryListener);
+            DDCP_Icons->SetTargetElements(elemTargets);
+            elemTargets.clear();
+            rkvTemp._valueToFind = L"DarkIcons";
+            EnableDarkIcons->SetEnabled(!g_automaticDark);
+            EnableDarkIcons->SetCheckedState(g_isDarkIconsEnabled);
+            EnableDarkIcons->SetAssociatedBool(&g_isDarkIconsEnabled);
+            EnableDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
+            EnableDarkIcons->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"AutoDarkIcons";
+            AutoDarkIcons->SetCheckedState(g_automaticDark);
+            AutoDarkIcons->SetAssociatedBool(&g_automaticDark);
+            AutoDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
+            AutoDarkIcons->SetRegKeyValue(rkvTemp);
+            IconSize->SetMinValue(32);
+            IconSize->SetMaxValue(144);
+            IconSize->SetCurrentValue(g_iconsz, false);
+            IconSize->SetTickValue(8);
+            IconSize->SetFormattedString(L"%.0f");
+            IconSize->SetEnabled(!g_touchmode);
+            ApplyIconSize->SetEnabled(!g_touchmode);
+            rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
+            IconThumbnails->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+            IconThumbnails->SetAssociatedFn(RearrangeIcons, false, true, true);
+            IconThumbnails->SetRegKeyValue(rkvTemp);
+            IconThumbnails->SetShellInteraction(true);
+            assignFn(EnableAccent, ToggleSetting);
+            assignFn(EnableAccent, DisableColorPicker);
+            assignFn(EnableDarkIcons, ToggleSetting);
+            assignFn(AutoDarkIcons, ToggleSetting);
+            assignFn(AutoDarkIcons, DisableDarkToggle);
+            assignFn(ApplyIconSize, SetViewHelper);
+            assignFn(IconThumbnails, ToggleSetting);
+            assignFn(DesktopIconSettings, OpenDeskCpl);
+            g_tempElem = (void*)pePage;
         }
     }
 
-    void ShowPage3(Element* elem, Event* iev)
+    void ShowPage3(Element* pePage)
     {
-        if (iev->uidType == Button::Click)
+        if (pePage)
         {
-            PageTab1->SetSelected(false);
-            PageTab2->SetSelected(false);
-            PageTab3->SetSelected(true);
-
-            Element* SettingsPage3{};
-            TriggerTabbedPageTransition(3, SettingsPage3, L"SettingsPage3", SubUIContainer);
-
-            if (SettingsPage3)
-            {
-                CSafeElementPtr<DDToggleButton> EnableLogging;
-                EnableLogging.Assign(regElem<DDToggleButton*>(L"EnableLogging", SettingsPage3));
-                CSafeElementPtr<DDScalableButton> ViewLastLog;
-                ViewLastLog.Assign(regElem<DDScalableButton*>(L"ViewLastLog", SettingsPage3));
-                CSafeElementPtr<DDSlider> AnimSpeed;
-                AnimSpeed.Assign(regElem<DDSlider*>(L"AnimSpeed", SettingsPage3));
-                CSafeElementPtr<DDCheckBox> AnimShiftKey;
-                AnimShiftKey.Assign(regElem<DDCheckBox*>(L"AnimShiftKey", SettingsPage3));
-                CSafeElementPtr<DDToggleButton> ShowDbgInfo;
-                ShowDbgInfo.Assign(regElem<DDToggleButton*>(L"ShowDbgInfo", SettingsPage3));
-                CSafeElementPtr<DDToggleButton> EnableExit;
-                EnableExit.Assign(regElem<DDToggleButton*>(L"EnableExit", SettingsPage3));
-                CSafeElementPtr<DDScalableElement> CustomResDesc;
-                CustomResDesc.Assign(regElem<DDScalableElement*>(L"CustomResDesc", SettingsPage3));
-                CSafeElementPtr<DDScalableButton> SetCurrent;
-                SetCurrent.Assign(regElem<DDScalableButton*>(L"SetCurrent", SettingsPage3));
-                CSafeElementPtr<DDScalableButton> ResetDesktop;
-                ResetDesktop.Assign(regElem<DDScalableButton*>(L"ResetDesktop", SettingsPage3));
-                RegKeyValue rkvTemp{};
-                rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Debug", rkvTemp._valueToFind = L"Logging";
-                EnableLogging->SetCheckedState(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
-                EnableLogging->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"AnimationSpeed";
-                AnimSpeed->SetMinValue(0.5f);
-                AnimSpeed->SetMaxValue(20.0f);
-                AnimSpeed->SetCurrentValue(g_animCoef / 100.0f, false);
-                AnimSpeed->SetAssociatedValue((int*)&g_animCoef, 100);
-                AnimSpeed->SetTickValue(0.1f);
-                AnimSpeed->SetFormattedString(L"%.1fx");
-                AnimSpeed->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"AnimationsShiftKey";
-                AnimShiftKey->SetCheckedState(g_AnimShiftKey);
-                AnimShiftKey->SetAssociatedBool(&g_AnimShiftKey);
-                AnimShiftKey->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"ShowDebugInfo";
-                ShowDbgInfo->SetCheckedState(g_debuginfo);
-                ShowDbgInfo->SetAssociatedBool(&g_debuginfo);
-                ShowDbgInfo->SetAssociatedFn(ShowDebugInfoOnDesktop, false, false, false);
-                ShowDbgInfo->SetRegKeyValue(rkvTemp);
-                rkvTemp._valueToFind = L"EnableExiting";
-                EnableExit->SetCheckedState(g_enableexit);
-                EnableExit->SetAssociatedBool(&g_enableexit);
-                EnableExit->SetRegKeyValue(rkvTemp);
-                WCHAR desc[256];
-                StringCchPrintfW(desc, 256, LoadStrFromRes(4083).c_str(), g_defWidth, g_defHeight, static_cast<int>(ceil(g_defWidth * g_flScaleFactor)), static_cast<int>(ceil(g_defHeight * g_flScaleFactor)), g_dpi);
-                CustomResDesc->SetContentString(desc);
-                SetCurrent->SetEnabled(!isDefaultRes());
-                assignFn(EnableLogging, ToggleSetting);
-                assignFn(ViewLastLog, OpenLog);
-                assignFn(AnimShiftKey, ToggleSetting);
-                assignFn(ShowDbgInfo, ToggleSetting);
-                assignFn(EnableExit, ToggleSetting);
-                assignFn(SetCurrent, SetDefaultRes);
-                assignFn(ResetDesktop, ResetDesktopSize);
-            }
+            CSafeElementPtr<DDToggleButton> EnableLogging;
+            EnableLogging.Assign(regElem<DDToggleButton*>(L"EnableLogging", pePage));
+            CSafeElementPtr<DDScalableTouchButton> ViewLastLog;
+            ViewLastLog.Assign(regElem<DDScalableTouchButton*>(L"ViewLastLog", pePage));
+            CSafeElementPtr<DDSlider> AnimSpeed;
+            AnimSpeed.Assign(regElem<DDSlider*>(L"AnimSpeed", pePage));
+            CSafeElementPtr<DDCheckBox> AnimShiftKey;
+            AnimShiftKey.Assign(regElem<DDCheckBox*>(L"AnimShiftKey", pePage));
+            CSafeElementPtr<DDToggleButton> ShowDbgInfo;
+            ShowDbgInfo.Assign(regElem<DDToggleButton*>(L"ShowDbgInfo", pePage));
+            CSafeElementPtr<DDToggleButton> EnableExit;
+            EnableExit.Assign(regElem<DDToggleButton*>(L"EnableExit", pePage));
+            CSafeElementPtr<DDScalableElement> CustomResDesc;
+            CustomResDesc.Assign(regElem<DDScalableElement*>(L"CustomResDesc", pePage));
+            CSafeElementPtr<DDScalableTouchButton> SetCurrent;
+            SetCurrent.Assign(regElem<DDScalableTouchButton*>(L"SetCurrent", pePage));
+            CSafeElementPtr<DDScalableTouchButton> ResetDesktop;
+            ResetDesktop.Assign(regElem<DDScalableTouchButton*>(L"ResetDesktop", pePage));
+            RegKeyValue rkvTemp{};
+            rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Debug", rkvTemp._valueToFind = L"Logging";
+            EnableLogging->SetCheckedState(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+            EnableLogging->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"AnimationSpeed";
+            AnimSpeed->SetMinValue(0.5f);
+            AnimSpeed->SetMaxValue(20.0f);
+            AnimSpeed->SetCurrentValue(g_animCoef / 100.0f, false);
+            AnimSpeed->SetAssociatedValue((int*)&g_animCoef, 100);
+            AnimSpeed->SetTickValue(0.1f);
+            AnimSpeed->SetFormattedString(L"%.1fx");
+            AnimSpeed->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"AnimationsShiftKey";
+            AnimShiftKey->SetCheckedState(g_AnimShiftKey);
+            AnimShiftKey->SetAssociatedBool(&g_AnimShiftKey);
+            AnimShiftKey->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"ShowDebugInfo";
+            ShowDbgInfo->SetCheckedState(g_debuginfo);
+            ShowDbgInfo->SetAssociatedBool(&g_debuginfo);
+            ShowDbgInfo->SetAssociatedFn(ShowDebugInfoOnDesktop, false, false, false);
+            ShowDbgInfo->SetRegKeyValue(rkvTemp);
+            rkvTemp._valueToFind = L"EnableExiting";
+            EnableExit->SetCheckedState(g_enableexit);
+            EnableExit->SetAssociatedBool(&g_enableexit);
+            EnableExit->SetRegKeyValue(rkvTemp);
+            WCHAR desc[256];
+            StringCchPrintfW(desc, 256, LoadStrFromRes(4083).c_str(), g_defWidth, g_defHeight, static_cast<int>(ceil(g_defWidth * g_flScaleFactor)), static_cast<int>(ceil(g_defHeight * g_flScaleFactor)), g_dpi);
+            CustomResDesc->SetContentString(desc);
+            SetCurrent->SetEnabled(!isDefaultRes());
+            assignFn(EnableLogging, ToggleSetting);
+            assignFn(ViewLastLog, OpenLog);
+            assignFn(AnimShiftKey, ToggleSetting);
+            assignFn(ShowDbgInfo, ToggleSetting);
+            assignFn(EnableExit, ToggleSetting);
+            assignFn(SetCurrent, SetDefaultRes);
+            assignFn(ResetDesktop, ResetDesktopSize);
         }
     }
 
     void ShowSettings(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
+            HideSimpleView(false);
             g_editmode = false;
-            ShowPopupCore();
+            ShowPopupCore(nullptr);
             SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             g_issubviewopen = true;
             g_issettingsopen = true;
             Element* settingsview{};
             parserSubview->CreateElement(L"settingsview", nullptr, nullptr, nullptr, (Element**)&settingsview);
-            CSafeElementPtr<DDScalableButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableButton*>(L"fullscreeninner", centered));
+            CSafeElementPtr<DDScalableTouchButton> fullscreeninner; fullscreeninner.Assign(regElem<DDScalableTouchButton*>(L"fullscreeninner", centered));
             fullscreeninner->Add((Element**)&settingsview, 1);
-            CSafeElementPtr<TouchScrollViewer> settingslist;
-            settingslist.Assign(regElem<TouchScrollViewer*>(L"settingslist", settingsview));
-            SubUIContainer = regElem<DDScalableButton*>(L"SubUIContainer", settingsview);
-            PageTab1 = regElem<DDScalableButton*>(L"PageTab1", settingsview);
-            PageTab2 = regElem<DDScalableButton*>(L"PageTab2", settingsview);
-            PageTab3 = regElem<DDScalableButton*>(L"PageTab3", settingsview);
-            assignFn(PageTab1, ShowPage1);
-            assignFn(PageTab2, ShowPage2);
-            assignFn(PageTab3, ShowPage3);
-            PageTab3->SetVisible(g_debugmode);
-            g_settingsPageID = 1;
-
-            ShowPage1(elem, iev);
+            CSafeElementPtr<DDTabbedPages> settingslist;
+            settingslist.Assign(regElem<DDTabbedPages*>(L"settingslist", settingsview));
+            settingslist->BindParser(parserSubview);
+            settingslist->SetMinSize(540 * g_flScaleFactor, 0);
+            settingslist->InsertTab(0, L"SettingsPage1", LoadStrFromRes(4011).c_str(), ShowPage1);
+            settingslist->InsertTab(1, L"SettingsPage2", LoadStrFromRes(4012).c_str(), ShowPage2);
+            if (g_debugmode) settingslist->InsertTab(2, L"SettingsPage3", LoadStrFromRes(4013).c_str(), ShowPage3);
+            settingslist->TraversePage(0);
 
             CValuePtr v;
             RECT dimensions;
@@ -1014,16 +1087,6 @@ namespace DirectDesktop
             CSafeElementPtr<DDScalableRichText> name;
             name.Assign(regElem<DDScalableRichText*>(L"name", settingsview));
 
-            RECT rcList;
-            settingslist->GetVisibleRect(&rcList);
-            GTRANS_DESC transDesc[3];
-            TriggerTranslate(settingslist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false);
-            TriggerFade(settingslist, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerClip(settingslist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, settingslist->GetDisplayNode(), &tsbInfo);
-
-            SubUIContainer->SetMinSize(540 * g_flScaleFactor, 0);
             g_checkifelemexists = true;
         }
     }
@@ -1037,7 +1100,7 @@ namespace DirectDesktop
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x30;
+            dwCreateFlags = 0x38;
             dwHostFlags = 0x43;
         }
         NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, 9999, 9999, dwExStyle, WS_POPUP, nullptr, dwHostFlags, &subviewwnd);
@@ -1051,9 +1114,9 @@ namespace DirectDesktop
         pSubview->EndDefer(key2);
 
         fullscreenpopupbg = regElem<Element*>(L"fullscreenpopupbg", pSubview);
-        fullscreenpopupbase = regElem<Button*>(L"fullscreenpopupbase", pSubview);
-        popupcontainer = regElem<Button*>(L"popupcontainer", pSubview);
-        centered = regElem<Button*>(L"centered", pSubview);
+        fullscreenpopupbase = regElem<TouchButton*>(L"fullscreenpopupbase", pSubview);
+        popupcontainer = regElem<Element*>(L"popupcontainer", pSubview);
+        centered = regElem<TouchButton*>(L"centered", pSubview);
 
         if (DWMActive)
         {

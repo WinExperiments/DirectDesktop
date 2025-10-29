@@ -20,43 +20,43 @@
 			<DDScalableTouchButton id="atom(prevpage)" layout="filllayout()" class="pageselectoreditmode"/>
 			<DDScalableTouchButton id="atom(nextpage)" layout="filllayout()" class="pageselectoreditmode"/>
 		</TouchButton>
-		<TouchButton id="atom(SimpleViewTop)" layout="filllayout()" layoutpos="top" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
+		<Element id="atom(SimpleViewTop)" layout="filllayout()" layoutpos="top" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
 			<Element layout="flowlayout(0,2,2,3)" layoutpos="client">
 				<DDScalableRichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" contentalign="middlecenter"/>
 				<RichText id="atom(SimpleViewHomeBadge)" layoutpos="none" class="simpleview" content="resstr(164)" font="resstr(156)" contentalign="middlecenter" margin="rect(4rp,0,0,0)"/>
 			</Element>
 			<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
-				<Button id="atom(SimpleViewPower)" width="64rp" height="64rp" content="resstr(144)" font="resstr(135)" class="simpleview" margin="rect(0,0,16rp,0)"/>
-				<Button id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
+				<TouchButton id="atom(SimpleViewPower)" width="64rp" height="64rp" content="resstr(144)" font="resstr(135)" class="simpleview" margin="rect(0,0,16rp,0)"/>
+				<TouchButton id="atom(SimpleViewSearch)" width="64rp" height="64rp" content="resstr(145)" font="resstr(135)" class="simpleview"/>
 			</Element>
-		</TouchButton>
-		<TouchButton id="atom(SimpleViewBottom)" layout="borderlayout()" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
-			<TouchScrollViewer id="atom(svBottomOptions)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
+		</Element>
+		<Element id="atom(SimpleViewBottom)" layout="borderlayout()" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
+			<TouchScrollViewer id="atom(svBottomOptions)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
 				<Element layout="flowlayout(0,2,1,0)">
-					<Button id="atom(SimpleViewClose)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
+					<TouchButton id="atom(SimpleViewClose)" shortcut="88" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
 						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 						<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</Button>
-					<Button id="atom(SimpleViewSoftClose)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
+					</TouchButton>
+					<TouchButton id="atom(SimpleViewSoftClose)" shortcut="69" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
 						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 						<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</Button>
-					<Button id="atom(SimpleViewPages)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
+					</TouchButton>
+					<TouchButton id="atom(SimpleViewPages)" shortcut="80" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
 						<RichText content="resstr(155)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 						<DDScalableRichText content="resstr(4055)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</Button>
-					<Button id="atom(SimpleViewSettings)" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
+					</TouchButton>
+					<TouchButton id="atom(SimpleViewSettings)" shortcut="83" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
 						<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
 						<DDScalableRichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</Button>
+					</TouchButton>
 				</Element>
 			</TouchScrollViewer>
-		</TouchButton>
+		</Element>
 	</HWNDElement>
 	<DDScalableElement resid="fullscreeninner" layoutpos="absolute" background="argb(0,0,0,0)"/>
 	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1"/>
 	<Element resid="deskpreviewmask" background="rgb(0,0,0)" layoutpos="absolute"/>
-	<Button resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()">
+	<TouchButton resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()">
 		<Element id="atom(PV_Inner)" layoutpos="client" layout="filllayout()">
 			<Element class="popupbg" id="atom(bg)" layoutpos="client" visible="false"/>
 			<Element class="popupbg" id="atom(bg_left)" layoutpos="absolute" visible="false"/>
@@ -71,13 +71,13 @@
 		</Element>
 		<Element layoutpos="top" layout="filllayout()" id="atom(PageViewerTop)" padding="rect(32rp,8rp,32rp,8rp)" background="argb(0,0,0,0)">
 			<Element layout="flowlayout(0,2,0,0)" layoutpos="left">
-				<Button id="atom(PV_Back)" width="64rp" height="64rp" content="resstr(160)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(49858, library(shell32.dll))" padding="rect(0,2rp,0,0)"/>
+				<TouchButton id="atom(PV_Back)" width="64rp" height="64rp" content="resstr(160)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(49858, library(shell32.dll))" padding="rect(0,2rp,0,0)"/>
 			</Element>
 			<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
-				<Button id="atom(PV_Add)" width="64rp" height="64rp" content="resstr(161)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(4056)"/>
+				<TouchButton id="atom(PV_Add)" width="64rp" height="64rp" content="resstr(161)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(4056)"/>
 			</Element>
 		</Element>
-	</Button>
+	</TouchButton>
 	<LVItem resid="PV_Page" id="atom(PV_Page)" background="argb(0,0,0,0)" layout="filllayout()">
 		<DDScalableElement id="atom(PV_PageIcons)" class="roundoverlay" DrawType="1" layoutpos="client" layout="flowlayout(0,2,2,0)">
 			<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3066" ScaledImageIntervals="7" DrawType="1"
@@ -131,16 +131,16 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>
-				<Button background="argb(0,0,0,0)" foreground="black" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+				<TouchButton background="argb(0,0,0,0)" foreground="black" contentalign="middlecenter"/>
 				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 					<if Pressed="true">
-						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+						<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 					</if>
-					<if Enabled="false">
-						<Button foreground="rgb(160,160,160)"/>
-						<RichText foreground="rgb(160,160,160)"/>
-					</if>
+				</if>
+				<if Enabled="false">
+					<TouchButton foreground="rgb(128,128,128)"/>
+					<RichText foreground="rgb(128,128,128)"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
@@ -201,16 +201,16 @@
 			</if>
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
-				<Button background="argb(0,0,0,0)" foreground="white" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+				<TouchButton background="argb(0,0,0,0)" foreground="white" contentalign="middlecenter"/>
 				<if mousefocused="true">
-					<Button background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
 					<if Pressed="true">
-						<Button background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+						<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 					</if>
-					<if Enabled="false">
-						<Button foreground="rgb(96,96,96)"/>
-						<RichText foreground="rgb(96,96,96)"/>
-					</if>
+				</if>
+				<if Enabled="false">
+					<TouchButton foreground="rgb(160,160,160)"/>
+					<RichText foreground="rgb(160,160,160)"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">

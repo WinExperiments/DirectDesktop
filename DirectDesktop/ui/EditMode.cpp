@@ -22,16 +22,16 @@ namespace DirectDesktop
     DDScalableElement* fullscreeninnerE;
     Element* popupcontainerE;
     TouchButton* fullscreenpopupbaseE;
-    Button* centeredE;
-    Button* centeredEBG;
+    TouchButton* centeredE;
+    TouchButton* centeredEBG;
     DDScalableElement* simpleviewoverlay;
     DDScalableElement* deskpreviewmask;
-    TouchButton *SimpleViewTop, *SimpleViewBottom;
+    Element *SimpleViewTop, *SimpleViewBottom;
     Element *SimpleViewTopInner, *SimpleViewBottomInner;
-    Button *SimpleViewPower, *SimpleViewSearch, *SimpleViewSettings, *SimpleViewPages, *SimpleViewClose, *SimpleViewSoftClose;
+    TouchButton *SimpleViewPower, *SimpleViewSearch, *SimpleViewSettings, *SimpleViewPages, *SimpleViewClose, *SimpleViewSoftClose;
     DDScalableTouchButton *nextpage, *prevpage;
     DDScalableRichText* pageinfo;
-    Button* PageViewer;
+    TouchButton* PageViewer;
     DDScalableTouchEdit* PV_EnterPage;
     Element* EM_Dim;
     Element* bg_left_top, *bg_left_middle, *bg_left_bottom, *bg_right_top, *bg_right_middle, *bg_right_bottom;
@@ -138,7 +138,7 @@ namespace DirectDesktop
                                 SetPos(isDefaultRes());
                                 PageViewer->DestroyAll(true);
                                 PageViewer->Destroy(true);
-                                Event* iev = new Event{ PageViewer, Button::Click };
+                                Event* iev = new Event{ PageViewer, TouchButton::Click };
                                 ShowPageViewer(PageViewer, iev);
                             }
                         }
@@ -185,7 +185,7 @@ namespace DirectDesktop
                                 SetPos(isDefaultRes());
                                 PageViewer->DestroyAll(true);
                                 PageViewer->Destroy(true);
-                                Event* iev = new Event{ PageViewer, Button::Click };
+                                Event* iev = new Event{ PageViewer, TouchButton::Click };
                                 ShowPageViewer(PageViewer, iev);
                             }
                         }
@@ -201,7 +201,7 @@ namespace DirectDesktop
                             SetPos(isDefaultRes());
                             PageViewer->DestroyAll(true);
                             PageViewer->Destroy(true);
-                            Event* iev = new Event{ PageViewer, Button::Click };
+                            Event* iev = new Event{ PageViewer, TouchButton::Click };
                             ShowPageViewer(PageViewer, iev);
                         }
                         break;
@@ -340,6 +340,14 @@ namespace DirectDesktop
         pe->SetHeight(cy);
         pe->SetVisible(true);
     }
+    void EM_CreateDimRect(Element*& pe, Element*& peParent, int x, int y, int cx, int cy)
+    {
+        Element::Create(0, peParent, nullptr, &pe);
+        peParent->Add(&pe, 1);
+        pe->SetLayoutPos(-2);
+        pe->SetClass(L"popupbg");
+        SetTransElementPosition(pe, x, y, cx, cy);
+    }
     void PV_CreateDimRect(Element* peParent, int cx, int cy)
     {
         Element* PV_PageRow_Dim2{};
@@ -348,6 +356,10 @@ namespace DirectDesktop
         PV_PageRow_Dim2->SetHeight(cy);
         peParent->Add(&PV_PageRow_Dim2, 1);
         peParent->SetWidth(peParent->GetWidth() + cx);
+    }
+    float EM_GetRectAniWScale(Element* pe)
+    {
+        return (pe->GetWidth() + centeredE->GetWidth()) / static_cast<float>(pe->GetWidth());
     }
 
     DWORD WINAPI CreateDesktopPreview(LPVOID lpParam)
@@ -393,9 +405,7 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        Sleep(100 * (animCoef / 100.0f));
-        SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
-        Sleep(250 * (animCoef / 100.0f));
+        Sleep(400 * (animCoef / 100.0f));
         //pEdit->DestroyAll(true);
         editwnd->DestroyWindow();
         //pEditBG->DestroyAll(true);
@@ -420,44 +430,29 @@ namespace DirectDesktop
         if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 
-    void HideSimpleView(bool animate)
+    void HideSimpleView(bool fullanimate)
     {
         if (g_touchmode) g_iconsz = 32;
         UIContainer->SetVisible(true);
-        if (animate)
+        if (fullanimate) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+        if (!fullscreenpopupbaseE->IsDestroyed())
         {
-            GTRANS_DESC transDesc[2];
+            GTRANS_DESC transDesc[8];
             TransitionStoryboardInfo tsbInfo = {};
-            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
-            TriggerFade(fullscreenpopupbaseE, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(fullscreenpopupbaseE, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 0.5f, true, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreenpopupbaseE->GetDisplayNode(), &tsbInfo);
-            TriggerFade(SimpleViewTop, transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
-            TriggerScaleOut(SimpleViewTop, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 3.33f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTop->GetDisplayNode(), &tsbInfo);
-            TriggerFade(SimpleViewBottom, transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
-            TriggerScaleOut(SimpleViewBottom, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, -3.33f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewBottom->GetDisplayNode(), &tsbInfo);
+            float scaleFinal = fullanimate ? 1.0f : 0.92f;
+            float scaleFinal2 = fullanimate ? 1.4285f : 1.3143f;
+            float timeCoef = fullanimate ? 1.0f : 1.5f;
+            float delay = fullanimate ? 0.0f : 0.033f;
+            TriggerFade(UIContainer, transDesc, 0, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleOut(UIContainer, transDesc, 1, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal, scaleFinal, 0.5f, 0.5f, false, false);
+            TriggerFade(fullscreenpopupbaseE, transDesc, 2, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+            TriggerScaleOut(fullscreenpopupbaseE, transDesc, 3, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 0.5f, false, false);
+            TriggerFade(SimpleViewTop, transDesc, 4, delay, delay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
+            TriggerScaleOut(SimpleViewTop, transDesc, 5, delay, delay + 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 3.33f, false, false);
+            TriggerFade(SimpleViewBottom, transDesc, 6, delay, delay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
+            TriggerScaleOut(SimpleViewBottom, transDesc, 7, delay, delay + 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, -3.33f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
             fullscreenAnimation4();
-        }
-        else
-        {
-            GTRANS_DESC transDesc[1];
-            TransitionStoryboardInfo tsbInfo = {};
-            TriggerFade(UIContainer, transDesc, 0, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
-            fullscreeninnerE->DestroyAll(true);
-            fullscreeninnerE->Destroy(true);
-            prevpage->DestroyAll(true);
-            prevpage->Destroy(true);
-            nextpage->DestroyAll(true);
-            nextpage->Destroy(true);
-            pEdit->DestroyAll(true);
-            editwnd->DestroyWindow();
-            //pEditBG->DestroyAll(true);
-            //editbgwnd->DestroyWindow();
         }
         g_editmode = false;
         g_invokedpagechange = false;
@@ -466,23 +461,18 @@ namespace DirectDesktop
 
     void TriggerHSV(Element* elem, Event* iev)
     {
-        if (iev->uidType == TouchButton::Click && !prevpage->GetMouseFocused() && !nextpage->GetMouseFocused())
+        if (iev->uidType == TouchButton::Click && !prevpage->GetMouseFocused() && !nextpage->GetMouseFocused() &&
+            !SimpleViewPages->GetMouseFocused() && !SimpleViewClose->GetMouseFocused() &&
+            !SimpleViewSoftClose->GetMouseFocused() && !SimpleViewPower->GetMouseFocused() &&
+            !SimpleViewSettings->GetMouseFocused() && !SimpleViewSearch->GetMouseFocused())
         {
             HideSimpleView(true);
-            return;
-        }
-        if (iev->uidType == Button::Click && !SimpleViewPages->GetMouseFocused() && !SimpleViewClose->GetMouseFocused() &&
-            !SimpleViewSoftClose->GetMouseFocused() && !SimpleViewPower->GetMouseWithin())
-        {
-            if (SimpleViewSettings->GetMouseWithin() || SimpleViewSearch->GetMouseWithin()) HideSimpleView(false);
-            else HideSimpleView(true);
-            return;
         }
     }
 
     void ShowShutdownDialog(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             DisplayShutdownDialog();
         }
@@ -490,9 +480,10 @@ namespace DirectDesktop
 
     void ShowSearchUI(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
-            CreateSearchPage();
+            HideSimpleView(false);
+            CreateSearchPage(false);
         }
     }
 
@@ -691,13 +682,6 @@ namespace DirectDesktop
         }
         else
         {
-            CSafeElementPtr<Button> PV_Add;
-            PV_Add.Assign(regElem<Button*>(L"PV_Add", PageViewer));
-            if (!PV_Add->GetEnabled())
-            {
-                TriggerFade(PV_Add, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.375f, false, false, true);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PV_Add->GetDisplayNode(), &tsbInfo);
-            }
             TriggerFade(SimpleViewTop, transDesc, 0, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTop->GetDisplayNode(), &tsbInfo);
             TriggerFade(SimpleViewBottom, transDesc, 0, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
@@ -707,7 +691,7 @@ namespace DirectDesktop
         }
         if (g_maxPageID <= 6)
         {
-            if (fReverse) TriggerScaleOut(PV_Inner, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 2.8f, 2.8f, ptPage.x, ptPage.y, false, true);
+            if (fReverse) TriggerScaleOut(PV_Inner, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 2.8f, 2.8f, ptPage.x, ptPage.y, false, false);
             else TriggerScaleIn(PV_Inner, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 2.8f, 2.8f, ptPage.x, ptPage.y, 1.0f, 1.0f, ptPage.x, ptPage.y, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PV_Inner->GetDisplayNode(), &tsbInfo);
         }
@@ -717,41 +701,82 @@ namespace DirectDesktop
             if (fReverse) TriggerFade(overflow, transDesc, 0, 0.033f, 0.216f, 0.0f, 0.0f, 0.58f, 1.0f, 1.0f, 0.0f, false, false, true);
             else TriggerFade(overflow, transDesc, 0, 0.0f, 0.183f, 0.25f, 0.1f, 0.25f, 1.0f, 0.0f, 1.0f, false, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, overflow->GetDisplayNode(), &tsbInfo);
-            if (fReverse) TriggerScaleOut(PV_Inner, transDesc, 0, 0.033f, 0.3f, 1.0f, 1.0f, 0.0f, 1.0f, 1.15f, 1.15f, 0.5f, 0.5f, false, true);
+            if (fReverse) TriggerScaleOut(PV_Inner, transDesc, 0, 0.033f, 0.3f, 1.0f, 1.0f, 0.0f, 1.0f, 1.15f, 1.15f, 0.5f, 0.5f, false, false);
             else TriggerScaleIn(PV_Inner, transDesc, 0, 0.0f, 0.267f, 0.0f, 0.0f, 0.0f, 1.0f, 1.15f, 1.15f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PV_Inner->GetDisplayNode(), &tsbInfo);
         }
         DUI_SetGadgetZOrder(PV_Inner, -4);
         if (fReverse)
         {
-            TriggerFade(PageViewer, transDesc, 0, 0.3f, 0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, true, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PageViewer->GetDisplayNode(), &tsbInfo);
-            TriggerFade(fullscreenpopupbaseE, transDesc, 0, 0.29f, 0.29f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, true, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreenpopupbaseE->GetDisplayNode(), &tsbInfo);
+            GTRANS_DESC transDesc2[2];
+            TriggerFade(PageViewer, transDesc2, 0, 0.333f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, true, true);
+            TriggerFade(fullscreenpopupbaseE, transDesc2, 1, 0.3f, 0.367f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
             DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
             float scaleOrigin = (localeType == 1) ? 1.0f : 0.0f;
             short direction = (localeType == 1) ? -1 : 1;
             if (g_currentPageID > 1)
             {
-                TriggerTranslate(prevpage, transDesc, 0, 0.27f, 0.52f, 0.0f, 0.0f, 0.0f, 1.0f, prevpage->GetX() - dimensions.right * 0.1 * direction, prevpage->GetY(), prevpage->GetX(), prevpage->GetY(), false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, prevpage->GetDisplayNode(), &tsbInfo);
-                TriggerScaleIn(bg_left_middle, transDesc, 0, 0.27f, 0.52f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, 1.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_left_middle->GetDisplayNode(), &tsbInfo);
+                TriggerTranslate(prevpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, prevpage->GetX() - dimensions.right * 0.1 * direction, prevpage->GetY(), prevpage->GetX(), prevpage->GetY(), false, false);
+                TriggerScaleIn(bg_left_middle, transDesc2, 1, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, 1.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
             }
             if (g_currentPageID < g_maxPageID)
             {
-                TriggerTranslate(nextpage, transDesc, 0, 0.27f, 0.52f, 0.0f, 0.0f, 0.0f, 1.0f, nextpage->GetX() + dimensions.right * 0.1 * direction, nextpage->GetY(), nextpage->GetX(), nextpage->GetY(), false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nextpage->GetDisplayNode(), &tsbInfo);
-                TriggerScaleIn(bg_right_middle, transDesc, 0, 0.27f, 0.52f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, scaleOrigin, 0.5f, 1.0f, 1.0f, scaleOrigin, 0.5f, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_right_middle->GetDisplayNode(), &tsbInfo);
+                TriggerTranslate(nextpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, nextpage->GetX() + dimensions.right * 0.1 * direction, nextpage->GetY(), nextpage->GetX(), nextpage->GetY(), false, false);
+                TriggerScaleIn(bg_right_middle, transDesc2, 1, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, scaleOrigin, 0.5f, 1.0f, 1.0f, scaleOrigin, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
             }
-
         }
+        SimpleViewPages->SetActive(fReverse ? 0xB : 0);
+        SimpleViewSettings->SetActive(fReverse ? 0xB : 0);
+    }
+
+    void TriggerNoMorePagesOnEdit()
+    {
+        float flOriginLeft = (localeType == 1) ? 1.0f : 0.0f;
+        float flOriginRight = (localeType == 1) ? 0.0f : 1.0f;
+        GTRANS_DESC transDesc[2], transDescL[2], transDescR[2];
+        TransitionStoryboardInfo tsbInfo = {};
+        TriggerScaleIn(SimpleViewTopInner, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, 0.5f, 0.0f, 1.0f, 3.705f / 3, 0.5f, 0.0f, false, false);
+        TriggerScaleIn(SimpleViewTopInner, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 3.705f / 3, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f, 0.0f, false, false);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTopInner->GetDisplayNode(), &tsbInfo);
+        TriggerScaleIn(SimpleViewBottomInner, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, 0.5f, 1.0f, 1.0f, 3.7f / 3, 0.5f, 1.0f, false, false);
+        TriggerScaleIn(SimpleViewBottomInner, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 3.7f / 3, 0.5f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, false, false);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewBottomInner->GetDisplayNode(), &tsbInfo);
+        TriggerScaleIn(bg_left_middle, transDescL, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 0.5f, 3.7f / 3, 0.9f, flOriginLeft, 0.5f, false, false);
+        TriggerScaleIn(bg_left_middle, transDescL, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.9f, flOriginLeft, 0.5f, 1.0f, 1.0f, flOriginLeft, 0.5f, false, false);
+        TriggerScaleIn(bg_right_middle, transDescR, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 0.5f, 3.7f / 3, 0.9f, flOriginRight, 0.5f, false, false);
+        TriggerScaleIn(bg_right_middle, transDescR, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.9f, flOriginRight, 0.5f, 1.0f, 1.0f, flOriginRight, 0.5f, false, false);
+        if (prevpage->GetWidth() > 1)
+        {
+            TriggerScaleIn(bg_left_top, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 1.0f, 3.7f / 3, 0.65f, flOriginLeft, 1.0f, false, false);
+            TriggerScaleIn(bg_left_top, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginLeft, 1.0f, 1.0f, 1.0f, flOriginLeft, 1.0f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_left_top->GetDisplayNode(), &tsbInfo);
+            TriggerScaleIn(bg_left_middle, transDescL, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 0.5f, 1.7f, 1.0f, flOriginLeft, 0.5f, false, false);
+            TriggerScaleIn(bg_left_middle, transDescL, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.7f, 1.0f, flOriginLeft, 0.5f, 1.0f, 1.0f, flOriginLeft, 0.5f, false, false);
+            TriggerScaleIn(bg_left_bottom, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 0.0f, 3.7f / 3, 0.65f, flOriginLeft, 0.0f, false, false);
+            TriggerScaleIn(bg_left_bottom, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginLeft, 0.0f, 1.0f, 1.0f, flOriginLeft, 0.0f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_left_bottom->GetDisplayNode(), &tsbInfo);
+        }
+        if (nextpage->GetWidth() > 1)
+        {
+            TriggerScaleIn(bg_right_top, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 0.0f, 3.7f / 3, 0.65f, flOriginRight, 1.0f, false, false);
+            TriggerScaleIn(bg_right_top, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginRight, 0.0f, 1.0f, 1.0f, flOriginRight, 1.0f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_right_top->GetDisplayNode(), &tsbInfo);
+            TriggerScaleIn(bg_right_middle, transDescR, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 0.5f, 1.7f, 1.0f, flOriginRight, 0.5f, false, false);
+            TriggerScaleIn(bg_right_middle, transDescR, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.7f, 1.0f, flOriginRight, 0.5f, 1.0f, 1.0f, flOriginRight, 0.5f, false, false);
+            TriggerScaleIn(bg_right_bottom, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 1.0f, 3.7f / 3, 0.65f, flOriginRight, 0.0f, false, false);
+            TriggerScaleIn(bg_right_bottom, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginRight, 1.0f, 1.0f, 1.0f, flOriginRight, 0.0f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_right_bottom->GetDisplayNode(), &tsbInfo);
+        }
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDescL), transDescL, bg_left_middle->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDescR), transDescR, bg_right_middle->GetDisplayNode(), &tsbInfo);
     }
 
     void EnterSelectedPage(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             CValuePtr v;
             int page{};
@@ -784,7 +809,7 @@ namespace DirectDesktop
 
     void ClosePageViewer(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             CSafeElementPtr<DDLVActionButton> PV_Home; PV_Home.Assign(regElem<DDLVActionButton*>(L"PV_Home", elem));
             if (PV_Home)
@@ -798,7 +823,7 @@ namespace DirectDesktop
 
     void ShowPageViewer(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             fullscreenpopupbaseE->SetVisible(false);
             RECT dimensions;
@@ -814,13 +839,12 @@ namespace DirectDesktop
             PageViewerTop.Assign(regElem<Element*>(L"PageViewerTop", PageViewer));
             PageViewerTop->SetHeight(dimensions.bottom * 0.15);
             if (dimensions.bottom * 0.15 < 80 * g_flScaleFactor) PageViewerTop->SetHeight(80 * g_flScaleFactor);
-            CSafeElementPtr<Button> PV_Back;
-            PV_Back.Assign(regElem<Button*>(L"PV_Back", PageViewer));
+            CSafeElementPtr<TouchButton> PV_Back;
+            PV_Back.Assign(regElem<TouchButton*>(L"PV_Back", PageViewer));
             assignFn(PV_Back, ClosePageViewer);
-            CSafeElementPtr<Button> PV_Add;
-            PV_Add.Assign(regElem<Button*>(L"PV_Add", PageViewer));
+            CSafeElementPtr<TouchButton> PV_Add;
+            PV_Add.Assign(regElem<TouchButton*>(L"PV_Add", PageViewer));
             PV_Add->SetEnabled(isDefaultRes());
-            if (!isDefaultRes()) PV_Add->SetAlpha(96);
             assignFn(PV_Add, AddNewPage);
             CSafeElementPtr<Element> PV_Inner; PV_Inner.Assign(regElem<Element*>(L"PV_Inner", PageViewer));
             CSafeElementPtr<LVItem> peAnimateFrom;
@@ -973,7 +997,7 @@ namespace DirectDesktop
 
     void AddNewPage(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click())
+        if (iev->uidType == TouchButton::Click())
         {
             g_editingpages = true;
             SetTimer(editwnd->GetHWND(), 4, 80, nullptr);
@@ -982,7 +1006,7 @@ namespace DirectDesktop
 
     void RemoveSelectedPage(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick)
         {
             g_editingpages = true;
             timerPtr = elem;
@@ -992,7 +1016,7 @@ namespace DirectDesktop
 
     void SetSelectedPageHome(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click && g_maxPageID > 1)
+        if ((iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick) && g_maxPageID > 1)
         {
             g_editingpages = true;
             timerPtr = elem;
@@ -1030,7 +1054,7 @@ namespace DirectDesktop
 
     void ExitWindow(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             LPARAM lParam = (elem == SimpleViewSoftClose) ? 69 : NULL;
             SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
@@ -1093,48 +1117,6 @@ namespace DirectDesktop
             float xLoc = (localeType == 1) ? 0.9 : -0.4;
             TogglePage(prevpage, xLoc, 0.25, 0.5, 0.5);
         }
-        if (animate)
-        {
-            GTRANS_DESC transDesc[2];
-            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, false, false);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
-            TriggerFade(fullscreenpopupbaseE, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(fullscreenpopupbaseE, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreenpopupbaseE->GetDisplayNode(), &tsbInfo);
-            DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
-            TriggerFade(SimpleViewTop, transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(SimpleViewTop, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 3.33f, 1.0f, 1.0f, 0.5f, 3.33f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTop->GetDisplayNode(), &tsbInfo);
-            DUI_SetGadgetZOrder(SimpleViewTop, 0);
-            TriggerFade(SimpleViewBottom, transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(SimpleViewBottom, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, -3.33f, 1.0f, 1.0f, 0.5f, -3.33f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewBottom->GetDisplayNode(), &tsbInfo);
-            DUI_SetGadgetZOrder(SimpleViewBottom, 0);
-        }
-        else
-        {
-            UIContainer->SetVisible(false);
-            GTRANS_DESC transDesc[2];
-            TransitionStoryboardInfo tsbInfo = {};
-            if (animFlags & 1)
-            {
-
-            }
-            if (animFlags & 2)
-            {
-
-            }
-            if (animFlags & 4)
-            {
-
-            }
-            if (animFlags & 8)
-            {
-
-            }
-        }
 
         SetPopupSize(centeredE, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
         SetPopupSize(fullscreeninnerE, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
@@ -1171,6 +1153,8 @@ namespace DirectDesktop
             SetTransElementPosition(bg_left_middle, leftX, SimpleViewTopInner->GetHeight(),
                 leftWidth, dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_left_bottom, 0, 0, 0, 0);
+            leftXSmall = (localeType == 1) ? leftX : dimensions.right * 0.1;
+            leftWidthSmall = (localeType == 1) ? dimensions.right * 0.9 - leftXSmall : leftWidth - dimensions.right * 0.1;
         }
         if (nextpage->GetWidth() > 1)
         {
@@ -1189,10 +1173,123 @@ namespace DirectDesktop
             SetTransElementPosition(bg_right_middle, rightX, SimpleViewTopInner->GetHeight(),
                 rightWidth, dimensions.bottom - SimpleViewTopInner->GetHeight() - SimpleViewBottomInner->GetHeight());
             SetTransElementPosition(bg_right_bottom, 0, 0, 0, 0);
+            rightXSmall = (localeType == 1) ? dimensions.right * 0.1 : rightX;
+            rightWidthSmall = (localeType == 1) ? rightWidth : dimensions.right * 0.9 - rightXSmall;
+        }
+        if (animate)
+        {
+            GTRANS_DESC transDesc[8];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+            TriggerScaleOut(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, false, false);
+            TriggerFade(fullscreenpopupbaseE, transDesc, 2, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleIn(fullscreenpopupbaseE, transDesc, 3, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            TriggerFade(SimpleViewTop, transDesc, 4, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleIn(SimpleViewTop, transDesc, 5, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 3.33f, 1.0f, 1.0f, 0.5f, 3.33f, false, false);
+            TriggerFade(SimpleViewBottom, transDesc, 6, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleIn(SimpleViewBottom, transDesc, 7, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, -3.33f, 1.0f, 1.0f, 0.5f, -3.33f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
+            DUI_SetGadgetZOrder(SimpleViewTop, 0);
+            DUI_SetGadgetZOrder(SimpleViewBottom, 0);
+        }
+        else
+        {
+            Element* bg_main[7]{};
+            Element* bg_extras[4]{};
+            short localeDirection = (localeType == 1) ? -1 : 1;
+            short animDirection = 1;
+            float flOrig = 0.5f * (1 - localeDirection), flOrig2 = 0.5f * (1 + localeDirection);
+            BYTE fullLeftCoef = (prevpage->GetWidth() > 0) ? 1 : 3, fullRightCoef = (nextpage->GetWidth() > 0) ? 1 : 3;
+            float flMiddleAnim = -1 * localeDirection * centeredE->GetWidth() / static_cast<float>(bg_right_middle->GetWidth()) * fullRightCoef + (1 - localeDirection) / 2.0f;
+            float flMiddleSmAnim = localeDirection * (centeredE->GetWidth() + bg_left_middle->GetWidth() / (7.0f * fullLeftCoef)) / (bg_left_middle->GetWidth() / 1.4f) * fullLeftCoef + (1 + localeDirection) / 2.0f;
+            float flMiddleSmAnim2 = -1 * localeDirection * nextpage->GetWidth() / static_cast<float>(bg_right_middle->GetWidth()) + (1 - localeDirection) / 2.0f;
+            bool invert{};
+            UIContainer->SetVisible(false);
+            GTRANS_DESC transDesc[1], transDesc2[1], transDesc3[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            if (animFlags & 1)
+            {
+                EM_CreateDimRect(bg_extras[0], EM_Dim, nextpage->GetX() + nextpage->GetWidth() * localeDirection, nextpage->GetY(), nextpage->GetWidth(), nextpage->GetHeight());
+                EM_CreateDimRect(bg_extras[1], EM_Dim, leftX, SimpleViewTopInner->GetHeight(), leftWidth, prevpage->GetY() - SimpleViewTopInner->GetHeight());
+                EM_CreateDimRect(bg_extras[2], EM_Dim, leftXSmall + leftWidthSmall / 3.5f, bg_extras[1]->GetY() + bg_extras[1]->GetHeight(), leftWidthSmall / 1.4f, prevpage->GetHeight());
+                EM_CreateDimRect(bg_extras[3], EM_Dim, leftX, bg_extras[2]->GetY() + bg_extras[2]->GetHeight(), leftWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_extras[2]->GetY() - bg_extras[2]->GetHeight());
+                bg_main[0] = bg_left_middle, bg_main[1] = bg_right_top, bg_main[2] = bg_right_middle, bg_main[3] = bg_right_bottom;
+                TriggerScaleIn(centeredE, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f - 3.18f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.18f * localeDirection, 0.5f, false, false);
+                TriggerScaleIn(nextpage, transDesc3, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 3.25f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.25f * localeDirection, 0.5f, false, false);
+            }
+            if (animFlags & 2)
+            {
+                bg_main[4] = bg_left_top, bg_main[5] = bg_left_middle, bg_main[6] = bg_left_bottom;
+                TriggerScaleIn(prevpage, transDesc2, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f - 3.0f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.0f * localeDirection, 0.5f, false, false);
+            }
+            if (animFlags & 4)
+            {
+                invert = true;
+                EM_CreateDimRect(bg_extras[0], EM_Dim, prevpage->GetX() - prevpage->GetWidth() * localeDirection, prevpage->GetY(), prevpage->GetWidth(), prevpage->GetHeight());
+                EM_CreateDimRect(bg_extras[1], EM_Dim, rightX, SimpleViewTopInner->GetHeight(), rightWidth, nextpage->GetY() - SimpleViewTopInner->GetHeight());
+                EM_CreateDimRect(bg_extras[2], EM_Dim, rightXSmall, bg_extras[1]->GetY() + bg_extras[1]->GetHeight(), rightWidthSmall / 1.4f, nextpage->GetHeight());
+                EM_CreateDimRect(bg_extras[3], EM_Dim, rightX, bg_extras[2]->GetY() + bg_extras[2]->GetHeight(), rightWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_extras[2]->GetY() - bg_extras[2]->GetHeight());
+                bg_main[0] = bg_right_middle, bg_main[1] = bg_left_top, bg_main[2] = bg_left_middle, bg_main[3] = bg_left_bottom;
+                TriggerScaleIn(centeredE, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f + 3.18f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.18f * localeDirection, 0.5f, false, false);
+                TriggerScaleIn(prevpage, transDesc2, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f - 3.25f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.25f * localeDirection, 0.5f, false, false);
+            }
+            if (animFlags & 5)
+            {
+                if (invert)
+                {
+                    animDirection = -1;
+                    flOrig = 0.5f * (1 + localeDirection);
+                    flOrig2 = 0.5f * (1 - localeDirection);
+                    flMiddleAnim = localeDirection * centeredE->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) * fullLeftCoef + (1 + localeDirection) / 2.0f;
+                    flMiddleSmAnim = -1 * localeDirection * (centeredE->GetWidth() + bg_left_middle->GetWidth() / 7.0f) / (bg_right_middle->GetWidth() / 1.4f) * fullRightCoef + (1 - localeDirection) / 2.0f;
+                    flMiddleSmAnim2 = localeDirection * prevpage->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) + (1 + localeDirection) / 2.0f;
+                }
+                GTRANS_DESC transDesc[8];
+                TriggerScaleIn(bg_extras[0], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, false, true);
+                TriggerScaleOut(bg_extras[1], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[1]), 0.0f, flOrig, 0.0f, false, true);
+                TriggerScaleOut(bg_extras[2], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 0.0f, (centeredE->GetHeight() / static_cast<float>(bg_extras[2]->GetHeight())), flMiddleSmAnim, 0.5f, false, true);
+                TriggerScaleOut(bg_extras[3], transDesc, 3, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[3]), 0.0f, flOrig, 1.0f, false, true);
+                TriggerScaleIn(bg_main[0], transDesc, 4, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, false, false);
+                TriggerScaleIn(bg_main[1], transDesc, 5, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    EM_GetRectAniWScale(bg_main[1]), 0.0f, flOrig2, 0.0f, 1.0f, 1.0f, flOrig2, 0.0f, false, false);
+                TriggerScaleIn(bg_main[2], transDesc, 6, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    0.0f, (centeredE->GetHeight() / static_cast<float>(bg_main[2]->GetHeight())),
+                    flMiddleAnim, 0.5f, 1.0f, 1.0f, flMiddleAnim, 0.5f, false, false);
+                TriggerScaleIn(bg_main[3], transDesc, 7, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    EM_GetRectAniWScale(bg_main[3]), 0.0f, flOrig2, 1.0f, 1.0f, 1.0f, flOrig2, 1.0f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            }
+            if (animFlags & 6) ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, prevpage->GetDisplayNode(), &tsbInfo);
+            if (animFlags & 8)
+            {
+                bg_main[4] = bg_right_top, bg_main[5] = bg_right_middle, bg_main[6] = bg_right_bottom;
+                TriggerScaleIn(nextpage, transDesc3, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f + 3.0f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.0f * localeDirection, 0.5f, false, false);
+            }
+            if (animFlags & 9) ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc3), transDesc3, nextpage->GetDisplayNode(), &tsbInfo);
+            if (animFlags & 0xA)
+            {
+                GTRANS_DESC transDesc[3];
+                TriggerScaleIn(bg_main[4], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 3.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 3.5f, false, false);
+                TriggerScaleIn(bg_main[5], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    0.0f, 1 / 1.4f, flMiddleSmAnim2, 0.5f, 1.0f, 1.0f, flMiddleSmAnim2, 0.5f, false, false);
+                TriggerScaleIn(bg_main[6], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, -2.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, -2.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            }
+            if (animFlags & 0xF)
+            {
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, centeredE->GetDisplayNode(), &tsbInfo);
+            }
         }
         g_invokedpagechange = false;
         CSafeElementPtr<TouchScrollViewer> svBottomOptions;
         svBottomOptions.Assign(regElem<TouchScrollViewer*>(L"svBottomOptions", SimpleViewBottom));
+        Element* XScrollbar;
+        svBottomOptions->GetHScrollbar(&XScrollbar);
+        svBottomOptions->SetXScrollable(XScrollbar->GetVisible());
     }
     void RefreshSimpleView(DWORD animFlags)
     {
@@ -1221,11 +1318,11 @@ namespace DirectDesktop
             int rightMon = GetRightMonitor();
             topLeftMon.x = dimensions.right + dimensions.left - rightMon;
         }
-        DWORD dwExStyle = NULL, dwCreateFlags = NULL, dwHostFlags = NULL;
+        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = NULL, dwHostFlags = NULL;
         if (DWMActive)
         {
-            dwExStyle |= WS_EX_NOINHERITLAYOUT | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x30;
+            dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
+            dwCreateFlags = 0x38;
             dwHostFlags = 0x43;
         }
         NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Edit Mode", nullptr, nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
@@ -1241,7 +1338,7 @@ namespace DirectDesktop
         parserEdit->CreateElement(L"editmode", editparent, nullptr, nullptr, &pEdit);
         //parserEdit->CreateElement(L"editmodeblur", editbgparent, nullptr, NULL, &pEditBG);
 
-        SetWindowLongPtrW(editwnd->GetHWND(), GWL_STYLE, 0x56003A40L);
+        //SetWindowLongPtrW(editwnd->GetHWND(), GWL_STYLE, 0x56003A40L);
         //SetWindowLongPtrW(editbgwnd->GetHWND(), GWL_STYLE, 0x56003A40L);
 
         SetWindowPos(editwnd->GetHWND(), nullptr, NULL, NULL, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOMOVE | SWP_NOZORDER);
@@ -1253,19 +1350,19 @@ namespace DirectDesktop
         //pEditBG->EndDefer(key6);
 
         fullscreenpopupbaseE = regElem<TouchButton*>(L"fullscreenpopupbase", pEdit);
-        popupcontainerE = regElem<Button*>(L"popupcontainer", pEdit);
-        centeredE = regElem<Button*>(L"centered", pEdit);
+        popupcontainerE = regElem<TouchButton*>(L"popupcontainer", pEdit);
+        centeredE = regElem<TouchButton*>(L"centered", pEdit);
         //centeredEBG = regElem<Button*>(L"centered", pEditBG);
-        SimpleViewTop = regElem<TouchButton*>(L"SimpleViewTop", pEdit);
-        SimpleViewBottom = regElem<TouchButton*>(L"SimpleViewBottom", pEdit);
+        SimpleViewTop = regElem<Element*>(L"SimpleViewTop", pEdit);
+        SimpleViewBottom = regElem<Element*>(L"SimpleViewBottom", pEdit);
         SimpleViewTopInner = regElem<Element*>(L"SimpleViewTopInner", pEdit);
         SimpleViewBottomInner = regElem<Element*>(L"SimpleViewBottomInner", pEdit);
-        SimpleViewPower = regElem<Button*>(L"SimpleViewPower", pEdit);
-        SimpleViewSearch = regElem<Button*>(L"SimpleViewSearch", pEdit);
-        SimpleViewSettings = regElem<Button*>(L"SimpleViewSettings", pEdit);
-        SimpleViewPages = regElem<Button*>(L"SimpleViewPages", pEdit);
-        SimpleViewClose = regElem<Button*>(L"SimpleViewClose", pEdit);
-        SimpleViewSoftClose = regElem<Button*>(L"SimpleViewSoftClose", pEdit);
+        SimpleViewPower = regElem<TouchButton*>(L"SimpleViewPower", pEdit);
+        SimpleViewSearch = regElem<TouchButton*>(L"SimpleViewSearch", pEdit);
+        SimpleViewSettings = regElem<TouchButton*>(L"SimpleViewSettings", pEdit);
+        SimpleViewPages = regElem<TouchButton*>(L"SimpleViewPages", pEdit);
+        SimpleViewClose = regElem<TouchButton*>(L"SimpleViewClose", pEdit);
+        SimpleViewSoftClose = regElem<TouchButton*>(L"SimpleViewSoftClose", pEdit);
         EM_Dim = regElem<Element*>(L"EM_Dim", pEdit);
         bg_left_top = regElem<Element*>(L"bg_left_top", pEdit);
         bg_left_middle = regElem<Element*>(L"bg_left_middle", pEdit);
@@ -1283,16 +1380,14 @@ namespace DirectDesktop
         pel_GoToNextPage = (IElementListener*)assignFn(nextpage, GoToNextPage, true);
         pel_TriggerHSV1 = (IElementListener*)assignFn(fullscreenpopupbaseE, TriggerHSV, true);
         pel_ShowShutdownDialog = (IElementListener*)assignFn(SimpleViewPower, ShowShutdownDialog, true);
-        pel_TriggerHSV2 = (IElementListener*)assignFn(SimpleViewTop, TriggerHSV, true);
         pel_ShowSearchUI = (IElementListener*)assignFn(SimpleViewSearch, ShowSearchUI, true);
         pel_ShowSettings = (IElementListener*)assignFn(SimpleViewSettings, ShowSettings, true);
-        pel_TriggerHSV3 = (IElementListener*)assignFn(SimpleViewBottom, TriggerHSV, true);
         pel_ShowPageViewer = (IElementListener*)assignFn(SimpleViewPages, ShowPageViewer, true);
         pel_ExitWindow = (IElementListener*)assignFn(SimpleViewClose, ExitWindow, true);
         pel_ExitWindow2 = (IElementListener*)assignFn(SimpleViewSoftClose, ExitWindow, true);
 
-        SimpleViewClose->SetLayoutPos(g_enableexit ? 4 : -3);
-        SimpleViewSoftClose->SetLayoutPos(g_enableexit ? 4 : -3);
+        SimpleViewClose->SetLayoutPos(g_enableexit ? -1 : -3);
+        SimpleViewSoftClose->SetLayoutPos(g_enableexit ? -1 : -3);
 
         WndProcEdit = (WNDPROC)SetWindowLongPtrW(editwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeWindowProc);
         //WndProcEditBG = (WNDPROC)SetWindowLongPtrW(editbgwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeBGWindowProc);
@@ -1337,14 +1432,13 @@ namespace DirectDesktop
 
         parserEdit->CreateElement(L"simpleviewoverlay", nullptr, nullptr, nullptr, (Element**)&simpleviewoverlay);
         centeredE->Add((Element**)&simpleviewoverlay, 1);
-        parserEdit->CreateElement(L"deskpreviewmask", nullptr, nullptr, nullptr, (Element**)&deskpreviewmask);
+        //parserEdit->CreateElement(L"deskpreviewmask", nullptr, nullptr, nullptr, (Element**)&deskpreviewmask);
         //centeredEBG->Add((Element**)&deskpreviewmask, 1);
-        deskpreviewmask->SetX(dimensions.right * 0.15);
-        deskpreviewmask->SetY(dimensions.bottom * 0.15);
+        //deskpreviewmask->SetX(dimensions.right * 0.15);
+        //deskpreviewmask->SetY(dimensions.bottom * 0.15);
 
         _UpdateSimpleViewContent(animate, animFlags);
 
-        wnd->ShowWindow(SW_SHOW);
-        //editbgwnd->ShowWindow(SW_SHOW);
+        SimpleViewSettings->SetKeyFocus();
     }
 }

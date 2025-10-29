@@ -320,7 +320,7 @@ namespace DirectDesktop
 
     void ToggleDelayOption(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == DDCheckBox::Click)
         {
             bool newChecked = (((DDCheckBox*)elem)->GetCheckedState() == false) ? true : false;
             ((DDCheckBox*)elem)->SetCheckedState(newChecked);
@@ -484,7 +484,7 @@ namespace DirectDesktop
         RestartBIOS = regElem<DDScalableButton*>(L"RestartBIOS", pShutdown);
         FIRMWARE_TYPE firmwareType{};
         GetFirmwareType(&firmwareType);
-        if (firmwareType == FirmwareTypeUefi) RestartBIOS->SetLayoutPos(4);
+        if (firmwareType == FirmwareTypeUefi) RestartBIOS->SetLayoutPos(-1);
         AdvancedOptions = regElem<Element*>(L"AdvancedOptions", pShutdown);
         CSafeElementPtr<RichText> moon;
         moon.Assign(regElem<RichText*>(L"moon", pShutdown));
@@ -506,7 +506,7 @@ namespace DirectDesktop
                 {
                     CSafeElementPtr<DDScalableElement> ReasonText;
                     ReasonText.Assign(regElem<DDScalableElement*>(L"ReasonText", StatusBarResid));
-                    ReasonText->SetLayoutPos(4);
+                    ReasonText->SetLayoutPos(-1);
                     WCHAR* cReason = new WCHAR[128];
                     StringCchPrintfW(cReason, 128, LoadStrFromRes(4038).c_str(), reasonStr.c_str());
                     ReasonText->SetContentString(cReason);

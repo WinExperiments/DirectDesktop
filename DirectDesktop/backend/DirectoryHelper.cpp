@@ -572,18 +572,18 @@ namespace DirectDesktop
             LoadStringW(WinStorageDLL, 4161, ControlPanel, 260);
             wchar_t* Network = new wchar_t[260];
             LoadStringW(WinStorageDLL, 9217, Network, 260);
-            wchar_t* LearnAbout = new wchar_t[260];
-            LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
+            //wchar_t* LearnAbout = new wchar_t[260];
+            //LoadStringW(Shell32DLL, 51761, LearnAbout, 260);
             FindShellIcon(pmLVItem, L"{59031A47-3F72-44A7-89C5-5595FE6B30EE}", UserFiless.c_str(), count2);
             FindShellIcon(pmLVItem, L"{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}", ControlPanel, count2);
             FindShellIcon(pmLVItem, L"{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", Network, count2);
-            FindShellIcon(pmLVItem, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2);
+            //FindShellIcon(pmLVItem, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2); // Disabled until a better way to find CLSIDs is written
             free(ThisPCBuf);
             free(RecycleBinBuf);
             delete[] UserFiles;
             delete[] ControlPanel;
             delete[] Network;
-            delete[] LearnAbout;
+            //delete[] LearnAbout;
             if (WinStorageDLL) FreeLibrary(WinStorageDLL);
             if (Shell32DLL) FreeLibrary(Shell32DLL);
             if (logging == IDYES) MainLogger.WriteLine(L"Information: Finished finding shell icons.");

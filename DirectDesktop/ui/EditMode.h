@@ -17,9 +17,9 @@ namespace DirectDesktop
     extern NativeHWNDHost* wnd;
     extern NativeHWNDHost* editwnd;
     extern NativeHWNDHost* editbgwnd;
-    extern HWND g_hWndTaskbar, g_hSHELLDLL_DefView;
+    extern HWND g_hWndTaskbar, g_hWorkerW, g_hSHELLDLL_DefView;
     extern Element* mainContainer, *UIContainer;
-    extern Button* PageViewer;
+    extern TouchButton* PageViewer;
     extern int localeType;
     extern int g_currentPageID, g_maxPageID;
     extern void SetPopupSize(Element* elem, int width, int height);
@@ -29,6 +29,7 @@ namespace DirectDesktop
     extern DDScalableTouchButton *nextpage, *prevpage;
     extern DDScalableRichText* pageinfo;
     extern DDScalableElement* fullscreeninnerE;
+    extern TouchButton* centeredE;
 
     extern void testEventListener3(Element* elem, Event* iev);
     extern void ShowSettings(Element* elem, Event* iev);
@@ -38,7 +39,7 @@ namespace DirectDesktop
 
     void ShowSimpleView(bool animate, DWORD animFlags);
     void RefreshSimpleView(DWORD animFlags);
-    void HideSimpleView(bool animate);
+    void HideSimpleView(bool fullanimate);
     void TriggerEMToPV(bool fReverse);
-    float CalcAnimOrigin(float flOriginFrom, float flOriginTo, float flScaleFrom, float flScaleTo);
+    void TriggerNoMorePagesOnEdit();
 }

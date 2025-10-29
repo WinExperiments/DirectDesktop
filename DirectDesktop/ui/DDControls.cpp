@@ -12,8 +12,6 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {
-    extern DDScalableButton* fullscreeninner;
-
     IClassInfo* DDScalableElement::s_pClassInfo;
     IClassInfo* DDScalableButton::s_pClassInfo;
     IClassInfo* DDScalableRichText::s_pClassInfo;
@@ -27,6 +25,8 @@ namespace DirectDesktop
     IClassInfo* DDSlider::s_pClassInfo;
     IClassInfo* DDColorPicker::s_pClassInfo;
     IClassInfo* DDColorPickerButton::s_pClassInfo;
+    IClassInfo* DDTab::s_pClassInfo;
+    IClassInfo* DDTabbedPages::s_pClassInfo;
     IClassInfo* DDNotificationBanner::s_pClassInfo;
 
     struct NotificationData
@@ -115,10 +115,10 @@ namespace DirectDesktop
     }
 
     template <typename T>
-    void RedrawFontCore(T* pe, bool* result)
+    void RedrawFontCore(T* pe, bool* result, bool fResize)
     {
         CValuePtr v;
-        if (pe->GetNeedsFontResize())
+        if (fResize)
         {
             if (pe->GetFont(&v) == nullptr)
             {
@@ -304,124 +304,32 @@ namespace DirectDesktop
         &dataimpTextHeightProp
     };
 
-    DWORD WINAPI DragThumb(LPVOID lpParam)
+    void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
-        yValuePtrs* yV = (yValuePtrs*)lpParam;
-        CSafeElementPtr<DDScalableButton> peThumb;
-        peThumb.Assign(regElem<DDScalableButton*>(L"DDS_Thumb", (Element*)yV->ptr1));
-        while (true)
-        {
-            if (!peThumb->GetCaptured()) break;
-            SendMessageW(g_msgwnd, WM_USER + 7, (WPARAM)yV->ptr1, NULL);
-            Sleep(10);
-        }
-        return 0;
-    }
-    void DDSlider::_SetThumbPosOnClick(Element* elem, Event* iev)
-    {
-        if (iev->uidType == Button::Click)
-        {
-            CSafeElementPtr<DDSlider> slider;
-            slider.Assign((DDSlider*)elem->GetParent()->GetParent()->GetParent());
-            bool vertical = slider->GetIsVertical();
-            CSafeElementPtr<Button> peTrack;
-            peTrack.Assign(regElem<Button*>(L"DDS_TrackBase", slider));
-            CSafeElementPtr<Button> peFill;
-            peFill.Assign(regElem<Button*>(L"DDS_FillBase", slider));
-            CSafeElementPtr<DDScalableButton> peThumb;
-            peThumb.Assign(regElem<DDScalableButton*>(L"DDS_Thumb", slider));
-            CSafeElementPtr<DDScalableRichText> peText;
-            peText.Assign(regElem<DDScalableRichText*>(L"DDS_Text", slider));
-            if (vertical)
-            {
-                int y = peFill->GetHeight();
-                if (elem == peFill)
-                {
-                    y -= elem->GetParent()->GetHeight() / 5;
-                    if (y < (peThumb->GetHeight() / 2)) y = peThumb->GetHeight() / 2;
-                }
-                else if (elem == peTrack)
-                {
-                    y += elem->GetParent()->GetHeight() / 5;
-                    if (y > elem->GetParent()->GetHeight() - (peThumb->GetHeight() / 2)) y = elem->GetParent()->GetHeight() - (peThumb->GetHeight() / 2);
-                }
-                peTrack->SetHeight(elem->GetParent()->GetHeight() - y);
-                peFill->SetHeight(y);
-                peThumb->SetY(elem->GetParent()->GetHeight() - y - peThumb->GetHeight() / 2);
-            }
-            else
-            {
-                int x = peFill->GetWidth();
-                if (elem == peFill)
-                {
-                    x -= elem->GetParent()->GetWidth() / 5;
-                    if (x < (peThumb->GetWidth() / 2)) x = peThumb->GetWidth() / 2;
-                }
-                else if (elem == peTrack)
-                {
-                    x += elem->GetParent()->GetWidth() / 5;
-                    if (x > elem->GetParent()->GetWidth() - (peThumb->GetWidth() / 2)) x = elem->GetParent()->GetWidth() - (peThumb->GetWidth() / 2);
-                }
-                peTrack->SetWidth(elem->GetParent()->GetWidth() - x);
-                peFill->SetWidth(x);
-                peThumb->SetX((localeType == 1) ? elem->GetParent()->GetWidth() - x - peThumb->GetWidth() / 2 : x - peThumb->GetWidth() / 2);
-            }
-            slider->SetCurrentValue(NULL, true);
-            WCHAR formattedNum[8];
-            StringCchPrintfW(formattedNum, 8, slider->GetFormattedString(), slider->GetCurrentValue());
-            peText->SetContentString(formattedNum);
-        }
-    }
-    void DDSlider::_SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        bool vertical = ((DDSlider*)elem->GetParent()->GetParent())->GetIsVertical();
-        CSafeElementPtr<Button> peTrack;
-        peTrack.Assign(regElem<Button*>(L"DDS_TrackBase", elem->GetParent()));
-        CSafeElementPtr<Button> peFill;
-        peFill.Assign(regElem<Button*>(L"DDS_FillBase", elem->GetParent()));
-        CSafeElementPtr<DDScalableButton> peThumbInner;
-        peThumbInner.Assign(regElem<DDScalableButton*>(L"DDS_ThumbInner", elem));
+        CSafeElementPtr<DDScalableTouchButton> peThumbInner;
+        peThumbInner.Assign(regElem<DDScalableTouchButton*>(L"DDS_ThumbInner", elem));
+        GTRANS_DESC transDesc[2];
+        TransitionStoryboardInfo tsbInfo = {};
+        float alpha1 = 1.0f;
+        float alpha2 = 1.0f;
+        float scaleRelease{};
         if (pProp == Element::MouseWithinProp())
         {
-            GTRANS_DESC transDesc[1];
-            TransitionStoryboardInfo tsbInfo = {};
-            float scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
-            TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
+            scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
+            goto THUMBANIMATE;
         }
-        if (pProp == Button::CapturedProp())
+        if (pProp == TouchButton::CapturedProp())
         {
-            GTRANS_DESC transDesc[2];
-            TransitionStoryboardInfo tsbInfo = {};
-            float alpha1 = (((Button*)elem)->GetCaptured()) ? 1.0f : 0.8f;
-            float alpha2 = (((Button*)elem)->GetCaptured()) ? 0.8f : 1.0f;
-            float scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
-            if (((Button*)elem)->GetCaptured())
+            alpha1 = (((TouchButton*)elem)->GetCaptured() || type == 5) ? 1.0f : 0.8f;
+            alpha2 = (((TouchButton*)elem)->GetCaptured() || type == 5) ? 0.8f : 1.0f;
+            scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
+        THUMBANIMATE:
+            if (((TouchButton*)elem)->GetCaptured() || type == 5)
                 TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 0.83f, 0.83f, 0.5f, 0.5f, false, false);
             else
-            {
-                ((DDSlider*)elem->GetParent()->GetParent())->SetCurrentValue(NULL, true);
                 TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
-            }
             TriggerFade(peThumbInner, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, alpha1, alpha2, false, false, ((Button*)elem)->GetCaptured());
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
-            POINT ppt;
-            GetCursorPos(&ppt);
-            if (vertical)
-            {
-                ((DDSlider*)elem->GetParent()->GetParent())->SetDragStart(ppt.y);
-                ((DDSlider*)elem->GetParent()->GetParent())->SetFillOnDragStart(peTrack->GetHeight());
-                ((DDSlider*)elem->GetParent()->GetParent())->SetPosOnDragStart(elem->GetY());
-            }
-            else
-            {
-                ((DDSlider*)elem->GetParent()->GetParent())->SetDragStart(ppt.x);
-                ((DDSlider*)elem->GetParent()->GetParent())->SetFillOnDragStart((localeType == 1) ? peTrack->GetWidth() : peFill->GetWidth());
-                ((DDSlider*)elem->GetParent()->GetParent())->SetPosOnDragStart(elem->GetX());
-            }
-            yValuePtrs* yV = new yValuePtrs{ (DDSlider*)elem->GetParent()->GetParent() };
-            HANDLE hDragThumb = CreateThread(nullptr, 0, DragThumb, yV, NULL, nullptr);
-            if (hDragThumb) CloseHandle(hDragThumb);
         }
     }
 
@@ -472,7 +380,7 @@ namespace DirectDesktop
             RedrawImageCore<DDScalableElement>(this);
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
-            RedrawFontCore<DDScalableElement>(this, nullptr);
+            RedrawFontCore<DDScalableElement>(this, nullptr, this->GetNeedsFontResize());
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -682,7 +590,7 @@ namespace DirectDesktop
             RedrawImageCore<DDScalableButton>(this);
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
-            RedrawFontCore<DDScalableButton>(this, nullptr);
+            RedrawFontCore<DDScalableButton>(this, nullptr, this->GetNeedsFontResize());
         Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -940,7 +848,7 @@ namespace DirectDesktop
             RedrawImageCore<DDScalableRichText>(this);
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
-            RedrawFontCore<DDScalableRichText>(this, nullptr);
+            RedrawFontCore<DDScalableRichText>(this, nullptr, this->GetNeedsFontResize());
         RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -1139,7 +1047,7 @@ namespace DirectDesktop
             RedrawImageCore<DDScalableTouchButton>(this);
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
-            RedrawFontCore<DDScalableTouchButton>(this, nullptr);
+            RedrawFontCore<DDScalableTouchButton>(this, nullptr, this->GetNeedsFontResize());
         TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -1351,6 +1259,11 @@ namespace DirectDesktop
         pfn(_fnb1, _fnb2, _fnb3);
     }
 
+    DDScalableTouchEdit::~DDScalableTouchEdit()
+    {
+        this->DestroyAll(true);
+    }
+
     IClassInfo* DDScalableTouchEdit::GetClassInfoPtr()
     {
         return s_pClassInfo;
@@ -1370,12 +1283,12 @@ namespace DirectDesktop
     {
         bool result{};
         result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
-        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp) || PropNotify::IsEqual(ppi, iIndex, TouchEdit2::PromptTextProp))
         {
             result = false;
             this->_SetValue(Element::AccNameProp, 1, pvNew, false);
             ElementSetValue(_peEdit, ppi, pvNew, this);
-            ElementSetValue(_pePreview, ppi, pvNew, this);
+            ElementSetValue(_pePreview, Element::ContentProp(), pvNew, this);
         }
         return result;
     }
@@ -1385,14 +1298,29 @@ namespace DirectDesktop
         if (PropNotify::IsEqual(ppi, iIndex, Element::KeyWithinProp))
         {
             CValuePtr v;
+            _pePreview->SetClass(L"");
             _pePreview->SetVisible(!_peEdit->GetKeyWithin());
             _pePreview->SetContentString(_peEdit->GetContentString(&v));
+            if (!_peEdit->GetContentString(&v))
+            {
+                if (_peEdit->GetPromptText(&v))
+                {
+                    _pePreview->SetClass(L"prompttext");
+                    _pePreview->SetContentString(_peEdit->GetPromptText(&v));
+                }
+                else _pePreview->SetContentString(L"");
+            }
             ElementSetValue(_peBackground, Element::SelectedProp(), pvNew, this);
         }
         if (PropNotify::IsEqual(ppi, iIndex, Element::MouseWithinProp))
             ElementSetValue(_peBackground, Element::OverhangProp(), pvNew, this);
         if (PropNotify::IsEqual(ppi, iIndex, Element::EnabledProp))
             ElementSetValue(_peBackground, ppi, pvNew, this);
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
+        {
+            RedrawFontCore<DDScalableElement>(_pePreview, nullptr, this->GetNeedsFontResize());
+            RedrawFontCore<TouchEdit2>(_peEdit, nullptr, this->GetNeedsFontResize());
+        }
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -1411,13 +1339,65 @@ namespace DirectDesktop
 
     HRESULT DDScalableTouchEdit::Register()
     {
-        return ClassInfo<DDScalableTouchEdit, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", nullptr, 0);
+        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        {
+            TouchEdit2::PromptTextProp(),
+            &impNeedsFontResizeProp
+        };
+        return ClassInfo<DDScalableTouchEdit, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    auto DDScalableTouchEdit::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
+    {
+        if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
+        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        auto v = useInt ? pv->GetInt() : pv->GetBool();
+        pv->Release();
+        return v;
+    }
+
+    void DDScalableTouchEdit::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt)
+    {
+        Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(pPropertyProc, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchEdit::PromptTextProp()
+    {
+        return TouchEdit2::PromptTextProp();
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchEdit::NeedsFontResizeProp()
+    {
+        return &impNeedsFontResizeProp;
+    }
+
+    const WCHAR* DDScalableTouchEdit::GetPromptText(Value** ppv)
+    {
+        if (_peEdit) return _peEdit->GetPromptText(ppv);
+        else return nullptr;
     }
 
     const WCHAR* DDScalableTouchEdit::GetContentString(Value** ppv)
     {
         if (_peEdit) return _peEdit->GetContentString(ppv);
         else return nullptr;
+    }
+
+    bool DDScalableTouchEdit::GetNeedsFontResize()
+    {
+        return this->GetPropCommon(NeedsFontResizeProp, false);
+    }
+
+    void DDScalableTouchEdit::SetNeedsFontResize(bool bNeedsFontResize)
+    {
+        this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
     }
 
     void DDScalableTouchEdit::SetKeyFocus()
@@ -1445,10 +1425,10 @@ namespace DirectDesktop
             {
                 this->Add((Element**)&_peEdit, 1);
                 _peEdit->SetID(L"TE_EditBox");
-                hr = Element::Create(0, this, nullptr, &_pePreview);
+                hr = DDScalableElement::Create(this, nullptr, (Element**)&_pePreview);
                 if (SUCCEEDED(hr))
                 {
-                    this->Add(&_pePreview, 1);
+                    this->Add((Element**)&_pePreview, 1);
                     _pePreview->SetID(L"TE_Preview");
                 }
             }
@@ -1495,7 +1475,7 @@ namespace DirectDesktop
 
     HRESULT LVItem::Register()
     {
-        return ClassInfo<LVItem, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
+        return ClassInfo<LVItem, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"LVItem", nullptr, 0);
     }
 
     unsigned short LVItem::GetInternalXPos()
@@ -1822,7 +1802,7 @@ namespace DirectDesktop
         return _peTextShadow;
     }
 
-    Button* LVItem::GetCheckbox()
+    TouchButton* LVItem::GetCheckbox()
     {
         return _peCheckbox;
     }
@@ -1852,7 +1832,7 @@ namespace DirectDesktop
         _peTextShadow = peTextShadow;
     }
 
-    void LVItem::SetCheckbox(Button* peCheckbox)
+    void LVItem::SetCheckbox(TouchButton* peCheckbox)
     {
         _peCheckbox = peCheckbox;
     }
@@ -1969,7 +1949,7 @@ namespace DirectDesktop
 
     HRESULT DDLVActionButton::Register()
     {
-        return ClassInfo<DDLVActionButton, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDLVActionButton", nullptr, 0);
+        return ClassInfo<DDLVActionButton, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDLVActionButton", nullptr, 0);
     }
 
     LVItem* DDLVActionButton::GetAssociatedItem()
@@ -2008,7 +1988,7 @@ namespace DirectDesktop
         {
             &impCheckedStateProp
         };
-        return ClassInfo<DDToggleButton, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDToggleButton, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDToggleButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     const PropertyInfo* WINAPI DDToggleButton::CheckedStateProp()
@@ -2107,11 +2087,11 @@ namespace DirectDesktop
         }
         if (PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp()))
             ElementSetValue(_peText, ppi, pvNew, this);
-        if (PropNotify::IsEqual(ppi, iIndex, Button::PressedProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, TouchButton::PressedProp()))
             ElementSetValue(_peGlyph, Element::SelectedProp(), pvNew, this);
         if (PropNotify::IsEqual(ppi, iIndex, DDCheckBox::CheckedStateProp()))
             ElementSetValue(_peGlyph, ppi, pvNew, this);
-        DDScalableButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+        DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
     HRESULT DDCheckBox::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
@@ -2121,7 +2101,7 @@ namespace DirectDesktop
 
     HRESULT DDCheckBox::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
     {
-        HRESULT hr = ((DDScalableButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        HRESULT hr = ((DDScalableTouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
         if (SUCCEEDED(hr))
             hr = this->_CreateCBVisual();
         return hr;
@@ -2133,7 +2113,7 @@ namespace DirectDesktop
         {
             &impCheckedStateProp
         };
-        return ClassInfo<DDCheckBox, DDScalableButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBox", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDCheckBox, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCheckBox", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     const PropertyInfo* WINAPI DDCheckBox::CheckedStateProp()
@@ -2211,7 +2191,116 @@ namespace DirectDesktop
         {
             _RedrawSlider();
         }
-        Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+        TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    void DDSlider::OnInput(InputEvent* pInput)
+    {
+        if (pInput->nCode == GMOUSE_MOVE)
+        {
+            GetCursorPos(&_ptBeforeClick);
+            ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &_ptBeforeClick);
+        }
+        if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice != GINPUT_KEYBOARD)
+        {
+            POINT ptRoot;
+            GetCursorPos(&ptRoot);
+            ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ptRoot);
+            _peSliderInner->MapElementPoint(this->GetRoot(), &ptRoot, &_ptOnClick);
+            s_AnimateThumb(_peThumb, TouchButton::CapturedProp(), 5, nullptr, nullptr);
+        }
+        if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG)
+        {
+            if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
+            {
+                static POINT ppt;
+                GetCursorPos(&ppt);
+                ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
+                static bool vertical = this->GetIsVertical();
+                static bool canMove{};
+                static float percentage{}, assocVal{};
+                static short sLeft, sUp, sRight, sDown;
+                static int width{}, height{};
+                if (vertical)
+                {
+                    int sliderSize = this->GetHeight() - this->GetTextHeight();
+                    sUp = GetAsyncKeyState(VK_UP);
+                    sDown = GetAsyncKeyState(VK_DOWN);
+                    if (sUp & 1)
+                    {
+                        height = _peFillBase->GetHeight() + round((sliderSize - _peThumb->GetHeight() / 2) / 10);
+                        canMove = true;
+                    }
+                    else if (sDown & 1)
+                    {
+                        height = _peFillBase->GetHeight() - round((sliderSize - _peThumb->GetHeight() / 2) / 10);
+                        canMove = true;
+                    }
+                    else height = ppt.y - _ptBeforeClick.y + _ptOnClick.y;
+                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
+                    if (height < _peThumb->GetHeight() / 2) height = _peThumb->GetHeight() / 2;
+                    if (height > sliderSize - _peThumb->GetHeight() / 2) height = sliderSize - _peThumb->GetHeight() / 2;
+                    int fillheight = sliderSize - height;
+                    if (canMove)
+                    {
+                        _peTrackBase->SetHeight(height);
+                        _peFillBase->SetHeight(fillheight);
+                        _peThumb->SetY(fillheight - _peThumb->GetHeight() / 2);
+                        percentage = static_cast<float>(fillheight - _peThumb->GetHeight() / 2) / (sliderSize - _peThumb->GetHeight());
+                    }
+                }
+                else
+                {
+                    static short localeDirection = (localeType == 1) ? -1 : 1;
+                    int sliderSize = this->GetWidth() - this->GetTextWidth();
+                    sLeft = GetAsyncKeyState(VK_LEFT);
+                    sRight = GetAsyncKeyState(VK_RIGHT);
+                    if (sLeft & 1 || sLeft & 0x8000)
+                    {
+                        width = _peFillBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        canMove = true;
+                    }
+                    else if (sRight & 1 || sRight & 0x8000)
+                    {
+                        width = _peFillBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        canMove = true;
+                    }
+                    else width = ppt.x - _ptBeforeClick.x + _ptOnClick.x;
+                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
+                    if (width < _peThumb->GetWidth() / 2) width = _peThumb->GetWidth() / 2;
+                    if (width > sliderSize - _peThumb->GetWidth() / 2) width = sliderSize - _peThumb->GetWidth() / 2;
+                    int fillwidth = sliderSize - width;
+                    if (canMove)
+                    {
+                        _peTrackBase->SetWidth((localeType == 1) ? width : fillwidth);
+                        _peFillBase->SetWidth((localeType == 1) ? fillwidth : width);
+                        _peThumb->SetX(((localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2);
+                        percentage = static_cast<float>(((localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2) / (sliderSize - _peThumb->GetWidth());
+                    }
+                }
+                if (canMove)
+                {
+                    if (percentage < 0) percentage = 0;
+                    if (percentage > 1) percentage = 1;
+                    assocVal = _minValue + (_maxValue - _minValue) * percentage;
+                    if (_tickValue > 0) assocVal = round(assocVal / _tickValue) * _tickValue;
+                    WCHAR formattedNum[8];
+                    StringCchPrintfW(formattedNum, 8, _szFormatted, assocVal);
+                    _peText->SetContentString(formattedNum);
+                }
+                if (pInput->nDevice == GINPUT_KEYBOARD)
+                {
+                    this->SetCurrentValue(NULL, true);
+                    _peThumb->SetKeyFocus();
+                }
+                sLeft = 0, sUp = 0, sRight = 0, sDown = 0;
+            }
+        }
+        if (pInput->nCode == GMOUSE_UP)
+        {
+            this->SetCurrentValue(NULL, true);
+        }
+        TouchButton::OnInput(pInput);
     }
 
     HRESULT DDSlider::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
@@ -2339,21 +2428,6 @@ namespace DirectDesktop
         return _assocVal;
     }
 
-    int DDSlider::GetDragStart()
-    {
-        return _dragStart;
-    }
-
-    int DDSlider::GetFillOnDragStart()
-    {
-        return _fodragStart;
-    }
-
-    int DDSlider::GetPosOnDragStart()
-    {
-        return _podragStart;
-    }
-
     void DDSlider::SetMinValue(float minValue)
     {
         _minValue = minValue;
@@ -2374,10 +2448,10 @@ namespace DirectDesktop
         if (fExternal)
         {
             bool vertical = this->GetIsVertical();
-            CSafeElementPtr<Button> peFill;
-            peFill.Assign(regElem<Button*>(L"DDS_FillBase", this));
-            CSafeElementPtr<Button> peThumb;
-            peThumb.Assign(regElem<Button*>(L"DDS_Thumb", this));
+            CSafeElementPtr<TouchButton> peFill;
+            peFill.Assign(regElem<TouchButton*>(L"DDS_FillBase", this));
+            CSafeElementPtr<TouchButton> peThumb;
+            peThumb.Assign(regElem<TouchButton*>(L"DDS_Thumb", this));
             int thumbOffset = vertical ? peThumb->GetHeight() : peThumb->GetWidth();
             int sliderSize = vertical ? this->GetHeight() - this->GetTextHeight() : this->GetWidth() - this->GetTextWidth();
             float percentage{};
@@ -2407,21 +2481,6 @@ namespace DirectDesktop
     {
         _assocVal = assocVal;
         _coef = extValueMultiplier;
-    }
-
-    void DDSlider::SetDragStart(int dragStart)
-    {
-        _dragStart = dragStart;
-    }
-
-    void DDSlider::SetFillOnDragStart(int fodragStart)
-    {
-        _fodragStart = fodragStart;
-    }
-
-    void DDSlider::SetPosOnDragStart(int podragStart)
-    {
-        _podragStart = podragStart;
     }
 
     LPCWSTR DDSlider::GetFormattedString()
@@ -2454,7 +2513,7 @@ namespace DirectDesktop
             {
                 this->Add(&_peSliderInner, 1);
                 _peSliderInner->SetValue(Element::LayoutProp, 1, spvLayout);
-                _peSliderInner->SetLayoutPos(4);
+                _peSliderInner->SetLayoutPos(-1);
                 BorderLayout::Create(0, nullptr, &spvLayout);
                 hr = Element::Create(0, _peSliderInner, nullptr, &_peTrackHolder);
                 if (SUCCEEDED(hr))
@@ -2462,20 +2521,18 @@ namespace DirectDesktop
                     _peSliderInner->Add(&_peTrackHolder, 1);
                     _peTrackHolder->SetValue(Element::LayoutProp, 1, spvLayout);
                     FillLayout::Create(0, nullptr, &spvLayout);
-                    hr = Button::Create(_peTrackHolder, nullptr, (Element**)&_peTrackBase);
+                    hr = TouchButton::Create(_peTrackHolder, nullptr, (Element**)&_peTrackBase);
                     if (SUCCEEDED(hr))
                     {
                         _peTrackHolder->Add((Element**)&_peTrackBase, 1);
                         _peTrackBase->SetID(L"DDS_TrackBase");
                         _peTrackBase->SetValue(Element::LayoutProp, 1, spvLayout);
-                        assignFn(_peTrackBase, _SetThumbPosOnClick);
-                        hr = Button::Create(_peTrackHolder, nullptr, (Element**)&_peFillBase);
+                        hr = TouchButton::Create(_peTrackHolder, nullptr, (Element**)&_peFillBase);
                         if (SUCCEEDED(hr))
                         {
                             _peTrackHolder->Add((Element**)&_peFillBase, 1);
                             _peFillBase->SetID(L"DDS_FillBase");
                             _peFillBase->SetValue(Element::LayoutProp, 1, spvLayout);
-                            assignFn(_peFillBase, DDSlider::_SetThumbPosOnClick);
                             hr = DDScalableElement::Create(_peTrackBase, nullptr, (Element**)&_peTrack);
                             if (SUCCEEDED(hr))
                             {
@@ -2486,13 +2543,13 @@ namespace DirectDesktop
                                 {
                                     _peFillBase->Add((Element**)&_peFill, 1);
                                     _peFill->SetID(L"DDS_Fill");
-                                    hr = DDScalableButton::Create(_peSliderInner, nullptr, (Element**)&_peThumb);
+                                    hr = DDScalableTouchButton::Create(_peSliderInner, nullptr, (Element**)&_peThumb);
                                     if (SUCCEEDED(hr))
                                     {
                                         _peSliderInner->Add((Element**)&_peThumb, 1);
                                         _peThumb->SetID(L"DDS_Thumb");
                                         _peThumb->SetValue(Element::LayoutProp, 1, spvLayout);
-                                        assignExtendedFn(_peThumb, DDSlider::_SetThumbPosOnDrag);
+                                        assignExtendedFn(_peThumb, s_AnimateThumb);
                                         hr = DDScalableElement::Create(_peThumb, nullptr, (Element**)&_peThumbInner);
                                         if (SUCCEEDED(hr))
                                         {
@@ -2562,12 +2619,6 @@ namespace DirectDesktop
 
     DDColorPickerButton::~DDColorPickerButton()
     {
-        if (_pelPropChange)
-        {
-            this->RemoveListener(_pelPropChange);
-            free(_pelPropChange);
-            _pelPropChange = nullptr;
-        }
         this->DestroyAll(true);
     }
 
@@ -2598,53 +2649,7 @@ namespace DirectDesktop
                 DDCPHC->SetX(this->GetX());
             }
         }
-        Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
-    }
-
-    void DDColorPickerButton::OnEvent(Event* pEvent)
-    {
-        if (pEvent->uidType == Button::Click())
-        {
-            DDColorPicker* peParent = (DDColorPicker*)this->GetParent();
-            if (peParent)
-            {
-                CSafeElementPtr<DDScalableElement> DDCPCC;
-                DDCPCC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_CheckedCircle", peParent));
-                DDCPCC->SetX(this->GetX());
-                RegKeyValue rkv = peParent->GetRegKeyValue();
-                if (rkv._hKeyName != nullptr)
-                {
-                    rkv._dwValue = _order;
-                    SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, rkv._dwValue, false, nullptr);
-                }
-                bool awareness = peParent->GetThemeAwareness();
-                for (int i = 0; i < _targetElems.size(); i++)
-                {
-                    if (_targetElems[i])
-                    {
-                        _targetElems[i]->SetDDCPIntensity(peParent->GetColorIntensity());
-                        if (_order == 0)
-                            _targetElems[i]->SetDDCPIntensity(255);
-                        if (awareness)
-                            _targetElems[i]->SetGroupColor(_order);
-                        _targetElems[i]->SetAssociatedColor(_assocCR);
-                    }
-                }
-                for (int i = 0; i < _targetBtns.size(); i++)
-                {
-                    if (_targetBtns[i])
-                    {
-                        _targetBtns[i]->SetDDCPIntensity(peParent->GetColorIntensity());
-                        if (_order == 0)
-                            _targetBtns[i]->SetDDCPIntensity(255);
-                        if (awareness)
-                            _targetBtns[i]->SetGroupColor(_order);
-                        _targetBtns[i]->SetAssociatedColor(_assocCR);
-                    }
-                }
-            }
-        }
-        Button::OnEvent(pEvent);
+        TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
     HRESULT DDColorPickerButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
@@ -2657,11 +2662,6 @@ namespace DirectDesktop
         return ClassInfo<DDColorPickerButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDColorPickerButton", nullptr, 0);
     }
 
-    void DDColorPickerButton::SetPropChangeListener(IElementListener* pel)
-    {
-        _pelPropChange = pel;
-    }
-
     COLORREF DDColorPickerButton::GetAssociatedColor()
     {
         return _assocCR;
@@ -2672,16 +2672,6 @@ namespace DirectDesktop
         return _order;
     }
 
-    vector<DDScalableElement*> DDColorPickerButton::GetTargetElements()
-    {
-        return _targetElems;
-    }
-
-    vector<DDScalableButton*> DDColorPickerButton::GetTargetButtons()
-    {
-        return _targetBtns;
-    }
-
     void DDColorPickerButton::SetAssociatedColor(COLORREF cr)
     {
         _assocCR = cr;
@@ -2690,16 +2680,6 @@ namespace DirectDesktop
     void DDColorPickerButton::SetOrder(BYTE bOrder)
     {
         _order = bOrder;
-    }
-
-    void DDColorPickerButton::SetTargetElements(vector<DDScalableElement*> vte)
-    {
-        _targetElems = vte;
-    }
-
-    void DDColorPickerButton::SetTargetButtons(vector<DDScalableButton*> vtb)
-    {
-        _targetBtns = vtb;
     }
 
     DDColorPicker::~DDColorPicker()
@@ -2720,6 +2700,70 @@ namespace DirectDesktop
     IClassInfo* DDColorPicker::GetClassInfoW()
     {
         return s_pClassInfo;
+    }
+
+    void DDColorPicker::OnInput(InputEvent* pInput)
+    {
+        if (pInput->nCode == GMOUSE_MOVE)
+        {
+            GetCursorPos(&_ptBeforeClick);
+            ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &_ptBeforeClick);
+        }
+        if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice != GINPUT_KEYBOARD)
+        {
+            POINT ptRoot;
+            GetCursorPos(&ptRoot);
+            ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ptRoot);
+            this->MapElementPoint(this->GetRoot(), &ptRoot, &_ptOnClick);
+        }
+        if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG)
+        {
+            if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
+            {
+                static POINT ppt;
+                GetCursorPos(&ppt);
+                ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
+                static bool canMove{};
+                static short sLeft, sRight;
+                static int width{};
+                static short oldColorID{};
+
+                short spacedWidth = this->GetWidth() / 8;
+                width = ppt.x - _ptBeforeClick.x + _ptOnClick.x + (spacedWidth - _btnWidth) / 2;
+                sLeft = GetAsyncKeyState(VK_LEFT);
+                sRight = GetAsyncKeyState(VK_RIGHT);
+                if (sLeft & 1 || sLeft & 0x8000)
+                {
+                    _currentColorID--;
+                    canMove = true;
+                }
+                else if (sRight & 1 || sRight & 0x8000)
+                {
+                    _currentColorID++;
+                    canMove = true;
+                }
+                else _currentColorID = width / spacedWidth;
+                if (_currentColorID < 0) _currentColorID = 0;
+                if (_currentColorID > 7) _currentColorID = 7;
+                if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
+                if (_currentColorID != oldColorID && canMove)
+                {
+                    _peOverlayCheck->SetX(_currentColorID * spacedWidth);
+                    _peOverlayHover->SetX(-9999);
+                    if (_rkv._hKeyName != nullptr)
+                    {
+                        _rkv._dwValue = _rgpeColorButtons[_currentColorID]->GetOrder();
+                        SetRegistryValues(_rkv._hKeyName, _rkv._path, _rkv._valueToFind, _rkv._dwValue, false, nullptr);
+                    }
+                    _ColorizeAssociatedItems<DDScalableElement>(_targetElems);
+                    _ColorizeAssociatedItems<DDScalableButton>(_targetBtns);
+                    _ColorizeAssociatedItems<DDScalableTouchButton>(_targetTouchBtns);
+                }
+                oldColorID = _currentColorID;
+                sLeft = 0, sRight = 0;
+            }
+        }
+        Element::OnInput(pInput);
     }
 
     void DDColorPicker::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
@@ -2823,40 +2867,6 @@ namespace DirectDesktop
         }
     }
 
-    HRESULT DDColorPicker::_CreateCLRVisual()
-    {
-        HRESULT hr = S_OK;
-        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
-        {
-            hr = DDColorPickerButton::Create(this, nullptr, (Element**)&_rgpeColorButtons[i]);
-            if (SUCCEEDED(hr))
-            {
-                this->Add((Element**)&_rgpeColorButtons[i], 1);
-                _rgpeColorButtons[i]->SetLayoutPos(-2);
-                _rgpeColorButtons[i]->SetOrder(i);
-            }
-        }
-        if (SUCCEEDED(hr))
-        {
-            hr = DDScalableElement::Create(this, nullptr, (Element**)&_peOverlayHover);
-            if (SUCCEEDED(hr))
-            {
-                this->Add((Element**)&_peOverlayHover, 1);
-                _peOverlayHover->SetLayoutPos(-2);
-                _peOverlayHover->SetX(-9999);
-                _peOverlayHover->SetID(L"DDColorPicker_HoverCircle");
-                hr = DDScalableElement::Create(this, nullptr, (Element**)&_peOverlayCheck);
-                if (SUCCEEDED(hr))
-                {
-                    this->Add((Element**)&_peOverlayCheck, 1);
-                    _peOverlayCheck->SetLayoutPos(-2);
-                    _peOverlayCheck->SetID(L"DDColorPicker_CheckedCircle");
-                }
-            }
-        }
-        return hr;
-    }
-
     const PropertyInfo* WINAPI DDColorPicker::FirstScaledImageProp()
     {
         return &impFirstScaledImageProp;
@@ -2934,6 +2944,11 @@ namespace DirectDesktop
         return _targetBtns;
     }
 
+    vector<DDScalableTouchButton*> DDColorPicker::GetTargetTouchButtons()
+    {
+        return _targetTouchBtns;
+    }
+
     bool DDColorPicker::GetThemeAwareness()
     {
         return _themeAwareness;
@@ -2944,21 +2959,23 @@ namespace DirectDesktop
         _rkv = rkvNew;
         int order = (_rkv._hKeyName) ? GetRegistryValues(_rkv._hKeyName, _rkv._path, _rkv._valueToFind) * _btnX : _rkv._dwValue * _btnX;
         int checkedBtnX = (localeType == 1) ? this->GetWidth() - order - _btnWidth : order;
+        _currentColorID = order / (this->GetWidth() / 8);
         _peOverlayCheck->SetX(checkedBtnX);
     }
 
     void DDColorPicker::SetTargetElements(vector<DDScalableElement*> vte)
     {
         _targetElems = vte;
-        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
-            _rgpeColorButtons[i]->SetTargetElements(_targetElems);
     }
 
     void DDColorPicker::SetTargetButtons(vector<DDScalableButton*> vtb)
     {
         _targetBtns = vtb;
-        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
-            _rgpeColorButtons[i]->SetTargetButtons(_targetBtns);
+    }
+
+    void DDColorPicker::SetTargetTouchButtons(vector<DDScalableTouchButton*> vttb)
+    {
+        _targetTouchBtns = vttb;
     }
 
     void DDColorPicker::SetThemeAwareness(bool ta)
@@ -2978,6 +2995,356 @@ namespace DirectDesktop
         };
         for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
             _rgpeColorButtons[i]->SetAssociatedColor(colorPickerPalette[i]);
+    }
+
+    HRESULT DDColorPicker::_CreateCLRVisual()
+    {
+        HRESULT hr = S_OK;
+        for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
+        {
+            hr = DDColorPickerButton::Create(this, nullptr, (Element**)&_rgpeColorButtons[i]);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_rgpeColorButtons[i], 1);
+                _rgpeColorButtons[i]->SetLayoutPos(-2);
+                _rgpeColorButtons[i]->SetOrder(i);
+            }
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = DDScalableElement::Create(this, nullptr, (Element**)&_peOverlayHover);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peOverlayHover, 1);
+                _peOverlayHover->SetLayoutPos(-2);
+                _peOverlayHover->SetX(-9999);
+                _peOverlayHover->SetID(L"DDColorPicker_HoverCircle");
+                hr = DDScalableElement::Create(this, nullptr, (Element**)&_peOverlayCheck);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_peOverlayCheck, 1);
+                    _peOverlayCheck->SetLayoutPos(-2);
+                    _peOverlayCheck->SetID(L"DDColorPicker_CheckedCircle");
+                }
+            }
+        }
+        return hr;
+    }
+
+    template <typename T>
+    void DDColorPicker::_ColorizeAssociatedItems(vector<T*> vElem)
+    {
+        for (int i = 0; i < vElem.size(); i++)
+        {
+            if (vElem[i])
+            {
+                vElem[i]->SetDDCPIntensity(this->GetColorIntensity());
+                if (_currentColorID == 0)
+                    vElem[i]->SetDDCPIntensity(255);
+                if (_themeAwareness)
+                    vElem[i]->SetGroupColor(_currentColorID);
+                vElem[i]->SetAssociatedColor(_rgpeColorButtons[_currentColorID]->GetAssociatedColor());
+            }
+        }
+    }
+
+    IClassInfo* DDTab::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDTab::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDTab::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDTab::OnEvent(Event* pEvent)
+    {
+        if (pEvent->uidType == TouchButton::Click)
+        {
+            ((DDTabbedPages*)this->GetParent()->GetParent()->GetParent()->GetParent())->TraversePage(this->_pageID);
+        }
+    }
+
+    HRESULT DDTab::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDTab, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDTab::Register()
+    {
+        return ClassInfo<DDTab, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDTab", nullptr, 0);
+    }
+
+    void DDTab::SetPage(BYTE pageID)
+    {
+        _pageID = pageID;
+    }
+
+    DDTabbedPages::~DDTabbedPages()
+    {
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDTabbedPages::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDTabbedPages::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDTabbedPages::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    //void DDTabbedPages::OnInput(InputEvent* pInput)
+    //{
+    //    if (pInput->nCode == GMOUSE_MOVE)
+    //    {
+    //        GetCursorPos(&_ptBeforeClick);
+    //        ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &_ptBeforeClick);
+    //    }
+    //    if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice != GINPUT_KEYBOARD)
+    //    {
+    //        POINT ptRoot;
+    //        GetCursorPos(&ptRoot);
+    //        ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ptRoot);
+    //        this->MapElementPoint(this->GetRoot(), &ptRoot, &_ptOnClick);
+    //    }
+    //    if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG)
+    //    {
+    //        if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
+    //        {
+    //        }
+    //    }
+    //    Element::OnInput(pInput);
+    //}
+
+    bool DDTabbedPages::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::MinSizeProp))
+        {
+            result = false;
+            ElementSetValue(_peSubUIContainer, ppi, pvNew, this);
+            SIZE size = *pvNew->GetSize();
+            RECT rcList{};
+            _tsvTabCtrl->GetVisibleRect(&rcList);
+            _tsvTabCtrl->SetXScrollable(size.cx > rcList.right - rcList.left);
+            _tsvPage->SetXScrollable(size.cx > rcList.right - rcList.left);
+        }
+        return result;
+    }
+
+    HRESULT DDTabbedPages::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDTabbedPages, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDTabbedPages::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateTPVisual();
+        return hr;
+    }
+
+    HRESULT DDTabbedPages::Register()
+    {
+        return ClassInfo<DDTabbedPages, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDTabbedPages", nullptr, 0);
+    }
+    
+    void DDTabbedPages::BindParser(DUIXmlParser* pParser)
+    {
+        _pParser = pParser;
+    }
+
+    void DDTabbedPages::InsertTab(BYTE index, LPCWSTR pszResIDPage, LPCWSTR pszTabLabel, GenericTabFunction ptfn)
+    {
+        if (_pageSize >= MAX_TABPAGES || index < 0 || index > _pageSize)
+            return;
+        for (int i = _pageSize - 1; i >= index; i--)
+        {
+            _pszPageIDs[i + 1] = _pszPageIDs[i];
+            _pfnTabs[i + 1] = _pfnTabs[i];
+            _peTabs[i + 1] = _peTabs[i];
+            _peTabs[i + 1]->SetPage(i + 1);
+        }
+        _pszPageIDs[index] = pszResIDPage;
+        _pfnTabs[index] = ptfn;
+        DDTab::Create(_peTabCtrl, nullptr, (Element**)&(_peTabs[index]));
+        _peTabCtrl->Insert((Element**)&_peTabs[index], 1, index);
+        _peTabs[index]->SetPage(index);
+        _peTabs[index]->SetContentString(pszTabLabel);
+        _pageSize++;
+    }
+
+    void DDTabbedPages::EraseTab(BYTE index)
+    {
+        if (index < 0 || index >= _pageSize)
+            return;
+        _peTabs[index]->Destroy(true);
+        _peTabs[index] = nullptr;
+        for (int i = index; i < _pageSize - 1; i++)
+        {
+            _pszPageIDs[i] = _pszPageIDs[i + 1];
+            _pfnTabs[i] = _pfnTabs[i + 1];
+            _peTabs[i] = _peTabs[i + 1];
+            _peTabs[i]->SetPage(i);
+        }
+        _pageSize--;
+    }
+
+    void DDTabbedPages::TraversePage(BYTE index)
+    {
+        if (index >= MAX_TABPAGES) return;
+        GTRANS_DESC transDesc[2];
+        TransitionStoryboardInfo tsbInfo = {};
+        CValuePtr v;
+        DynamicArray<Element*>* pel;
+        pel = _peSubUIContainer->GetChildren(&v);
+        RECT rcList;
+        _tsvPage->GetVisibleRect(&rcList);
+        Element* peSettingsPage;
+        for (DDTab* ddt : _peTabs)
+            if (ddt) ddt->SetSelected(false);
+        _peTabs[index]->SetSelected(true);
+        if (!pel)
+        {
+            _pParser->CreateElement(_pszPageIDs[index], nullptr, nullptr, nullptr, &peSettingsPage);
+            _peSubUIContainer->Add(&peSettingsPage, 1);
+            _pfnTabs[index](peSettingsPage);
+            GTRANS_DESC transDesc2[3];
+            TriggerTranslate(_peSubUIContainer, transDesc2, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false);
+            TriggerFade(_peSubUIContainer, transDesc2, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerClip(_peSubUIContainer, transDesc2, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc2, _peSubUIContainer->GetDisplayNode(), &tsbInfo);
+        }
+        else if (index != _pageID)
+        {
+            for (int id = 0; id < pel->GetSize(); id++)
+            {
+                bool fAnimate = true;
+                for (int id2 = 0; id2 < _vecAnimating.size(); id2++)
+                {
+                    if (pel->GetItem(id) == _vecAnimating[id2])
+                    {
+                        fAnimate = false;
+                        break;
+                    }
+                }
+                if (fAnimate)
+                {
+                    if ((localeType == 0 && index < _pageID) || (localeType == 1 && index > _pageID))
+                    {
+                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false);
+                        TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, false, true);
+                    }
+                    else if ((localeType == 0 && index > _pageID) || (localeType == 1 && index < _pageID))
+                    {
+                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false);
+                        TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, false, true);
+                    }
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pel->GetItem(id)->GetDisplayNode(), &tsbInfo);
+                    _vecAnimating.push_back(pel->GetItem(id));
+                    DWORD animCoef = g_animCoef;
+                    if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                    yValuePtrs* yV = new yValuePtrs{ &_vecAnimating, pel->GetItem(id), static_cast<DWORD>(3.3f * animCoef) };
+                    HANDLE hRemoveFromVec = CreateThread(nullptr, 0, s_RemoveFromVec, yV, NULL, nullptr);
+                    if (hRemoveFromVec) CloseHandle(hRemoveFromVec);
+                }
+            }
+            _tsvPage->SetYOffset(0);
+            _pParser->CreateElement(_pszPageIDs[index], nullptr, nullptr, nullptr, &peSettingsPage);
+            _peSubUIContainer->Add(&peSettingsPage, 1);
+            if (peSettingsPage)
+            {
+                if ((localeType == 0 && index < _pageID) || (localeType == 1 && index > _pageID))
+                {
+                    TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, (rcList.right - rcList.left) * -1, 0.0f, 0.0f, 0.0f, false, false);
+                    TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
+                }
+                else if ((localeType == 0 && index > _pageID) || (localeType == 1 && index < _pageID))
+                {
+                    TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, rcList.right - rcList.left, 0.0f, 0.0f, 0.0f, false, false);
+                    TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
+                }
+                _pfnTabs[index](peSettingsPage);
+            }
+        }
+        _pageID = index;
+    }
+
+    HRESULT DDTabbedPages::_CreateTPVisual()
+    {
+        HRESULT hr = S_OK;
+        CValuePtr spvLayout;
+        BorderLayout::Create(0, nullptr, &spvLayout);
+        this->SetValue(Element::LayoutProp, 1, spvLayout);
+        hr = TouchScrollViewer::Create(this, nullptr, (Element**)&_tsvTabCtrl);
+        if (SUCCEEDED(hr))
+        {
+            this->Add((Element**)&_tsvTabCtrl, 1);
+            _tsvTabCtrl->SetLayoutPos(1);
+            _tsvTabCtrl->SetActive(0xB);
+            _tsvTabCtrl->SetXBarVisibility(0);
+            _tsvTabCtrl->SetYBarVisibility(0);
+            _tsvTabCtrl->SetXScrollable(false);
+            _tsvTabCtrl->SetYScrollable(false);
+            _tsvTabCtrl->SetInteractionMode(16);
+            hr = Element::Create(0, _tsvTabCtrl, nullptr, &_peTabCtrl);
+            if (SUCCEEDED(hr))
+            {
+                _tsvTabCtrl->Add(&_peTabCtrl, 1);
+                int flowLayoutParams[4] = { 0, 0, 0, 0 };
+                FlowLayout::Create(ARRAYSIZE(flowLayoutParams), flowLayoutParams, &spvLayout);
+                _peTabCtrl->SetValue(Element::LayoutProp, 1, spvLayout);
+                _peTabCtrl->SetID(L"DDTP_TabControl");
+                hr = TouchScrollViewer::Create(this, nullptr, (Element**)&_tsvPage);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_tsvPage, 1);
+                    _tsvPage->SetLayoutPos(-1);
+                    _tsvPage->SetActive(0xB);
+                    _tsvPage->SetXBarVisibility(0);
+                    _tsvPage->SetYBarVisibility(0);
+                    _tsvPage->SetXScrollable(false);
+                    _tsvPage->SetInteractionMode(18);
+                    hr = Element::Create(0, _tsvPage, nullptr, (Element**)&_peSubUIContainer);
+                    if (SUCCEEDED(hr))
+                    {
+                        _tsvPage->Add((Element**)&_peSubUIContainer, 1);
+                        FillLayout::Create(0, nullptr, &spvLayout);
+                        _peSubUIContainer->SetValue(Element::LayoutProp, 1, spvLayout);
+                        _peSubUIContainer->SetLayoutPos(-1);
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
+    DWORD WINAPI DDTabbedPages::s_RemoveFromVec(LPVOID lpParam)
+    {
+        yValuePtrs* yV = (yValuePtrs*)lpParam;
+        Sleep(yV->dwMillis);
+        vector<void*>* vec = ((vector<void*>*)yV->ptr1);
+        auto toRemove = find(vec->begin(), vec->end(), yV->ptr2);
+        vec->erase(toRemove);
+        return 0;
     }
 
     LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -3236,7 +3603,7 @@ namespace DirectDesktop
             HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper, nd, NULL, nullptr);
             if (AnimHandle) CloseHandle(AnimHandle);
             g_nwnds.push_back(_wnd->GetHWND());
-            DDNotificationBanner::RepositionBanners();
+            DDNotificationBanner::s_RepositionBanners();
             if (timeout > 0)
             {
                 NotificationData* nd = new NotificationData{ this, nullptr, timeout };
@@ -3247,7 +3614,7 @@ namespace DirectDesktop
         }
     }
 
-    void DDNotificationBanner::RepositionBanners()
+    void DDNotificationBanner::s_RepositionBanners()
     {
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -3267,7 +3634,7 @@ namespace DirectDesktop
         {
             auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), _wnd->GetHWND());
             g_nwnds.erase(toRemove);
-            DDNotificationBanner::RepositionBanners();
+            DDNotificationBanner::s_RepositionBanners();
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             AnimateWindow(_wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
@@ -3281,7 +3648,7 @@ namespace DirectDesktop
         delete this;
     }
 
-    void DDNotificationBanner::DestroyBannerByButton(Element* elem, Event* iev)
+    void DDNotificationBanner::s_DestroyBannerByButton(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
         {
@@ -3310,7 +3677,7 @@ namespace DirectDesktop
             GetClientRect(_wnd->GetHWND(), &windowRect);
             cy = (_peButtonSection->GetHeight() + windowRect.bottom);
             SetWindowPos(_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
-            DDNotificationBanner::RepositionBanners();
+            DDNotificationBanner::s_RepositionBanners();
         }
         _btnCount++;
         int flowlayoutParams[2] = { 1, _btnCount };
@@ -3324,6 +3691,6 @@ namespace DirectDesktop
         pBtn->SetContentString(szButtonText);
         _peButtonSection->Add((Element**)&pBtn, 1);
         if (pListener) assignFn(pBtn, pListener);
-        if (fClose) assignFn(pBtn, DDNotificationBanner::DestroyBannerByButton);
+        if (fClose) assignFn(pBtn, DDNotificationBanner::s_DestroyBannerByButton);
     }
 }

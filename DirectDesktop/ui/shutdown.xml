@@ -62,8 +62,9 @@
 		<Element id="atom(AdvancedOptions)" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)" height="108rp">
 			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
 				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,4rp,0,0)" content="resstr(4035)"/>
-				<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')"/>
-				<RichText content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>
+				<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="messagefont;115%" NeedsFontResize="true"/>
+				<DDScalableElement content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="messagefont;115%" NeedsFontResize="true"
+								   compositedtext="true" textglowsize="0" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>
 			</Element>
 			<Element layout="verticalflowlayout(0,0,0,2)" layoutpos="client" background="argb(0,0,0,0)">
 				<DDScalableButton id="atom(RestartWinRE)" margin="rect(0,0,0,4rp)" content="resstr(1810, library(bootux.dll))" class="hyperlink"/>
@@ -130,12 +131,6 @@
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)"/>
 			</if>
-			<if id="atom(DDCB_Text)">
-				<DDScalableElement padding="rect(6rp,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'messagefont;115%')" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
-				<if Enabled="false">
-					<DDScalableElement foreground="rgb(128,128,128)"/>
-				</if>
-			</if>
 			<if id="atom(StatusIcon)">
 				<RichText foreground="20006"/>
 			</if>
@@ -193,12 +188,6 @@
 			</if>
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)"/>
-			</if>
-			<if id="atom(DDCB_Text)">
-				<DDScalableElement padding="rect(6rp,0,0,0)" font="themeable(gtf(TextStyle,1,0), 'messagefont;115%')" NeedsFontResize="true" compositedtext="true" textglowsize="0"/>
-				<if Enabled="false">
-					<DDScalableElement foreground="rgb(160,160,160)"/>
-				</if>
 			</if>
 			<if id="atom(StatusIcon)">
 				<RichText foreground="20003"/>

@@ -22,7 +22,7 @@
 					<RichText id="atom(textElemShadow)" layoutpos="bottom" contentalign="topcenter"/>
 					<RichText id="atom(textElem)" layoutpos="bottom" contentalign="topcenter"/>
 					<Element layout="ninegridlayout()" layoutpos="ninetopleft">
-						<Button id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopleft" margin="rect(6rp,6rp,0,0)"/>
+						<TouchButton id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopleft" margin="rect(6rp,6rp,0,0)"/>
 					</Element>
 					<Element layout="flowlayout(0,2,2,2)" layoutpos="client" background="argb(0,0,0,0)">
 						<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
@@ -46,7 +46,7 @@
 						</Element>
 					</Element>
 					<Element layout="ninegridlayout()" layoutpos="ninetopright">
-						<Button id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopright" margin="rect(0,8rp,8rp,0)"/>
+						<TouchButton id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopright" margin="rect(0,8rp,8rp,0)"/>
 					</Element>
 					<Element layout="flowlayout(0,2,2,2)" layoutpos="client" background="argb(0,0,0,0)">
 						<Element id="atom(multipleitems)" visible="false" alpha="255" background="themeable(dtb(DragDrop,8,0), white)" font="themeable(gtf(DragDrop,8,0), 'iconfont')" content="1"
@@ -57,9 +57,7 @@
 		</Element>
 	</HWNDElement>
 	<Element resid="pageVisual" id="atom(pageVisual)" layoutpos="absolute"/>
-	<Button resid="emptyspace" layoutpos="absolute" background="argb(0,0,0,0)">
-		<Button id="atom(checkboxElem)" layoutpos="none"/> ///dummy checkbox to prevent crashing
-	</Button>
+	<TouchButton resid="emptyspace" layoutpos="absolute" background="argb(0,0,0,0)"/>
 	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>
 	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap()">
 		<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
@@ -69,17 +67,17 @@
 		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
 		<Element layout="ninegridlayout()" layoutpos="ninetopleft" background="argb(0,0,0,0)">
-			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
+			<TouchButton id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
 		</Element>
 	</LVItem>
-	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp">
+	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp"  behaviors="PVL::AnimationTrap()">
 		<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
 		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute"/>
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 	</LVItem>
-	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap()">
+	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" overhang="true" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap()">
 		<DDScalableElement id="atom(innerElem)" class="itemTouchInner"/>
 		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(6rp,6rp,6rp,6rp)" background="argb(0,0,0,0)">
 			<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()" background="argb(0,0,0,0)">
@@ -94,7 +92,7 @@
 			</Element>
 		</Element>
 		<Element layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
-			<Button id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
+			<TouchButton id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
 		</Element>
 	</LVItem>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
@@ -121,22 +119,22 @@
 			</if>
 			<if class="itemTouchInner">
 				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
-				<if mousefocused="true">
-					<DDScalableElement FirstScaledImage="3017"/>
+				<if selected="true">
+					<DDScalableElement FirstScaledImage="3017" EnableAccent="true"/>
 				</if>
 				<if Enabled="false">
 					<DDScalableElement FirstScaledImage="3024"/>
 				</if>
 			</if>
 			<if class="checkbox">
-				<Button content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<TouchButton content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
 				<if mousefocused="true">
-					<Button content="themeable(dtb(DirectUI::Button,3,2), '')"/>
+					<TouchButton content="themeable(dtb(DirectUI::Button,3,2), '')"/>
 				</if>
 				<if selected="true">
-					<Button content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
+					<TouchButton content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
 					<if mousefocused="true">
-						<Button content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+						<TouchButton content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
 			</if>
@@ -183,22 +181,22 @@
 			</if>
 			<if class="itemTouchInner">
 				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
-				<if mousefocused="true">
-					<DDScalableElement FirstScaledImage="3017"/>
+				<if selected="true">
+					<DDScalableElement FirstScaledImage="3017" EnableAccent="true"/>
 				</if>
 				<if Enabled="false">
 					<DDScalableElement FirstScaledImage="3024"/>
 				</if>
 			</if>
 			<if class="checkbox">
-				<Button content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
+				<TouchButton content="themeable(dtb(DirectUI::Button,3,1), '')" font="12pt;Normal;None;Marlett" padding="themeable(rect(0,0,0,0), rect(0,1rp,2rp,0))" background="themeable(argb(0,0,0,0), dfc(4, 0x0010 | 0x0200))"/>
 				<if mousefocused="true">
-					<Button content="themeable(dtb(DirectUI::Button,3,2), '')"/>
+					<TouchButton content="themeable(dtb(DirectUI::Button,3,2), '')"/>
 				</if>
 				<if selected="true">
-					<Button content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
+					<TouchButton content="themeable(dtb(DirectUI::Button,3,5), 'b')"/>
 					<if mousefocused="true">
-						<Button content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
+						<TouchButton content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
 			</if>

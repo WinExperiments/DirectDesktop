@@ -64,6 +64,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -97,6 +98,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -137,6 +139,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -172,6 +175,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -211,6 +215,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -251,6 +256,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);

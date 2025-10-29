@@ -26,7 +26,7 @@ namespace DirectDesktop
     extern NativeHWNDHost* wnd;
     extern NativeHWNDHost* subviewwnd;
     extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);
-    extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
+    extern void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen);
 
     void ToggleSetting(Element* elem, Event* iev);
     POINT GetTopLeftMonitor();

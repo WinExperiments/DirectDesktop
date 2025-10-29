@@ -58,7 +58,7 @@ namespace DirectDesktop
 
     void LaunchSearchResult(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             wstring temp = ((LVItem*)elem)->GetFilename();
             SHELLEXECUTEINFOW execInfo = {};
@@ -74,7 +74,7 @@ namespace DirectDesktop
     {
         static LPWSTR path{};
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick)
         {
             MessageBeep(MB_OK);
             //CValuePtr v;
@@ -133,15 +133,16 @@ namespace DirectDesktop
 
     void CloseSearch(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             SetTimer(searchwnd->GetHWND(), 1, 50, nullptr);
         }
     }
 
-    void CreateSearchPage()
+    void CreateSearchPage(bool WinAltQ)
     {
         if (g_searchopen) return;
+        if (WinAltQ) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
         g_searchopen = true;
         unsigned long key4 = 0;
         RECT dimensions;
@@ -151,7 +152,7 @@ namespace DirectDesktop
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x30;
+            dwCreateFlags = 0x38;
             dwHostFlags = 0x43;
         }
         NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", nullptr, nullptr,
@@ -174,23 +175,23 @@ namespace DirectDesktop
         searchwnd->ShowWindow(SW_SHOW);
         searchbox = regElem<DDScalableTouchEdit*>(L"searchbox", pSearch);
         free(pel_DisplayResults), free(pel_CloseSearch);
-        CSafeElementPtr<DDScalableButton> searchbutton;
-        searchbutton.Assign(regElem<DDScalableButton*>(L"searchbutton", pSearch));
+        CSafeElementPtr<DDScalableTouchButton> searchbutton;
+        searchbutton.Assign(regElem<DDScalableTouchButton*>(L"searchbutton", pSearch));
         pel_DisplayResults = (IElementListener*)assignFn(searchbutton, DisplayResults, true);
-        CSafeElementPtr<DDScalableButton> closebutton;
-        closebutton.Assign(regElem<DDScalableButton*>(L"closebutton", pSearch));
+        CSafeElementPtr<DDScalableTouchButton> closebutton;
+        closebutton.Assign(regElem<DDScalableTouchButton*>(L"closebutton", pSearch));
         pel_CloseSearch = (IElementListener*)assignFn(closebutton, CloseSearch, true);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
         SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
         GTRANS_DESC transDesc[1];
-        TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
+        TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
         TransitionStoryboardInfo tsbInfo = {};
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         CSafeElementPtr<Element> pagecontent;
         pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
         GTRANS_DESC transDesc2[2];
         TriggerFade(pagecontent, transDesc2, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-        TriggerScaleIn(pagecontent, transDesc2, 1, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        TriggerScaleIn(pagecontent, transDesc2, 1, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.75f, 0.75f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, pagecontent->GetDisplayNode(), &tsbInfo);
         MARGINS m = { -1, -1, -1, -1 };
         if (DWMActive)

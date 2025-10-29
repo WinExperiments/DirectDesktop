@@ -82,7 +82,7 @@ namespace DirectDesktop
 
     void ToggleSetting(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == TouchButton::Click)
         {
             DDToggleButton* ddtb = (DDToggleButton*)elem;
             ddtb->SetCheckedState(!ddtb->GetCheckedState());

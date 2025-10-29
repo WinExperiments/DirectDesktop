@@ -5,6 +5,7 @@
 #include "DirectoryHelper.h"
 #include "..\DirectDesktop.h"
 #include "..\ui\EditMode.h"
+#include "..\ui\Subview.h"
 
 namespace DirectDesktop
 {
@@ -20,25 +21,30 @@ namespace DirectDesktop
     void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch)
     {
         if (iconsz == g_iconsz && touch == g_touchmode) return;
-        if (isDefaultRes()) SetPos(true);
-        g_iconsz = iconsz;
-        g_shiconsz = shiconsz;
-        g_gpiconsz = gpiconsz;
-        bool touchmodeMem = g_touchmode;
-        g_touchmode = touch;
-        SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", touch, false, nullptr);
-        if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
-        if (touchmodeMem == !touch)
+        if (g_canRefreshMain)
         {
-            InitLayout(true, false, false);
-            return;
+            bool touchmodeMem = g_touchmode;
+            if (isDefaultRes()) SetPos(true);
+            g_iconsz = iconsz;
+            g_shiconsz = shiconsz;
+            g_gpiconsz = gpiconsz;
+            g_touchmode = touch;
+            SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"TouchView", touch, false, nullptr);
+            if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
+            if (touchmodeMem == !touch)
+            {
+                InitLayout(true, false, false);
+                g_canRefreshMain = false;
+                SetTimer(wnd->GetHWND(), 13, 750, nullptr);
+                return;
+            }
+            RearrangeIcons(true, true, false);
         }
-        RearrangeIcons(true, true, false);
     }
 
     void DesktopRightClick(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Context)
+        if (iev->uidType == TouchButton::RightClick)
         {
             IShellView* pShellView = nullptr;
             IShellFolder* pShellFolder = nullptr;
@@ -46,7 +52,7 @@ namespace DirectDesktop
             HRESULT hr = SHGetDesktopFolder(&pShellFolder);
             pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
 
-            LPCONTEXTMENU3 pICv1 = nullptr;
+            LPCONTEXTMENU pICv1 = nullptr;
             pShellView->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu3, (LPVOID*)&pICv1);
             if (pICv1)
             {
@@ -85,6 +91,14 @@ namespace DirectDesktop
                 InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
                 InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
                 InsertMenuW(hm, 3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
+                if (!g_canRefreshMain)
+                {
+                    EnableMenuItem(hsm, 1001, MF_BYCOMMAND | MF_DISABLED);
+                    EnableMenuItem(hsm, 1002, MF_BYCOMMAND | MF_DISABLED);
+                    EnableMenuItem(hsm, 1003, MF_BYCOMMAND | MF_DISABLED);
+                    EnableMenuItem(hsm, 1004, MF_BYCOMMAND | MF_DISABLED);
+                    EnableMenuItem(hsm, 1005, MF_BYCOMMAND | MF_DISABLED);
+                }
                 pICv1->QueryContextMenu(hm, 4, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
                 int itemCount = GetMenuItemCount(hm);
@@ -122,7 +136,7 @@ namespace DirectDesktop
                 switch (menuItemId)
                 {
                     case 2002:
-                        InitLayout(true, false, true);
+                        InitLayout(true, true, true);
                         break;
                     case 2003:
                         ShowSimpleView(true, 0x0);
@@ -192,6 +206,7 @@ namespace DirectDesktop
                         break;
                 }
             }
+            pICv1->Release();
             pShellFolder->Release();
         }
     }
@@ -337,13 +352,14 @@ namespace DirectDesktop
                 break;
             }
         }
+        pICv1->Release();
         CoTaskMemFree(pidl);
         ppFolder->Release();
     }
 
     void ItemRightClick(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Context)
+        if (iev->uidType == LVItem::RightClick)
         {
            if (elem->GetMouseFocused()) RightClickCore((LVItem*)elem);
         }

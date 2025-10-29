@@ -22,6 +22,7 @@ namespace DirectDesktop
     extern int g_currentPageID, g_maxPageID, g_homePageID;
     extern HWND g_msgwnd;
     extern bool DWMActive;
+    extern bool g_treatdirasgroup, g_canRefreshMain;
 
     struct yValue
     {
@@ -152,12 +153,14 @@ namespace DirectDesktop
     extern bool GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE** outBytes);
     extern void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE* bValue, DWORD length, bool find, bool* isNewValue);
     extern HRESULT CloakWindow(HWND hwnd, bool fCloak);
+    extern float CalcAnimOrigin(float flOriginFrom, float flOriginTo, float flScaleFrom, float flScaleTo);
+
+    extern void LaunchItem(LPCWSTR filename);
 
     extern bool isDefaultRes();
-    extern bool IsDesktopActive();
-    extern bool IsDesktopOrSubviewActive();
 
     DWORD WINAPI fastin(LPVOID lpParam);
+    DWORD WINAPI SetElemPos(LPVOID lpParam);
 
     template <typename elemType>
     elemType regElem(const wchar_t* elemName, Element* peParent)

@@ -27,6 +27,7 @@ namespace DirectDesktop
     {
     public:
         DDScalableElement()
+            : _gc(0)
         {
         }
 
@@ -63,7 +64,7 @@ namespace DirectDesktop
         void SetGroupColor(unsigned short sGC);
 
     protected:
-        unsigned short _gc{};
+        unsigned short _gc;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -75,6 +76,14 @@ namespace DirectDesktop
     {
     public:
         DDScalableButton()
+            : _rkv{}
+            , _assocFn(nullptr)
+            , _fnb1(false)
+            , _fnb2(false)
+            , _fnb3(false)
+            , _assocBool(nullptr)
+            , _gc(0)
+            , _shellinteraction(false)
         {
         }
 
@@ -121,14 +130,14 @@ namespace DirectDesktop
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
 
     protected:
-        RegKeyValue _rkv{};
-        void (*_assocFn)(bool, bool, bool) = nullptr;
-        bool _fnb1 = false;
-        bool _fnb2 = false;
-        bool _fnb3 = false;
-        bool* _assocBool = nullptr;
-        unsigned short _gc{};
-        bool _shellinteraction = false;
+        RegKeyValue _rkv;
+        void (*_assocFn)(bool, bool, bool);
+        bool _fnb1;
+        bool _fnb2;
+        bool _fnb3;
+        bool* _assocBool;
+        unsigned short _gc;
+        bool _shellinteraction;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -185,6 +194,14 @@ namespace DirectDesktop
     {
     public:
         DDScalableTouchButton()
+            : _rkv{}
+            , _assocFn(nullptr)
+            , _fnb1(false)
+            , _fnb2(false)
+            , _fnb3(false)
+            , _assocBool(nullptr)
+            , _gc(0)
+            , _shellinteraction(false)
         {
         }
 
@@ -231,14 +248,14 @@ namespace DirectDesktop
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
 
     protected:
-        RegKeyValue _rkv{};
-        void (*_assocFn)(bool, bool, bool) = nullptr;
-        bool _fnb1 = false;
-        bool _fnb2 = false;
-        bool _fnb3 = false;
-        bool* _assocBool = nullptr;
-        unsigned short _gc{};
-        bool _shellinteraction = false;
+        RegKeyValue _rkv;
+        void (*_assocFn)(bool, bool, bool);
+        bool _fnb1;
+        bool _fnb2;
+        bool _fnb3;
+        bool* _assocBool;
+        unsigned short _gc;
+        bool _shellinteraction;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -250,13 +267,13 @@ namespace DirectDesktop
     {
     public:
         DDScalableTouchEdit()
+            : _peBackground(nullptr)
+            , _peEdit(nullptr)
+            , _pePreview(nullptr)
         {
         }
 
-        virtual ~DDScalableTouchEdit()
-        {
-        }
-        
+        ~DDScalableTouchEdit();
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
@@ -265,14 +282,21 @@ namespace DirectDesktop
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
+        static const PropertyInfo* WINAPI PromptTextProp();
+        static const PropertyInfo* WINAPI NeedsFontResizeProp();
+        const WCHAR* GetPromptText(Value** ppv);
         const WCHAR* GetContentString(Value** ppv);
+        bool GetNeedsFontResize();
+        void SetNeedsFontResize(bool bNeedsFontResize);
         void SetKeyFocus() override;
 
     private:
         static IClassInfo* s_pClassInfo;
-        DDScalableElement* _peBackground{};
-        TouchEdit2* _peEdit{};
-        Element* _pePreview{};
+        DDScalableElement* _peBackground;
+        TouchEdit2* _peEdit;
+        DDScalableElement* _pePreview;
+        auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
         HRESULT _CreateTEVisual();
     };
 
@@ -301,10 +325,47 @@ namespace DirectDesktop
 
     class LVItemTouchGrid;
 
-    class LVItem final : public DDScalableButton
+    class LVItem final : public DDScalableTouchButton
     {
     public:
         LVItem()
+            : _filename{}
+            , _simplefilename{}
+            , _isDirectory(false)
+            , _isGrouped(false)
+            , _isHidden(false)
+            , _mem_isSelected(false)
+            , _isShortcut(false)
+            , _colorLock(false)
+            , _dragged(false)
+            , _refreshable(false)
+            , _sfg(false)
+            , _flying(false)
+            , _moving(false)
+            , _hai(false)
+            , _xPos(65535)
+            , _yPos(65535)
+            , _mem_xPos(0)
+            , _mem_yPos(0)
+            , _page(0)
+            , _mem_page(0)
+            , _prmem_page(0)
+            , _mem_iconsize(0)
+            , _itemCount(0)
+            , _itemIndex(0)
+            , _groupsize(LVIGS_NORMAL)
+            , _tilesize(LVITS_NONE)
+            , _opendirstate(LVIODS_NONE)
+            , _smallPos(1)
+            , _touchGrid(nullptr)
+            , _peIcon(nullptr)
+            , _peShadow(nullptr)
+            , _peShortcutArrow(nullptr)
+            , _peText(nullptr)
+            , _peTextShadow(nullptr)
+            , _peCheckbox(nullptr)
+            , _childItemss(nullptr)
+            , _pels{}
         {
         }
 
@@ -378,13 +439,13 @@ namespace DirectDesktop
         Element* GetShortcutArrow();
         RichText* GetText();
         RichText* GetTextShadow();
-        Button* GetCheckbox();
+        TouchButton* GetCheckbox();
         void SetIcon(DDScalableElement* peIcon);
         void SetShadow(Element* peShadow);
         void SetShortcutArrow(Element* peShortcutArrow);
         void SetText(RichText* peText);
         void SetTextShadow(RichText* peTextShadow);
-        void SetCheckbox(Button* peCheckbox);
+        void SetCheckbox(TouchButton* peCheckbox);
         vector<LVItem*>* GetChildItems();
         void SetChildItems(vector<LVItem*>* vpm);
         void SetListeners(vector<IElementListener*> pels);
@@ -426,7 +487,7 @@ namespace DirectDesktop
         Element* _peShortcutArrow{};
         RichText* _peText{};
         RichText* _peTextShadow{};
-        Button* _peCheckbox{};
+        TouchButton* _peCheckbox{};
         vector<LVItem*>* _childItemss{};
         vector<IElementListener*> _pels;
     };
@@ -435,6 +496,11 @@ namespace DirectDesktop
     {
     public:
         LVItemTouchGrid()
+            : _items{}
+            , _xFirstTile(0)
+            , _yFirstTile(0)
+            , _maxCount(4)
+            , _itemCount(0)
         {
         }
 
@@ -448,18 +514,19 @@ namespace DirectDesktop
         BYTE GetItemCount();
 
     private:
-        LVItem* _items[4] = { nullptr };
+        LVItem* _items[4];
         unsigned short _xFirstTile;
         unsigned short _yFirstTile;
-        BYTE _maxCount = 4;
-        BYTE _itemCount{};
+        BYTE _maxCount;
+        BYTE _itemCount;
         void _RefreshLVItemPositions(BYTE index);
     };
 
-    class DDLVActionButton final : public DDScalableButton
+    class DDLVActionButton final : public DDScalableTouchButton
     {
     public:
         DDLVActionButton()
+            : _assocItem(nullptr)
         {
         }
 
@@ -474,10 +541,10 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
-        LVItem* _assocItem{};
+        LVItem* _assocItem;
     };
 
-    class DDToggleButton final : public DDScalableButton
+    class DDToggleButton final : public DDScalableTouchButton
     {
     public:
         DDToggleButton()
@@ -525,10 +592,12 @@ namespace DirectDesktop
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDCheckBox final : public DDScalableButton
+    class DDCheckBox final : public DDScalableTouchButton
     {
     public:
         DDCheckBox()
+            : _peGlyph(nullptr)
+            , _peText(nullptr)
         {
         }
 
@@ -550,15 +619,34 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
-        DDCheckBoxGlyph* _peGlyph{};
-        DDScalableElement* _peText{};
+        DDCheckBoxGlyph* _peGlyph;
+        DDScalableElement* _peText;
         HRESULT _CreateCBVisual();
     };
 
-    class DDSlider final : public Button
+    class DDSlider final : public TouchButton
     {
     public:
         DDSlider()
+            : _rkv{}
+            , _minValue(0)
+            , _maxValue(0)
+            , _tickValue(0)
+            , _currValue(0)
+            , _ptBeforeClick{}
+            , _ptOnClick{}
+            , _assocVal(nullptr)
+            , _coef(1)
+            , _szFormatted(nullptr)
+            , _peTrackBase(nullptr)
+            , _peFillBase(nullptr)
+            , _peSliderInner(nullptr)
+            , _peTrackHolder(nullptr)
+            , _peThumb(nullptr)
+            , _peTrack(nullptr)
+            , _peFill(nullptr)
+            , _peThumbInner(nullptr)
+            , _peText(nullptr)
         {
         }
 
@@ -567,6 +655,7 @@ namespace DirectDesktop
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
         void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnInput(InputEvent* pInput) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
@@ -586,54 +675,48 @@ namespace DirectDesktop
         float GetCurrentValue();
         float GetTickValue();
         int* GetAssociatedValue();
-        int GetDragStart();
-        int GetFillOnDragStart();
-        int GetPosOnDragStart();
         void SetMinValue(float minValue);
         void SetMaxValue(float maxValue);
         void SetCurrentValue(float currValue, bool fExternal);
         void SetTickValue(float tickValue);
         void SetAssociatedValue(int* assocVal, int extValueMultiplier);
-        void SetDragStart(int dragStart);
-        void SetFillOnDragStart(int fodragStart);
-        void SetPosOnDragStart(int podragStart);
         LPCWSTR GetFormattedString();
         void SetFormattedString(LPCWSTR szFormatted);
 
     private:
         static IClassInfo* s_pClassInfo;
-        RegKeyValue _rkv{};
-        float _minValue{};
-        float _maxValue{};
-        float _tickValue{};
-        float _currValue{};
-        int _dragStart{};
-        int _fodragStart{};
-        int _podragStart{};
-        int* _assocVal = nullptr;
-        int _coef = 1;
-        LPCWSTR _szFormatted = nullptr;
-        Button* _peTrackBase{};
-        Button* _peFillBase{};
-        Element* _peSliderInner{};
-        Element* _peTrackHolder{};
-        DDScalableButton* _peThumb{};
-        DDScalableElement* _peTrack{};
-        DDScalableElement* _peFill{};
-        DDScalableElement* _peThumbInner{};
-        DDScalableRichText* _peText{};
+        RegKeyValue _rkv;
+        float _minValue;
+        float _maxValue;
+        float _tickValue;
+        float _currValue;
+        POINT _ptBeforeClick;
+        POINT _ptOnClick;
+        int* _assocVal;
+        int _coef;
+        LPCWSTR _szFormatted;
+        Button* _peTrackBase;
+        Button* _peFillBase;
+        Element* _peSliderInner;
+        Element* _peTrackHolder;
+        DDScalableButton* _peThumb;
+        DDScalableElement* _peTrack;
+        DDScalableElement* _peFill;
+        DDScalableElement* _peThumbInner;
+        DDScalableRichText* _peText;
         int GetPropCommon(const PropertyProcT pPropertyProc);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
         HRESULT _CreateDDSVisual();
         void _RedrawSlider();
-        static void _SetThumbPosOnClick(Element* elem, Event* iev);
-        static void _SetThumbPosOnDrag(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+        static void s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     };
 
-    class DDColorPickerButton final : public Button
+    class DDColorPickerButton final : public TouchButton
     {
     public:
         DDColorPickerButton()
+            : _assocCR(0)
+            , _order(0)
         {
         }
 
@@ -642,32 +725,36 @@ namespace DirectDesktop
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
         void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
-        void OnEvent(Event* pEvent) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
-        void SetPropChangeListener(IElementListener* pel);
         COLORREF GetAssociatedColor();
         BYTE GetOrder();
-        vector<DDScalableElement*> GetTargetElements();
-        vector<DDScalableButton*> GetTargetButtons();
         void SetAssociatedColor(COLORREF cr);
         void SetOrder(BYTE bOrder);
-        void SetTargetElements(vector<DDScalableElement*> vte);
-        void SetTargetButtons(vector<DDScalableButton*> vtb);
 
     private:
         static IClassInfo* s_pClassInfo;
-        IElementListener* _pelPropChange{};
-        COLORREF _assocCR{};
-        BYTE _order{};
-        vector<DDScalableElement*> _targetElems{};
-        vector<DDScalableButton*> _targetBtns{};
+        COLORREF _assocCR;
+        BYTE _order;
     };
 
     class DDColorPicker final : public Element
     {
     public:
         DDColorPicker()
+            : _btnX(0)
+            , _btnWidth(0)
+            , _currentColorID(0)
+            , _ptBeforeClick{}
+            , _ptOnClick{}
+            , _rkv{}
+            , _peOverlayHover(nullptr)
+            , _peOverlayCheck(nullptr)
+            , _rgpeColorButtons{}
+            , _targetElems{}
+            , _targetBtns{}
+            , _targetTouchBtns{}
+            , _themeAwareness(false)
         {
         }
 
@@ -675,6 +762,7 @@ namespace DirectDesktop
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        void OnInput(InputEvent* pInput) override;
         void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
@@ -694,26 +782,108 @@ namespace DirectDesktop
         RegKeyValue GetRegKeyValue();
         vector<DDScalableElement*> GetTargetElements();
         vector<DDScalableButton*> GetTargetButtons();
+        vector<DDScalableTouchButton*> GetTargetTouchButtons();
         bool GetThemeAwareness();
         void SetRegKeyValue(RegKeyValue rkvNew);
         void SetTargetElements(vector<DDScalableElement*> vte);
         void SetTargetButtons(vector<DDScalableButton*> vtb);
+        void SetTargetTouchButtons(vector<DDScalableTouchButton*> vttb);
         void SetThemeAwareness(bool ta);
 
     private:
         static IClassInfo* s_pClassInfo;
-        int _btnX{};
-        int _btnWidth{};
-        RegKeyValue _rkv{};
-        DDScalableElement* _peOverlayHover{};
-        DDScalableElement* _peOverlayCheck{};
-        DDColorPickerButton* _rgpeColorButtons[8]{};
-        vector<DDScalableElement*> _targetElems{};
-        vector<DDScalableButton*> _targetBtns{};
-        bool _themeAwareness{};
+        int _btnX;
+        int _btnWidth;
+        short _currentColorID;
+        POINT _ptBeforeClick;
+        POINT _ptOnClick;
+        RegKeyValue _rkv;
+        DDScalableElement* _peOverlayHover;
+        DDScalableElement* _peOverlayCheck;
+        DDColorPickerButton* _rgpeColorButtons[8];
+        vector<DDScalableElement*> _targetElems;
+        vector<DDScalableButton*> _targetBtns;
+        vector<DDScalableTouchButton*> _targetTouchBtns;
+        bool _themeAwareness;
         int GetPropCommon(const PropertyProcT pPropertyProc);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
         HRESULT _CreateCLRVisual();
+        template <typename T>
+        void _ColorizeAssociatedItems(vector<T*> vElems);
+    };
+
+    class DDTab final : public DDScalableTouchButton
+    {
+    public:
+        DDTab()
+            : _pageID(0)
+        {
+        }
+
+        ~DDTab()
+        {
+        }
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnEvent(Event* pEvent) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        void SetPage(BYTE pageID);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        BYTE _pageID;
+    };
+
+    class DDTabbedPages final : public Element
+    {
+    public:
+        typedef void(*GenericTabFunction)(Element*);
+        DDTabbedPages()
+            : _pParser(nullptr)
+            , _tsvTabCtrl(nullptr)
+            , _peTabCtrl(nullptr)
+            , _peTabs{}
+            , _tsvPage(nullptr)
+            , _peSubUIContainer(nullptr)
+            , _pszPageIDs{}
+            , _pfnTabs{}
+            , _pageID(0)
+            , _pageSize(0)
+        {
+        }
+
+        ~DDTabbedPages();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        //void OnInput(InputEvent* pInput) override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+        void BindParser(DUIXmlParser* pParser);
+        void InsertTab(BYTE index, LPCWSTR pszResIDPage, LPCWSTR pszTabLabel, GenericTabFunction ptfn);
+        void EraseTab(BYTE index);
+        void TraversePage(BYTE index);
+
+    private:
+#define MAX_TABPAGES 32
+        static IClassInfo* s_pClassInfo;
+        DUIXmlParser* _pParser;
+        TouchScrollViewer* _tsvTabCtrl;
+        Element* _peTabCtrl;
+        DDTab* _peTabs[MAX_TABPAGES];
+        TouchScrollViewer* _tsvPage;
+        DDScalableElement* _peSubUIContainer;
+        LPCWSTR _pszPageIDs[MAX_TABPAGES];
+        GenericTabFunction _pfnTabs[MAX_TABPAGES];
+        BYTE _pageID;
+        BYTE _pageSize;
+        vector<Element*> _vecAnimating;
+        HRESULT _CreateTPVisual();
+        static DWORD WINAPI s_RemoveFromVec(LPVOID lpParam);
     };
 
     enum DDNotificationType
@@ -728,6 +898,16 @@ namespace DirectDesktop
     {
     public:
         DDNotificationBanner()
+            : _wnd(nullptr)
+            , _notificationType(DDNT_INFO)
+            , _titleStr{}
+            , _contentStr{}
+            , _pDDNB(nullptr)
+            , _icon(nullptr)
+            , _title(nullptr)
+            , _content(nullptr)
+            , _peButtonSection(nullptr)
+            , _btnCount(0)
         {
         }
 
@@ -739,9 +919,9 @@ namespace DirectDesktop
         static HRESULT Register();
         NativeHWNDHost* GetWindowHost();
         void CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout);
-        static void RepositionBanners();
+        static void s_RepositionBanners();
         void DestroyBanner(bool* notificationopen, bool manual);
-        static void DestroyBannerByButton(Element* elem, Event* iev);
+        static void s_DestroyBannerByButton(Element* elem, Event* iev);
         void AppendButton(LPCWSTR szButtonText, void(*pListener)(Element* elem, Event* iev), bool fClose);
 
     private:

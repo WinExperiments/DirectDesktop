@@ -10,6 +10,6 @@ namespace DirectDesktop
 
     extern DirectUI::NativeHWNDHost* wnd;
     extern DirectUI::NativeHWNDHost* searchwnd;
-    void CreateSearchPage();
+    void CreateSearchPage(bool WinAltQ);
     void DestroySearchPage();
 }

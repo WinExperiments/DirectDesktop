@@ -1,13 +1,13 @@
 <duixml>
-	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
-		<Button id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
+	<HWNDElement resid="fullscreenpopup" id="atom(testing)" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
+		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
 			<Element id="atom(fullscreenpopupbg)" layoutpos="client"/>
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)" alpha="255" animation="alpha|s|veryfast">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 			</Element>
-		</Button>
+		</TouchButton>
 	</HWNDElement>
-	<DDScalableButton resid="fullscreeninner" id="atom(fullscreeninner)" visible="false" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1"/>
+	<DDScalableTouchButton resid="fullscreeninner" id="atom(fullscreeninner)" visible="false" class="popupwindow" layoutpos="absolute" layout="filllayout()" DrawType="1"/>
 	<Element resid="groupdirectory" id="atom(groupdirectory)" layoutpos="client" layout="filllayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
 		<Element layout="borderlayout()" layoutpos="client">
 			<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)" visible="false">
@@ -25,7 +25,7 @@
 					<DDLVActionButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
 				</Element>
 				<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,0,0,0)" margin="rect(0,0,6rp,0)">
-					<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(2rp,5rp,2rp,3rp)" tooltip="true" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(1rp,5rp,1rp,3rp)" tooltip="true" class="popupbuttonicon"/>
 				</Element>
 				<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)">
 					<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold"/>
@@ -33,8 +33,8 @@
 				</Element>
 			</Element>
 			<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-				<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
-					<DDScalableButton id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
+				<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
+					<DDScalableElement id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
 				</TouchScrollViewer>
 			</Element>
 		</Element>
@@ -50,11 +50,11 @@
 		</Element>
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
-		<TouchScrollViewer id="atom(svOptions)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
-			<Button id="atom(content)" layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
+		<TouchScrollViewer id="atom(svOptions)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
+			<TouchButton id="atom(content)" layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
 				<DDScalableElement content="resstr(4046)" class="settingslabeltext" minsize="size(0,0)" height="24rp" contentalign="topleft"/>
 				<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3038" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
-			</Button>
+			</TouchButton>
 		</TouchScrollViewer>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
@@ -62,16 +62,7 @@
 			<Element id="atom(dirnameanimator)" layoutpos="left"/>
 			<DDScalableRichText id="atom(name)" class="popuptext" content="resstr(4010)" layoutpos="client" padding="rect(0,0,0,2rp)" contentalign="middleleft" font="iconfont;160%;semibold"/>
 		</Element>
-		<Element id="atom(PageNavigator)" layoutpos="top" height="48rp" padding="rect(0,0,0,16rp)" layout="flowlayout()">
-			<DDScalableButton id="atom(PageTab1)" content="resstr(4011)" class="pilltab"/>
-			<DDScalableButton id="atom(PageTab2)" content="resstr(4012)" class="pilltab"/>
-			<DDScalableButton id="atom(PageTab3)" content="resstr(4013)" class="pilltab"/>
-		</Element>
-		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
-			<TouchScrollViewer id="atom(settingslist)" active="mouse|pointer|keyboard|nosyncfocus" layoutpos="client" xscrollable="true" yscrollable="true" xbarvisibility="asneeded" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
-				<DDScalableButton id="atom(SubUIContainer)" visible="true" layoutpos="client" layout="filllayout()" class="popuptext" font="iconfont;100%"/>
-			</TouchScrollViewer>
-		</Element>
+		<DDTabbedPages id="atom(settingslist)" layoutpos="client" behaviors="PVL::AnimationTrap()"/>
 	</Element>
 	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
@@ -154,7 +145,7 @@
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="flowlayout(0,2,1,2)" class="rightcontainer">
 				<DDSlider id="atom(IconSize)" IsVertical="false" layoutpos="right" width="260rp" TextWidth="45rp"/>
-				<DDScalableButton id="atom(ApplyIconSize)" class="pushbuttonsecondary" content="resstr(4071)" minsize="size(96rp,32rp)" NeedsFontResize="false" margin="rect(12rp,0,0,0)"/>
+				<DDScalableTouchButton id="atom(ApplyIconSize)" shortcut="auto" class="pushbuttonsecondary" content="resstr(4071)" minsize="size(96rp,32rp)" NeedsFontResize="false" margin="rect(12rp,0,0,0)"/>
 			</Element>
 			<DDScalableElement content="resstr(4070)" class="settingslabeltext"/>
 		</DDScalableElement>
@@ -172,7 +163,7 @@
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableButton id="atom(DesktopIconSettings)" content="resstr(112, library(desk.cpl))" layoutpos="left" class="popupbutton" visible="true"/>
+			<DDScalableTouchButton id="atom(DesktopIconSettings)" content="resstr(112, library(desk.cpl))" layoutpos="left" class="popupbutton" visible="true"/>
 		</DDScalableElement>
 	</Element>
 	<Element resid="SettingsPage3" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
@@ -187,7 +178,7 @@
 			</Element>
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
-			<DDScalableButton id="atom(ViewLastLog)" content="resstr(4033)" layoutpos="left" class="popupbutton" visible="true"/>
+			<DDScalableTouchButton id="atom(ViewLastLog)" content="resstr(4033)" layoutpos="left" class="popupbutton" visible="true"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">
@@ -230,7 +221,7 @@
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
-				<DDScalableButton id="atom(SetCurrent)" class="pushbuttonsecondary" content="resstr(4084)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+				<DDScalableTouchButton id="atom(SetCurrent)" class="pushbuttonsecondary" content="resstr(4084)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
 			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
 				<DDScalableElement class="headertext" content="resstr(4082)"/>
@@ -239,7 +230,7 @@
 		</DDScalableElement>
 		<DDScalableElement class="BottomSection" layout="borderlayout()">
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
-				<DDScalableButton id="atom(ResetDesktop)" class="pushbuttonsecondary" content="resstr(4087)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+				<DDScalableTouchButton id="atom(ResetDesktop)" class="pushbuttonsecondary" content="resstr(4087)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
 			</Element>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
 				<DDScalableElement class="headertext" content="resstr(4085)"/>
@@ -258,11 +249,11 @@
 				</if>
 			</if>
 			<if class="popupwindow">
-				<DDScalableButton FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<DDScalableTouchButton FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
 				<DDScalableElement foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
-				<DDScalableButton foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
+				<DDScalableTouchButton foreground="black" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableRichText foreground="black"/>
 			</if>
 			<ModernProgressRing foreground="black"/>
@@ -298,11 +289,11 @@
 				</if>
 			</if>
 			<if class="popupwindow">
-				<DDScalableButton FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
+				<DDScalableTouchButton FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
 			</if>
 			<if class="popuptext">
 				<DDScalableElement foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
-				<DDScalableButton foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
+				<DDScalableTouchButton foreground="white" compositedtext="true" textglowsize="0" NeedsFontResize="false"/>
 				<DDScalableRichText foreground="white"/>
 			</if>
 			<ModernProgressRing foreground="white"/>

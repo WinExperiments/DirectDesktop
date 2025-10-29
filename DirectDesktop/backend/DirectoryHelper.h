@@ -15,7 +15,7 @@ namespace DirectDesktop
     extern int localeType;
     extern int g_iconsz;
     extern vector<LVItem*> pm;
-    extern void InitLayout(bool bUnused1, bool bUnused2, bool bAlreadyOpen);
+    extern void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen);
     extern void InitNewLVItem(const wstring& filepath, const wstring& filename);
     extern void RemoveLVItem(const wstring& filepath, const wstring& filename);
     extern void UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type); // types: 1: old, 2: new
