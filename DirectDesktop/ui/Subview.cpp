@@ -56,6 +56,7 @@ namespace DirectDesktop
             AdjustWindowSizes(false);
             g_lastDpiChangeTick = GetTickCount64();
             SetTimer(wnd->GetHWND(), 5, 150, nullptr);
+            SetTimer(wnd->GetHWND(), 13, 600, nullptr);
             break;
         }
         case WM_CLOSE:
@@ -104,7 +105,6 @@ namespace DirectDesktop
             for (int num = 0; num < yV->num; num++)
             {
                 DDScalableElement* peIcon = (*l_pm)[num]->GetIcon();
-                Element* peShadow = (*l_pm)[num]->GetShadow();
                 Element* peShortcutArrow = (*l_pm)[num]->GetShortcutArrow();
                 RichText* peText = (*l_pm)[num]->GetText();
                 if (!g_touchmode)
@@ -122,33 +122,41 @@ namespace DirectDesktop
                     }
                     if (peIcon)
                     {
-                        peIcon->SetWidth(round(g_iconsz * g_flScaleFactor));
-                        peIcon->SetHeight(round(g_iconsz * g_flScaleFactor));
-                        peIcon->SetX(iconPaddingX);
-                        peIcon->SetY(round(iconPaddingY * 0.575));
+                        short shadedSize{}, shadedX{}, shadedY{};
+                        if (!(*l_pm)[num]->GetHiddenState())
+                        {
+                            shadedSize = 16;
+                            shadedX = 8 * g_flScaleFactor;
+                            shadedY = 6 * g_flScaleFactor;
+                        }
+                        peIcon->SetWidth((g_iconsz + shadedSize) * g_flScaleFactor);
+                        peIcon->SetHeight((g_iconsz + shadedSize) * g_flScaleFactor);
+                        peIcon->SetX(iconPaddingX - shadedX);
+                        peIcon->SetY((iconPaddingY * 0.575) - shadedY);
                     }
                 }
                 HBITMAP iconbmp = (*vdi)[num]->icon;
                 CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(iconbmp);
-                if (spvBitmap != nullptr && peIcon) peIcon->SetValue(Element::ContentProp, 1, spvBitmap);
-                HBITMAP iconshadowbmp = (*vdi)[num]->iconshadow;
-                CValuePtr spvBitmapShadow = DirectUI::Value::CreateGraphic(iconshadowbmp, 2, 0xffffffff, false, false, false);
-                DeleteObject(iconshadowbmp);
-                if (spvBitmapShadow != nullptr && peShadow) peShadow->SetValue(Element::ContentProp, 1, spvBitmapShadow);
+                if (spvBitmap && peIcon) peIcon->SetValue(Element::ContentProp, 1, spvBitmap);
                 HBITMAP iconshortcutbmp = (*vdi)[num]->iconshortcut;
                 CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(iconshortcutbmp);
-                if (spvBitmapShortcut != nullptr && peShortcutArrow && (*l_pm)[num]->GetShortcutState() == true) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
+                if (spvBitmapShortcut && peShortcutArrow && (*l_pm)[num]->GetShortcutState()) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
                 HBITMAP textbmp = (*vdi)[num]->text;
                 CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(textbmp);
-                if (spvBitmapText != nullptr && peText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
+                if (spvBitmapText && peText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
                 if (g_touchmode)
                 {
-                    BYTE intensity = ((*l_pm)[num]->GetHiddenState() == true) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
+                    BYTE intensity = ((*l_pm)[num]->GetHiddenState()) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
                     ((DDScalableElement*)(*l_pm)[num])->SetDDCPIntensity(intensity);
                     ((DDScalableElement*)(*l_pm)[num])->SetAssociatedColor((*vdi)[num]->crDominantTile);
+                    if ((*l_pm)[num]->GetHiddenState())
+                    {
+                        short iconspace = 8 * g_flScaleFactor;
+                        peIcon->SetPadding(iconspace, iconspace, iconspace, iconspace);
+                    }
                 }
             }
             if (yV->peOptionalTarget1)
@@ -193,10 +201,6 @@ namespace DirectDesktop
             {
                 if ((*l_pm)[num])
                 {
-                    (*l_pm)[num]->GetShadow()->SetWidth((g_iconsz + 16)* g_flScaleFactor);
-                    (*l_pm)[num]->GetShadow()->SetHeight((g_iconsz + 16)* g_flScaleFactor);
-                    (*l_pm)[num]->GetShadow()->SetX(iconPaddingX - 8 * g_flScaleFactor);
-                    (*l_pm)[num]->GetShadow()->SetY((iconPaddingY * 0.575) - 6 * g_flScaleFactor);
                     (*l_pm)[num]->GetShortcutArrow()->SetWidth(g_shiconsz* g_flScaleFactor);
                     (*l_pm)[num]->GetShortcutArrow()->SetHeight(g_shiconsz* g_flScaleFactor);
                     (*l_pm)[num]->GetShortcutArrow()->SetX(iconPaddingX);
@@ -215,11 +219,6 @@ namespace DirectDesktop
                 ((DDScalableTouchButton*)peTemp)->ExecAssociatedFn(((DDScalableTouchButton*)peTemp)->GetAssociatedFn());
                 g_pendingaction = false;
             }
-            break;
-        }
-        case WM_USER + 6:
-        {
-            fullscreeninner->SetVisible(true);
             break;
         }
         }
@@ -258,21 +257,19 @@ namespace DirectDesktop
             yValue* yV2 = new yValue{ num, yV->fl1, yV->fl2 };
             if (g_touchmode) CalcDesktopIconInfo(yV2, &lines_basedOnEllipsis, &alignment, true, yV->vpm);
             HBITMAP capturedBitmap{};
-            if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode);
-            else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode);
+            if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode, NULL);
+            else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode, NULL);
             delete yV2;
             DesktopIcon* di = new DesktopIcon;
             CSafeElementPtr<DDScalableElement> IconElement; IconElement.Assign(regElem<DDScalableElement*>(L"iconElem", yV->peOptionalTarget2));
-            ApplyIcons(*l_pm, di, true, num, 1, colorPickerPalette[IconElement->GetGroupColor()]);
+            ApplyIcons(l_pm, di, true, num, 1, colorPickerPalette[IconElement->GetGroupColor()]);
             if (((LVItem*)yV->peOptionalTarget2)->GetMemorySelected() == false)
             {
                 for (int num2 = 0; num2 < num; num2++)
                 {
                     DeleteObject(vdi[num2]->icon);
-                    DeleteObject(vdi[num2]->iconshadow);
                     DeleteObject(vdi[num2]->iconshortcut);
                     DeleteObject(vdi[num2]->text);
-                    DeleteObject(vdi[num2]->textshadow);
                     free(vdi[num2]);
                     UnInitThread();
                 }
@@ -282,24 +279,9 @@ namespace DirectDesktop
             }
             if (g_touchmode)
             {
-                rgb_t saturatedColor = { 0, 0, 0 };
-                float alpha = 1.0f;
                 if (g_isGlass)
-                {
                     di->crDominantTile = RGB(224, 224, 224);
-                    alpha = 0.4f;
-                }
-                else
-                {
-                    di->crDominantTile = GetDominantColorFromIcon(di->icon, g_iconsz, 48);
-                    saturatedColor.r = GetRValue(di->crDominantTile), saturatedColor.g = GetGValue(di->crDominantTile), saturatedColor.b = GetBValue(di->crDominantTile);
-                    hsl_t saturatedColor2 = rgb2hsl(saturatedColor);
-                    saturatedColor2.l /= 4;
-                    saturatedColor2.s *= 4;
-                    saturatedColor = hsl2rgb(saturatedColor2);
-                }
-                IterateBitmap(di->iconshadow, StandardBitmapPixelHandler, 3, 0, alpha, RGB(saturatedColor.r, saturatedColor.g, saturatedColor.b));
-                if (GetRValue(di->crDominantTile) * 0.299 + GetGValue(di->crDominantTile) * 0.587 + GetBValue(di->crDominantTile) * 0.114 > 156)
+                if (GetRValue(di->crDominantTile) * 0.299 + GetGValue(di->crDominantTile) * 0.587 + GetBValue(di->crDominantTile) * 0.114 > 152)
                 {
                     IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
                     IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1, NULL);
@@ -337,7 +319,7 @@ namespace DirectDesktop
         Sleep(175 * (animCoef / 100.0f));
         AnimateWindow(subviewwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
         //CloakWindow(subviewwnd->GetHWND(), true);
-        BlurBackground(subviewwnd->GetHWND(), false, true, fullscreenpopupbg);
+        BlurBackground(subviewwnd->GetHWND(), false, true, 0x33, fullscreenpopupbg);
         SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, NULL, NULL);
         SetForegroundWindow(wnd->GetHWND());
         return 0;
@@ -349,7 +331,6 @@ namespace DirectDesktop
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
         AnimateWindow(subviewwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
-        SendMessageW(subviewwnd->GetHWND(), WM_USER + 6, NULL, NULL);
         return 0;
     }
 
@@ -390,7 +371,8 @@ namespace DirectDesktop
         if (width > maxwidth) width = maxwidth;
         if (height > maxheight) height = maxheight;
         float flOriginX = 0.5f, flOriginY = 0.5f;
-        float flFade = 0.0f;
+        float flFadeStart = 0.15f;
+        float flFadeDuration = 0.233f;
         float flScaleStart = 0.15f;
         float flScaleDuration = 0.4f;
         float flrX0 = 0.0f;
@@ -402,13 +384,14 @@ namespace DirectDesktop
         TransitionStoryboardInfo tsbInfo = {};
         if (peIconOrigin.x > -1 && peIconOrigin.y > -1)
         {
-            flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / width;
-            flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / height;
-            float flOriginX2 = 0.5f + (flOriginX - 0.5f) * desktopanimstartscale;
-            float flOriginY2 = 0.5f + (flOriginY - 0.5f) * desktopanimstartscale;
             animstartscaleX = peAnimateFrom->GetWidth() / static_cast<float>(width);
             animstartscaleY = peAnimateFrom->GetHeight() / static_cast<float>(height);
-            flFade = 0.5f;
+            flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / (width - peAnimateFrom->GetWidth());
+            flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / (height - peAnimateFrom->GetHeight());
+            float flOriginX2 = 0.5f + (flOriginX - 0.5f) * desktopanimstartscale;
+            float flOriginY2 = 0.5f + (flOriginY - 0.5f) * desktopanimstartscale;
+            flFadeStart = 0.05f;
+            flFadeDuration = 0.3f;
             flScaleStart = 0.0f;
             flScaleDuration = 0.5f;
             flrX0 = 0.8f;
@@ -416,7 +399,7 @@ namespace DirectDesktop
             flrX1 = 0.0f;
             flrY1 = 1.0f;
             GTRANS_DESC transDesc_peAnimate[2];
-            TriggerFade(peAnimateFrom, transDesc_peAnimate, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+            TriggerFade(peAnimateFrom, transDesc_peAnimate, 0, 0.05f, 0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
             TriggerScaleIn(peAnimateFrom, transDesc_peAnimate, 1, 0.0f, 0.5f, flrX0, flrY0, flrX1, flrY1, 1.0f, 1.0f,
                 flOriginX2, flOriginY2, 1 / animstartscaleX / desktopanimstartscale, 1 / animstartscaleY / desktopanimstartscale, flOriginX2, flOriginY2, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc_peAnimate), transDesc_peAnimate, peAnimateFrom->GetDisplayNode(), &tsbInfo);
@@ -433,7 +416,7 @@ namespace DirectDesktop
         centered->SetBackgroundColor(0);
         fullscreenpopupbase->SetVisible(true);
         GTRANS_DESC transDesc[2];
-        TriggerFade(fullscreeninner, transDesc, 0, 0.15f, 0.25f, 0.0f, 0.0f, 1.0f, 1.0f, flFade, 1.0f, false, false, true);
+        TriggerFade(fullscreeninner, transDesc, 0, flFadeStart, flFadeDuration, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, true);
         TriggerScaleIn(fullscreeninner, transDesc, 1, flScaleStart, flScaleDuration, flrX0, flrY0, flrX1, flrY1,
             animstartscaleX, animstartscaleY, flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
@@ -451,8 +434,7 @@ namespace DirectDesktop
             RECT dimensionsAnim;
             GetClientRect(wnd->GetHWND(), &dimensionsAnim);
             float flOriginX = 0.5f, flOriginY = 0.5f;
-            float flFade = 0.0f;
-            float flFadeDuration = 0.0f;
+            float flFadeStart = 0.0f;
             float flScaleDuration = 0.175f;
             float flrX0 = 1.0f;
             float flrY0 = 1.0f;
@@ -476,11 +458,11 @@ namespace DirectDesktop
                 }
                 int width = fullscreeninner->GetWidth();
                 int height = fullscreeninner->GetHeight();
-                flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / width;
-                flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / height;
+                flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / (width - peAnimateTo->GetWidth());
+                flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / (height - peAnimateTo->GetHeight());
                 animstartscaleX = peAnimateTo->GetWidth() / static_cast<float>(width);
                 animstartscaleY = peAnimateTo->GetHeight() / static_cast<float>(height);
-                flFade = 0.5f;
+                flFadeStart = 0.1f;
                 flScaleDuration = 0.4f;
                 flrX0 = 0.8f;
                 flrY0 = 0.0f;
@@ -495,7 +477,7 @@ namespace DirectDesktop
             if (fullscreeninner)
             {
                 TriggerScaleOut(fullscreeninner, transDesc, 0, 0.0f, flScaleDuration, flrX0, flrY0, flrX1, flrY1, animstartscaleX, animstartscaleY, flOriginX, flOriginY, false, false);
-                TriggerFade(fullscreeninner, transDesc, 1, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flFade, true, false, true);
+                TriggerFade(fullscreeninner, transDesc, 1, flFadeStart, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
             }
             GTRANS_DESC transDesc2[1];
@@ -526,9 +508,10 @@ namespace DirectDesktop
             }
         }
         fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.92, ptIcon, peAnimateFrom);
+        //subviewwnd->ShowWindow(SW_SHOW);
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
-        BlurBackground(subviewwnd->GetHWND(), true, true, fullscreenpopupbg);
+        BlurBackground(subviewwnd->GetHWND(), true, true, 0x33, fullscreenpopupbg);
         SendMessageW(subviewwnd->GetHWND(), WM_CHANGEUISTATE, 3, NULL);
     }
 
@@ -632,7 +615,7 @@ namespace DirectDesktop
             StyleSheet* sheet = pSubview->GetSheet();
             CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
             parser->GetSheet(g_theme ? L"default" : L"defaultdark", &sheetStorage);
-            const WCHAR* elemname = g_touchmode ? L"outerElemTouch" : L"outerElemGrouped";
+            const WCHAR* elemname = g_touchmode ? L"outerElemTouch" : L"outerElem";
             for (int i = 0; i < lviCount; i++)
             {
                 LVItem* outerElemGrouped;
@@ -643,13 +626,10 @@ namespace DirectDesktop
                 iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElemGrouped));
                 CSafeElementPtr<Element> shortcutElem;
                 shortcutElem.Assign(regElem<Element*>(L"shortcutElem", outerElemGrouped));
-                CSafeElementPtr<Element> iconElemShadow;
-                iconElemShadow.Assign(regElem<Element*>(L"iconElemShadow", outerElemGrouped));
                 CSafeElementPtr<RichText> textElem;
                 textElem.Assign(regElem<RichText*>(L"textElem", outerElemGrouped));
                 outerElemGrouped->SetIcon(iconElem);
                 outerElemGrouped->SetShortcutArrow(shortcutElem);
-                outerElemGrouped->SetShadow(iconElemShadow);
                 outerElemGrouped->SetText(textElem);
                 subpm->push_back(outerElemGrouped);
             }
@@ -674,7 +654,6 @@ namespace DirectDesktop
                 if ((*subpm)[j]->GetHiddenState() == true)
                 {
                     (*subpm)[j]->GetIcon()->SetAlpha(128);
-                    (*subpm)[j]->GetShadow()->SetAlpha(0);
                     (*subpm)[j]->GetText()->SetAlpha(128);
                 }
                 v_pels.push_back(assignFn((*subpm)[j], SelectSubItem, true));
@@ -868,6 +847,12 @@ namespace DirectDesktop
         }
     }
 
+    void ModifyShellState(bool unused1, bool unused2, bool unused3)
+    {
+        shellstate[4] ^= 0x20;
+        SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", shellstate, _msize(shellstate), false, nullptr);
+    }
+
     void ShowPage1(Element* pePage)
     {
         if (pePage)
@@ -880,6 +865,10 @@ namespace DirectDesktop
             FilenameExts.Assign(regElem<DDToggleButton*>(L"FilenameExts", pePage));
             CSafeElementPtr<DDToggleButton> TreatDirAsGroup;
             TreatDirAsGroup.Assign(regElem<DDToggleButton*>(L"TreatDirAsGroup", pePage));
+            CSafeElementPtr<DDScalableElement> ClickModeLabel;
+            ClickModeLabel.Assign(regElem<DDScalableElement*>(L"ClickModeLabel", pePage));
+            CSafeElementPtr<DDCombobox> ClickMode;
+            ClickMode.Assign(regElem<DDCombobox*>(L"ClickMode", pePage));
             CSafeElementPtr<DDToggleButton> TripleClickAndHide;
             TripleClickAndHide.Assign(regElem<DDToggleButton*>(L"TripleClickAndHide", pePage));
             CSafeElementPtr<DDToggleButton> LockIconPos;
@@ -888,37 +877,41 @@ namespace DirectDesktop
             rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
             rkvTemp._valueToFind = L"AutoCheckSelect";
             ItemCheckboxes->SetCheckedState(g_showcheckboxes);
-            ItemCheckboxes->SetAssociatedBool(&g_showcheckboxes);
             ItemCheckboxes->SetRegKeyValue(rkvTemp);
             ItemCheckboxes->SetShellInteraction(true);
             rkvTemp._valueToFind = L"Hidden";
             if (GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind) == 1) ShowHiddenFiles->SetCheckedState(true);
             else ShowHiddenFiles->SetCheckedState(false);
-            ShowHiddenFiles->SetAssociatedFn(InitLayout, false, false, true);
             ShowHiddenFiles->SetRegKeyValue(rkvTemp);
             ShowHiddenFiles->SetShellInteraction(true);
             rkvTemp._valueToFind = L"HideFileExt";
             FilenameExts->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
-            FilenameExts->SetAssociatedFn(InitLayout, false, false, true);
             FilenameExts->SetRegKeyValue(rkvTemp);
             FilenameExts->SetShellInteraction(true);
+            rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", rkvTemp._valueToFind = L"ShellState";
+            ClickModeLabel->SetContentString(GetDialogString(29959, L"shell32.dll", 65535, 2).c_str());
+            ClickMode->InsertSelection(DDCombobox::MAX_SELECTIONS, GetDialogString(29959, L"shell32.dll", 30102, NULL).c_str());
+            ClickMode->InsertSelection(DDCombobox::MAX_SELECTIONS, GetDialogString(29959, L"shell32.dll", 30103, NULL).c_str());
+            ClickMode->SetSelection(shellstate[4] & 0x20 ? 1 : 0);
+            ClickMode->SetAssociatedFn(ModifyShellState, false, false, false);
+            ClickMode->SetShellInteraction(true);
             rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"TreatDirAsGroup";
             TreatDirAsGroup->SetCheckedState(g_treatdirasgroup);
-            TreatDirAsGroup->SetAssociatedBool(&g_treatdirasgroup);
+            TreatDirAsGroup->SetAssociatedSetting(&g_treatdirasgroup);
             TreatDirAsGroup->SetAssociatedFn(InitLayout, false, false, true);
             TreatDirAsGroup->SetRegKeyValue(rkvTemp);
-            TreatDirAsGroup->SetShellInteraction(true);
             rkvTemp._valueToFind = L"TripleClickAndHide";
             TripleClickAndHide->SetCheckedState(g_tripleclickandhide);
-            TripleClickAndHide->SetAssociatedBool(&g_tripleclickandhide);
+            TripleClickAndHide->SetAssociatedSetting(&g_tripleclickandhide);
             TripleClickAndHide->SetRegKeyValue(rkvTemp);
             rkvTemp._valueToFind = L"LockIconPos";
             LockIconPos->SetCheckedState(g_lockiconpos);
-            LockIconPos->SetAssociatedBool(&g_lockiconpos);
+            LockIconPos->SetAssociatedSetting(&g_lockiconpos);
             LockIconPos->SetRegKeyValue(rkvTemp);
             assignFn(ItemCheckboxes, ToggleSetting);
             assignFn(ShowHiddenFiles, ToggleSetting);
             assignFn(FilenameExts, ToggleSetting);
+            assignFn(ClickMode, ToggleSetting);
             assignFn(TreatDirAsGroup, ToggleSetting);
             assignFn(TripleClickAndHide, ToggleSetting);
             assignFn(LockIconPos, ToggleSetting);
@@ -948,7 +941,7 @@ namespace DirectDesktop
             RegKeyValue rkvTemp{};
             rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Personalize", rkvTemp._valueToFind = L"AccentColorIcons";
             EnableAccent->SetCheckedState(g_isColorized);
-            EnableAccent->SetAssociatedBool(&g_isColorized);
+            EnableAccent->SetAssociatedSetting(&g_isColorized);
             EnableAccent->SetAssociatedFn(RearrangeIcons, false, true, true);
             EnableAccent->SetRegKeyValue(rkvTemp);
             rkvTemp._valueToFind = L"IconColorID";
@@ -962,12 +955,12 @@ namespace DirectDesktop
             rkvTemp._valueToFind = L"DarkIcons";
             EnableDarkIcons->SetEnabled(!g_automaticDark);
             EnableDarkIcons->SetCheckedState(g_isDarkIconsEnabled);
-            EnableDarkIcons->SetAssociatedBool(&g_isDarkIconsEnabled);
+            EnableDarkIcons->SetAssociatedSetting(&g_isDarkIconsEnabled);
             EnableDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
             EnableDarkIcons->SetRegKeyValue(rkvTemp);
             rkvTemp._valueToFind = L"AutoDarkIcons";
             AutoDarkIcons->SetCheckedState(g_automaticDark);
-            AutoDarkIcons->SetAssociatedBool(&g_automaticDark);
+            AutoDarkIcons->SetAssociatedSetting(&g_automaticDark);
             AutoDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
             AutoDarkIcons->SetRegKeyValue(rkvTemp);
             IconSize->SetMinValue(32);
@@ -979,7 +972,6 @@ namespace DirectDesktop
             ApplyIconSize->SetEnabled(!g_touchmode);
             rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
             IconThumbnails->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
-            IconThumbnails->SetAssociatedFn(RearrangeIcons, false, true, true);
             IconThumbnails->SetRegKeyValue(rkvTemp);
             IconThumbnails->SetShellInteraction(true);
             assignFn(EnableAccent, ToggleSetting);
@@ -1030,16 +1022,16 @@ namespace DirectDesktop
             AnimSpeed->SetRegKeyValue(rkvTemp);
             rkvTemp._valueToFind = L"AnimationsShiftKey";
             AnimShiftKey->SetCheckedState(g_AnimShiftKey);
-            AnimShiftKey->SetAssociatedBool(&g_AnimShiftKey);
+            AnimShiftKey->SetAssociatedSetting(&g_AnimShiftKey);
             AnimShiftKey->SetRegKeyValue(rkvTemp);
             rkvTemp._valueToFind = L"ShowDebugInfo";
             ShowDbgInfo->SetCheckedState(g_debuginfo);
-            ShowDbgInfo->SetAssociatedBool(&g_debuginfo);
+            ShowDbgInfo->SetAssociatedSetting(&g_debuginfo);
             ShowDbgInfo->SetAssociatedFn(ShowDebugInfoOnDesktop, false, false, false);
             ShowDbgInfo->SetRegKeyValue(rkvTemp);
             rkvTemp._valueToFind = L"EnableExiting";
             EnableExit->SetCheckedState(g_enableexit);
-            EnableExit->SetAssociatedBool(&g_enableexit);
+            EnableExit->SetAssociatedSetting(&g_enableexit);
             EnableExit->SetRegKeyValue(rkvTemp);
             WCHAR desc[256];
             StringCchPrintfW(desc, 256, LoadStrFromRes(4083).c_str(), g_defWidth, g_defHeight, static_cast<int>(ceil(g_defWidth * g_flScaleFactor)), static_cast<int>(ceil(g_defHeight * g_flScaleFactor)), g_dpi);
@@ -1077,6 +1069,7 @@ namespace DirectDesktop
             settingslist->InsertTab(1, L"SettingsPage2", LoadStrFromRes(4012).c_str(), ShowPage2);
             if (g_debugmode) settingslist->InsertTab(2, L"SettingsPage3", LoadStrFromRes(4013).c_str(), ShowPage3);
             settingslist->TraversePage(0);
+            settingslist->SetKeyFocus();
 
             CValuePtr v;
             RECT dimensions;

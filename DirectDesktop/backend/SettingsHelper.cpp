@@ -13,6 +13,10 @@ namespace DirectDesktop
     bool g_debuginfo;
     bool g_enableexit;
     bool g_showcheckboxes;
+    BYTE g_showHidden;
+    BYTE g_showSuperHidden;
+    BYTE g_hideFileExt;
+    BYTE g_iconunderline;
     bool g_treatdirasgroup;
     bool g_tripleclickandhide;
     bool g_lockiconpos;
@@ -21,6 +25,7 @@ namespace DirectDesktop
     bool g_isDarkIconsEnabled;
     bool g_automaticDark;
     bool g_isGlass;
+    bool g_isThumbnailHidden;
     BYTE iconColorID;
     COLORREF IconColorizationColor;
     bool g_atleastonesetting{};
@@ -82,32 +87,55 @@ namespace DirectDesktop
 
     void ToggleSetting(Element* elem, Event* iev)
     {
-        if (iev->uidType == TouchButton::Click)
+        if (elem->GetClassInfoW() == DDCheckBox::GetClassInfoPtr() || elem->GetClassInfoW() == DDToggleButton::GetClassInfoPtr())
         {
-            DDToggleButton* ddtb = (DDToggleButton*)elem;
-            ddtb->SetCheckedState(!ddtb->GetCheckedState());
-            bool* associatedBool = ddtb->GetAssociatedBool();
-            if (associatedBool != nullptr) *associatedBool = !(*associatedBool);
-            RegKeyValue rkv = ddtb->GetRegKeyValue();
-            BYTE regSetter = ddtb->GetCheckedState();
-            if (rkv._valueToFind == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
-            if (rkv._valueToFind == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
-            if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
-            if (ddtb->GetShellInteraction())
+            if (iev->uidType == TouchButton::Click)
             {
-                SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
-                SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
+                DDToggleButton* ddtb = (DDToggleButton*)elem;
+                ddtb->SetCheckedState(!ddtb->GetCheckedState());
+                void* associatedSetting = ddtb->GetAssociatedSetting();
+                RegKeyValue rkv = ddtb->GetRegKeyValue();
+                BYTE regSetter = ddtb->GetCheckedState();
+                if (rkv._valueToFind == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
+                if (rkv._valueToFind == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
+                if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
+                if (ddtb->GetShellInteraction())
+                {
+                    SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
+                    SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
+                }
+                else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
+                if (rkv._valueToFind == L"Hidden")
+                {
+                    DWORD dwDisableToggle;
+                    HANDLE DisableToggleHandle = CreateThread(nullptr, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
+                    if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
+                    return;
+                }
+                if (ddtb->GetAssociatedFn() != nullptr)
+                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
+                g_atleastonesetting = true;
             }
-            if (rkv._valueToFind == L"Hidden")
+        }
+        if (elem->GetClassInfoW() == DDCombobox::GetClassInfoPtr())
+        {
+            if (iev->uidType == DDCombobox::SelectionChange)
             {
-                DWORD dwDisableToggle;
-                HANDLE DisableToggleHandle = CreateThread(nullptr, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
-                if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
-                return;
+                DDCombobox* ddcmb = (DDCombobox*)elem;
+                void* associatedSetting = ddcmb->GetAssociatedSetting();
+                RegKeyValue rkv = ddcmb->GetRegKeyValue();
+                BYTE regSetter = ddcmb->GetSelection();
+                if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
+                if (ddcmb->GetShellInteraction())
+                {
+                    SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
+                    SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
+                }
+                else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
+                if (ddcmb->GetAssociatedFn() != nullptr)
+                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
+                g_atleastonesetting = true;
             }
-            if (ddtb->GetAssociatedFn() != nullptr)
-                ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
-            g_atleastonesetting = true;
         }
     }
 }

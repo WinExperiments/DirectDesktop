@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "DirectoryHelper.h"
+#include "SettingsHelper.h"
 #include "..\DirectDesktop.h"
 #include "..\coreui\StyleModifier.h"
 #include <shlwapi.h>
@@ -537,10 +538,6 @@ namespace DirectDesktop
             return;
         }
         int runs = 0;
-        int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
-        int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
-        int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
-        int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
         if (wcscmp(path, L"InternalCodeForNamespace") == 0)
         {
             filestructs.clear();
@@ -626,7 +623,7 @@ namespace DirectDesktop
                 hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
                 if (count2 != nullptr)
                 {
-                    foundsimplefilename = hideExt((wstring)fd.cFileName, isFileExtHidden, (fd.dwFileAttributes & 16), (*pmLVItem)[*(count2)]);
+                    foundsimplefilename = hideExt((wstring)fd.cFileName, g_hideFileExt, (fd.dwFileAttributes & 16), (*pmLVItem)[*(count2)]);
                     foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
                     if (fd.dwFileAttributes & 16)
                     {
@@ -639,7 +636,7 @@ namespace DirectDesktop
                     if (fd.dwFileAttributes & 2) (*pmLVItem)[*(count2)]->SetHiddenState(true);
                     else (*pmLVItem)[*(count2)]->SetHiddenState(false);
                     filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
-                    if (isThumbnailHidden == 0)
+                    if (g_isThumbnailHidden == 0)
                     {
                         bool image;
                         isSpecialProp(foundfilename, true, &image, &imageExts);
@@ -652,12 +649,12 @@ namespace DirectDesktop
                     (*pmLVItem)[*(count2)]->SetFilename(foundfilename);
                     (*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
                 }
-                if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2)
+                if (g_showHidden == 2 && fd.dwFileAttributes & 2)
                 {
                     pMalloc->Free(pidl);
                     continue;
                 }
-                if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0)
+                if (g_showSuperHidden == 2 || g_showSuperHidden == 0)
                 {
                     if (fd.dwFileAttributes & 4)
                     {
@@ -696,9 +693,6 @@ namespace DirectDesktop
     {
         if (!PathFileExistsW(path)) return;
         int runs = 0;
-        int isFileHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Hidden");
-        int isFileSuperHiddenEnabled = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ShowSuperHidden");
-        int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
         HRESULT hr;
 
         LPMALLOC pMalloc = nullptr;
@@ -730,7 +724,7 @@ namespace DirectDesktop
                 (*strs)[runs].SetFilename(foundfilename);
                 if (fd.dwFileAttributes & 2) (*strs)[runs].SetHiddenState(true);
                 else (*strs)[runs].SetHiddenState(false);
-                if (isThumbnailHidden == 0)
+                if (g_isThumbnailHidden == 0)
                 {
                     bool image;
                     isSpecialProp(foundfilename, true, &image, &imageExts);
@@ -739,12 +733,12 @@ namespace DirectDesktop
                 bool advancedicon;
                 isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
                 (*strs)[runs].SetHasAdvancedIcon(advancedicon);
-                if (isFileHiddenEnabled == 2 && fd.dwFileAttributes & 2)
+                if (g_showHidden == 2 && fd.dwFileAttributes & 2)
                 {
                     pMalloc->Free(pidl);
                     continue;
                 }
-                if (isFileSuperHiddenEnabled == 2 || isFileSuperHiddenEnabled == 0)
+                if (g_showSuperHidden == 2 || g_showSuperHidden == 0)
                 {
                     if (fd.dwFileAttributes & 4)
                     {
@@ -835,7 +829,6 @@ namespace DirectDesktop
         SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
         SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
 
-        int isFileExtHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideFileExt");
         HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
         HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
         BYTE* value{};
@@ -887,7 +880,7 @@ namespace DirectDesktop
             item.name = hideExtFromGetPos(wstring(
                                               reinterpret_cast<const wchar_t*>(&value[offset]),
                                               name_len / sizeof(wchar_t)
-                                          ), isFileExtHidden);
+                                          ), g_hideFileExt);
             wchar_t *nameBuffer = new wchar_t[260], *nameBuffer2{};
             if (item.name == L"::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")
             {

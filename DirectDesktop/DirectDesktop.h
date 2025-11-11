@@ -51,12 +51,9 @@ namespace DirectDesktop
     struct DesktopIcon
     {
         HBITMAP icon{};
-        HBITMAP iconshadow{};
         HBITMAP iconshortcut{};
         HBITMAP text{};
-        HBITMAP textshadow{};
         COLORREF crDominantTile{};
-        HBITMAP dominantTile{};
     };
 
     struct DelayedElementActions
@@ -139,10 +136,69 @@ namespace DirectDesktop
         }
     };
 
+    //class DDWindowCommon
+    //{
+    //public:
+    //    DDWindowCommon()
+    //        : _wnd(nullptr)
+    //        , _parent(nullptr)
+    //        , _parser(nullptr)
+    //        , _peHost(nullptr)
+    //    {
+    //    }
+    //    ~DDWindowCommon();
+    //    NativeHWNDHost* GetWindowHost();
+    //    HWNDElement* GetHostParentElement();
+    //    DUIXmlParser* GetParser();
+    //    Element* GetHostElement();
+
+    //protected:
+    //    NativeHWNDHost* _wnd;
+    //    HWNDElement* _parent;
+    //    DUIXmlParser* _parser;
+    //    Element* _peHost;
+    //    DWORD _key;
+    //    virtual HRESULT CreateAndInitWindow()
+    //    {
+    //    }
+    //};
+
+    //class DesktopHost : public DDWindowCommon
+    //{
+    //public:
+    //    DesktopHost()
+    //    {
+    //    }
+    //    ~DesktopHost()
+    //    {
+    //    }
+    //    HRESULT CreateAndInitWindow() override;
+    //    Element* GetMainContainer();
+    //    Element* GetUIContainer();
+    //    TouchButton* GetEmptySpace();
+    //    LVItem* GetLVItemTemplate();
+    //    Element* GetSelector();
+    //    TouchButton* GetPreviousPageButton();
+    //    TouchButton* GetNextPageButton();
+    //    Element* GetDragPreviewTemplate();
+    //    Element* GetRegularDragPreview();
+    //    Element* GetTouchDragPreview();
+    //private:
+    //    Element* mainContainer;
+    //    Element* UIContainer;
+    //    TouchButton* emptyspace;
+    //    LVItem* g_outerElem;
+    //    Element* selector;
+    //    TouchButton* prevpageMain, *nextpageMain;
+    //    Element* g_dragpreview;
+    //    Element* dragpreview, *dragpreviewTouch;
+    //};
+
     // Common functions
     std::wstring LoadStrFromRes(UINT id);
     std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
     std::wstring RemoveQuotes(const std::wstring& input);
+    std::wstring GetDialogString(UINT id, LPCWSTR dllName, UINT optCtrlID, short uCtrlIDOrder);
     extern void DUI_SetGadgetZOrder(DirectUI::Element* pe, UINT uZOrder);
     BOOL ScheduleGadgetTransitions_DWMCheck(UINT uOrder, UINT rgTransSize, const GTRANS_DESC* rgTrans, HGADGET hgad, TransitionStoryboardInfo* ptsbInfo);
     extern void CALLBACK DUI_ParserErrorCB(const WCHAR* pszError, const WCHAR* pszToken, int dLine, void* pContext);

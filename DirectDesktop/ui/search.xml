@@ -3,8 +3,8 @@
 		<Element layoutpos="client" layout="borderlayout()">
 			<Element id="atom(searchbase)" layoutpos="client" layout="borderlayout()"/>
 		</Element>
-		<Element layout="filllayout()" layoutpos="client" padding="rect(48rp,48rp,48rp,48rp)" class="searchview">
-			<Element id="atom(pagecontent)" layout="borderlayout()" layoutpos="client" background="argb(0,0,0,0)">
+		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
+			<Element id="atom(pagecontent)" layout="borderlayout()" padding="rect(48rp,48rp,48rp,48rp)" layoutpos="client" visible="false">
 				<Element layout="borderlayout()" layoutpos="top" font="messagefont;133%" margin="rect(0,0,0,16rp)" height="40rp" background="argb(0,0,0,0)">
 					<DDScalableTouchButton id="atom(closebutton)" layoutpos="right" font="messagefont;133%" margin="rect(16rp,0,0,0)" class="pushbuttonsecondary" content="X" padding="rect(8rp,0,8rp,0)"/>
 					<DDScalableTouchButton id="atom(searchbutton)" shortcut="83" layoutpos="right" font="messagefont;133%" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" content="Search" padding="rect(8rp,0,8rp,0)"/>
@@ -36,9 +36,6 @@
 			</if>
 			<Element foreground="black"/>
 			<DDScalableRichText foreground="black"/>
-			<if class="searchview">
-				<Element background="argb(128,224,224,224)"/>
-			</if>
 		</style>
 		<style resid="searchstyledark" base="ressheet(31, DDBaseDark)">
 			<if id="atom(searchbase)">
@@ -51,9 +48,6 @@
 			</if>
 			<Element foreground="white"/>
 			<DDScalableRichText foreground="white"/>
-			<if class="searchview">
-				<Element background="argb(128,32,32,32)"/>
-			</if>
 		</style>
 	</stylesheets>
 </duixml>

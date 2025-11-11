@@ -230,7 +230,6 @@ namespace DirectDesktop
                 DUI_SetGadgetZOrder(PV_IconPreview, -1);
                 DUI_SetGadgetZOrder(PV_IconShortcutPreview, -1);
                 DDScalableElement* peIcon = pm[yV->num]->GetIcon();
-                Element* peShadow = pm[yV->num]->GetShadow();
                 Element* peShortcutArrow = pm[yV->num]->GetShortcutArrow();
                 if (pm[yV->num]->GetHiddenState() == true)
                 {
@@ -259,16 +258,12 @@ namespace DirectDesktop
                 }
                 else
                 {
-                    PV_IconShadowPreview->SetX((pm[yV->num]->GetX() + peShadow->GetX()) * yV->fl1);
                     PV_IconPreview->SetX((pm[yV->num]->GetX() + peIcon->GetX()) * yV->fl1);
                     PV_IconShortcutPreview->SetX((pm[yV->num]->GetX() + peShortcutArrow->GetX()) * yV->fl1);
-                    PV_IconShadowPreview->SetY((pm[yV->num]->GetY() + peShadow->GetY()) * yV->fl1);
                     PV_IconPreview->SetY((pm[yV->num]->GetY() + peIcon->GetY()) * yV->fl1);
                     PV_IconShortcutPreview->SetY((pm[yV->num]->GetY() + peShortcutArrow->GetY()) * yV->fl1);
                     PV_IconPreview->SetWidth(peIcon->GetWidth() * yV->fl1);
                     PV_IconPreview->SetHeight(peIcon->GetHeight() * yV->fl1);
-                    PV_IconShadowPreview->SetWidth(peShadow->GetWidth()* yV->fl1);
-                    PV_IconShadowPreview->SetHeight(peShadow->GetHeight()* yV->fl1);
                 }
                 if (g_treatdirasgroup && pm[yV->num]->GetGroupedDirState() == true)
                 {
@@ -293,13 +288,6 @@ namespace DirectDesktop
                     int glyphiconsize = min(PV_IconPreview->GetWidth(), PV_IconPreview->GetHeight());
                     float sizeCoef = (log(glyphiconsize / (yV->fl1 * g_iconsz)) / log(100)) + 1;
                     PV_FolderGroup->SetFontSize(g_touchmode ? static_cast<int>(foldericonsize * g_flScaleFactor * yV->fl1) : static_cast<int>(glyphiconsize / (2.0f * sizeCoef)));
-                }
-                if (pm[yV->num]->GetHiddenState() == false)
-                {
-                    HBITMAP iconshadowbmp = di->iconshadow;
-                    CValuePtr spvBitmapShadow = DirectUI::Value::CreateGraphic(iconshadowbmp, 2, 0xffffffff, false, false, false);
-                    DeleteObject(iconshadowbmp);
-                    if (spvBitmapShadow != nullptr) PV_IconShadowPreview->SetValue(Element::ContentProp, 1, spvBitmapShadow);
                 }
                 HBITMAP iconbmp = di->icon;
                 CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
@@ -370,7 +358,7 @@ namespace DirectDesktop
         {
             if (pm[yV->num]->GetHasAdvancedIcon())
                 HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-            ApplyIcons(pm, &di, false, yV->num, yV->fl1, -1);
+            ApplyIcons(&pm, &di, false, yV->num, yV->fl1, -1);
             SendMessageW(editwnd->GetHWND(), WM_USER + 1, (WPARAM)&di, (LPARAM)yV);
             if (pm[yV->num]->GetHasAdvancedIcon())
                 CoUninitialize();
@@ -432,31 +420,34 @@ namespace DirectDesktop
 
     void HideSimpleView(bool fullanimate)
     {
-        if (g_touchmode) g_iconsz = 32;
-        UIContainer->SetVisible(true);
-        if (fullanimate) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
-        if (!fullscreenpopupbaseE->IsDestroyed())
+        if (g_editmode)
         {
-            GTRANS_DESC transDesc[8];
-            TransitionStoryboardInfo tsbInfo = {};
-            float scaleFinal = fullanimate ? 1.0f : 0.92f;
-            float scaleFinal2 = fullanimate ? 1.4285f : 1.3143f;
-            float timeCoef = fullanimate ? 1.0f : 1.5f;
-            float delay = fullanimate ? 0.0f : 0.033f;
-            TriggerFade(UIContainer, transDesc, 0, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleOut(UIContainer, transDesc, 1, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal, scaleFinal, 0.5f, 0.5f, false, false);
-            TriggerFade(fullscreenpopupbaseE, transDesc, 2, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(fullscreenpopupbaseE, transDesc, 3, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 0.5f, false, false);
-            TriggerFade(SimpleViewTop, transDesc, 4, delay, delay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
-            TriggerScaleOut(SimpleViewTop, transDesc, 5, delay, delay + 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 3.33f, false, false);
-            TriggerFade(SimpleViewBottom, transDesc, 6, delay, delay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
-            TriggerScaleOut(SimpleViewBottom, transDesc, 7, delay, delay + 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, -3.33f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
-            fullscreenAnimation4();
+            g_editmode = false;
+            g_invokedpagechange = false;
+            if (g_touchmode) g_iconsz = 32;
+            UIContainer->SetVisible(true);
+            if (fullanimate) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+            if (!fullscreenpopupbaseE->IsDestroyed())
+            {
+                GTRANS_DESC transDesc[8];
+                TransitionStoryboardInfo tsbInfo = {};
+                float scaleFinal = fullanimate ? 1.0f : 0.92f;
+                float scaleFinal2 = fullanimate ? 1.4285f : 1.3143f;
+                float timeCoef = fullanimate ? 1.0f : 1.5f;
+                float delay = fullanimate ? 0.0f : 0.033f;
+                TriggerFade(UIContainer, transDesc, 0, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleOut(UIContainer, transDesc, 1, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal, scaleFinal, 0.5f, 0.5f, false, false);
+                TriggerFade(fullscreenpopupbaseE, transDesc, 2, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TriggerScaleOut(fullscreenpopupbaseE, transDesc, 3, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 0.5f, false, false);
+                TriggerFade(SimpleViewTop, transDesc, 4, delay, delay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
+                TriggerScaleOut(SimpleViewTop, transDesc, 5, delay, delay + 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 3.33f, false, false);
+                TriggerFade(SimpleViewBottom, transDesc, 6, delay, delay + 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
+                TriggerScaleOut(SimpleViewBottom, transDesc, 7, delay, delay + 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, -3.33f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                fullscreenAnimation4();
+            }
+            DUI_SetGadgetZOrder(UIContainer, -1);
         }
-        g_editmode = false;
-        g_invokedpagechange = false;
-        DUI_SetGadgetZOrder(UIContainer, -1);
     }
 
     void TriggerHSV(Element* elem, Event* iev)

@@ -11,6 +11,8 @@
 			<DDToggleButton bordercolor="argb(0,0,0,0)"/>
 			<DDCheckBox bordercolor="argb(0,0,0,0)"/>
 			<DDCheckBoxGlyph bordercolor="argb(0,0,0,0)"/>
+			<DDNumberedButton bordercolor="argb(0,0,0,0)"/>
+			<DDCombobox bordercolor="argb(0,0,0,0)"/>
 			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
 			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
 			<if class="pushbuttonprimary">
@@ -110,18 +112,15 @@
 					<DDScalableButton foreground="rgb(128,128,128)"/>
 				</if>
 			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
-			</if>
-			<DDTab FirstScaledImage="1072" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
-				contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(0,0,0)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
-			<if mousefocused="true">
-				<DDTab FirstScaledImage="1079" foreground="rgb(0,0,0)"/>
-			</if>
-			<if selected="true">
-				<DDTab FirstScaledImage="1086" foreground="rgb(255,255,255)" EnableAccent="true"/>
+			<if class="tab">
+				<DDNumberedButton FirstScaledImage="1072" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)"
+								  margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="true" foreground="rgb(0,0,0)" font="messagefont;115%"/>
+				<if mousefocused="true">
+					<DDNumberedButton FirstScaledImage="1079" foreground="rgb(0,0,0)"/>
+				</if>
+				<if selected="true">
+					<DDNumberedButton FirstScaledImage="1086" foreground="rgb(255,255,255)" EnableAccent="true"/>
+				</if>
 			</if>
 			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 			<if mousefocused="true">
@@ -153,6 +152,9 @@
 			<if vertical="false">
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
+			<if class="ScrollViewer">
+				<viewer layoutpos="nineclient" overhang="true"/>
+			</if>
 			<if class="Line">
 				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(96,0,0,0)" font="resstr(130)"/>
 				<if mousewithin="true">
@@ -162,31 +164,31 @@
 					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(108,0,0,0)"/>
 				</if>
 				<if id="atom(LineUp)">
-					<TouchRepeatButton layoutpos="top" height="22rp"/>
+					<TouchRepeatButton layoutpos="top" height="15rp"/>
 				</if>
 				<if id="atom(LineDown)">
-					<TouchRepeatButton layoutpos="bottom" height="22rp"/>
+					<TouchRepeatButton layoutpos="bottom" height="15rp"/>
 				</if>
 				<if id="atom(LineLeft)">
-					<TouchRepeatButton layoutpos="left" width="22rp"/>
+					<TouchRepeatButton layoutpos="left" width="15rp"/>
 				</if>
 				<if id="atom(LineRight)">
-					<TouchRepeatButton layoutpos="right" width="22rp"/>
+					<TouchRepeatButton layoutpos="right" width="15rp"/>
 				</if>
 			</if>
 			<if class="Line_Arrow">
 				<InternalRichText background="argb(0,0,0,0)" constrainlayout="narrow" direction="LTR" overhang="true"/>
 				<if id="atom(LineUp_Arrow)">
-					<InternalRichText content="resstr(131)" contentalign="bottomcenter" linespacing="33rp" baseline="27rp"/>
+					<InternalRichText content="resstr(131)" contentalign="topcenter" linespacing="17rp" baseline="12rp"/>
 				</if>
 				<if id="atom(LineDown_Arrow)">
-					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="33rp" baseline="17rp"/>
+					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="17rp" baseline="12rp"/>
 				</if>
 				<if id="atom(LineLeft_Arrow)">
-					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="14rp" padding="rect(0,0,7rp,0)"/>
+					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="12rp" padding="rect(0,0,4rp,0)"/>
 				</if>
 				<if id="atom(LineRight_Arrow)">
-					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="14rp" padding="rect(7rp,0,0,0)"/>
+					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="12rp" padding="rect(4rp,0,0,0)"/>
 				</if>
 			</if>
 			<if id="atom(TouchScrollBar_Track)">
@@ -319,6 +321,48 @@
 				<DDScalableElement padding="rect(6rp,0,0,0)" font="messagefont;115%" foreground="black" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="wrapleft|endellipsis"/>
 				<if Enabled="false">
 					<DDScalableElement foreground="rgb(128,128,128)"/>
+				</if>
+			</if>
+			<DDCombobox foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="messagefont;115%"
+						borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(8rp,0,8rp,0)" contentalign="middleleft|endellipsis" shortcut="auto" handleenter="true" height="32rp"/>
+			<if mousefocused="true">
+				<DDCombobox foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
+			</if>
+			<if Pressed="true">
+				<DDCombobox foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+			</if>
+			<if Enabled="false">
+				<DDCombobox foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
+			</if>
+			<if id="atom(DDCMB_DropDownGlyph)">
+				<DDScalableRichText layoutpos="right" background="argb(0,0,0,0)" foreground="rgb(96,96,96)" font="resstr(174)" content="resstr(175)"/>
+				<if Enabled="false">
+					<DDScalableRichText foreground="rgb(160,160,160)"/>
+				</if>
+			</if>
+			<if id="atom(DDCMB_SelectionList)">
+				<HWNDElement background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDCMB_SelectionListInner)">
+				<Element padding="rect(4rp,4rp,4rp,4rp)" minsize="size(0,40rp)"/>
+			</if>
+			<if class="cmbsel">
+				<DDNumberedButton layoutpos="top" background="argb(0,0,0,0)" NeedsFontResize="true" height="32rp" padding="rect(4rp,0,4rp,0)" margin="rect(0,4rp,0,0)"
+					contentalign="middleleft|endellipsis" accessible="true" shortcut="auto" foreground="rgb(0,0,0)" font="messagefont;115%" handleenter="true"/>
+				<if mousefocused="true">
+					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+				</if>
+				<if Pressed="true">
+					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,5), argb(16,0,0,0))"/>
+				</if>
+				<if selected="true">
+					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))" foreground="20007"/>
+					<if mousefocused="true">
+						<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,5), argb(16,0,0,0))"/>
+					</if>
+					<if Pressed="true">
+						<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+					</if>
 				</if>
 			</if>
 			<DDSlider background="argb(0,0,0,0)"/>
@@ -514,18 +558,15 @@
 					<DDScalableButton foreground="rgb(96,96,96)"/>
 				</if>
 			</if>
-			<if class="ScrollViewer">
-				<CCHScrollBar layoutpos="ninebottom" accessible="true" accdesc="resstr(1101)" accname="resstr(1102)" />
-				<CCVScrollBar layoutpos="nineright" accessible="true" accdesc="resstr(1100)" accname="resstr(1103)" />
-				<viewer layoutpos="nineclient" />
-			</if>
-			<DDTab FirstScaledImage="2072" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)" margin="rect(4rp,0,4rp,0)"
-				contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%" compositedtext="true" textglowsize="0"/>
-			<if mousefocused="true">
-				<DDTab FirstScaledImage="2079" foreground="rgb(255,255,255)"/>
-			</if>
-			<if selected="true">
-				<DDTab FirstScaledImage="2086" foreground="rgb(0,0,0)" EnableAccent="true"/>
+			<if class="tab">
+				<DDNumberedButton FirstScaledImage="2072" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)"
+								  margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%"/>
+				<if mousefocused="true">
+					<DDNumberedButton FirstScaledImage="2079" foreground="rgb(255,255,255)"/>
+				</if>
+				<if selected="true">
+					<DDNumberedButton FirstScaledImage="2086" foreground="rgb(0,0,0)" EnableAccent="true"/>
+				</if>
 			</if>
 			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 			<if mousefocused="true">
@@ -557,6 +598,9 @@
 			<if vertical="false">
 				<TouchScrollBar height="16rp" layoutpos="ninebottom"/>
 			</if>
+			<if class="ScrollViewer">
+				<viewer layoutpos="nineclient" overhang="true"/>
+			</if>
 			<if class="Line">
 				<TouchRepeatButton accessible="true" accrole="pushbutton" background="argb(0,0,0,0)" foreground="argb(128,255,255,255)" font="resstr(130)"/>
 				<if mousewithin="true">
@@ -566,31 +610,31 @@
 					<TouchRepeatButton background="argb(0,0,0,0)" foreground="argb(144,255,255,255)"/>
 				</if>
 				<if id="atom(LineUp)">
-					<TouchRepeatButton layoutpos="top" height="22rp"/>
+					<TouchRepeatButton layoutpos="top" height="15rp"/>
 				</if>
 				<if id="atom(LineDown)">
-					<TouchRepeatButton layoutpos="bottom" height="22rp"/>
+					<TouchRepeatButton layoutpos="bottom" height="15rp"/>
 				</if>
 				<if id="atom(LineLeft)">
-					<TouchRepeatButton layoutpos="left" width="22rp"/>
+					<TouchRepeatButton layoutpos="left" width="15rp"/>
 				</if>
 				<if id="atom(LineRight)">
-					<TouchRepeatButton layoutpos="right" width="22rp"/>
+					<TouchRepeatButton layoutpos="right" width="15rp"/>
 				</if>
 			</if>
 			<if class="Line_Arrow">
 				<InternalRichText background="argb(0,0,0,0)" constrainlayout="narrow" direction="LTR" overhang="true"/>
 				<if id="atom(LineUp_Arrow)">
-					<InternalRichText content="resstr(131)" contentalign="bottomcenter" linespacing="33rp" baseline="27rp"/>
+					<InternalRichText content="resstr(131)" contentalign="topcenter" linespacing="17rp" baseline="12rp"/>
 				</if>
 				<if id="atom(LineDown_Arrow)">
-					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="33rp" baseline="17rp"/>
+					<InternalRichText content="resstr(132)" contentalign="topcenter" linespacing="17rp" baseline="12rp"/>
 				</if>
 				<if id="atom(LineLeft_Arrow)">
-					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="14rp" padding="rect(0,0,7rp,0)"/>
+					<InternalRichText content="resstr(133)" contentalign="middleright" linespacing="17rp" baseline="12rp" padding="rect(0,0,4rp,0)"/>
 				</if>
 				<if id="atom(LineRight_Arrow)">
-					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="14rp" padding="rect(7rp,0,0,0)"/>
+					<InternalRichText content="resstr(134)" contentalign="middleleft" linespacing="17rp" baseline="12rp" padding="rect(4rp,0,0,0)"/>
 				</if>
 			</if>
 			<if id="atom(TouchScrollBar_Track)">
@@ -723,6 +767,48 @@
 				<DDScalableElement padding="rect(6rp,0,0,0)" font="messagefont;115%" foreground="white" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="wrapleft|endellipsis"/>
 				<if Enabled="false">
 					<DDScalableElement foreground="rgb(160,160,160)"/>
+				</if>
+			</if>
+			<DDCombobox foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="messagefont;115%"
+						borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(8rp,0,8rp,0)" contentalign="middleleft|endellipsis" shortcut="auto" handleenter="true" height="32rp"/>
+			<if mousefocused="true">
+				<DDCombobox foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
+			</if>
+			<if Pressed="true">
+				<DDCombobox foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+			</if>
+			<if Enabled="false">
+				<DDCombobox foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
+			</if>
+			<if id="atom(DDCMB_DropDownGlyph)">
+				<DDScalableRichText layoutpos="right" background="argb(0,0,0,0)" foreground="rgb(208,208,208)" font="resstr(174)" content="resstr(175)"/>
+				<if Enabled="false">
+					<DDScalableRichText foreground="rgb(96,96,96)"/>
+				</if>
+			</if>
+			<if id="atom(DDCMB_SelectionList)">
+				<HWNDElement background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDCMB_SelectionListInner)">
+				<Element padding="rect(4rp,4rp,4rp,4rp)" minsize="size(0,40rp)"/>
+			</if>
+			<if class="cmbsel">
+				<DDNumberedButton layoutpos="top" background="argb(0,0,0,0)" NeedsFontResize="true" height="32rp" padding="rect(4rp,0,4rp,0)" margin="rect(0,4rp,0,0)"
+					contentalign="middleleft|endellipsis" accessible="true" shortcut="auto" foreground="rgb(255,255,255)" font="messagefont;115%" handleenter="true"/>
+				<if mousefocused="true">
+					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+				</if>
+				<if Pressed="true">
+					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,5), argb(16,255,255,255))"/>
+				</if>
+				<if selected="true">
+					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))" foreground="20002"/>
+					<if mousefocused="true">
+						<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,5), argb(16,255,255,255))"/>
+					</if>
+					<if Pressed="true">
+						<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+					</if>
 				</if>
 			</if>
 			<DDSlider background="argb(0,0,0,0)"/>

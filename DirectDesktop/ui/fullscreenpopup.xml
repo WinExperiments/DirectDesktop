@@ -64,7 +64,7 @@
 		</Element>
 		<DDTabbedPages id="atom(settingslist)" layoutpos="client" behaviors="PVL::AnimationTrap()"/>
 	</Element>
-	<Element resid="SettingsPage1" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+	<Element resid="SettingsPage1" id="atom(SettingsPage1)" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(167)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
@@ -100,6 +100,12 @@
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDCombobox id="atom(ClickMode)" width="372rp" listmaxheight="360rp"/>
+			</Element>
+			<DDScalableElement id="atom(ClickModeLabel)" class="settingslabeltext"/>
+		</DDScalableElement>
+		<DDScalableElement class="MiddleSection" layout="borderlayout()">
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(TreatDirAsGroup)"/>
 			</Element>
 			<DDScalableElement content="resstr(4014)" class="settingslabeltext"/>
@@ -117,7 +123,7 @@
 			<DDScalableElement content="resstr(4043)" class="settingslabeltext"/>
 		</DDScalableElement>
 	</Element>
-	<Element resid="SettingsPage2" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+	<Element resid="SettingsPage2" id="atom(SettingsPage2)" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<RichText class="SettingsIcon" content="resstr(169)"/>
 			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
@@ -166,7 +172,7 @@
 			<DDScalableTouchButton id="atom(DesktopIconSettings)" content="resstr(112, library(desk.cpl))" layoutpos="left" class="popupbutton" visible="true"/>
 		</DDScalableElement>
 	</Element>
-	<Element resid="SettingsPage3" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
+	<Element resid="SettingsPage3" id="atom(SettingsPage3)" layoutpos="client" layout="borderlayout()" background="argb(0,0,0,0)">
 		<DDScalableElement class="TopSection" layout="borderlayout()">
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(EnableLogging)"/>

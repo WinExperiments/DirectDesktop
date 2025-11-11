@@ -40,11 +40,25 @@ namespace DirectDesktop
                     DestroySearchPage();
                     break;
                 }
+            case WM_USER + 1:
+            {
+                searchbox->SetKeyFocus();
+                break;
+            }
         }
         return CallWindowProc(WndProcSearch, hWnd, uMsg, wParam, lParam);
     }
 
-    DWORD WINAPI animateSearch(LPVOID lpParam)
+    DWORD WINAPI AnimateSearchWindow(LPVOID lpParam)
+    {
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        AnimateWindow(searchwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+        SendMessageW(searchwnd->GetHWND(), WM_USER + 1, NULL, NULL);
+        return 0;
+    }
+
+    DWORD WINAPI AnimateSearchWindow2(LPVOID lpParam)
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
@@ -164,7 +178,6 @@ namespace DirectDesktop
         WndProcSearch = (WNDPROC)SetWindowLongPtrW(searchwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SearchWindowProc);
         pSearch->SetVisible(true);
         pSearch->EndDefer(key4);
-        searchwnd->Host(pSearch);
         CSafeElementPtr<Element> searchbase;
         searchbase.Assign(regElem<Element*>(L"searchbase", pSearch));
         LPWSTR sheetName = g_theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
@@ -172,7 +185,6 @@ namespace DirectDesktop
         CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
         parserSearch->GetSheet(sheetName, &sheetStorage);
         pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
-        searchwnd->ShowWindow(SW_SHOW);
         searchbox = regElem<DDScalableTouchEdit*>(L"searchbox", pSearch);
         free(pel_DisplayResults), free(pel_CloseSearch);
         CSafeElementPtr<DDScalableTouchButton> searchbutton;
@@ -183,15 +195,17 @@ namespace DirectDesktop
         pel_CloseSearch = (IElementListener*)assignFn(closebutton, CloseSearch, true);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
         SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
+        CSafeElementPtr<Element> pagecontent;
+        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+        searchwnd->Host(pSearch);
+        searchwnd->ShowWindow(SW_HIDE);
         GTRANS_DESC transDesc[1];
         TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
         TransitionStoryboardInfo tsbInfo = {};
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
-        CSafeElementPtr<Element> pagecontent;
-        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
         GTRANS_DESC transDesc2[2];
-        TriggerFade(pagecontent, transDesc2, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-        TriggerScaleIn(pagecontent, transDesc2, 1, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.75f, 0.75f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        TriggerFade(pagecontent, transDesc2, 0, 0.05f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
+        TriggerScaleIn(pagecontent, transDesc2, 1, 0.05f, 0.72f, 0.1f, 0.9f, 0.2f, 1.0f, 0.75f, 0.75f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, pagecontent->GetDisplayNode(), &tsbInfo);
         MARGINS m = { -1, -1, -1, -1 };
         if (DWMActive)
@@ -202,8 +216,9 @@ namespace DirectDesktop
             SetGadgetFlags(pagecontent->GetParent()->GetDisplayNode(), NULL, NULL);
             DwmExtendFrameIntoClientArea(searchwnd->GetHWND(), &m);
         }
-        BlurBackground(searchwnd->GetHWND(), true, true, searchbase);
-        searchbox->SetKeyFocus();
+        HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateSearchWindow, nullptr, NULL, nullptr);
+        if (AnimHandle) CloseHandle(AnimHandle);
+        BlurBackground(searchwnd->GetHWND(), true, true, 0x99, searchbase);
     }
 
     void DestroySearchPage()
@@ -221,7 +236,7 @@ namespace DirectDesktop
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, pagecontent->GetDisplayNode(), &tsbInfo);
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
         DWORD animThread;
-        HANDLE animThreadHandle = CreateThread(nullptr, 0, animateSearch, nullptr, 0, &animThread);
+        HANDLE animThreadHandle = CreateThread(nullptr, 0, AnimateSearchWindow2, nullptr, 0, &animThread);
         if (animThreadHandle) CloseHandle(animThreadHandle);
     }
 }

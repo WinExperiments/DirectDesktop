@@ -36,114 +36,6 @@ namespace DirectDesktop
         int delay{};
     };
 
-    void SkipDlgSection(const BYTE*& p, const BYTE*& pEnd)
-    {
-        if (p + 2 > pEnd) return;
-        if (*((const WORD*)p) == 0xFFFF)
-        {
-            p += 4;
-            if (p > pEnd) return;
-        }
-        else
-        {
-            while (p < pEnd && *((const wchar_t*)p)) p += 2;
-            p += 2;
-            if (p > pEnd) return;
-        }
-    }
-
-    wstring GetDialogString(UINT id, LPCWSTR dllName, UINT optCtrlID)
-    {
-        HMODULE hDLL = LoadLibraryW(dllName);
-        HRSRC hRes = FindResourceW(hDLL, MAKEINTRESOURCE(id), RT_DIALOG);
-        if (!hRes) return L"";
-        DWORD resSize = SizeofResource(hDLL, hRes);
-        if (resSize < 24) return L""; // DIALOGEX header size (24)
-        HGLOBAL hData = LoadResource(hDLL, hRes);
-        if (!hData) return L"";
-        BYTE* pData{};
-        if (hData) pData = (BYTE*)LockResource(hData);
-        if (!pData) return L"";
-        const BYTE* pEnd = pData + resSize;
-        const BYTE* pCurrent = pData;
-        WORD itemCount = *(WORD*)(pCurrent + 0x10);
-        if (pCurrent + 26 > pEnd) return L""; // Check header
-        pCurrent += 26; // DIALOGEX offset
-
-        // Skip menu
-        SkipDlgSection(pCurrent, pEnd);
-
-        // Skip class
-        SkipDlgSection(pCurrent, pEnd);
-
-        if (optCtrlID > 0)
-        {
-            wstring caption;
-
-            // Skip caption
-            SkipDlgSection(pCurrent, pEnd);
-
-            // Skip font info
-            pCurrent += 2; // point size
-            pCurrent += 2; // weight
-            pCurrent += 1; // italic
-            pCurrent += 1; // charset
-
-            // Skip font face name
-            while (*(WCHAR*)pCurrent)
-            {
-                pCurrent += 2;
-            }
-
-            pCurrent += 2;
-            for (int i = 0; i < itemCount && pCurrent < pEnd; ++i)
-            {
-                // Align to DWORD
-                pCurrent = (const BYTE*)(((uintptr_t)pCurrent + 3) & ~3);
-                if (pCurrent + 20 > pEnd) break;
-
-                WORD ctrlID = *(WORD*)(pCurrent + 20);
-                pCurrent += 28; // DIALOGITEMTEMPLATEEX is 20 bytes + 8 till the string
-
-                if (*(WORD*)pCurrent == 0x0000)
-                {
-                    pCurrent += 4; // ordinal
-                    continue;
-                }
-                else
-                {
-                    while (*(WCHAR*)pCurrent)
-                    {
-                        if (ctrlID == optCtrlID)
-                        {
-                            caption += *((const WCHAR*)pCurrent);
-                        }
-                        pCurrent += 2;
-                    }
-                    if (ctrlID == optCtrlID) return caption;
-                }
-
-                while (*(BYTE*)pCurrent != 0x40 && *(BYTE*)pCurrent != 0x50)
-                {
-                    pCurrent += 1; // Dialog resources usually end in those bytes (UNCONFIRMED)
-                }
-                pCurrent -= 11; // Go back 11 bytes so that the parsing continues normally
-            }
-        }
-        else
-        {
-            wstring caption;
-            while (pCurrent < pEnd && *((const WCHAR*)pCurrent))
-            {
-                caption += *((const WCHAR*)pCurrent);
-                pCurrent += 2;
-                if (pCurrent > pEnd) return L"";
-            }
-            return caption;
-        }
-        return L"";
-    }
-
     bool IsServer()
     {
         wchar_t* productType = nullptr;
@@ -208,7 +100,9 @@ namespace DirectDesktop
             case WM_DESTROY:
                 return 0;
             case WM_ACTIVATE:
-                if (LOWORD(wParam) == WA_INACTIVE) DestroyShutdownDialog();
+                WCHAR className[64];
+                GetClassNameW((HWND)lParam, className, 64);
+                if (LOWORD(wParam) == WA_INACTIVE && wcscmp(className, L"DDCMBMenuWindow") != 0) DestroyShutdownDialog();
                 break;
             case WM_USER + 1:
             {
@@ -304,7 +198,7 @@ namespace DirectDesktop
             int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
             int sizeX = 500 * g_flScaleFactor;
             int sizeY = 400 * g_flScaleFactor;
-            if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * g_flScaleFactor;
+            if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 92 * g_flScaleFactor;
             for (int i = 0; i < 6; i++)
             {
                 if (delayedshutdownstatuses[i] == true)
@@ -351,9 +245,9 @@ namespace DirectDesktop
 
     void UpdateShutdownReasonCode(Element* elem, Event* iev)
     {
-        if (iev->uidType == Combobox::SelectionChange())
+        if (iev->uidType == DDCombobox::SelectionChange())
         {
-            switch (((Combobox*)elem)->GetSelection())
+            switch (((DDCombobox*)elem)->GetSelection())
             {
                 case 0:
                     shutdownReason = SHTDN_REASON_MAJOR_OTHER | SHTDN_REASON_MINOR_OTHER;
@@ -433,14 +327,14 @@ namespace DirectDesktop
 
     void DisplayShutdownDialog()
     {
-        wstring caption = GetDialogString(2000, L"shutdownux.dll", NULL);
+        wstring caption = GetDialogString(2000, L"shutdownux.dll", NULL, NULL);
         HWND hWndShutdown = FindWindowW(L"DD_ShutdownHost", caption.c_str());
         if (hWndShutdown) return;
         unsigned long key3 = 0;
         int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
         int sizeX = 500 * g_flScaleFactor;
         int sizeY = 400 * g_flScaleFactor;
-        if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 120 * g_flScaleFactor;
+        if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 92 * g_flScaleFactor;
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), nullptr, nullptr, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, nullptr, 0x43, &shutdownwnd);
@@ -523,23 +417,18 @@ namespace DirectDesktop
             ShutdownEventTracker->Add((Element**)&ShutdownEventTrackerResid, 1);
             CSafeElementPtr<DDScalableElement> SETText;
             SETText.Assign(regElem<DDScalableElement*>(L"SETText", ShutdownEventTrackerResid));
-            SETText->SetContentString(GetDialogString(2210, L"shutdownext.dll", NULL).c_str());
-            Combobox* SETReason = regElem<Combobox*>(L"SETReason", ShutdownEventTracker);
-            for (short s = 8261; s <= 8262; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
-            for (short s = 8250; s <= 8253; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
-            for (short s = 8272; s >= 8271; s--) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
-            for (short s = 8256; s <= 8257; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
-            SETReason->AddString(LoadStrFromRes(8260, L"user32.dll").c_str());
-            SETReason->AddString(LoadStrFromRes(8268, L"user32.dll").c_str());
-            SETReason->AddString(LoadStrFromRes(8293, L"user32.dll").c_str());
-            for (short s = 8258; s <= 8259; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
-            for (short s = 8299; s <= 8301; s++) SETReason->AddString(LoadStrFromRes(s, L"user32.dll").c_str());
+            SETText->SetContentString(GetDialogString(2210, L"shutdownext.dll", NULL, NULL).c_str());
+            DDCombobox* SETReason = regElem<DDCombobox*>(L"SETReason", ShutdownEventTracker);
+            for (short s = 8261; s <= 8262; s++) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
+            for (short s = 8250; s <= 8253; s++) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
+            for (short s = 8272; s >= 8271; s--) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
+            for (short s = 8256; s <= 8257; s++) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
+            SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(8260, L"user32.dll").c_str());
+            SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(8268, L"user32.dll").c_str());
+            SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(8293, L"user32.dll").c_str());
+            for (short s = 8258; s <= 8259; s++) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
+            for (short s = 8299; s <= 8301; s++) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
             SETReason->SetSelection(0);
-            HWND hCtrl = FindWindowExW(parentShutdown->GetHWND(), nullptr, L"CtrlNotifySink", nullptr);
-            HWND hCombobox = FindWindowExW(hCtrl, nullptr, L"ComboBox", nullptr);
-            SetWindowLongPtrW(hCombobox, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
-            SetLayeredWindowAttributes(hCombobox, 0, 255, LWA_ALPHA);
-            if (!g_theme) SetWindowTheme(hCtrl, L"DarkMode_CFD", nullptr);
             assignFn(SETReason, UpdateShutdownReasonCode);
         }
         WCHAR* cBuffer = new WCHAR[64];
@@ -603,24 +492,16 @@ namespace DirectDesktop
         if (WindowsBuild < 21996)
         {
             if (IsServer())
-            {
                 Logo->SetAccDesc(L"Windows Server 2022");
-            }
             else
-            {
                 Logo->SetAccDesc(L"Windows 10");
-            }
         }
         else
         {
             if (IsServer())
-            {
                 Logo->SetAccDesc(L"Windows Server 2025");
-            }
             else
-            {
                 Logo->SetAccDesc(L"Windows 11");
-            }
         }
         SwitchUser = regElem<DDScalableButton*>(L"SwitchUser", pShutdown), SignOut = regElem<DDScalableButton*>(L"SignOut", pShutdown), SleepButton = regElem<DDScalableButton*>(L"SleepButton", pShutdown),
             Hibernate = regElem<DDScalableButton*>(L"Hibernate", pShutdown), Shutdown = regElem<DDScalableButton*>(L"Shutdown", pShutdown), Restart = regElem<DDScalableButton*>(L"Restart", pShutdown);
@@ -644,7 +525,7 @@ namespace DirectDesktop
         CSafeElementPtr<DDScalableElement> delaysecondsbackground;
         delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
         if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
-        //AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
+        AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
         pShutdown->DestroyAll(true);
         shutdownwnd->DestroyWindow();
         g_dialogopen = false;

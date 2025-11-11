@@ -14,12 +14,10 @@
 				<Element id="atom(selector)" layout="borderlayout()" class="selector" visible="false" layoutpos="absolute" background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="filllayout()" background="argb(0,0,0,0)">
 					<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
-					<Element id="atom(iconElemShadow)" contentalign="bottomcenter" layoutpos="absolute"/>
 					<Element id="atom(iconElem)" contentalign="bottomcenter" layout="filllayout()" layoutpos="absolute">
 						<Element id="atom(DP_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
 					</Element>
 					<Element id="atom(shortcutElem)" direction="ltr" layoutpos="absolute" contentalign="bottomleft"/>
-					<RichText id="atom(textElemShadow)" layoutpos="bottom" contentalign="topcenter"/>
 					<RichText id="atom(textElem)" layoutpos="bottom" contentalign="topcenter"/>
 					<Element layout="ninegridlayout()" layoutpos="ninetopleft">
 						<TouchButton id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopleft" margin="rect(6rp,6rp,0,0)"/>
@@ -33,7 +31,6 @@
 					<Element id="atom(innerElem)"/>
 					<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()">
 						<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()">
-							<Element id="atom(iconElemShadow)" contentalign="bottomleft" layoutpos="left"/>
 							<Element layoutpos="left" layout="borderlayout()">
 								<Element id="atom(iconElem)" contentalign="bottomleft" layout="filllayout()" layoutpos="bottom" width="48rp" height="48rp">
 									<Element id="atom(DP_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
@@ -59,31 +56,21 @@
 	<Element resid="pageVisual" id="atom(pageVisual)" layoutpos="absolute"/>
 	<TouchButton resid="emptyspace" layoutpos="absolute" background="argb(0,0,0,0)"/>
 	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>
-	<LVItem resid="outerElem" layout="filllayout()" visible="false" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap()">
+	<LVItem resid="outerElem" layout="filllayout()" visible="false" handleenter="true" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()">
 		<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
-		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute"/>
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
-		<RichText id="atom(textElemShadow)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
-		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" padding="rect(0,0,0,1rp)" contentalign="topcenter"/>
+		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 		<Element layout="ninegridlayout()" layoutpos="ninetopleft" background="argb(0,0,0,0)">
 			<TouchButton id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
 		</Element>
 	</LVItem>
-	<LVItem resid="outerElemGrouped" layout="filllayout()" background="argb(0,0,0,0)" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp"  behaviors="PVL::AnimationTrap()">
-		<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
-		<Element id="atom(iconElemShadow)" contentalign="bottomcenter" background="argb(0,0,0,0)" layoutpos="absolute"/>
-		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
-		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
-		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
-	</LVItem>
-	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" overhang="true" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap()">
+	<LVItem resid="outerElemTouch" layout="filllayout()" visible="false" handleenter="true" layoutpos="absolute" class="itemTouchOuter" width="128rp" height="128rp" DrawType="1" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()">
 		<DDScalableElement id="atom(innerElem)" class="itemTouchInner"/>
 		<Element id="atom(containerElem)" layoutpos="client" layout="filllayout()" padding="rect(6rp,6rp,6rp,6rp)" background="argb(0,0,0,0)">
 			<Element id="atom(iconcontainer)" layoutpos="bottom" layout="filllayout()" background="argb(0,0,0,0)">
-				<Element id="atom(iconElemShadow)" contentalign="bottomleft" background="argb(0,0,0,0)" layoutpos="left" width="48rp" height="48rp"/>
 				<Element layoutpos="left" layout="borderlayout()">
-					<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="bottom" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)" DrawType="1"/>
+					<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="bottom" width="48rp" height="48rp" DrawType="1"/>
 				</Element>
 				<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="left" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)"/>
 			</Element>
@@ -96,7 +83,7 @@
 		</Element>
 	</LVItem>
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
-	<Element resid="RenameBoxTexture" id="atom(RenameBoxTexture)" layoutpos="absolute" padding="rect(3rp,4rp,3rp,4rp)"/>
+	<Element resid="RenameBoxTexture" id="atom(RenameBoxTexture)" layoutpos="absolute" padding="rect(3rp,3rp,3rp,3rp)"/>
 	<stylesheets>
 		<style resid="default" base="ressheet(31, DDBase)">
 			<if id="atom(mainContainer)">

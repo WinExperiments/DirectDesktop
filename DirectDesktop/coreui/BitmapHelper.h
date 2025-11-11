@@ -9,10 +9,10 @@ namespace DirectDesktop
     bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alpha, COLORREF crOpt);
     bool AddPaddingToBitmap(HBITMAP hOriginalBitmap, HBITMAP& hNewBitmap, int pL, int pT, int pR, int pB);
     bool CaptureWallpaperFromProgman(HBITMAP& hBitmap, RECT rc);
-    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch);
+    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch, DWORD dwFontStyle);
     bool LoadPNGAsBitmap(HBITMAP& hBitmap, int imageID);
     bool CompositeBitmaps(HBITMAP hbmBg, HBITMAP hbmFg, bool hardLight, float hlCoef);
-    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, DirectUI::Element* peOptional);
+    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, BYTE alpha, DirectUI::Element* peOptional);
     void BlurBackground2(HWND hwnd, bool blur, bool fullscreen, DirectUI::Element* peOptional);
 
     extern TEXTMETRICW textm;

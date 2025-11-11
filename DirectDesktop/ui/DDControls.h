@@ -81,7 +81,7 @@ namespace DirectDesktop
             , _fnb1(false)
             , _fnb2(false)
             , _fnb3(false)
-            , _assocBool(nullptr)
+            , _assocSetting(nullptr)
             , _gc(0)
             , _shellinteraction(false)
         {
@@ -119,12 +119,12 @@ namespace DirectDesktop
 
         RegKeyValue GetRegKeyValue();
         void (*GetAssociatedFn())(bool, bool, bool);
-        bool* GetAssociatedBool();
+        void* GetAssociatedSetting();
         unsigned short GetGroupColor();
         bool GetShellInteraction();
         void SetRegKeyValue(RegKeyValue rkvNew);
         void SetAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
-        void SetAssociatedBool(bool* pb);
+        void SetAssociatedSetting(void* pb);
         void SetGroupColor(unsigned short sGC);
         void SetShellInteraction(bool bShellInteraction);
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
@@ -135,7 +135,7 @@ namespace DirectDesktop
         bool _fnb1;
         bool _fnb2;
         bool _fnb3;
-        bool* _assocBool;
+        void* _assocSetting;
         unsigned short _gc;
         bool _shellinteraction;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
@@ -199,7 +199,7 @@ namespace DirectDesktop
             , _fnb1(false)
             , _fnb2(false)
             , _fnb3(false)
-            , _assocBool(nullptr)
+            , _assocSetting(nullptr)
             , _gc(0)
             , _shellinteraction(false)
         {
@@ -237,12 +237,12 @@ namespace DirectDesktop
 
         RegKeyValue GetRegKeyValue();
         void (*GetAssociatedFn())(bool, bool, bool);
-        bool* GetAssociatedBool();
+        void* GetAssociatedSetting();
         unsigned short GetGroupColor();
         bool GetShellInteraction();
         void SetRegKeyValue(RegKeyValue rkvNew);
         void SetAssociatedFn(void (*pfn)(bool, bool, bool), bool fnb1, bool fnb2, bool fnb3);
-        void SetAssociatedBool(bool* pb);
+        void SetAssociatedSetting(void* pb);
         void SetGroupColor(unsigned short sGC);
         void SetShellInteraction(bool bShellInteraction);
         void ExecAssociatedFn(void (*pfn)(bool, bool, bool));
@@ -253,7 +253,7 @@ namespace DirectDesktop
         bool _fnb1;
         bool _fnb2;
         bool _fnb3;
-        bool* _assocBool;
+        void* _assocSetting;
         unsigned short _gc;
         bool _shellinteraction;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
@@ -359,10 +359,8 @@ namespace DirectDesktop
             , _smallPos(1)
             , _touchGrid(nullptr)
             , _peIcon(nullptr)
-            , _peShadow(nullptr)
             , _peShortcutArrow(nullptr)
             , _peText(nullptr)
-            , _peTextShadow(nullptr)
             , _peCheckbox(nullptr)
             , _childItemss(nullptr)
             , _pels{}
@@ -435,16 +433,12 @@ namespace DirectDesktop
         void SetTouchGrid(LVItemTouchGrid* lvitg);
         void SetTouchGrid(LVItemTouchGrid* lvitg, BYTE index);
         DDScalableElement* GetIcon();
-        Element* GetShadow();
         Element* GetShortcutArrow();
         RichText* GetText();
-        RichText* GetTextShadow();
         TouchButton* GetCheckbox();
         void SetIcon(DDScalableElement* peIcon);
-        void SetShadow(Element* peShadow);
         void SetShortcutArrow(Element* peShortcutArrow);
         void SetText(RichText* peText);
-        void SetTextShadow(RichText* peTextShadow);
         void SetCheckbox(TouchButton* peCheckbox);
         vector<LVItem*>* GetChildItems();
         void SetChildItems(vector<LVItem*>* vpm);
@@ -483,10 +477,8 @@ namespace DirectDesktop
         BYTE _smallPos = 1;
         LVItemTouchGrid* _touchGrid{};
         DDScalableElement* _peIcon{};
-        Element* _peShadow{};
         Element* _peShortcutArrow{};
         RichText* _peText{};
-        RichText* _peTextShadow{};
         TouchButton* _peCheckbox{};
         vector<LVItem*>* _childItemss{};
         vector<IElementListener*> _pels;
@@ -624,6 +616,80 @@ namespace DirectDesktop
         HRESULT _CreateCBVisual();
     };
 
+    class DDNumberedButton : public DDScalableTouchButton
+    {
+    public:
+        DDNumberedButton()
+            : _id(0)
+            , _peLinked(nullptr)
+        {
+        }
+
+        ~DDNumberedButton()
+        {
+        }
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnEvent(Event* pEvent) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        static HRESULT Register();
+        void SetNumberID(BYTE id);
+        void SetLinkedElement(void* peLinked);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        BYTE _id;
+        void* _peLinked;
+    };
+
+    class DDCombobox final : public DDScalableTouchButton
+    {
+    public:
+        DDCombobox()
+            : _selID(0)
+            , _selSize(0)
+            , _peDropDownGlyph(nullptr)
+            , _wndSelectionMenu(nullptr)
+            , _peSelectionMenu(nullptr)
+            , _tsvSelectionMenu(nullptr)
+            , _peHostInner(nullptr)
+            , _peSelections{}
+        {
+        }
+
+        ~DDCombobox();
+        enum { MAX_SELECTIONS = 255 };
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnEvent(Event* pEvent) override;
+        static UID WINAPI SelectionChange();
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI ListMaxHeightProp();
+        int GetListMaxHeight();
+        void SetListMaxHeight(int iListMaxHeight);
+        void InsertSelection(BYTE index, LPCWSTR pszSelectionStr);
+        void EraseSelection(BYTE index);
+        BYTE GetSelection();
+        void SetSelection(BYTE index);
+        void ToggleSelectionList(bool fForceHide);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        BYTE _selID;
+        BYTE _selSize;
+        DDScalableRichText* _peDropDownGlyph;
+        NativeHWNDHost* _wndSelectionMenu;
+        HWNDElement* _peSelectionMenu;
+        TouchScrollViewer* _tsvSelectionMenu;
+        Element* _peHostInner;
+        DDNumberedButton* _peSelections[MAX_SELECTIONS];
+        HRESULT _CreateCMBVisual();
+    };
+
     class DDSlider final : public TouchButton
     {
     public:
@@ -695,11 +761,11 @@ namespace DirectDesktop
         int* _assocVal;
         int _coef;
         LPCWSTR _szFormatted;
-        Button* _peTrackBase;
-        Button* _peFillBase;
+        TouchButton* _peTrackBase;
+        TouchButton* _peFillBase;
         Element* _peSliderInner;
         Element* _peTrackHolder;
-        DDScalableButton* _peThumb;
+        DDScalableTouchButton* _peThumb;
         DDScalableElement* _peTrack;
         DDScalableElement* _peFill;
         DDScalableElement* _peThumbInner;
@@ -812,30 +878,6 @@ namespace DirectDesktop
         void _ColorizeAssociatedItems(vector<T*> vElems);
     };
 
-    class DDTab final : public DDScalableTouchButton
-    {
-    public:
-        DDTab()
-            : _pageID(0)
-        {
-        }
-
-        ~DDTab()
-        {
-        }
-        static IClassInfo* GetClassInfoPtr();
-        static void SetClassInfoPtr(IClassInfo* pClass);
-        IClassInfo* GetClassInfoW() override;
-        void OnEvent(Event* pEvent) override;
-        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
-        static HRESULT Register();
-        void SetPage(BYTE pageID);
-
-    private:
-        static IClassInfo* s_pClassInfo;
-        BYTE _pageID;
-    };
-
     class DDTabbedPages final : public Element
     {
     public:
@@ -855,26 +897,27 @@ namespace DirectDesktop
         }
 
         ~DDTabbedPages();
+        enum { MAX_TABPAGES = 32 };
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
-        //void OnInput(InputEvent* pInput) override;
+        void OnInput(InputEvent* pInput) override;
         bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         static HRESULT Register();
+        void SetKeyFocus() override;
         void BindParser(DUIXmlParser* pParser);
         void InsertTab(BYTE index, LPCWSTR pszResIDPage, LPCWSTR pszTabLabel, GenericTabFunction ptfn);
         void EraseTab(BYTE index);
         void TraversePage(BYTE index);
 
     private:
-#define MAX_TABPAGES 32
         static IClassInfo* s_pClassInfo;
         DUIXmlParser* _pParser;
         TouchScrollViewer* _tsvTabCtrl;
         Element* _peTabCtrl;
-        DDTab* _peTabs[MAX_TABPAGES];
+        DDNumberedButton* _peTabs[MAX_TABPAGES];
         TouchScrollViewer* _tsvPage;
         DDScalableElement* _peSubUIContainer;
         LPCWSTR _pszPageIDs[MAX_TABPAGES];
@@ -901,7 +944,6 @@ namespace DirectDesktop
             : _wnd(nullptr)
             , _notificationType(DDNT_INFO)
             , _titleStr{}
-            , _contentStr{}
             , _pDDNB(nullptr)
             , _icon(nullptr)
             , _title(nullptr)
@@ -926,15 +968,14 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
-        NativeHWNDHost* _wnd{};
-        DDNotificationType _notificationType{};
-        wstring _titleStr{};
-        wstring _contentStr{};
-        DDNotificationBanner* _pDDNB{};
-        DDScalableElement* _icon{};
-        DDScalableElement* _title{};
-        DDScalableElement* _content{};
-        Element* _peButtonSection{};
-        BYTE _btnCount{};
+        NativeHWNDHost* _wnd;
+        DDNotificationType _notificationType;
+        WCHAR _titleStr[64];
+        DDNotificationBanner* _pDDNB;
+        DDScalableElement* _icon;
+        DDScalableElement* _title;
+        DDScalableElement* _content;
+        Element* _peButtonSection;
+        BYTE _btnCount;
     };
 }

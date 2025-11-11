@@ -22,10 +22,11 @@ namespace DirectDesktop
     IClassInfo* DDToggleButton::s_pClassInfo;
     IClassInfo* DDCheckBox::s_pClassInfo;
     IClassInfo* DDCheckBoxGlyph::s_pClassInfo;
+    IClassInfo* DDNumberedButton::s_pClassInfo;
+    IClassInfo* DDCombobox::s_pClassInfo;
     IClassInfo* DDSlider::s_pClassInfo;
     IClassInfo* DDColorPicker::s_pClassInfo;
     IClassInfo* DDColorPickerButton::s_pClassInfo;
-    IClassInfo* DDTab::s_pClassInfo;
     IClassInfo* DDTabbedPages::s_pClassInfo;
     IClassInfo* DDNotificationBanner::s_pClassInfo;
 
@@ -302,6 +303,18 @@ namespace DirectDesktop
         nullptr,
         Value::GetIntMinusOne,
         &dataimpTextHeightProp
+    };
+    static const int vvimpListMaxHeightProp[] = { 1, -1 };
+    static PropertyInfoData dataimpListMaxHeightProp;
+    static const PropertyInfo impListMaxHeightProp =
+    {
+        L"ListMaxHeight",
+        0x2 | 0x4,
+        0x1,
+        vvimpListMaxHeightProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpListMaxHeightProp
     };
 
     void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
@@ -749,14 +762,14 @@ namespace DirectDesktop
         return _rkv;
     }
 
-    void (* DDScalableButton::GetAssociatedFn())(bool, bool, bool)
+    void (*DDScalableButton::GetAssociatedFn())(bool, bool, bool)
     {
         return _assocFn;
     }
 
-    bool* DDScalableButton::GetAssociatedBool()
+    void* DDScalableButton::GetAssociatedSetting()
     {
-        return _assocBool;
+        return _assocSetting;
     }
 
     unsigned short DDScalableButton::GetGroupColor()
@@ -782,9 +795,9 @@ namespace DirectDesktop
         _fnb3 = fnb3;
     }
 
-    void DDScalableButton::SetAssociatedBool(bool* pb)
+    void DDScalableButton::SetAssociatedSetting(void* pb)
     {
-        _assocBool = pb;
+        _assocSetting = pb;
     }
 
     void DDScalableButton::SetGroupColor(unsigned short sGC)
@@ -832,6 +845,7 @@ namespace DirectDesktop
         //}
         return result;
     }
+
     void DDScalableRichText::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
@@ -1211,9 +1225,9 @@ namespace DirectDesktop
         return _assocFn;
     }
 
-    bool* DDScalableTouchButton::GetAssociatedBool()
+    void* DDScalableTouchButton::GetAssociatedSetting()
     {
-        return _assocBool;
+        return _assocSetting;
     }
 
     unsigned short DDScalableTouchButton::GetGroupColor()
@@ -1239,9 +1253,9 @@ namespace DirectDesktop
         _fnb3 = fnb3;
     }
 
-    void DDScalableTouchButton::SetAssociatedBool(bool* pb)
+    void DDScalableTouchButton::SetAssociatedSetting(void* pb)
     {
-        _assocBool = pb;
+        _assocSetting = pb;
     }
 
     void DDScalableTouchButton::SetGroupColor(unsigned short sGC)
@@ -1782,11 +1796,6 @@ namespace DirectDesktop
         return _peIcon;
     }
 
-    Element* LVItem::GetShadow()
-    {
-        return _peShadow;
-    }
-
     Element* LVItem::GetShortcutArrow()
     {
         return _peShortcutArrow;
@@ -1795,11 +1804,6 @@ namespace DirectDesktop
     RichText* LVItem::GetText()
     {
         return _peText;
-    }
-
-    RichText* LVItem::GetTextShadow()
-    {
-        return _peTextShadow;
     }
 
     TouchButton* LVItem::GetCheckbox()
@@ -1812,11 +1816,6 @@ namespace DirectDesktop
         _peIcon = peIcon;
     }
 
-    void LVItem::SetShadow(Element* peShadow)
-    {
-        _peShadow = peShadow;
-    }
-
     void LVItem::SetShortcutArrow(Element* peShortcutArrow)
     {
         _peShortcutArrow = peShortcutArrow;
@@ -1825,11 +1824,6 @@ namespace DirectDesktop
     void LVItem::SetText(RichText* peText)
     {
         _peText = peText;
-    }
-
-    void LVItem::SetTextShadow(RichText* peTextShadow)
-    {
-        _peTextShadow = peTextShadow;
     }
 
     void LVItem::SetCheckbox(TouchButton* peCheckbox)
@@ -2158,6 +2152,334 @@ namespace DirectDesktop
         return hr;
     }
 
+
+    IClassInfo* DDNumberedButton::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDNumberedButton::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDNumberedButton::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDNumberedButton::OnEvent(Event* pEvent)
+    {
+        if (pEvent->uidType == TouchButton::Click)
+        {
+            CValuePtr v;
+            LPCWSTR className = this->GetClass(&v);
+            if (wcscmp(className, L"tab") == 0)
+            {
+                ((DDTabbedPages*)this->_peLinked)->TraversePage(this->_id);
+            }
+            if (wcscmp(className, L"cmbsel") == 0)
+            {
+                ((DDCombobox*)this->_peLinked)->SetSelection(this->_id);
+                ((DDCombobox*)this->_peLinked)->ToggleSelectionList(true);
+            }
+        }
+        TouchButton::OnEvent(pEvent);
+    }
+
+    HRESULT DDNumberedButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDNumberedButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDNumberedButton::Register()
+    {
+        return ClassInfo<DDNumberedButton, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDNumberedButton", nullptr, 0);
+    }
+
+    void DDNumberedButton::SetNumberID(BYTE id)
+    {
+        _id = id;
+    }
+
+    void DDNumberedButton::SetLinkedElement(void* peLinked)
+    {
+        _peLinked = peLinked;
+    }
+
+    LRESULT CALLBACK ComboboxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+    {
+        switch (uMsg)
+        {
+        case WM_CLOSE:
+            return 0;
+        case WM_DESTROY:
+            return 0;
+        case WM_ACTIVATE:
+            if (LOWORD(wParam) == WA_INACTIVE) ShowWindow(hWnd, SW_HIDE);
+            break;
+        }
+        return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    DDCombobox::~DDCombobox()
+    {
+        this->DestroyAll(true);
+        _wndSelectionMenu->DestroyWindow();
+    }
+
+    IClassInfo* DDCombobox::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDCombobox::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDCombobox::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDCombobox::OnEvent(Event* pEvent)
+    {
+        if (pEvent->uidType == TouchButton::Click)
+        {
+            this->ToggleSelectionList(false);
+        }
+        TouchButton::OnEvent(pEvent);
+    }
+
+    UID WINAPI DDCombobox::SelectionChange()
+    {
+        return Combobox::SelectionChange();
+    }
+
+    HRESULT DDCombobox::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDCombobox, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDCombobox::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((DDScalableTouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateCMBVisual();
+        return hr;
+    }
+
+    HRESULT DDCombobox::Register()
+    {
+        static const PropertyInfo* const rgRegisterProps[] =
+        {
+            &impListMaxHeightProp
+        };
+        return ClassInfo<DDCombobox, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDCombobox", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    const PropertyInfo* WINAPI DDCombobox::ListMaxHeightProp()
+    {
+        return &impListMaxHeightProp;
+    }
+
+    int DDCombobox::GetListMaxHeight()
+    {
+        return this->GetPropCommon(ListMaxHeightProp, true);
+    }
+
+    void DDCombobox::SetListMaxHeight(int iListMaxHeight)
+    {
+        this->SetPropCommon(ListMaxHeightProp, iListMaxHeight, true);
+    }
+
+    void DDCombobox::InsertSelection(BYTE index, LPCWSTR pszSelectionStr)
+    {
+        if (index == MAX_SELECTIONS) index = _selSize;
+        if (_selSize >= MAX_SELECTIONS || index < 0 || index > _selSize)
+            return;
+        for (int i = _selSize - 1; i >= index; i--)
+        {
+            _peSelections[i + 1] = _peSelections[i];
+            _peSelections[i + 1]->SetNumberID(i + 1);
+        }
+        DDNumberedButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[index]));
+        _peHostInner->Insert((Element**)&_peSelections[index], 1, index);
+        _peSelections[index]->SetNumberID(index);
+        _peSelections[index]->SetLinkedElement(this);
+        _peSelections[index]->SetContentString(pszSelectionStr);
+        _peSelections[index]->SetClass(L"cmbsel");
+        _selSize++;
+    }
+
+    void DDCombobox::EraseSelection(BYTE index)
+    {
+        if (index < 0 || index >= _selSize)
+            return;
+        _peSelections[index]->Destroy(true);
+        _peSelections[index] = nullptr;
+        for (int i = index; i < _selSize - 1; i++)
+        {
+            _peSelections[i] = _peSelections[i + 1];
+            _peSelections[i]->SetNumberID(i);
+        }
+        _selSize--;
+    }
+
+    BYTE DDCombobox::GetSelection()
+    {
+        return _selID;
+    }
+
+    void DDCombobox::SetSelection(BYTE index)
+    {
+        if (index < 0 || index >= _selSize) return;
+        _peSelections[_selID]->SetSelected(false);
+        _peSelections[index]->SetSelected(true);
+        CValuePtr v;
+        _selID = index; 
+        this->SetContentString(_peSelections[index]->GetContentString(&v));
+        Event ev;
+        ev.uidType._address = nullptr;
+        ev.uidType = DDCombobox::SelectionChange();
+        this->FireEvent(&ev, true, false);
+    }
+
+    void DDCombobox::ToggleSelectionList(bool fForceHide)
+    {
+        if (IsWindowVisible(_wndSelectionMenu->GetHWND()) || fForceHide)
+        {
+            _wndSelectionMenu->ShowWindow(SW_HIDE);
+        }   
+        else
+        {
+            POINT ptRoot{}, ptDest;
+            RECT rcRoot, rcDest, rcElement{}, rcList{}, rcSelected{}, dimensions;
+            SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+            GetWindowRect(((HWNDElement*)this->GetRoot())->GetHWND(), &rcRoot);
+            this->GetRoot()->MapElementPoint(this, &ptRoot, &ptDest);
+            GetGadgetRect(this->GetDisplayNode(), &rcElement, 0xC);
+            GetGadgetRect(_peHostInner->GetDisplayNode(), &rcList, 0xC);
+            rcList.top -= round(g_flScaleFactor), rcList.bottom += round(g_flScaleFactor); // Window borders, left and right are unused
+            Element* peSelected = _peSelections[_selID] ? _peSelections[_selID] : _peHostInner;
+            GetGadgetRect(peSelected->GetDisplayNode(), &rcSelected, 0xC);
+            LONG halfHeight = (this->GetListMaxHeight() - rcElement.bottom + rcElement.top) / 2;
+            rcDest.left = rcRoot.left + ptDest.x;
+            rcDest.top = rcRoot.top + ptDest.y - halfHeight;
+            rcDest.right = rcElement.right - rcElement.left;
+            rcDest.bottom = min(rcList.bottom - rcList.top, this->GetListMaxHeight());
+            if (rcDest.bottom < this->GetListMaxHeight())
+            {
+                rcDest.top += halfHeight - rcSelected.top - round(g_flScaleFactor);
+            }
+            else
+            {
+                _tsvSelectionMenu->SetYOffset(rcSelected.top - rcList.top - halfHeight);
+                if (halfHeight > rcSelected.top - rcList.top)
+                {
+                    _tsvSelectionMenu->SetYOffset(0);
+                    rcDest.top += halfHeight - rcSelected.top + rcList.top + _tsvSelectionMenu->GetYOffset();
+                }
+                if (halfHeight > rcList.bottom - rcSelected.bottom)
+                {
+                    _tsvSelectionMenu->SetYOffset(rcList.bottom - rcList.top - rcDest.bottom);
+                    rcDest.top += halfHeight - rcSelected.top + rcList.top + _tsvSelectionMenu->GetYOffset();
+                }
+                if (rcDest.top < 0) rcDest.top = 0;
+                if (rcDest.bottom > dimensions.bottom) rcDest.bottom = dimensions.bottom;
+            }
+            SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, rcDest.left, rcDest.top, rcDest.right, rcDest.bottom, NULL);
+            _wndSelectionMenu->ShowWindow(SW_SHOW);
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerFade(_peHostInner, transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peHostInner->GetDisplayNode(), &tsbInfo);
+        }
+    }
+
+    HRESULT DDCombobox::_CreateCMBVisual()
+    {
+        HRESULT hr = S_OK;
+        DWORD keyC{};
+        CValuePtr spvLayout;
+        BorderLayout::Create(0, nullptr, &spvLayout);
+        this->SetValue(Element::LayoutProp, 1, spvLayout);
+        hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peDropDownGlyph);
+        if (SUCCEEDED(hr))
+        {
+            this->Add((Element**)&_peDropDownGlyph, 1);
+            _peDropDownGlyph->SetID(L"DDCMB_DropDownGlyph");
+            hr = NativeHWNDHost::Create(L"DDCMBMenuWindow", nullptr, nullptr, nullptr, 0, 0, 0, 0, WS_EX_TOOLWINDOW, WS_POPUP | WS_BORDER | CBS_DROPDOWNLIST, HINST_THISCOMPONENT, 0x43, &_wndSelectionMenu);
+            if (SUCCEEDED(hr))
+            {
+                HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, 0x38, nullptr, &keyC, (Element**)&_peSelectionMenu);
+                SetWindowSubclass(_wndSelectionMenu->GetHWND(), ComboboxProc, 1, (DWORD_PTR)this);
+                _peSelectionMenu->SetVisible(true);
+                _peSelectionMenu->EndDefer(keyC);
+                _wndSelectionMenu->Host(_peSelectionMenu);
+
+                if (DWMActive)
+                {
+                    WCHAR* WindowsBuildStr;
+                    GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+                    int WindowsBuild = _wtoi(WindowsBuildStr);
+                    free(WindowsBuildStr);
+                    int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
+                    if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
+                    {
+                        DWORD cornerPreference = DWMWCP_ROUND;
+                        DwmSetWindowAttribute(_wndSelectionMenu->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
+                    }
+                }
+
+                FillLayout::Create(0, nullptr, &spvLayout);
+                _peSelectionMenu->SetValue(Element::LayoutProp, 1, spvLayout);
+                LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+                StyleSheet* sheet = _peSelectionMenu->GetSheet();
+                CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+                parser->GetSheet(sheetName, &sheetStorage);
+                _peSelectionMenu->SetValue(Element::SheetProp, 1, sheetStorage);
+                free(sheet);
+                _peSelectionMenu->SetID(L"DDCMB_SelectionList");
+                hr = TouchScrollViewer::Create(_peSelectionMenu, nullptr, (Element**)&_tsvSelectionMenu);
+                if (SUCCEEDED(hr))
+                {
+                    _tsvSelectionMenu->SetLayoutPos(-1);
+                    _tsvSelectionMenu->SetActive(0xB);
+                    _tsvSelectionMenu->SetXBarVisibility(0);
+                    _tsvSelectionMenu->SetYBarVisibility(0);
+                    _tsvSelectionMenu->SetXScrollable(false);
+                    _tsvSelectionMenu->SetYScrollable(true);
+                    _tsvSelectionMenu->SetInteractionMode(18);
+                    hr = Element::Create(0, _tsvSelectionMenu, nullptr, &_peHostInner);
+                    if (SUCCEEDED(hr))
+                    {
+                        BorderLayout::Create(0, nullptr, &spvLayout);
+                        _peHostInner->SetValue(Element::LayoutProp, 1, spvLayout);
+                        _peHostInner->SetLayoutPos(-1);
+                        _peHostInner->SetID(L"DDCMB_SelectionListInner");
+                        _wndSelectionMenu->ShowWindow(SW_HIDE);
+                        if (_peHostInner)
+                        {
+                            _tsvSelectionMenu->Add(&_peHostInner, 1);
+                            _peSelectionMenu->Add((Element**)&_tsvSelectionMenu, 1);
+                            BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
+                            if (DWMActive)
+                            {                                
+                                AddLayeredRef(_tsvSelectionMenu->GetDisplayNode());
+                                SetGadgetFlags(_tsvSelectionMenu->GetDisplayNode(), NULL, NULL);
+                                MARGINS margins = { -1, -1, -1, -1 };
+                                DwmExtendFrameIntoClientArea(_wndSelectionMenu->GetHWND(), &margins);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
     DDSlider::~DDSlider()
     {
         this->DestroyAll(true);
@@ -2224,20 +2546,20 @@ namespace DirectDesktop
                 if (vertical)
                 {
                     int sliderSize = this->GetHeight() - this->GetTextHeight();
+                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                     sUp = GetAsyncKeyState(VK_UP);
                     sDown = GetAsyncKeyState(VK_DOWN);
-                    if (sUp & 1)
+                    if (sUp & 1 || sUp & 0x8000)
                     {
                         height = _peFillBase->GetHeight() + round((sliderSize - _peThumb->GetHeight() / 2) / 10);
                         canMove = true;
                     }
-                    else if (sDown & 1)
+                    else if (sDown & 1 || sUp & 0x8000)
                     {
                         height = _peFillBase->GetHeight() - round((sliderSize - _peThumb->GetHeight() / 2) / 10);
                         canMove = true;
                     }
                     else height = ppt.y - _ptBeforeClick.y + _ptOnClick.y;
-                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                     if (height < _peThumb->GetHeight() / 2) height = _peThumb->GetHeight() / 2;
                     if (height > sliderSize - _peThumb->GetHeight() / 2) height = sliderSize - _peThumb->GetHeight() / 2;
                     int fillheight = sliderSize - height;
@@ -2245,7 +2567,7 @@ namespace DirectDesktop
                     {
                         _peTrackBase->SetHeight(height);
                         _peFillBase->SetHeight(fillheight);
-                        _peThumb->SetY(fillheight - _peThumb->GetHeight() / 2);
+                        _peThumb->SetY(height - _peThumb->GetHeight() / 2);
                         percentage = static_cast<float>(fillheight - _peThumb->GetHeight() / 2) / (sliderSize - _peThumb->GetHeight());
                     }
                 }
@@ -2253,20 +2575,22 @@ namespace DirectDesktop
                 {
                     static short localeDirection = (localeType == 1) ? -1 : 1;
                     int sliderSize = this->GetWidth() - this->GetTextWidth();
+                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                     sLeft = GetAsyncKeyState(VK_LEFT);
                     sRight = GetAsyncKeyState(VK_RIGHT);
                     if (sLeft & 1 || sLeft & 0x8000)
                     {
-                        width = _peFillBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        if (localeType == 1) width = _peTrackBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        else width = _peFillBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
                         canMove = true;
                     }
                     else if (sRight & 1 || sRight & 0x8000)
                     {
-                        width = _peFillBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        if (localeType == 1) width = _peTrackBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        else width = _peFillBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
                         canMove = true;
                     }
                     else width = ppt.x - _ptBeforeClick.x + _ptOnClick.x;
-                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                     if (width < _peThumb->GetWidth() / 2) width = _peThumb->GetWidth() / 2;
                     if (width > sliderSize - _peThumb->GetWidth() / 2) width = sliderSize - _peThumb->GetWidth() / 2;
                     int fillwidth = sliderSize - width;
@@ -2274,7 +2598,7 @@ namespace DirectDesktop
                     {
                         _peTrackBase->SetWidth((localeType == 1) ? width : fillwidth);
                         _peFillBase->SetWidth((localeType == 1) ? fillwidth : width);
-                        _peThumb->SetX(((localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2);
+                        _peThumb->SetX(width - _peThumb->GetWidth() / 2);
                         percentage = static_cast<float>(((localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2) / (sliderSize - _peThumb->GetWidth());
                     }
                 }
@@ -2294,6 +2618,7 @@ namespace DirectDesktop
                     _peThumb->SetKeyFocus();
                 }
                 sLeft = 0, sUp = 0, sRight = 0, sDown = 0;
+                canMove = false;
             }
         }
         if (pInput->nCode == GMOUSE_UP)
@@ -2310,7 +2635,7 @@ namespace DirectDesktop
 
     HRESULT DDSlider::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
     {
-        HRESULT hr = ((Button*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        HRESULT hr = ((TouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
         if (SUCCEEDED(hr))
             hr = this->_CreateDDSVisual();
         return hr;
@@ -2324,7 +2649,7 @@ namespace DirectDesktop
             &impTextWidthProp,
             &impTextHeightProp
         };
-        return ClassInfo<DDSlider, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDSlider", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+        return ClassInfo<DDSlider, TouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDSlider", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     int DDSlider::GetPropCommon(const PropertyProcT pPropertyProc)
@@ -2720,6 +3045,7 @@ namespace DirectDesktop
         {
             if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
             {
+                static short localeDirection = (localeType == 1) ? -1 : 1;
                 static POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
@@ -2729,26 +3055,26 @@ namespace DirectDesktop
                 static short oldColorID{};
 
                 short spacedWidth = this->GetWidth() / 8;
-                width = ppt.x - _ptBeforeClick.x + _ptOnClick.x + (spacedWidth - _btnWidth) / 2;
+                width = ppt.x - _ptBeforeClick.x + _ptOnClick.x + (spacedWidth - _btnWidth) / 2 * localeDirection;
                 sLeft = GetAsyncKeyState(VK_LEFT);
                 sRight = GetAsyncKeyState(VK_RIGHT);
                 if (sLeft & 1 || sLeft & 0x8000)
                 {
-                    _currentColorID--;
+                    _currentColorID -= localeDirection;
                     canMove = true;
                 }
                 else if (sRight & 1 || sRight & 0x8000)
                 {
-                    _currentColorID++;
+                    _currentColorID += localeDirection;
                     canMove = true;
                 }
-                else _currentColorID = width / spacedWidth;
+                else _currentColorID = (localeType == 1) ? (this->GetWidth() - width) / spacedWidth : width / spacedWidth;
                 if (_currentColorID < 0) _currentColorID = 0;
                 if (_currentColorID > 7) _currentColorID = 7;
                 if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                 if (_currentColorID != oldColorID && canMove)
                 {
-                    _peOverlayCheck->SetX(_currentColorID * spacedWidth);
+                    _peOverlayCheck->SetX((localeType == 1) ? this->GetWidth() - _btnWidth - _currentColorID * spacedWidth : _currentColorID * spacedWidth);
                     _peOverlayHover->SetX(-9999);
                     if (_rkv._hKeyName != nullptr)
                     {
@@ -2761,6 +3087,7 @@ namespace DirectDesktop
                 }
                 oldColorID = _currentColorID;
                 sLeft = 0, sRight = 0;
+                canMove = false;
             }
         }
         Element::OnInput(pInput);
@@ -3048,44 +3375,6 @@ namespace DirectDesktop
         }
     }
 
-    IClassInfo* DDTab::GetClassInfoPtr()
-    {
-        return s_pClassInfo;
-    }
-
-    void DDTab::SetClassInfoPtr(IClassInfo* pClass)
-    {
-        s_pClassInfo = pClass;
-    }
-
-    IClassInfo* DDTab::GetClassInfoW()
-    {
-        return s_pClassInfo;
-    }
-
-    void DDTab::OnEvent(Event* pEvent)
-    {
-        if (pEvent->uidType == TouchButton::Click)
-        {
-            ((DDTabbedPages*)this->GetParent()->GetParent()->GetParent()->GetParent())->TraversePage(this->_pageID);
-        }
-    }
-
-    HRESULT DDTab::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
-    {
-        return CreateAndInit<DDTab, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
-    }
-
-    HRESULT DDTab::Register()
-    {
-        return ClassInfo<DDTab, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDTab", nullptr, 0);
-    }
-
-    void DDTab::SetPage(BYTE pageID)
-    {
-        _pageID = pageID;
-    }
-
     DDTabbedPages::~DDTabbedPages()
     {
         this->DestroyAll(true);
@@ -3106,28 +3395,55 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
-    //void DDTabbedPages::OnInput(InputEvent* pInput)
-    //{
-    //    if (pInput->nCode == GMOUSE_MOVE)
-    //    {
-    //        GetCursorPos(&_ptBeforeClick);
-    //        ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &_ptBeforeClick);
-    //    }
-    //    if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice != GINPUT_KEYBOARD)
-    //    {
-    //        POINT ptRoot;
-    //        GetCursorPos(&ptRoot);
-    //        ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ptRoot);
-    //        this->MapElementPoint(this->GetRoot(), &ptRoot, &_ptOnClick);
-    //    }
-    //    if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG)
-    //    {
-    //        if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
-    //        {
-    //        }
-    //    }
-    //    Element::OnInput(pInput);
-    //}
+    void DDTabbedPages::OnInput(InputEvent* pInput)
+    {
+        if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice == GINPUT_KEYBOARD)
+        {
+            CValuePtr v;
+            if (pInput->peTarget->GetClass(&v))
+            {
+                if (wcscmp(_peTabs[_pageID]->GetClass(&v), pInput->peTarget->GetClass(&v)) == 0)
+                {
+                    static GTRANS_DESC transDesc[2];
+                    static TransitionStoryboardInfo tsbInfo = {};
+                    static short sLeft, sRight;
+                    static short localeDirection = (localeType == 1) ? -1 : 1;
+                    sLeft = GetAsyncKeyState(VK_LEFT);
+                    sRight = GetAsyncKeyState(VK_RIGHT);
+                    if ((sLeft & 1 || sLeft & 0x8000))
+                    {
+                        if ((_pageID > 0 && localeDirection == 1) || (_pageID < _pageSize - 1 && localeDirection == -1))
+                            this->TraversePage(_pageID - localeDirection);
+                        else
+                        {
+                            CSafeElementPtr<Element> peEdge;
+                            LPCWSTR peResID = (localeType == 1) ? _pszPageIDs[_pageSize - 1] : _pszPageIDs[0];
+                            peEdge.Assign(regElem<Element*>(peResID, _peSubUIContainer));
+                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, 40.0f * g_flScaleFactor, 0.0f, false, false);
+                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
+                        }
+                    }
+                    if ((sRight & 1 || sRight & 0x8000))
+                    {
+                        if ((_pageID < _pageSize - 1 && localeDirection == 1) || (_pageID > 0 && localeDirection == -1))
+                            this->TraversePage(_pageID + localeDirection);
+                        else
+                        {
+                            CSafeElementPtr<Element> peEdge;
+                            LPCWSTR peResID = (localeType == 1) ? _pszPageIDs[0] : _pszPageIDs[_pageSize - 1];
+                            peEdge.Assign(regElem<Element*>(peResID, _peSubUIContainer));
+                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, -40.0f * g_flScaleFactor, 0.0f, false, false);
+                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, -40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
+                        }
+                    }
+                    sLeft = 0, sRight = 0;
+                }
+            }
+        }
+        Element::OnInput(pInput);
+    }
 
     bool DDTabbedPages::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
@@ -3163,6 +3479,11 @@ namespace DirectDesktop
     {
         return ClassInfo<DDTabbedPages, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDTabbedPages", nullptr, 0);
     }
+
+    void DDTabbedPages::SetKeyFocus()
+    {
+        if (_peTabs[_pageID - 1]) _peTabs[_pageID - 1]->SetKeyFocus();
+    }
     
     void DDTabbedPages::BindParser(DUIXmlParser* pParser)
     {
@@ -3171,6 +3492,7 @@ namespace DirectDesktop
 
     void DDTabbedPages::InsertTab(BYTE index, LPCWSTR pszResIDPage, LPCWSTR pszTabLabel, GenericTabFunction ptfn)
     {
+        if (index == MAX_TABPAGES) index = _pageSize;
         if (_pageSize >= MAX_TABPAGES || index < 0 || index > _pageSize)
             return;
         for (int i = _pageSize - 1; i >= index; i--)
@@ -3178,14 +3500,16 @@ namespace DirectDesktop
             _pszPageIDs[i + 1] = _pszPageIDs[i];
             _pfnTabs[i + 1] = _pfnTabs[i];
             _peTabs[i + 1] = _peTabs[i];
-            _peTabs[i + 1]->SetPage(i + 1);
+            _peTabs[i + 1]->SetNumberID(i + 1);
         }
         _pszPageIDs[index] = pszResIDPage;
         _pfnTabs[index] = ptfn;
-        DDTab::Create(_peTabCtrl, nullptr, (Element**)&(_peTabs[index]));
+        DDNumberedButton::Create(_peTabCtrl, nullptr, (Element**)&(_peTabs[index]));
         _peTabCtrl->Insert((Element**)&_peTabs[index], 1, index);
-        _peTabs[index]->SetPage(index);
+        _peTabs[index]->SetNumberID(index);
+        _peTabs[index]->SetLinkedElement(this);
         _peTabs[index]->SetContentString(pszTabLabel);
+        _peTabs[index]->SetClass(L"tab");
         _pageSize++;
     }
 
@@ -3200,7 +3524,7 @@ namespace DirectDesktop
             _pszPageIDs[i] = _pszPageIDs[i + 1];
             _pfnTabs[i] = _pfnTabs[i + 1];
             _peTabs[i] = _peTabs[i + 1];
-            _peTabs[i]->SetPage(i);
+            _peTabs[i]->SetNumberID(i);
         }
         _pageSize--;
     }
@@ -3216,7 +3540,7 @@ namespace DirectDesktop
         RECT rcList;
         _tsvPage->GetVisibleRect(&rcList);
         Element* peSettingsPage;
-        for (DDTab* ddt : _peTabs)
+        for (DDNumberedButton* ddt : _peTabs)
             if (ddt) ddt->SetSelected(false);
         _peTabs[index]->SetSelected(true);
         if (!pel)
@@ -3317,7 +3641,7 @@ namespace DirectDesktop
                 if (SUCCEEDED(hr))
                 {
                     this->Add((Element**)&_tsvPage, 1);
-                    _tsvPage->SetLayoutPos(-1);
+                    _tsvPage->SetLayoutPos(1);
                     _tsvPage->SetActive(0xB);
                     _tsvPage->SetXBarVisibility(0);
                     _tsvPage->SetYBarVisibility(0);
@@ -3491,17 +3815,8 @@ namespace DirectDesktop
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         DDNotificationBanner* pDDNB = this;
         DDNotificationBanner** ppDDNB = &pDDNB;
-        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, NULL, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &_wnd);
+        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, WS_EX_TOOLWINDOW, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &_wnd);
         HWNDElement::Create(_wnd->GetHWND(), true, NULL, nullptr, &keyN, (Element**)ppDDNB);
-        Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList;
-        if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
-            IID_ITaskbarList, (void**)&pTaskbarList)))
-        {
-            if (SUCCEEDED(pTaskbarList->HrInit()))
-            {
-                pTaskbarList->DeleteTab(_wnd->GetHWND());
-            }
-        }
         _pDDNB = pDDNB;
         Element::Create(0, pDDNB, nullptr, &pHostElement);
         _pDDNB->Add(&pHostElement, 1);
@@ -3523,14 +3838,17 @@ namespace DirectDesktop
         int WindowsBuild = _wtoi(WindowsBuildStr);
         free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
-        MARGINS margins = { -1, -1, -1, -1 };
-        DwmExtendFrameIntoClientArea(_wnd->GetHWND(), &margins);
-        if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
+        if (DWMActive)
         {
-            DWORD cornerPreference = DWMWCP_ROUND;
-            DwmSetWindowAttribute(_wnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
+            MARGINS margins = { -1, -1, -1, -1 };
+            DwmExtendFrameIntoClientArea(_wnd->GetHWND(), &margins);
+            if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
+            {
+                DWORD cornerPreference = DWMWCP_ROUND;
+                DwmSetWindowAttribute(_wnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
+            }
         }
-        BlurBackground(_wnd->GetHWND(), true, false, nullptr);
+        BlurBackground(_wnd->GetHWND(), true, false, -1, nullptr);
         _pDDNB->SetBackgroundStdColor(7);
         CValuePtr v;
         CreateAndSetLayout(_pDDNB, BorderLayout::Create, 0, nullptr);
@@ -3542,28 +3860,28 @@ namespace DirectDesktop
         switch (type)
         {
             case DDNT_SUCCESS:
-                if (!title) _titleStr = LoadStrFromRes(217);
+                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(217).c_str());
                 _icon->SetClass(L"DDNB_Icon_Success");
                 break;
             case DDNT_INFO:
-                if (!title) _titleStr = LoadStrFromRes(218);
+                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(218).c_str());
                 _icon->SetClass(L"DDNB_Icon_Info");
                 break;
             case DDNT_WARNING:
-                if (!title) _titleStr = LoadStrFromRes(219);
+                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(219).c_str());
                 _icon->SetClass(L"DDNB_Icon_Warning");
                 break;
             case DDNT_ERROR:
-                if (!title) _titleStr = LoadStrFromRes(220);
+                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(220).c_str());
                 _icon->SetClass(L"DDNB_Icon_Error");
                 break;
         }
-        if (title) _titleStr = title;
+        if (title) StringCchPrintfW(_titleStr, 64, L"%s", title);
 
         DDScalableElement::Create(pHostElement, nullptr, (Element**)&_title);
         _title->SetID(L"DDNB_Title");
         pHostElement->Add((Element**)&_title, 1);
-        _title->SetContentString(_titleStr.c_str());
+        _title->SetContentString(_titleStr);
 
         if (content)
         {

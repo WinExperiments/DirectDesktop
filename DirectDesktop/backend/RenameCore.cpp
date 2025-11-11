@@ -97,18 +97,18 @@ namespace DirectDesktop
         CValuePtr v;
         CSafeElementPtr<Element> DUIElem; DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
         RECT rc, rcPadding;
-        rcPadding = *(DUIElem->GetPadding(&v));
+        DUIElem->GetRenderPadding(&rcPadding);
         GetWindowRect(hRichEdit, &rc);
         int currentWidth = rc.right - rc.left;
         int newHeight = GetContentHeight(hRichEdit);
         SetWindowPos(hRichEdit, nullptr, 0, 0, currentWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
-        DUIElem->SetHeight(newHeight + rcPadding.top + rcPadding.bottom);
+        DUIElem->SetHeight(newHeight + rcPadding.top + rcPadding.bottom + 1);
     }
 
     LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
         CSafeElementPtr<Element> DUIElem{}, innerElement{};
-        CSafeElementPtr<RichText> textElement{}, textElementShadow{};
+        CSafeElementPtr<RichText> textElement{};
         static bool dontkill{};
         if (g_renameactive)
         {
@@ -126,15 +126,11 @@ namespace DirectDesktop
                         g_renameactive = false;
                         DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
                         DestroyWindow(hWnd);
-                        textElement.Assign(regElem<RichText*>(L"textElem", (Element*)dwRefData));
-                        textElementShadow.Assign(regElem<RichText*>(L"textElemShadow", (Element*)dwRefData));
+                        textElement.Assign(((LVItem*)dwRefData)->GetText());
                         innerElement.Assign(regElem<RichText*>(L"innerElem", (Element*)dwRefData));
                         textElement->SetVisible(true);
                         if (!g_touchmode)
-                        {
-                            textElementShadow->SetVisible(true);
                             innerElement->SetVisible(true);
-                        }
                         if (DUIElem)
                         {
                             DUIElem->DestroyAll(true);
@@ -182,15 +178,11 @@ namespace DirectDesktop
                 case WM_USER + 1:
                     DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
                     DestroyWindow(hWnd);
-                    textElement.Assign(regElem<RichText*>(L"textElem", (Element*)dwRefData));
-                    textElementShadow.Assign(regElem<RichText*>(L"textElemShadow", (Element*)dwRefData));
+                    textElement.Assign(((LVItem*)dwRefData)->GetText());
                     innerElement.Assign(regElem<RichText*>(L"innerElem", (Element*)dwRefData));
                     textElement->SetVisible(true);
                     if (!g_touchmode)
-                    {
-                        textElementShadow->SetVisible(true);
                         innerElement->SetVisible(true);
-                    }
                     else if (((LVItem*)dwRefData)->GetTileSize() == LVITS_ICONONLY)
                     {
                         textElement->SetVisible(false);
@@ -231,7 +223,6 @@ namespace DirectDesktop
         if (found == 1)
         {
             static RichText* textElement{};
-            static RichText* textElementShadow{};
             static Element* innerElement{};
             static Element* RenameBoxTexture{};
             if (pm[itemID]->GetPage() == g_currentPageID)
@@ -240,15 +231,11 @@ namespace DirectDesktop
                 GetClientRect(wnd->GetHWND(), &dimensions);
                 int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
                 g_renameactive = true;
-                textElement = regElem<RichText*>(L"textElem", pm[itemID]);
-                textElementShadow = regElem<RichText*>(L"textElemShadow", pm[itemID]);
+                textElement = pm[itemID]->GetText();
                 innerElement = regElem<RichText*>(L"innerElem", pm[itemID]);
                 textElement->SetVisible(false);
                 if (!g_touchmode)
-                {
-                    textElementShadow->SetVisible(false);
                     innerElement->SetVisible(false);
-                }
                 LoadLibraryW(L"Msftedit.dll");
                 itemWidth = pm[itemID]->GetWidth();
                 itemHeight = pm[itemID]->GetHeight();
@@ -256,7 +243,8 @@ namespace DirectDesktop
                 itemY = pm[itemID]->GetMemYPos();
                 // 0.4.9: width, x, and y are hardcoded due to changing layoutpos of text from absolute to top in touchmode
                 textWidth = g_touchmode ? textElement->GetWidth() - 6 * g_flScaleFactor : textElement->GetWidth();
-                textHeight = textElement->GetHeight() + 4 * g_flScaleFactor;
+                // 0.5.2: Text element now contains the shadow, so the height increased. As a result, 4 is now 2
+                textHeight = textElement->GetHeight() + 2 * g_flScaleFactor;
                 textX = g_touchmode ? 11 * g_flScaleFactor : 0;
                 textY = g_touchmode ? 10 * g_flScaleFactor : 0;
                 unsigned long keyR{};
@@ -270,7 +258,7 @@ namespace DirectDesktop
                 }
                 RECT ebsz{}, rcPadding{};
                 ebsz.left = itemX, ebsz.top = itemY + itemHeight - textHeight, ebsz.right = itemWidth, ebsz.bottom = textHeight;
-                rcPadding = *(RenameBoxTexture->GetPadding(&v));
+                RenameBoxTexture->GetRenderPadding(&rcPadding);
                 if (g_touchmode)
                     ebsz.left = itemX + textX - rcPadding.left, ebsz.top = itemY + textY - rcPadding.top, ebsz.right = textWidth + rcPadding.left, ebsz.bottom = textHeight;
                 int xRender = (localeType == 1) ? dimensions.right - ebsz.left - ebsz.right : ebsz.left;

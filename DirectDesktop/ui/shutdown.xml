@@ -84,10 +84,10 @@
 			<DDScalableElement id="atom(ReasonText)" layoutpos="none" class="statustext" contentalign="middleleft|endellipsis"/>
 		</Element>
 	</Element>
-	<Element resid="ShutdownEventTracker" layout="borderlayout()" height="120rp" padding="rect(12rp,18rp,12rp,6rp)" background="argb(0,0,0,0)">
-		<DDScalableElement id="atom(SETText)" layoutpos="top" class="statustext" font="messagefont;115%;bold" height="28rp"/>
+	<Element resid="ShutdownEventTracker" layout="borderlayout()" height="92rp" padding="rect(12rp,12rp,12rp,0)" background="argb(0,0,0,0)">
+		<DDScalableElement id="atom(SETText)" layoutpos="top" class="statustext" font="messagefont;115%;bold" height="20rp"/>
 		<DDScalableElement id="atom(SETDescription)" layoutpos="top" class="statustext" content="resstr(3003, library(shutdownux.dll))" font="messagefont;100%" height="28rp"/>
-		<Combobox id="atom(SETReason)" layoutpos="top" font="themeable(gtf(TextStyle,1,0), 'iconfont;115%')"/>
+		<DDCombobox id="atom(SETReason)" layoutpos="top" listmaxheight="360rp"/>
 	</Element>
 	<stylesheets>
 		<style resid="shutdownstyle" base="ressheet(31, DDBase)">
@@ -140,7 +140,6 @@
 			<if id="atom(SETDescription)">
 				<DDScalableElement foreground="rgb(128,128,128)"/>
 			</if>
-			<Combobox background="rgb(248,248,248)"/>
 			<if id="atom(AdvancedOptionsArrow)">
 				<RichText content="resstr(143)" font="12pt;Normal;None;Segoe Fluent Icons"/>
 				<if selected="true">
@@ -198,7 +197,6 @@
 			<if id="atom(SETDescription)">
 				<DDScalableElement foreground="rgb(160,160,160)"/>
 			</if>
-			<Combobox background="rgb(42,42,42)"/>
 			<if id="atom(AdvancedOptionsArrow)">
 				<RichText content="resstr(143)" font="12pt;Normal;None;Segoe Fluent Icons"/>
 				<if selected="true">

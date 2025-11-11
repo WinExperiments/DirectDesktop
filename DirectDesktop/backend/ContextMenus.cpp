@@ -33,9 +33,9 @@ namespace DirectDesktop
             if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
             if (touchmodeMem == !touch)
             {
-                InitLayout(true, false, false);
-                g_canRefreshMain = false;
-                SetTimer(wnd->GetHWND(), 13, 750, nullptr);
+                // DO NOT REMOVE THIS TIMER OTHERWISE CRASHING HAPPENS MORE OFTEN
+                SetTimer(wnd->GetHWND(), 16, 200, nullptr);
+                SetTimer(wnd->GetHWND(), 13, 600, nullptr);
                 return;
             }
             RearrangeIcons(true, true, false);
@@ -136,7 +136,11 @@ namespace DirectDesktop
                 switch (menuItemId)
                 {
                     case 2002:
-                        InitLayout(true, true, true);
+                        if (g_canRefreshMain)
+                        {
+                            SetTimer(wnd->GetHWND(), 2, 200, nullptr);
+                            SetTimer(wnd->GetHWND(), 13, 600, nullptr);
+                        }
                         break;
                     case 2003:
                         ShowSimpleView(true, 0x0);
@@ -174,8 +178,7 @@ namespace DirectDesktop
                                     break;
                                 case 1:
                                     delay *= 2;
-                                    pm[items]->SetVisible(true);
-                                    TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, pm[items]->GetX(), pm[items]->GetY(), false, false);
+                                    TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, pm[items]->GetX(), pm[items]->GetY(), true, false);
                                     TriggerFade(pm[items], transReset, 1, delay, delay + 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                                     TriggerScaleIn(pm[items], transReset, 2, delay, delay + 0.44f, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
                                     break;

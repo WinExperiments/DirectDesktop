@@ -130,7 +130,7 @@ namespace DirectDesktop
 
     TEXTMETRICW textm;
 
-    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch)
+    bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch, DWORD dwFontStyle)
     {
         if (hBitmap) DeleteObject(hBitmap);
         BITMAPINFO bmi = {};
@@ -157,6 +157,9 @@ namespace DirectDesktop
         LOGFONTW lf{};
         SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
         if (touch) lf.lfHeight *= 1.25;
+        lf.lfItalic |= dwFontStyle & 1;
+        lf.lfUnderline |= dwFontStyle & 2;
+        lf.lfStrikeOut |= dwFontStyle & 4;
         HFONT hFont = CreateFontIndirectW(&lf);
         HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
 
@@ -522,9 +525,9 @@ namespace DirectDesktop
         return true;
     }
 
-    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, Element* peOptional)
+    void BlurBackground(HWND hwnd, bool blur, bool fullscreen, BYTE alpha, Element* peOptional)
     {
-        ToggleAcrylicBlur(hwnd, blur, fullscreen, peOptional);
+        ToggleAcrylicBlur(hwnd, blur, fullscreen, alpha, peOptional);
     }
 
     void BlurBackground2(HWND hwnd, bool blur, bool fullscreen, Element* peOptional)
