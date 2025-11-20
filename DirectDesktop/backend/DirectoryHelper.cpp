@@ -87,22 +87,22 @@ namespace DirectDesktop
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(true);
+                if (shortpm != nullptr) shortpm->AddFlags(LVIF_SHORTCUT);
                 return filename.substr(0, lastdot);
             }
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".url");
             else
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(true);
+                if (shortpm != nullptr) shortpm->AddFlags(LVIF_SHORTCUT);
                 return filename.substr(0, lastdot);
             }
             if (lastdot == wstring::npos) lastdot = filename.find_last_of(L".");
             else
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(true);
+                if (shortpm != nullptr) shortpm->AddFlags(LVIF_SHORTCUT);
                 return filename.substr(0, lastdot);
             }
-            if (shortpm != nullptr) shortpm->SetShortcutState(false);
+            if (shortpm != nullptr) shortpm->RemoveFlags(LVIF_SHORTCUT);
             if (lastdot == wstring::npos) return filename;
             return filename.substr(0, lastdot);
         }
@@ -112,23 +112,23 @@ namespace DirectDesktop
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(true);
+                if (shortpm != nullptr) shortpm->AddFlags(LVIF_SHORTCUT);
                 return filename.substr(0, lastdot);
             }
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".url");
             else
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(true);
+                if (shortpm != nullptr) shortpm->AddFlags(LVIF_SHORTCUT);
                 return filename.substr(0, lastdot);
             }
             if (lastdot == wstring::npos)
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(false);
+                if (shortpm != nullptr) shortpm->RemoveFlags(LVIF_SHORTCUT);
                 return filename;
             }
             else
             {
-                if (shortpm != nullptr) shortpm->SetShortcutState(true);
+                if (shortpm != nullptr) shortpm->AddFlags(LVIF_SHORTCUT);
                 return filename.substr(0, lastdot);
             }
         }
@@ -623,28 +623,28 @@ namespace DirectDesktop
                 hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
                 if (count2 != nullptr)
                 {
+                    DWORD lviFlags{};
                     foundsimplefilename = hideExt((wstring)fd.cFileName, g_hideFileExt, (fd.dwFileAttributes & 16), (*pmLVItem)[*(count2)]);
                     foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
                     if (fd.dwFileAttributes & 16)
                     {
-                        (*pmLVItem)[*(count2)]->SetDirState(true);
+                        lviFlags |= LVIF_DIR;
                         unsigned short itemsInside = EnumerateFolder_Helper((LPWSTR)RemoveQuotes(foundfilename).c_str());
-                        if (pmLVItem == &pm && itemsInside <= 192) (*pmLVItem)[*(count2)]->SetGroupedDirState(true);
+                        if (pmLVItem == &pm && itemsInside <= 192) lviFlags |= LVIF_GROUP;
                         (*pmLVItem)[*(count2)]->SetItemCount(itemsInside);
                     }
-                    else (*pmLVItem)[*(count2)]->SetDirState(false);
-                    if (fd.dwFileAttributes & 2) (*pmLVItem)[*(count2)]->SetHiddenState(true);
-                    else (*pmLVItem)[*(count2)]->SetHiddenState(false);
+                    if (fd.dwFileAttributes & 2) lviFlags |= LVIF_HIDDEN;
                     filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
                     if (g_isThumbnailHidden == 0)
                     {
                         bool image;
                         isSpecialProp(foundfilename, true, &image, &imageExts);
-                        (*pmLVItem)[*(count2)]->SetColorLock(image);
+                        if (image) lviFlags |= LVIF_COLORLOCK;
                     }
                     bool advancedicon;
                     isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
-                    (*pmLVItem)[*(count2)]->SetHasAdvancedIcon(advancedicon);
+                    if (advancedicon) lviFlags |= LVIF_ADVANCEDICON;
+                    (*pmLVItem)[*(count2)]->AddFlags(static_cast<LVItemFlags>(lviFlags));
                     (*pmLVItem)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                     (*pmLVItem)[*(count2)]->SetFilename(foundfilename);
                     (*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
@@ -827,7 +827,7 @@ namespace DirectDesktop
     void GetPos(bool getSpotlightIcon, int* setSpotlightIcon)
     {
         SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
-        SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
+        //SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
 
         HINSTANCE WinStorageDLL = LoadLibraryW(L"windows.storage.dll");
         HINSTANCE Shell32DLL = LoadLibraryW(L"shell32.dll");
@@ -1164,7 +1164,7 @@ namespace DirectDesktop
             for (int i = 0; i < pm.size(); i++)
             {
                 DDScalableElement* peIcon = pm[i]->GetIcon();
-                if (pm[i]->GetDirState() == true)
+                if (pm[i]->GetFlags() & LVIF_DIR)
                 {
                     unsigned short namelen = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
                     offsetSizeKey += 2;
@@ -1198,7 +1198,7 @@ namespace DirectDesktop
             offsetSizeKey = 0;
             for (int i = 0; i < pm.size(); i++)
             {
-                if (pm[i]->GetDirState() == true)
+                if (pm[i]->GetFlags() & LVIF_DIR)
                 {
                     unsigned short namelen = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
                     offsetSizeKey += 2;
@@ -1292,7 +1292,7 @@ namespace DirectDesktop
         }
         for (int i = 0; i < pm.size(); i++)
         {
-            if (pm[i]->GetDirState() == true)
+            if (pm[i]->GetFlags() & LVIF_DIR)
             {
                 DDScalableElement* peIcon = pm[i]->GetIcon();
                 wstring filename = pm[i]->GetFilename();
@@ -1317,7 +1317,7 @@ namespace DirectDesktop
         DesktopLayout.clear();
         for (int i = 0; i < pm.size(); i++)
         {
-            if (pm[i]->GetDirState() == true)
+            if (pm[i]->GetFlags() & LVIF_DIR)
             {
                 wstring filename = pm[i]->GetFilename();
                 unsigned short temp = filename.length();

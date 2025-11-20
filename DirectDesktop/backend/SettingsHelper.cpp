@@ -31,6 +31,46 @@ namespace DirectDesktop
     bool g_atleastonesetting{};
     Element* UIContainer;
 
+    HKEY RegKeyValue::GetHKeyName() const noexcept
+    {
+        return _hKeyName;
+    }
+
+    const WCHAR* RegKeyValue::GetPath() const noexcept
+    {
+        return _path;
+    }
+
+    const WCHAR* RegKeyValue::GetValueToFind() const noexcept
+    {
+        return _valueToFind;
+    }
+
+    DWORD RegKeyValue::GetDwValue() const noexcept
+    {
+        return _dwValue;
+    }
+
+    void RegKeyValue::SetHKeyName(HKEY hKeyName) noexcept
+    {
+        _hKeyName = hKeyName;
+    }
+
+    void RegKeyValue::SetPath(const WCHAR* path) noexcept
+    {
+        _path = path;
+    }
+
+    void RegKeyValue::SetValueToFind(const WCHAR* valueToFind) noexcept
+    {
+        _valueToFind = valueToFind;
+    }
+
+    void RegKeyValue::SetValue(DWORD dwValue) noexcept
+    {
+        _dwValue = dwValue;
+    }
+
     BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
     {
         vector<RECT>* monitors = reinterpret_cast<vector<RECT>*>(dwData);
@@ -96,24 +136,25 @@ namespace DirectDesktop
                 void* associatedSetting = ddtb->GetAssociatedSetting();
                 RegKeyValue rkv = ddtb->GetRegKeyValue();
                 BYTE regSetter = ddtb->GetCheckedState();
-                if (rkv._valueToFind == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
-                if (rkv._valueToFind == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
-                if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
+                if (rkv.GetValueToFind() == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
+                if (rkv.GetValueToFind() == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
+                if (rkv.GetValueToFind() == L"IconUnderline") regSetter = (!ddtb->GetCheckedState() + 2);
+                if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
+                if (ddtb->GetAssociatedFn() != nullptr)
+                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
                 if (ddtb->GetShellInteraction())
                 {
                     SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
                     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
                 }
                 else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
-                if (rkv._valueToFind == L"Hidden")
+                if (rkv.GetValueToFind() == L"Hidden")
                 {
                     DWORD dwDisableToggle;
                     HANDLE DisableToggleHandle = CreateThread(nullptr, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
                     if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
                     return;
                 }
-                if (ddtb->GetAssociatedFn() != nullptr)
-                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }
@@ -125,15 +166,15 @@ namespace DirectDesktop
                 void* associatedSetting = ddcmb->GetAssociatedSetting();
                 RegKeyValue rkv = ddcmb->GetRegKeyValue();
                 BYTE regSetter = ddcmb->GetSelection();
-                if (rkv._hKeyName != nullptr) SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, regSetter, false, nullptr);
+                if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
+                if (ddcmb->GetAssociatedFn() != nullptr)
+                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 if (ddcmb->GetShellInteraction())
                 {
                     SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
                     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
                 }
                 else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
-                if (ddcmb->GetAssociatedFn() != nullptr)
-                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }

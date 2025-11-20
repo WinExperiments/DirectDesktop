@@ -105,12 +105,12 @@
 				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7"/>
 			</if>
 			<if class="itemTouchInner">
-				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
+				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1" ImageCount="3" ImageIndex="1"/>
 				<if selected="true">
-					<DDScalableElement FirstScaledImage="3017" EnableAccent="true"/>
+					<DDScalableElement ImageIndex="2" EnableAccent="true"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableElement FirstScaledImage="3024"/>
+					<DDScalableElement ImageIndex="3"/>
 				</if>
 			</if>
 			<if class="checkbox">
@@ -167,12 +167,12 @@
 				<LVItem cursor="hand" padding="rect(-8rp,-8rp,-8rp,-8rp)" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3003" ScaledImageIntervals="7"/>
 			</if>
 			<if class="itemTouchInner">
-				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1"/>
+				<DDScalableElement layoutpos="client" borderthickness="rect(8rp,8rp,8rp,8rp)" FirstScaledImage="3010" ScaledImageIntervals="7" DrawType="1" ImageCount="3" ImageIndex="1"/>
 				<if selected="true">
-					<DDScalableElement FirstScaledImage="3017" EnableAccent="true"/>
+					<DDScalableElement ImageIndex="2" EnableAccent="true"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableElement FirstScaledImage="3024"/>
+					<DDScalableElement ImageIndex="3"/>
 				</if>
 			</if>
 			<if class="checkbox">

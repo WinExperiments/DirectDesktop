@@ -1,6 +1,8 @@
 #pragma once
 #pragma warning(disable:6258)
 
+#include "..\backend\SettingsHelper.h"
+
 using namespace std;
 using namespace DirectUI;
 
@@ -14,14 +16,6 @@ namespace DirectDesktop
     struct yValue;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
-
-    struct RegKeyValue
-    {
-        HKEY _hKeyName;
-        LPCWSTR _path;
-        const wchar_t* _valueToFind;
-        DWORD _dwValue;
-    };
 
     class DDScalableElement : public Element
     {
@@ -41,6 +35,8 @@ namespace DirectDesktop
         static HRESULT Register();
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI ImageCountProp();
+        static const PropertyInfo* WINAPI ImageIndexProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
@@ -48,6 +44,8 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
+        int GetImageCount();
+        int GetImageIndex();
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
@@ -55,6 +53,8 @@ namespace DirectDesktop
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
+        void SetImageCount(int iImageCount);
+        void SetImageIndex(int iImageIndex);
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
@@ -97,6 +97,8 @@ namespace DirectDesktop
         static HRESULT Register();
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI ImageCountProp();
+        static const PropertyInfo* WINAPI ImageIndexProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
@@ -104,6 +106,8 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
+        int GetImageCount();
+        int GetImageIndex();
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
@@ -111,6 +115,8 @@ namespace DirectDesktop
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
+        void SetImageCount(int iImageCount);
+        void SetImageIndex(int iImageIndex);
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
@@ -162,6 +168,8 @@ namespace DirectDesktop
         static HRESULT Register();
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI ImageCountProp();
+        static const PropertyInfo* WINAPI ImageIndexProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
@@ -169,6 +177,8 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
+        int GetImageCount();
+        int GetImageIndex();
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
@@ -176,6 +186,8 @@ namespace DirectDesktop
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
+        void SetImageCount(int iImageCount);
+        void SetImageIndex(int iImageIndex);
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
@@ -215,6 +227,8 @@ namespace DirectDesktop
         static HRESULT Register();
         static const PropertyInfo* WINAPI FirstScaledImageProp();
         static const PropertyInfo* WINAPI ScaledImageIntervalsProp();
+        static const PropertyInfo* WINAPI ImageCountProp();
+        static const PropertyInfo* WINAPI ImageIndexProp();
         static const PropertyInfo* WINAPI DrawTypeProp();
         static const PropertyInfo* WINAPI EnableAccentProp();
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
@@ -222,6 +236,8 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI DDCPIntensityProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
+        int GetImageCount();
+        int GetImageIndex();
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
@@ -229,6 +245,8 @@ namespace DirectDesktop
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
+        void SetImageCount(int iImageCount);
+        void SetImageIndex(int iImageIndex);
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
@@ -323,6 +341,23 @@ namespace DirectDesktop
         LVIODS_PINNED = 2
     };
 
+    enum LVItemFlags : DWORD
+    {
+        LVIF_NONE = 0x00000000,
+        LVIF_DIR = 0x00000001,
+        LVIF_GROUP = 0x00000002,
+        LVIF_HIDDEN = 0x00000004,
+        LVIF_MEMSELECT = 0x00000008,
+        LVIF_SHORTCUT = 0x00000010,
+        LVIF_COLORLOCK = 0x00000020,
+        LVIF_DRAG = 0x00000040,
+        LVIF_REFRESH = 0x00000080,
+        LVIF_SFG = 0x00000100,
+        LVIF_FLYING = 0x00000200,
+        LVIF_MOVING = 0x00000400,
+        LVIF_ADVANCEDICON = 0x00000800
+    };
+
     class LVItemTouchGrid;
 
     class LVItem final : public DDScalableTouchButton
@@ -331,18 +366,7 @@ namespace DirectDesktop
         LVItem()
             : _filename{}
             , _simplefilename{}
-            , _isDirectory(false)
-            , _isGrouped(false)
-            , _isHidden(false)
-            , _mem_isSelected(false)
-            , _isShortcut(false)
-            , _colorLock(false)
-            , _dragged(false)
-            , _refreshable(false)
-            , _sfg(false)
-            , _flying(false)
-            , _moving(false)
-            , _hai(false)
+            , _flags(LVIF_NONE)
             , _xPos(65535)
             , _yPos(65535)
             , _mem_xPos(0)
@@ -385,30 +409,10 @@ namespace DirectDesktop
         wstring GetSimpleFilename();
         void SetFilename(const wstring& wsFilename);
         void SetSimpleFilename(const wstring& wsSimpleFilename);
-        bool GetDirState();
-        bool GetGroupedDirState();
-        bool GetHiddenState();
-        bool GetMemorySelected();
-        bool GetShortcutState();
-        bool GetColorLock();
-        bool GetDragState();
-        bool GetRefreshState();
-        bool GetSizedFromGroup();
-        bool GetFlying();
-        bool GetMoving();
-        bool GetHasAdvancedIcon();
-        void SetDirState(bool dirState);
-        void SetGroupedDirState(bool groupedDirState);
-        void SetHiddenState(bool hiddenState);
-        void SetMemorySelected(bool mem_isSelectedState);
-        void SetShortcutState(bool shortcutState);
-        void SetColorLock(bool colorLockState);
-        void SetDragState(bool dragstate);
-        void SetRefreshState(bool refreshstate);
-        void SetSizedFromGroup(bool sfg);
-        void SetFlying(bool flying);
-        void SetMoving(bool moving);
-        void SetHasAdvancedIcon(bool hai);
+        LVItemFlags GetFlags();
+        void AddFlags(LVItemFlags lvif);
+        void RemoveFlags(LVItemFlags lvif);
+        void SetFlags(LVItemFlags lvif);
         unsigned short GetPage();
         unsigned short GetMemPage();
         unsigned short GetPreRefreshMemPage();
@@ -449,18 +453,7 @@ namespace DirectDesktop
         static IClassInfo* s_pClassInfo;
         wstring _filename{};
         wstring _simplefilename{};
-        bool _isDirectory = false;
-        bool _isGrouped = false;
-        bool _isHidden = false;
-        bool _mem_isSelected = false;
-        bool _isShortcut = false;
-        bool _colorLock = false;
-        bool _dragged = false;
-        bool _refreshable = false;
-        bool _sfg = false;
-        bool _flying = false;
-        bool _moving = false;
-        bool _hai = false;
+        LVItemFlags _flags;
         unsigned short _xPos = 65535;
         unsigned short _yPos = 65535;
         unsigned short _mem_xPos = 0;
@@ -534,6 +527,36 @@ namespace DirectDesktop
     private:
         static IClassInfo* s_pClassInfo;
         LVItem* _assocItem;
+    };
+
+    class DDIconButton final : public DDScalableTouchButton
+    {
+    public:
+        DDIconButton()
+            : _peIcon(nullptr)
+            , _peContent(nullptr)
+        {
+        }
+
+        ~DDIconButton();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI IconFontProp();
+        static const PropertyInfo* WINAPI IconContentProp();
+        const WCHAR* GetIconFont(Value** ppv);
+        const WCHAR* GetIconContent(Value** ppv);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        DDScalableRichText* _peIcon;
+        DDScalableRichText* _peContent;
+        HRESULT _CreateIBVisual();
     };
 
     class DDToggleButton final : public DDScalableTouchButton
@@ -634,12 +657,12 @@ namespace DirectDesktop
         void OnEvent(Event* pEvent) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
-        void SetNumberID(BYTE id);
+        void SetNumberID(short id);
         void SetLinkedElement(void* peLinked);
 
-    private:
+    protected:
         static IClassInfo* s_pClassInfo;
-        BYTE _id;
+        short _id;
         void* _peLinked;
     };
 
@@ -688,6 +711,7 @@ namespace DirectDesktop
         Element* _peHostInner;
         DDNumberedButton* _peSelections[MAX_SELECTIONS];
         HRESULT _CreateCMBVisual();
+        static LRESULT CALLBACK s_ComboboxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
     };
 
     class DDSlider final : public TouchButton
@@ -927,6 +951,114 @@ namespace DirectDesktop
         vector<Element*> _vecAnimating;
         HRESULT _CreateTPVisual();
         static DWORD WINAPI s_RemoveFromVec(LPVOID lpParam);
+    };
+
+    ////////////////// DDMenuButton and DDMenu are largely unfinished classes.
+
+    class DDMenuButton final : public DDNumberedButton
+    {
+        friend class DDMenu;
+    public:
+        DDMenuButton()
+            : _peIcon(nullptr)
+            , _peMainText(nullptr)
+            , _peHelpText(nullptr)
+            , _peSubmenuArrow(nullptr)
+            , _submenu(nullptr)
+            , _lpmii(nullptr)
+            , _fRadio(false)
+        {
+        }
+
+        ~DDMenuButton()
+        {
+        }
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnEvent(Event* pEvent) override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        DDScalableRichText* _peIcon;
+        DDScalableRichText* _peMainText;
+        DDScalableRichText* _peHelpText;
+        DDScalableRichText* _peSubmenuArrow;
+        DDMenu* _submenu;
+        LPMENUITEMINFOW _lpmii;
+        bool _fRadio; // TODO: Use MFT_RADIOCHECK flag directly
+        HRESULT _CreateMBVisual();
+    };
+
+    class DDMenu
+    {
+        friend class DDMenuButton;
+    public:
+        DDMenu()
+            : _pICv1(nullptr)
+            , _hMenu(nullptr)
+            , _count(0)
+            , _width(0)
+            , _fUsingLegacy(false)
+            , _fDone(false)
+            , _subLevel(0)
+            , _selectedCommand(0)
+            , _parent(nullptr)
+            , _wndSelectionMenu(nullptr)
+            , _peSelectionMenu(nullptr)
+            , _tsvSelectionMenu(nullptr)
+            , _peHostInner(nullptr)
+            , _peSelections{}
+        {
+        }
+
+        ~DDMenu()
+        {
+        }
+        HRESULT InitializeDesktopEntries(IShellView* psv);
+        HRESULT InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl);
+        HRESULT CreatePopupDDMenu(bool fLegacy);
+        void DestroyPopupDDMenu();
+        bool GetItemInfo(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
+        bool SetItemInfo(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
+        void AppendItem(UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
+        void EnableItem(UINT uIDEnableItem, UINT uEnable);
+        void InsertItem(UINT uPosition, UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
+        void RemoveItem(UINT uPosition, UINT uFlags);
+        void QueryMenu(UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
+        int TrackContextMenu(UINT uFlags, int x, int y, HWND hwnd, LPTPMPARAMS lptpm);
+        HRESULT InvokeCommand(CMINVOKECOMMANDINFO* pici);
+        int GetItemCount();
+
+    private:
+        enum { MAX_ITEMS = 1024 };
+
+        IContextMenu* _pICv1;
+        HMENU _hMenu;
+        int _count{};
+        int _width{};
+        bool _fUsingLegacy;
+        bool _fDone;
+        BYTE _subLevel;
+        int _selectedCommand;
+        DDMenu* _parent;
+        NativeHWNDHost* _wndSelectionMenu;
+        HWNDElement* _peSelectionMenu;
+        TouchScrollViewer* _tsvSelectionMenu;
+        Element* _peHostInner;
+        DDMenuButton* _peSelections[MAX_ITEMS];
+        void _AppendItem(LPCMENUITEMINFOW lpmii, LPCWSTR lpNewItem, bool fInternal);
+        void _ApplyMII(DDMenuButton* pmb, bool fInternal);
+        void _DestroyUI(bool fSource);
+        void _OnButtonClick(DDMenuButton* button);
+        void _RegisterAsSubmenu(DDMenuButton* pmb, DDMenu* parent);
+        void _SetVisible(int x, int y, DDMenu* menu);
+        static LRESULT CALLBACK s_MenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
     };
 
     enum DDNotificationType

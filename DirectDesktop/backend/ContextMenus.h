@@ -1,6 +1,6 @@
 #pragma once
 
-#define MIN_SHELL_ID 1
+#define MIN_SHELL_ID 10000
 #define MAX_SHELL_ID 30000
 
 using namespace DirectUI;

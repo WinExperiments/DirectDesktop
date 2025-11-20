@@ -104,6 +104,7 @@ namespace DirectDesktop
             vector<DesktopIcon*>* vdi = (vector<DesktopIcon*>*)wParam;
             for (int num = 0; num < yV->num; num++)
             {
+                DWORD lviFlags = (*l_pm)[num]->GetFlags();
                 DDScalableElement* peIcon = (*l_pm)[num]->GetIcon();
                 Element* peShortcutArrow = (*l_pm)[num]->GetShortcutArrow();
                 RichText* peText = (*l_pm)[num]->GetText();
@@ -123,7 +124,7 @@ namespace DirectDesktop
                     if (peIcon)
                     {
                         short shadedSize{}, shadedX{}, shadedY{};
-                        if (!(*l_pm)[num]->GetHiddenState())
+                        if (!(lviFlags & LVIF_HIDDEN))
                         {
                             shadedSize = 16;
                             shadedX = 8 * g_flScaleFactor;
@@ -142,17 +143,17 @@ namespace DirectDesktop
                 HBITMAP iconshortcutbmp = (*vdi)[num]->iconshortcut;
                 CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(iconshortcutbmp);
-                if (spvBitmapShortcut && peShortcutArrow && (*l_pm)[num]->GetShortcutState()) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
+                if (spvBitmapShortcut && peShortcutArrow && lviFlags & LVIF_SHORTCUT) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
                 HBITMAP textbmp = (*vdi)[num]->text;
                 CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(textbmp);
                 if (spvBitmapText && peText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
                 if (g_touchmode)
                 {
-                    BYTE intensity = ((*l_pm)[num]->GetHiddenState()) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
+                    BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
                     ((DDScalableElement*)(*l_pm)[num])->SetDDCPIntensity(intensity);
                     ((DDScalableElement*)(*l_pm)[num])->SetAssociatedColor((*vdi)[num]->crDominantTile);
-                    if ((*l_pm)[num]->GetHiddenState())
+                    if (lviFlags & LVIF_HIDDEN)
                     {
                         short iconspace = 8 * g_flScaleFactor;
                         peIcon->SetPadding(iconspace, iconspace, iconspace, iconspace);
@@ -240,7 +241,7 @@ namespace DirectDesktop
         };
         for (int num = 0; num < yV->num; num++)
         {
-            if ((*l_pm)[num]->GetHasAdvancedIcon())
+            if ((*l_pm)[num]->GetFlags() & LVIF_ADVANCEDICON)
             {
                 HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
                 break;
@@ -263,7 +264,7 @@ namespace DirectDesktop
             DesktopIcon* di = new DesktopIcon;
             CSafeElementPtr<DDScalableElement> IconElement; IconElement.Assign(regElem<DDScalableElement*>(L"iconElem", yV->peOptionalTarget2));
             ApplyIcons(l_pm, di, true, num, 1, colorPickerPalette[IconElement->GetGroupColor()]);
-            if (((LVItem*)yV->peOptionalTarget2)->GetMemorySelected() == false)
+            if (!(((LVItem*)yV->peOptionalTarget2)->GetFlags() & LVIF_MEMSELECT))
             {
                 for (int num2 = 0; num2 < num; num2++)
                 {
@@ -299,7 +300,7 @@ namespace DirectDesktop
         }
         for (int num = 0; num < yV->num; num++)
         {
-            if ((*l_pm)[num]->GetHasAdvancedIcon())
+            if ((*l_pm)[num]->GetFlags() & LVIF_ADVANCEDICON)
             {
                 CoUninitialize();
                 break;
@@ -528,7 +529,7 @@ namespace DirectDesktop
             }
             if (!(g_treatdirasgroup && lvi->GetGroupSize() != LVIGS_NORMAL))
             {
-                lvi->SetMemorySelected(false);
+                lvi->RemoveFlags(LVIF_MEMSELECT);
                 lvi->SetOpenDirState(LVIODS_NONE);
             }
         }
@@ -594,7 +595,7 @@ namespace DirectDesktop
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
         ShowPopupCore(peAnimate);
         SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        lvi->SetMemorySelected(true);
+        lvi->AddFlags(LVIF_MEMSELECT);
         lvi->SetOpenDirState(LVIODS_FULLSCREEN);
         Element* groupdirectory{};
         parserSubview->CreateElement(L"groupdirectory", nullptr, nullptr, nullptr, (Element**)&groupdirectory);
@@ -651,7 +652,7 @@ namespace DirectDesktop
             }
             for (int j = 0; j < lviCount; j++)
             {
-                if ((*subpm)[j]->GetHiddenState() == true)
+                if ((*subpm)[j]->GetFlags() & LVIF_HIDDEN)
                 {
                     (*subpm)[j]->GetIcon()->SetAlpha(128);
                     (*subpm)[j]->GetText()->SetAlpha(128);
@@ -851,6 +852,9 @@ namespace DirectDesktop
     {
         shellstate[4] ^= 0x20;
         SetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", shellstate, _msize(shellstate), false, nullptr);
+        CSafeElementPtr<DDCheckBox> UnderlineMode;
+        UnderlineMode.Assign(regElem<DDCheckBox*>(L"UnderlineMode", fullscreeninner));
+        UnderlineMode->SetEnabled(!(shellstate[4] & 0x20));
     }
 
     void ShowPage1(Element* pePage)
@@ -869,42 +873,53 @@ namespace DirectDesktop
             ClickModeLabel.Assign(regElem<DDScalableElement*>(L"ClickModeLabel", pePage));
             CSafeElementPtr<DDCombobox> ClickMode;
             ClickMode.Assign(regElem<DDCombobox*>(L"ClickMode", pePage));
+            CSafeElementPtr<DDCheckBox> UnderlineMode;
+            UnderlineMode.Assign(regElem<DDCheckBox*>(L"UnderlineMode", pePage));
             CSafeElementPtr<DDToggleButton> TripleClickAndHide;
             TripleClickAndHide.Assign(regElem<DDToggleButton*>(L"TripleClickAndHide", pePage));
             CSafeElementPtr<DDToggleButton> LockIconPos;
             LockIconPos.Assign(regElem<DDToggleButton*>(L"LockIconPos", pePage));
             RegKeyValue rkvTemp{};
-            rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
-            rkvTemp._valueToFind = L"AutoCheckSelect";
+            rkvTemp.SetHKeyName(HKEY_CURRENT_USER);
+            rkvTemp.SetPath(L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced");
+            rkvTemp.SetValueToFind(L"AutoCheckSelect");
             ItemCheckboxes->SetCheckedState(g_showcheckboxes);
             ItemCheckboxes->SetRegKeyValue(rkvTemp);
             ItemCheckboxes->SetShellInteraction(true);
-            rkvTemp._valueToFind = L"Hidden";
-            if (GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind) == 1) ShowHiddenFiles->SetCheckedState(true);
+            rkvTemp.SetValueToFind(L"Hidden");
+            if (GetRegistryValues(rkvTemp.GetHKeyName(), rkvTemp.GetPath(), rkvTemp.GetValueToFind()) == 1) ShowHiddenFiles->SetCheckedState(true);
             else ShowHiddenFiles->SetCheckedState(false);
             ShowHiddenFiles->SetRegKeyValue(rkvTemp);
             ShowHiddenFiles->SetShellInteraction(true);
-            rkvTemp._valueToFind = L"HideFileExt";
-            FilenameExts->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+            rkvTemp.SetValueToFind(L"HideFileExt");
+            FilenameExts->SetCheckedState(GetRegistryValues(rkvTemp.GetHKeyName(), rkvTemp.GetPath(), rkvTemp.GetValueToFind()));
             FilenameExts->SetRegKeyValue(rkvTemp);
             FilenameExts->SetShellInteraction(true);
-            rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", rkvTemp._valueToFind = L"ShellState";
+            rkvTemp.SetPath(L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer");
+            rkvTemp.SetValueToFind(L"ShellState");
             ClickModeLabel->SetContentString(GetDialogString(29959, L"shell32.dll", 65535, 2).c_str());
             ClickMode->InsertSelection(DDCombobox::MAX_SELECTIONS, GetDialogString(29959, L"shell32.dll", 30102, NULL).c_str());
             ClickMode->InsertSelection(DDCombobox::MAX_SELECTIONS, GetDialogString(29959, L"shell32.dll", 30103, NULL).c_str());
             ClickMode->SetSelection(shellstate[4] & 0x20 ? 1 : 0);
             ClickMode->SetAssociatedFn(ModifyShellState, false, false, false);
             ClickMode->SetShellInteraction(true);
-            rkvTemp._path = L"Software\\DirectDesktop", rkvTemp._valueToFind = L"TreatDirAsGroup";
+            rkvTemp.SetValueToFind(L"IconUnderline");
+            UnderlineMode->SetContentString(GetDialogString(29959, L"shell32.dll", 30105, NULL).c_str());
+            UnderlineMode->SetEnabled(!(shellstate[4] & 0x20));
+            UnderlineMode->SetCheckedState(3 - GetRegistryValues(rkvTemp.GetHKeyName(), rkvTemp.GetPath(), rkvTemp.GetValueToFind()));
+            UnderlineMode->SetRegKeyValue(rkvTemp);
+            UnderlineMode->SetShellInteraction(true);
+            rkvTemp.SetPath(L"Software\\DirectDesktop");
+            rkvTemp.SetValueToFind(L"TreatDirAsGroup");
             TreatDirAsGroup->SetCheckedState(g_treatdirasgroup);
             TreatDirAsGroup->SetAssociatedSetting(&g_treatdirasgroup);
             TreatDirAsGroup->SetAssociatedFn(InitLayout, false, false, true);
             TreatDirAsGroup->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"TripleClickAndHide";
+            rkvTemp.SetValueToFind(L"TripleClickAndHide");
             TripleClickAndHide->SetCheckedState(g_tripleclickandhide);
             TripleClickAndHide->SetAssociatedSetting(&g_tripleclickandhide);
             TripleClickAndHide->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"LockIconPos";
+            rkvTemp.SetValueToFind(L"LockIconPos");
             LockIconPos->SetCheckedState(g_lockiconpos);
             LockIconPos->SetAssociatedSetting(&g_lockiconpos);
             LockIconPos->SetRegKeyValue(rkvTemp);
@@ -912,6 +927,7 @@ namespace DirectDesktop
             assignFn(ShowHiddenFiles, ToggleSetting);
             assignFn(FilenameExts, ToggleSetting);
             assignFn(ClickMode, ToggleSetting);
+            assignFn(UnderlineMode, ToggleSetting);
             assignFn(TreatDirAsGroup, ToggleSetting);
             assignFn(TripleClickAndHide, ToggleSetting);
             assignFn(LockIconPos, ToggleSetting);
@@ -939,12 +955,14 @@ namespace DirectDesktop
             CSafeElementPtr<DDScalableTouchButton> DesktopIconSettings;
             DesktopIconSettings.Assign(regElem<DDScalableTouchButton*>(L"DesktopIconSettings", pePage));
             RegKeyValue rkvTemp{};
-            rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Personalize", rkvTemp._valueToFind = L"AccentColorIcons";
+            rkvTemp.SetHKeyName(HKEY_CURRENT_USER);
+            rkvTemp.SetPath(L"Software\\DirectDesktop\\Personalize");
+            rkvTemp.SetValueToFind(L"AccentColorIcons");
             EnableAccent->SetCheckedState(g_isColorized);
             EnableAccent->SetAssociatedSetting(&g_isColorized);
             EnableAccent->SetAssociatedFn(RearrangeIcons, false, true, true);
             EnableAccent->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"IconColorID";
+            rkvTemp.SetValueToFind(L"IconColorID");
             DDCP_Icons->SetThemeAwareness(false);
             DDCP_Icons->SetEnabled(g_isColorized);
             DDCP_Icons->SetRegKeyValue(rkvTemp);
@@ -952,13 +970,13 @@ namespace DirectDesktop
             elemTargets.push_back(RegistryListener);
             DDCP_Icons->SetTargetElements(elemTargets);
             elemTargets.clear();
-            rkvTemp._valueToFind = L"DarkIcons";
+            rkvTemp.SetValueToFind(L"DarkIcons");
             EnableDarkIcons->SetEnabled(!g_automaticDark);
             EnableDarkIcons->SetCheckedState(g_isDarkIconsEnabled);
             EnableDarkIcons->SetAssociatedSetting(&g_isDarkIconsEnabled);
             EnableDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
             EnableDarkIcons->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"AutoDarkIcons";
+            rkvTemp.SetValueToFind(L"AutoDarkIcons");
             AutoDarkIcons->SetCheckedState(g_automaticDark);
             AutoDarkIcons->SetAssociatedSetting(&g_automaticDark);
             AutoDarkIcons->SetAssociatedFn(RearrangeIcons, false, true, true);
@@ -970,8 +988,9 @@ namespace DirectDesktop
             IconSize->SetFormattedString(L"%.0f");
             IconSize->SetEnabled(!g_touchmode);
             ApplyIconSize->SetEnabled(!g_touchmode);
-            rkvTemp._path = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", rkvTemp._valueToFind = L"IconsOnly";
-            IconThumbnails->SetCheckedState(GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+            rkvTemp.SetPath(L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced");
+            rkvTemp.SetValueToFind(L"IconsOnly");
+            IconThumbnails->SetCheckedState(GetRegistryValues(rkvTemp.GetHKeyName(), rkvTemp.GetPath(), rkvTemp.GetValueToFind()));
             IconThumbnails->SetRegKeyValue(rkvTemp);
             IconThumbnails->SetShellInteraction(true);
             assignFn(EnableAccent, ToggleSetting);
@@ -1009,10 +1028,12 @@ namespace DirectDesktop
             CSafeElementPtr<DDScalableTouchButton> ResetDesktop;
             ResetDesktop.Assign(regElem<DDScalableTouchButton*>(L"ResetDesktop", pePage));
             RegKeyValue rkvTemp{};
-            rkvTemp._hKeyName = HKEY_CURRENT_USER, rkvTemp._path = L"Software\\DirectDesktop\\Debug", rkvTemp._valueToFind = L"Logging";
-            EnableLogging->SetCheckedState(7 - GetRegistryValues(rkvTemp._hKeyName, rkvTemp._path, rkvTemp._valueToFind));
+            rkvTemp.SetHKeyName(HKEY_CURRENT_USER);
+            rkvTemp.SetPath(L"Software\\DirectDesktop\\Debug");
+            rkvTemp.SetValueToFind(L"Logging");
+            EnableLogging->SetCheckedState(7 - GetRegistryValues(rkvTemp.GetHKeyName(), rkvTemp.GetPath(), rkvTemp.GetValueToFind()));
             EnableLogging->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"AnimationSpeed";
+            rkvTemp.SetValueToFind(L"AnimationSpeed");
             AnimSpeed->SetMinValue(0.5f);
             AnimSpeed->SetMaxValue(20.0f);
             AnimSpeed->SetCurrentValue(g_animCoef / 100.0f, false);
@@ -1020,16 +1041,16 @@ namespace DirectDesktop
             AnimSpeed->SetTickValue(0.1f);
             AnimSpeed->SetFormattedString(L"%.1fx");
             AnimSpeed->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"AnimationsShiftKey";
+            rkvTemp.SetValueToFind(L"AnimationsShiftKey");
             AnimShiftKey->SetCheckedState(g_AnimShiftKey);
             AnimShiftKey->SetAssociatedSetting(&g_AnimShiftKey);
             AnimShiftKey->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"ShowDebugInfo";
+            rkvTemp.SetValueToFind(L"ShowDebugInfo");
             ShowDbgInfo->SetCheckedState(g_debuginfo);
             ShowDbgInfo->SetAssociatedSetting(&g_debuginfo);
             ShowDbgInfo->SetAssociatedFn(ShowDebugInfoOnDesktop, false, false, false);
             ShowDbgInfo->SetRegKeyValue(rkvTemp);
-            rkvTemp._valueToFind = L"EnableExiting";
+            rkvTemp.SetValueToFind(L"EnableExiting");
             EnableExit->SetCheckedState(g_enableexit);
             EnableExit->SetAssociatedSetting(&g_enableexit);
             EnableExit->SetRegKeyValue(rkvTemp);

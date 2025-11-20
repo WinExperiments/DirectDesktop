@@ -16,23 +16,27 @@
 			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
 			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
 			<if class="pushbuttonprimary">
-				<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
-				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
-				<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
+				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
+				<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDIconButton foreground="rgb(255,255,255)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" handleenter="true"/>
 				<if mousefocused="true">
-					<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
-					<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
-					<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
+					<DDScalableButton foreground="rgb(255,255,255)" ImageIndex="6"/>
+					<DDLVActionButton foreground="rgb(255,255,255)" ImageIndex="6"/>
+					<DDScalableTouchButton foreground="rgb(255,255,255)" ImageIndex="6"/>
+					<DDIconButton foreground="rgb(255,255,255)" ImageIndex="6"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton foreground="20210" FirstScaledImage="1261"/>
-					<DDLVActionButton foreground="20210" FirstScaledImage="1261"/>
-					<DDScalableTouchButton foreground="20210" FirstScaledImage="1261"/>
+					<DDScalableButton foreground="20210" ImageIndex="7"/>
+					<DDLVActionButton foreground="20210" ImageIndex="7"/>
+					<DDScalableTouchButton foreground="20210" ImageIndex="7"/>
+					<DDIconButton foreground="20210" ImageIndex="7"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton foreground="rgb(248,248,248)" FirstScaledImage="1268"/>
-					<DDLVActionButton foreground="rgb(248,248,248)" FirstScaledImage="1268"/>
-					<DDScalableTouchButton foreground="rgb(248,248,248)" FirstScaledImage="1268"/>
+					<DDScalableButton foreground="rgb(248,248,248)" ImageIndex="8"/>
+					<DDLVActionButton foreground="rgb(248,248,248)" ImageIndex="8"/>
+					<DDScalableTouchButton foreground="rgb(248,248,248)" ImageIndex="8"/>
+					<DDIconButton foreground="rgb(248,248,248)" ImageIndex="8"/>
 				</if>
 				<if keyfocused="true">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
@@ -40,26 +44,31 @@
 				<if showkeyfocus="true">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
+					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 				</if>
 			</if>
 			<if class="pushbuttonsecondary">
-				<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
-				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
-				<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
+				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
+				<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDIconButton foreground="rgb(0,0,0)" FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" handleenter="true"/>
 				<if mousefocused="true">
-					<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
-					<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
-					<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
+					<DDScalableButton foreground="rgb(0,0,0)" ImageIndex="2"/>
+					<DDLVActionButton foreground="rgb(0,0,0)" ImageIndex="2"/>
+					<DDScalableTouchButton foreground="rgb(0,0,0)" ImageIndex="2"/>
+					<DDIconButton foreground="rgb(0,0,0)" ImageIndex="2"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
-					<DDLVActionButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
-					<DDScalableTouchButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+					<DDScalableButton foreground="rgb(64,64,64)" ImageIndex="3"/>
+					<DDLVActionButton foreground="rgb(64,64,64)" ImageIndex="3"/>
+					<DDScalableTouchButton foreground="rgb(64,64,64)" ImageIndex="3"/>
+					<DDIconButton foreground="rgb(64,64,64)" ImageIndex="3"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
-					<DDLVActionButton foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
-					<DDScalableTouchButton foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
+					<DDScalableButton foreground="rgb(128,128,128)" ImageIndex="4"/>
+					<DDLVActionButton foreground="rgb(128,128,128)" ImageIndex="4"/>
+					<DDScalableTouchButton foreground="rgb(128,128,128)" ImageIndex="4"/>
+					<DDIconButton foreground="rgb(128,128,128)" ImageIndex="4"/>
 				</if>
 				<if keyfocused="true">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
@@ -67,10 +76,17 @@
 				<if showkeyfocus="true">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
+					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 				</if>
 			</if>
+			<if id="atom(DDIB_Icon)">
+				<DDScalableRichText contentalign="middlecenter" background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDIB_Text)">
+				<DDScalableRichText contentalign="middlecenter|endellipsis" background="argb(0,0,0,0)"/>
+			</if>
 			<if class="popupbutton">
-				<DDScalableTouchButton foreground="20007" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;100%" NeedsFontResize="true" handleenter="true"/>
+				<DDScalableTouchButton foreground="20007" visible="false" alpha="224" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" font="messagefont;100%" NeedsFontResize="true" handleenter="true"/>
 				<if mousefocused="true">
 					<DDScalableTouchButton foreground="20007" background="themeable(dtb(Explorer::ListView,1,6), argb(32,0,0,0))"/>
 				</if>
@@ -85,13 +101,13 @@
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="black" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" EnableAccent="false"
+				<DDLVActionButton foreground="black" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" ImageCount="8" EnableAccent="false"
 								  padding="rect(1rp,4rp,1rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" handleenter="true" active="mouse|keyboard|pointer"/>
 				<if mousefocused="true">
-					<DDLVActionButton FirstScaledImage="1226"/>
+					<DDLVActionButton FirstScaledImage="1015" ImageIndex="2"/>
 				</if>
 				<if Pressed="true">
-					<DDLVActionButton FirstScaledImage="1233"/>
+					<DDLVActionButton FirstScaledImage="1015" ImageIndex="3"/>
 				</if>
 				<if Enabled="false">
 					<DDLVActionButton foreground="rgb(96,96,96)"/>
@@ -113,35 +129,35 @@
 				</if>
 			</if>
 			<if class="tab">
-				<DDNumberedButton FirstScaledImage="1072" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)"
+				<DDNumberedButton FirstScaledImage="1064" ScaledImageIntervals="7" DrawType="1" ImageCount="3" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)"
 								  margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="true" foreground="rgb(0,0,0)" font="messagefont;115%"/>
 				<if mousefocused="true">
-					<DDNumberedButton FirstScaledImage="1079" foreground="rgb(0,0,0)"/>
+					<DDNumberedButton ImageIndex="2" foreground="rgb(0,0,0)"/>
 				</if>
 				<if selected="true">
-					<DDNumberedButton FirstScaledImage="1086" foreground="rgb(255,255,255)" EnableAccent="true"/>
+					<DDNumberedButton ImageIndex="3" foreground="rgb(255,255,255)" EnableAccent="true"/>
 				</if>
 			</if>
-			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)"/>
+			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="1050" ScaledImageIntervals="7" DrawType="2" ImageCount="8" ImageIndex="1" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 			<if mousefocused="true">
-				<DDToggleButton FirstScaledImage="1015"/>
+				<DDToggleButton ImageIndex="2"/>
 			</if>
 			<if Pressed="true">
-				<DDToggleButton FirstScaledImage="1022"/>
+				<DDToggleButton ImageIndex="3"/>
 			</if>
 			<if Enabled="false">
-				<DDToggleButton FirstScaledImage="1029"/>
+				<DDToggleButton ImageIndex="4"/>
 			</if>
 			<if checkedstate="true">
-				<DDToggleButton FirstScaledImage="1036" EnableAccent="true"/>
+				<DDToggleButton ImageIndex="5" EnableAccent="true"/>
 				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="1043"/>
+					<DDToggleButton ImageIndex="6"/>
 				</if>
 				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="1050"/>
+					<DDToggleButton ImageIndex="7"/>
 				</if>
 				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="1057"/>
+					<DDToggleButton ImageIndex="8"/>
 				</if>
 			</if>
 			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
@@ -248,15 +264,15 @@
 			</if>
 			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
 			<if id="atom(TE_Background)">
-				<DDScalableElement FirstScaledImage="1163" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
+				<DDScalableElement FirstScaledImage="1043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
 				<if overhang="true">
-					<DDScalableElement FirstScaledImage="1170"/>
+					<DDScalableElement ImageIndex="2"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableElement FirstScaledImage="1177"/>
+					<DDScalableElement ImageIndex="3"/>
 				</if>
 				<if selected="true">
-					<DDScalableElement FirstScaledImage="1184" EnableAccent="true"/>
+					<DDScalableElement ImageIndex="4" EnableAccent="true"/>
 				</if>
 			</if>
 			<if id="atom(TE_Preview)">
@@ -291,29 +307,29 @@
 			</if>
 			<if class="DDNB_Icon_Error">
 				<DDScalableElement content="resstr(216)" foreground="rgb(196, 43, 28)"/>
-			</if>
+			</if>		
 			<DDCheckBox minsize="size(0,32rp)" background="argb(0,0,0,0)" contentalign="endellipsis" accessible="true" accrole="checkbutton"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="1107" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="1029" ImageCount="8" ImageIndex="1" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
 				<if mousefocused="true">
-					<DDCheckBoxGlyph FirstScaledImage="1114"/>
+					<DDCheckBoxGlyph ImageIndex="2"/>
 				</if>
 				<if selected="true">
-					<DDCheckBoxGlyph FirstScaledImage="1121"/>
+					<DDCheckBoxGlyph ImageIndex="3"/>
 				</if>
 				<if Enabled="false">
-					<DDCheckBoxGlyph FirstScaledImage="1128"/>
+					<DDCheckBoxGlyph ImageIndex="4"/>
 				</if>
 				<if checkedstate="true">
-					<DDCheckBoxGlyph FirstScaledImage="1135" EnableAccent="true"/>
+					<DDCheckBoxGlyph ImageIndex="5" EnableAccent="true"/>
 					<if mousefocused="true">
-						<DDCheckBoxGlyph FirstScaledImage="1142"/>
+						<DDCheckBoxGlyph ImageIndex="6"/>
 					</if>
 					<if selected="true">
-						<DDCheckBoxGlyph FirstScaledImage="1149"/>
+						<DDCheckBoxGlyph ImageIndex="7"/>
 					</if>
 					<if Enabled="false">
-						<DDCheckBoxGlyph FirstScaledImage="1156"/>
+						<DDCheckBoxGlyph ImageIndex="8"/>
 					</if>
 				</if>
 			</if>
@@ -323,16 +339,16 @@
 					<DDScalableElement foreground="rgb(128,128,128)"/>
 				</if>
 			</if>
-			<DDCombobox foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="messagefont;115%"
+			<DDCombobox foreground="rgb(0,0,0)" FirstScaledImage="1036" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="messagefont;115%"
 						borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(8rp,0,8rp,0)" contentalign="middleleft|endellipsis" shortcut="auto" handleenter="true" height="32rp"/>
 			<if mousefocused="true">
-				<DDCombobox foreground="rgb(0,0,0)" FirstScaledImage="1226"/>
+				<DDCombobox foreground="rgb(0,0,0)" ImageIndex="2"/>
 			</if>
 			<if Pressed="true">
-				<DDCombobox foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+				<DDCombobox foreground="rgb(64,64,64)" ImageIndex="3"/>
 			</if>
 			<if Enabled="false">
-				<DDCombobox foreground="rgb(128,128,128)" FirstScaledImage="1240"/>
+				<DDCombobox foreground="rgb(128,128,128)" ImageIndex="4"/>
 			</if>
 			<if id="atom(DDCMB_DropDownGlyph)">
 				<DDScalableRichText layoutpos="right" background="argb(0,0,0,0)" foreground="rgb(96,96,96)" font="resstr(174)" content="resstr(175)"/>
@@ -353,7 +369,7 @@
 					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
 				</if>
 				<if Pressed="true">
-					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,5), argb(16,0,0,0))"/>
+					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,5), argb(16,0,0,0))" foreground="rgb(64,64,64)"/>
 				</if>
 				<if selected="true">
 					<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))" foreground="20007"/>
@@ -361,7 +377,7 @@
 						<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,5), argb(16,0,0,0))"/>
 					</if>
 					<if Pressed="true">
-						<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))"/>
+						<DDNumberedButton background="themeable(dtb(Explorer::ListView,1,3), argb(32,0,0,0))" foreground="20006"/>
 					</if>
 				</if>
 			</if>
@@ -373,42 +389,42 @@
 				<DDSlider height="40rp"/>
 			</if>
 			<if id="atom(DDS_Track)">
-				<DDScalableElement ScaledImageIntervals="7" DrawType="1" EnableAccent="false"/>
+				<DDScalableElement ScaledImageIntervals="7" DrawType="1" ImageCount="3" EnableAccent="false"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="64"/>
 				</if>
 				<if class="DDS_Horiz">
-					<DDScalableElement FirstScaledImage="1275" borderthickness="rect(0,0,3rp,0)" height="4rp"/>
+					<DDScalableElement FirstScaledImage="1078" ImageIndex="1" borderthickness="rect(0,0,3rp,0)" height="4rp"/>
 				</if>
 				<if class="DDS_Vert">
-					<DDScalableElement FirstScaledImage="1296" borderthickness="rect(0,3rp,0,0)" width="4rp"/>
+					<DDScalableElement FirstScaledImage="1085" ImageIndex="1" borderthickness="rect(0,3rp,0,0)" width="4rp"/>
 				</if>
 			</if>
 			<if id="atom(DDS_Fill)">
-				<DDScalableElement ScaledImageIntervals="7" DrawType="1" EnableAccent="true"/>
+				<DDScalableElement ScaledImageIntervals="7" DrawType="1" ImageCount="3" EnableAccent="true"/>
 				<if Enabled="false">
-					<DDScalableElement AssociatedColor="0xC8C8C8"/>
+					<DDScalableElement AssociatedColor="rgb(200,200,200)"/>
 				</if>
 				<if class="DDS_Horiz">
-					<DDScalableElement FirstScaledImage="1282" borderthickness="rect(3rp,0,0,0)" height="4rp"/>
+					<DDScalableElement FirstScaledImage="1078" ImageIndex="2" borderthickness="rect(3rp,0,0,0)" height="4rp"/>
 					<if selected="true">
-						<DDScalableElement FirstScaledImage="1289"/>
+						<DDScalableElement ImageIndex="3"/>
 					</if>
 				</if>
 				<if class="DDS_Vert">
-					<DDScalableElement FirstScaledImage="1303" borderthickness="rect(0,0,0,3rp)" width="4rp"/>
+					<DDScalableElement FirstScaledImage="1085" ImageIndex="2" borderthickness="rect(0,0,0,3rp)" width="4rp"/>
 					<if selected="true">
-						<DDScalableElement FirstScaledImage="1310"/>
+						<DDScalableElement ImageIndex="3"/>
 					</if>
 				</if>
 			</if>
 			<if id="atom(DDS_Thumb)">
-				<DDScalableTouchButton layoutpos="absolute" width="20rp" height="20rp" FirstScaledImage="1317" ScaledImageIntervals="7" DrawType="2" EnableAccent="false"/>
+				<DDScalableTouchButton layoutpos="absolute" width="20rp" height="20rp" FirstScaledImage="1092" ScaledImageIntervals="7" DrawType="2" EnableAccent="false"/>
 			</if>
 			<if id="atom(DDS_ThumbInner)">
-				<DDScalableElement layoutpos="client" FirstScaledImage="1324" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
+				<DDScalableElement layoutpos="client" FirstScaledImage="1099" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
 				<if Enabled="false">
-					<DDScalableElement AssociatedColor="0xC8C8C8"/>
+					<DDScalableElement AssociatedColor="rgb(200,200,200)"/>
 				</if>
 			</if>
 			<if id="atom(DDS_Text)">
@@ -421,31 +437,75 @@
 				<DDColorPickerButton alpha="96"/>
 			</if>
 			<if id="atom(DDColorPicker_HoverCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="1093" ScaledImageIntervals="7" DrawType="2" visible="false"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="1057" ScaledImageIntervals="7" DrawType="2" ImageCount="2" ImageIndex="1" visible="false"/>
 				<if Enabled="false">
-					<DDScalableElement alpha="72"/>
+					<DDScalableElement alpha="96"/>
 				</if>
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="1100" ScaledImageIntervals="7" DrawType="2"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="1057" ScaledImageIntervals="7" DrawType="2" ImageCount="2" ImageIndex="2"/>
 				<if Enabled="false">
-					<DDScalableElement alpha="72"/>
+					<DDScalableElement alpha="96"/>
 				</if>
 			</if>
 			<if id="atom(DDTP_TabControl)">
 				<Element layoutpos="top" height="48rp" padding="rect(0,0,0,16rp)"/>
 			</if>
+			<if id="atom(DDM_SelectionList)">
+				<HWNDElement background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDM_SelectionListInner)">
+				<Element padding="rect(4rp,4rp,4rp,4rp)" minsize="size(120rp,36rp)"/>
+			</if>
+			<DDMenuButton layoutpos="top" background="argb(0,0,0,0)" NeedsFontResize="true" height="28rp" padding="rect(4rp,0,4rp,0)" margin="rect(0,4rp,0,0)"
+				contentalign="middleleft" accessible="true" shortcut="auto" foreground="rgb(0,0,0)" font="menufont;115%" handleenter="true"/>
+			<if mousefocused="true">
+				<DDMenuButton background="themeable(dtb(ImmersiveStart::Menu,14,2), argb(32,0,0,0))"/>
+			</if>
+			<if Pressed="true">
+				<DDMenuButton background="themeable(dtb(ImmersiveStart::Menu,14,4), argb(16,0,0,0))" foreground="rgb(64,64,64)"/>
+			</if>
+			<if Enabled="false">
+				<DDMenuButton foreground="rgb(160,160,160)"/>
+			</if>
+			<if id="atom(DDMB_Icon)">
+				<DDScalableRichText background="argb(0,0,0,0)" foreground="rgb(208,208,208)" font="resstr(176)" margin="rect(0,0,4rp,0)" width="24rp" height="28rp" padding="rect(6rp,0,2rp,0)" contentalign="middlecenter"/>
+				<if class="check">
+					<DDScalableRichText content="resstr(178)"/>
+				</if>
+				<if class="radio">
+					<DDScalableRichText content="resstr(179)"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableRichText alpha="72"/>
+				</if>
+			</if>
+			<if id="atom(DDMB_HelpText)">
+				<DDScalableRichText background="argb(0,0,0,0)" foreground="rgb(128,128,128)" font="menufont;100%" NeedsFontResize="true" height="28rp" padding="rect(12rp,0,12rp,0)" margin="rect(80rp,0,0,0)" contentalign="middleright"/>
+				<if Enabled="false">
+					<DDScalableRichText foreground="rgb(208,208,208)"/>
+				</if>
+			</if>
+			<if id="atom(DDMB_SubmenuArrow)">
+				<DDScalableRichText background="argb(0,0,0,0)" foreground="rgb(96,96,96)" height="28rp" padding="rect(10rp,0,6rp,0)" font="resstr(176)" content="resstr(177)" contentalign="middlecenter"/>
+				<if Enabled="false">
+					<DDScalableRichText alpha="72"/>
+				</if>
+			</if>
+			<if class="menuseparator">
+				<DDMenuButton layoutpos="top" height="1rp" margin="rect(0,4rp,0,4rp)" background="argb(24,0,0,0)" Enabled="false"/>
+			</if>
 			<if class="TopSection">
-				<DDScalableElement FirstScaledImage="1191" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="1071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
 			<if class="MiddleSection">
-				<DDScalableElement FirstScaledImage="1198" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="1071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="2" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
 			</if>
 			<if class="BottomSection">
-				<DDScalableElement FirstScaledImage="1205" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="1071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="3" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
 			</if>
 			<if class="LoneSection">
-				<DDScalableElement FirstScaledImage="1212" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="1071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="4" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
 		</style>
 		<style resid="DDBaseDark">
@@ -462,23 +522,27 @@
 			<DDColorPicker bordercolor="argb(0,0,0,0)"/>
 			<DDColorPickerButton bordercolor="argb(0,0,0,0)"/>
 			<if class="pushbuttonprimary">
-				<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
-				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
-				<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
+				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
+				<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDIconButton foreground="rgb(0,0,0)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" EnableAccent="true" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" handleenter="true"/>
 				<if mousefocused="true">
-					<DDScalableButton foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
-					<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
-					<DDScalableTouchButton foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
+					<DDScalableButton foreground="rgb(0,0,0)" ImageIndex="6"/>
+					<DDLVActionButton foreground="rgb(0,0,0)" ImageIndex="6"/>
+					<DDScalableTouchButton foreground="rgb(0,0,0)" ImageIndex="6"/>
+					<DDIconButton foreground="rgb(0,0,0)" ImageIndex="6"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton foreground="20209" FirstScaledImage="2261"/>
-					<DDLVActionButton foreground="20209" FirstScaledImage="2261"/>
-					<DDScalableTouchButton foreground="20209" FirstScaledImage="2261"/>
+					<DDScalableButton foreground="20209" ImageIndex="7"/>
+					<DDLVActionButton foreground="20209" ImageIndex="7"/>
+					<DDScalableTouchButton foreground="20209" ImageIndex="7"/>
+					<DDIconButton foreground="20209" ImageIndex="7"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton foreground="rgb(160,160,160)" FirstScaledImage="2268"/>
-					<DDLVActionButton foreground="rgb(160,160,160)" FirstScaledImage="2268"/>
-					<DDScalableTouchButton foreground="rgb(160,160,160)" FirstScaledImage="2268"/>
+					<DDScalableButton foreground="rgb(160,160,160)" ImageIndex="8"/>
+					<DDLVActionButton foreground="rgb(160,160,160)" ImageIndex="8"/>
+					<DDScalableTouchButton foreground="rgb(160,160,160)" ImageIndex="8"/>
+					<DDIconButton foreground="rgb(160,160,160)" ImageIndex="8"/>
 				</if>
 				<if keyfocused="true">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
@@ -486,26 +550,31 @@
 				<if showkeyfocus="true">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
+					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 				</if>
 			</if>
 			<if class="pushbuttonsecondary">
-				<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
-				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
-				<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" compositedtext="true" textglowsize="0" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis"/>
+				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(0,0,0,0)" contentalign="middlecenter" handleenter="true"/>
+				<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" contentalign="middlecenter|endellipsis" handleenter="true"/>
+				<DDIconButton foreground="rgb(255,255,255)" FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="iconfont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(12rp,0,12rp,0)" handleenter="true"/>
 				<if mousefocused="true">
-					<DDScalableButton foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
-					<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
-					<DDScalableTouchButton foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
+					<DDScalableButton foreground="rgb(255,255,255)" ImageIndex="2"/>
+					<DDLVActionButton foreground="rgb(255,255,255)" ImageIndex="2"/>
+					<DDScalableTouchButton foreground="rgb(255,255,255)" ImageIndex="2"/>
+					<DDIconButton foreground="rgb(255,255,255)" ImageIndex="2"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
-					<DDLVActionButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
-					<DDScalableTouchButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+					<DDScalableButton foreground="rgb(160,160,160)" ImageIndex="3"/>
+					<DDLVActionButton foreground="rgb(160,160,160)" ImageIndex="3"/>
+					<DDScalableTouchButton foreground="rgb(160,160,160)" ImageIndex="3"/>
+					<DDIconButton foreground="rgb(160,160,160)" ImageIndex="3"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
-					<DDLVActionButton foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
-					<DDScalableTouchButton foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
+					<DDScalableButton foreground="rgb(96,96,96)" ImageIndex="4"/>
+					<DDLVActionButton foreground="rgb(96,96,96)" ImageIndex="4"/>
+					<DDScalableTouchButton foreground="rgb(96,96,96)" ImageIndex="4"/>
+					<DDIconButton foreground="rgb(96,96,96)" ImageIndex="4"/>
 				</if>
 				<if keyfocused="true">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
@@ -513,10 +582,17 @@
 				<if showkeyfocus="true">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
+					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 				</if>
 			</if>
+			<if id="atom(DDIB_Icon)">
+				<DDScalableRichText contentalign="middlecenter" background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDIB_Text)">
+				<DDScalableRichText contentalign="middlecenter|endellipsis" background="argb(0,0,0,0)"/>
+			</if>
 			<if class="popupbutton">
-				<DDScalableTouchButton foreground="20002" visible="false" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" compositedtext="true" textglowsize="0" font="messagefont;100%" NeedsFontResize="true" handleenter="true"/>
+				<DDScalableTouchButton foreground="20002" visible="false" background="argb(0,0,0,0)" padding="rect(0,4rp,0,4rp)" margin="rect(8rp,0,0,0)" font="messagefont;100%" NeedsFontResize="true" handleenter="true"/>
 				<if mousefocused="true">
 					<DDScalableTouchButton foreground="20002" background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
@@ -531,13 +607,13 @@
 				</if>
 			</if>
 			<if class="popupbuttonicon">
-				<DDLVActionButton foreground="white" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" EnableAccent="false"
+				<DDLVActionButton foreground="white" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" ImageCount="8" EnableAccent="false"
 								  padding="rect(1rp,4rp,1rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" handleenter="true" active="mouse|keyboard|pointer"/>
 				<if mousefocused="true">
-					<DDLVActionButton FirstScaledImage="2226"/>
+					<DDLVActionButton FirstScaledImage="2015" ImageIndex="2"/>
 				</if>
 				<if Pressed="true">
-					<DDLVActionButton FirstScaledImage="2233"/>
+					<DDLVActionButton FirstScaledImage="2015" ImageIndex="3"/>
 				</if>
 				<if Enabled="false">
 					<DDLVActionButton foreground="rgb(192,192,192)"/>
@@ -559,35 +635,35 @@
 				</if>
 			</if>
 			<if class="tab">
-				<DDNumberedButton FirstScaledImage="2072" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)"
+				<DDNumberedButton FirstScaledImage="2064" ScaledImageIntervals="7" DrawType="1" ImageCount="3" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" height="32rp" minsize="size(64rp,0)" padding="rect(-6rp,0,-6rp,0)"
 								  margin="rect(4rp,0,4rp,0)" contentalign="middlecenter" borderthickness="rect(16rp,0,16rp,0)" accessible="True" foreground="rgb(255,255,255)" font="messagefont;115%"/>
 				<if mousefocused="true">
-					<DDNumberedButton FirstScaledImage="2079" foreground="rgb(255,255,255)"/>
+					<DDNumberedButton ImageIndex="2" foreground="rgb(255,255,255)"/>
 				</if>
 				<if selected="true">
-					<DDNumberedButton FirstScaledImage="2086" foreground="rgb(0,0,0)" EnableAccent="true"/>
+					<DDNumberedButton ImageIndex="3" foreground="rgb(0,0,0)" EnableAccent="true"/>
 				</if>
 			</if>
-			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)"/>
+			<DDToggleButton width="40rp" height="20rp" FirstScaledImage="2050" ScaledImageIntervals="7" ImageCount="8" ImageIndex="1" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)"/>
 			<if mousefocused="true">
-				<DDToggleButton FirstScaledImage="2015"/>
+				<DDToggleButton ImageIndex="2"/>
 			</if>
 			<if Pressed="true">
-				<DDToggleButton FirstScaledImage="2022"/>
+				<DDToggleButton ImageIndex="3"/>
 			</if>
 			<if Enabled="false">
-				<DDToggleButton FirstScaledImage="2029"/>
+				<DDToggleButton ImageIndex="4"/>
 			</if>
 			<if checkedstate="true">
-				<DDToggleButton FirstScaledImage="2036" EnableAccent="true"/>
+				<DDToggleButton ImageIndex="5" EnableAccent="true"/>
 				<if mousefocused="true">
-					<DDToggleButton FirstScaledImage="2043"/>
+					<DDToggleButton ImageIndex="6"/>
 				</if>
 				<if Pressed="true">
-					<DDToggleButton FirstScaledImage="2050"/>
+					<DDToggleButton ImageIndex="7"/>
 				</if>
 				<if Enabled="false">
-					<DDToggleButton FirstScaledImage="2057"/>
+					<DDToggleButton ImageIndex="8"/>
 				</if>
 			</if>
 			<TouchCarouselScrollBar width="16rp" layoutpos="nineright" accessible="true" accrole="scrollbar" background="argb(0,0,0,0)"/>
@@ -694,15 +770,15 @@
 			</if>
 			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
 			<if id="atom(TE_Background)">
-				<DDScalableElement FirstScaledImage="2163" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
+				<DDScalableElement FirstScaledImage="2043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
 				<if overhang="true">
-					<DDScalableElement FirstScaledImage="2170"/>
+					<DDScalableElement ImageIndex="2"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableElement FirstScaledImage="2177"/>
+					<DDScalableElement ImageIndex="3"/>
 				</if>
 				<if selected="true">
-					<DDScalableElement FirstScaledImage="2184" EnableAccent="true"/>
+					<DDScalableElement ImageIndex="4" EnableAccent="true"/>
 				</if>
 			</if>
 			<if id="atom(TE_Preview)">
@@ -740,26 +816,26 @@
 			</if>
 			<DDCheckBox minsize="size(0,32rp)" background="argb(0,0,0,0)" contentalign="endellipsis" accessible="true" accrole="checkbutton"/>
 			<if id="atom(DDCB_Glyph)">
-				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="2107" ScaledImageIntervals="7" DrawType="2" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
+				<DDCheckBoxGlyph width="20rp" height="20rp" FirstScaledImage="2029" ScaledImageIntervals="7" DrawType="2" ImageCount="8" ImageIndex="1" EnableAccent="false" contentalign="middlecenter" background="argb(0,0,0,0)" direction="ltr"/>
 				<if mousefocused="true">
-					<DDCheckBoxGlyph FirstScaledImage="2114"/>
+					<DDCheckBoxGlyph ImageIndex="2"/>
 				</if>
 				<if selected="true">
-					<DDCheckBoxGlyph FirstScaledImage="2121"/>
+					<DDCheckBoxGlyph ImageIndex="3"/>
 				</if>
 				<if Enabled="false">
-					<DDCheckBoxGlyph FirstScaledImage="2128"/>
+					<DDCheckBoxGlyph ImageIndex="4"/>
 				</if>
 				<if checkedstate="true">
-					<DDCheckBoxGlyph FirstScaledImage="2135" EnableAccent="true"/>
+					<DDCheckBoxGlyph ImageIndex="5" EnableAccent="true"/>
 					<if mousefocused="true">
-						<DDCheckBoxGlyph FirstScaledImage="2142"/>
+						<DDCheckBoxGlyph ImageIndex="6"/>
 					</if>
 					<if selected="true">
-						<DDCheckBoxGlyph FirstScaledImage="2149"/>
+						<DDCheckBoxGlyph ImageIndex="7"/>
 					</if>
 					<if Enabled="false">
-						<DDCheckBoxGlyph FirstScaledImage="2156"/>
+						<DDCheckBoxGlyph ImageIndex="8"/>
 					</if>
 				</if>
 			</if>
@@ -769,16 +845,16 @@
 					<DDScalableElement foreground="rgb(160,160,160)"/>
 				</if>
 			</if>
-			<DDCombobox foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="false" NeedsFontResize="true" font="messagefont;115%"
+			<DDCombobox foreground="rgb(255,255,255)" FirstScaledImage="2036" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" NeedsFontResize="true" font="messagefont;115%"
 						borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(8rp,0,8rp,0)" contentalign="middleleft|endellipsis" shortcut="auto" handleenter="true" height="32rp"/>
 			<if mousefocused="true">
-				<DDCombobox foreground="rgb(255,255,255)" FirstScaledImage="2226"/>
+				<DDCombobox foreground="rgb(255,255,255)" ImageIndex="2"/>
 			</if>
 			<if Pressed="true">
-				<DDCombobox foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+				<DDCombobox foreground="rgb(160,160,160)" ImageIndex="3"/>
 			</if>
 			<if Enabled="false">
-				<DDCombobox foreground="rgb(96,96,96)" FirstScaledImage="2240"/>
+				<DDCombobox foreground="rgb(96,96,96)" ImageIndex="4"/>
 			</if>
 			<if id="atom(DDCMB_DropDownGlyph)">
 				<DDScalableRichText layoutpos="right" background="argb(0,0,0,0)" foreground="rgb(208,208,208)" font="resstr(174)" content="resstr(175)"/>
@@ -799,7 +875,7 @@
 					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
 				</if>
 				<if Pressed="true">
-					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,5), argb(16,255,255,255))"/>
+					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,5), argb(16,255,255,255))" foreground="rgb(160,160,160)"/>
 				</if>
 				<if selected="true">
 					<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))" foreground="20002"/>
@@ -807,7 +883,7 @@
 						<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,5), argb(16,255,255,255))"/>
 					</if>
 					<if Pressed="true">
-						<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))"/>
+						<DDNumberedButton background="themeable(dtb(DarkMode_Explorer::ListView,1,3), argb(32,255,255,255))" foreground="20003"/>
 					</if>
 				</if>
 			</if>
@@ -819,42 +895,42 @@
 				<DDSlider height="40rp"/>
 			</if>
 			<if id="atom(DDS_Track)">
-				<DDScalableElement ScaledImageIntervals="7" DrawType="1" EnableAccent="false"/>
+				<DDScalableElement ScaledImageIntervals="7" DrawType="1" ImageCount="3" EnableAccent="false"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="64"/>
 				</if>
 				<if class="DDS_Horiz">
-					<DDScalableElement FirstScaledImage="2275" borderthickness="rect(0,0,3rp,0)" height="4rp"/>
+					<DDScalableElement FirstScaledImage="2078" ImageIndex="1" borderthickness="rect(0,0,3rp,0)" height="4rp"/>
 				</if>
 				<if class="DDS_Vert">
-					<DDScalableElement FirstScaledImage="2296" borderthickness="rect(0,3rp,0,0)" width="4rp"/>
+					<DDScalableElement FirstScaledImage="2085" ImageIndex="1" borderthickness="rect(0,3rp,0,0)" width="4rp"/>
 				</if>
 			</if>
 			<if id="atom(DDS_Fill)">
-				<DDScalableElement ScaledImageIntervals="7" DrawType="1" EnableAccent="true"/>
+				<DDScalableElement ScaledImageIntervals="7" DrawType="1" ImageCount="3" EnableAccent="true"/>
 				<if Enabled="false">
-					<DDScalableElement AssociatedColor="0x606060"/>
+					<DDScalableElement AssociatedColor="rgb(96,96,96)"/>
 				</if>
 				<if class="DDS_Horiz">
-					<DDScalableElement FirstScaledImage="2282" borderthickness="rect(3rp,0,0,0)" height="4rp"/>
+					<DDScalableElement FirstScaledImage="2078" ImageIndex="2" borderthickness="rect(3rp,0,0,0)" height="4rp"/>
 					<if selected="true">
-						<DDScalableElement FirstScaledImage="2289"/>
+						<DDScalableElement ImageIndex="3"/>
 					</if>
 				</if>
 				<if class="DDS_Vert">
-					<DDScalableElement FirstScaledImage="2303" borderthickness="rect(0,0,0,3rp)" width="4rp"/>
+					<DDScalableElement FirstScaledImage="2085" ImageIndex="2" borderthickness="rect(0,0,0,3rp)" width="4rp"/>
 					<if selected="true">
-						<DDScalableElement FirstScaledImage="2310"/>
+						<DDScalableElement ImageIndex="3"/>
 					</if>
 				</if>
 			</if>
 			<if id="atom(DDS_Thumb)">
-				<DDScalableTouchButton layoutpos="absolute" width="20rp" height="20rp" FirstScaledImage="2317" ScaledImageIntervals="7" DrawType="2" EnableAccent="false"/>
+				<DDScalableTouchButton layoutpos="absolute" width="20rp" height="20rp" FirstScaledImage="2092" ScaledImageIntervals="7" DrawType="2" EnableAccent="false"/>
 			</if>
 			<if id="atom(DDS_ThumbInner)">
-				<DDScalableElement layoutpos="client" FirstScaledImage="2324" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
+				<DDScalableElement layoutpos="client" FirstScaledImage="2099" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" contentalign="middlecenter"/>
 				<if Enabled="false">
-					<DDScalableElement AssociatedColor="0x606060"/>
+					<DDScalableElement AssociatedColor="rgb(96,96,96)"/>
 				</if>
 			</if>
 			<if id="atom(DDS_Text)">
@@ -867,13 +943,13 @@
 				<DDColorPickerButton alpha="128"/>
 			</if>
 			<if id="atom(DDColorPicker_HoverCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="2093" ScaledImageIntervals="7" DrawType="2" visible="false"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="2057" ScaledImageIntervals="7" DrawType="2" ImageCount="2" ImageIndex="1" visible="false"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="96"/>
 				</if>
 			</if>
 			<if id="atom(DDColorPicker_CheckedCircle)">
-				<DDScalableElement direction="ltr" FirstScaledImage="2100" ScaledImageIntervals="7" DrawType="2"/>
+				<DDScalableElement direction="ltr" FirstScaledImage="2057" ScaledImageIntervals="7" DrawType="2" ImageCount="2" ImageIndex="2"/>
 				<if Enabled="false">
 					<DDScalableElement alpha="96"/>
 				</if>
@@ -881,17 +957,61 @@
 			<if id="atom(DDTP_TabControl)">
 				<Element layoutpos="top" height="48rp" padding="rect(0,0,0,16rp)"/>
 			</if>
+			<if id="atom(DDM_SelectionList)">
+				<HWNDElement background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDM_SelectionListInner)">
+				<Element padding="rect(4rp,4rp,4rp,4rp)" minsize="size(120rp,36rp)"/>
+			</if>
+			<DDMenuButton layoutpos="top" background="argb(0,0,0,0)" NeedsFontResize="true" height="28rp" padding="rect(4rp,0,4rp,0)" margin="rect(0,4rp,0,0)"
+				contentalign="middleleft" accessible="true" shortcut="auto" foreground="rgb(255,255,255)" font="menufont;115%" handleenter="true"/>
+			<if mousefocused="true">
+				<DDMenuButton background="themeable(dtb(DarkMode_ImmersiveStart::Menu,14,4), argb(32,255,255,255))"/>
+			</if>
+			<if Pressed="true">
+				<DDMenuButton background="themeable(dtb(DarkMode_ImmersiveStart::Menu,14,4), argb(16,255,255,255))" foreground="rgb(160,160,160)"/>
+			</if>
+			<if Enabled="false">
+				<DDMenuButton foreground="rgb(128,128,128)"/>
+			</if>
+			<if id="atom(DDMB_Icon)">
+				<DDScalableRichText background="argb(0,0,0,0)" foreground="rgb(208,208,208)" font="resstr(176)" margin="rect(0,0,4rp,0)" width="24rp" height="28rp" padding="rect(6rp,0,2rp,0)" contentalign="middlecenter"/>
+				<if class="check">
+					<DDScalableRichText content="resstr(178)"/>
+				</if>
+				<if class="radio">
+					<DDScalableRichText content="resstr(179)"/>
+				</if>
+				<if Enabled="false">
+					<DDScalableRichText alpha="96"/>
+				</if>
+			</if>
+			<if id="atom(DDMB_HelpText)">
+				<DDScalableRichText background="argb(0,0,0,0)" foreground="rgb(160,160,160)" font="menufont;100%" NeedsFontResize="true" height="28rp" padding="rect(12rp,0,12rp,0)" margin="rect(80rp,0,0,0)" contentalign="middleright"/>
+				<if Enabled="false">
+					<DDScalableRichText foreground="rgb(96,96,96)"/>
+				</if>
+			</if>
+			<if id="atom(DDMB_SubmenuArrow)">
+				<DDScalableRichText background="argb(0,0,0,0)" foreground="rgb(208,208,208)" height="28rp" padding="rect(10rp,0,6rp,0)"	font="resstr(176)" content="resstr(177)" contentalign="middlecenter"/>
+				<if Enabled="false">
+					<DDScalableRichText alpha="96"/>
+				</if>
+			</if>
+			<if class="menuseparator">
+				<DDMenuButton layoutpos="top" height="1rp" margin="rect(0,4rp,0,4rp)" background="argb(24,255,255,255)" Enabled="false"/>
+			</if>
 			<if class="TopSection">
-				<DDScalableElement FirstScaledImage="2191" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
 			<if class="MiddleSection">
-				<DDScalableElement FirstScaledImage="2198" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="2" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
 			</if>
 			<if class="BottomSection">
-				<DDScalableElement FirstScaledImage="2205" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="3" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(52rp,4rp,36rp,4rp)" layoutpos="top"/>
 			</if>
 			<if class="LoneSection">
-				<DDScalableElement FirstScaledImage="2212" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
+				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="4" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
 		</style>
 	</stylesheets>

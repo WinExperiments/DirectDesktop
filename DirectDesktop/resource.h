@@ -68,6 +68,14 @@
 #define IDS_STRING173                   173
 #define IDS_STRING174                   174
 #define IDS_STRING175                   175
+#define IDS_STRING176                   176
+#define IDS_STRING177                   177
+#define IDS_STRING178                   178
+#define IDS_STRING179                   179
+#define IDS_STRING180                   180
+#define IDS_STRING181                   181
+#define IDS_STRING182                   182
+#define IDS_STRING183                   183
 #define IDS_STRING200                   200
 #define IDS_STRING201                   201
 #define IDS_STRING202                   202

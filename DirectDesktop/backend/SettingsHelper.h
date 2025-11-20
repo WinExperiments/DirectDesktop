@@ -36,4 +36,45 @@ namespace DirectDesktop
     void ToggleSetting(Element* elem, Event* iev);
     POINT GetTopLeftMonitor();
     int GetRightMonitor();
+
+    class RegKeyValue
+    {
+    public:
+        RegKeyValue() noexcept
+            : _hKeyName(nullptr)
+            , _path()
+            , _valueToFind()
+            , _dwValue(0)
+        {
+        }
+
+        RegKeyValue(HKEY hKey, const WCHAR* path, const WCHAR* valueToFind, DWORD dwValue) noexcept
+            : _hKeyName(hKey)
+            , _path(path ? path : L"")
+            , _valueToFind(valueToFind ? valueToFind : L"")
+            , _dwValue(dwValue)
+        {
+        }
+
+        RegKeyValue(const RegKeyValue&) = default;
+        RegKeyValue(RegKeyValue&&) = default;
+        RegKeyValue& operator=(const RegKeyValue&) = default;
+        RegKeyValue& operator=(RegKeyValue&&) = default;
+        ~RegKeyValue() = default;
+
+        HKEY GetHKeyName() const noexcept;
+        const WCHAR* GetPath() const noexcept;
+        const WCHAR* GetValueToFind() const noexcept;
+        DWORD GetDwValue() const noexcept;
+        void SetHKeyName(HKEY hKeyName) noexcept;
+        void SetPath(const WCHAR* path) noexcept;
+        void SetValueToFind(const WCHAR* valueToFind) noexcept;
+        void SetValue(DWORD dwValue) noexcept;
+
+    private:
+        HKEY _hKeyName;
+        const WCHAR* _path;
+        const WCHAR* _valueToFind;
+        DWORD _dwValue;
+    };
 }

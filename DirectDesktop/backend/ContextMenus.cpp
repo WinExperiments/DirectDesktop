@@ -52,66 +52,68 @@ namespace DirectDesktop
             HRESULT hr = SHGetDesktopFolder(&pShellFolder);
             pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
 
-            LPCONTEXTMENU pICv1 = nullptr;
-            pShellView->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu3, (LPVOID*)&pICv1);
-            if (pICv1)
+            DDMenu* ddm = new DDMenu();
+            DDMenu* ddsm = new DDMenu();
+            //DDMenu* ddsm2 = new DDMenu();
+            hr = ddm->InitializeDesktopEntries(pShellView);
+            if (SUCCEEDED(hr))
             {
-                HMENU hm = CreatePopupMenu();
-                HMENU hsm = CreatePopupMenu();
-                HMENU hsm2 = CreatePopupMenu();
+                ddm->CreatePopupDDMenu(false);
+                ddsm->CreatePopupDDMenu(false);
+                //ddsm2->CreatePopupDDMenu(false);
                 MENUITEMINFOW mii{};
                 mii.cbSize = sizeof(MENUITEMINFOW);
-                mii.fMask = MIIM_STATE;
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4004).c_str());
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4005).c_str());
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4006).c_str());
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1004, LoadStrFromRes(4007).c_str());
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1005, LoadStrFromRes(4034).c_str());
+                mii.fMask = MIIM_FTYPE | MIIM_STATE;
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4004).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4005).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4006).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1004, LoadStrFromRes(4007).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1005, LoadStrFromRes(4034).c_str());
                 for (int menuitem = 1001; menuitem <= 1005; menuitem++)
                 {
                     mii.fState = MFS_UNCHECKED;
-                    SetMenuItemInfoW(hsm, menuitem, 0, &mii);
+                    ddsm->SetItemInfo(menuitem, 0, &mii);
                 }
                 mii.fState = MFS_CHECKED;
-                if (g_touchmode) SetMenuItemInfoW(hsm, 1005, 0, &mii);
-                else if (g_iconsz <= 32) SetMenuItemInfoW(hsm, 1004, 0, &mii);
-                else if (g_iconsz <= 48) SetMenuItemInfoW(hsm, 1003, 0, &mii);
-                else if (g_iconsz <= 96) SetMenuItemInfoW(hsm, 1002, 0, &mii);
-                else SetMenuItemInfoW(hsm, 1001, 0, &mii);
-                AppendMenuW(hsm, MF_SEPARATOR, 1006, L"_");
-                AppendMenuW(hsm, MF_STRING, 1007, LoadStrFromRes(4008).c_str());
+                if (g_touchmode) ddsm->SetItemInfo(1005, 0, &mii);
+                else if (g_iconsz <= 32) ddsm->SetItemInfo(1004, 0, &mii);
+                else if (g_iconsz <= 48) ddsm->SetItemInfo(1003, 0, &mii);
+                else if (g_iconsz <= 96) ddsm->SetItemInfo(1002, 0, &mii);
+                else ddsm->SetItemInfo(1001, 0, &mii);
+                ddsm->AppendItem(MF_SEPARATOR, 1006, L"_");
+                ddsm->AppendItem(MF_STRING, 1007, LoadStrFromRes(4008).c_str());
                 mii.fState = g_hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
-                SetMenuItemInfoW(hsm, 1007, 0, &mii);
-                AppendMenuW(hsm2, MF_STRING, 1008, L"Name");
-                AppendMenuW(hsm2, MF_STRING, 1009, L"Date modified");
-                AppendMenuW(hsm2, MF_STRING, 1010, L"Type");
-                AppendMenuW(hsm2, MF_STRING, 1011, L"Size");
-                InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, LoadStrFromRes(4001).c_str());
+                ddsm->SetItemInfo(1007, 0, &mii);
+                //AppendMenuW(hsm2, MF_STRING, 1008, L"Name");
+                //AppendMenuW(hsm2, MF_STRING, 1009, L"Date modified");
+                //AppendMenuW(hsm2, MF_STRING, 1010, L"Type");
+                //AppendMenuW(hsm2, MF_STRING, 1011, L"Size");
+                ddm->InsertItem(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, LoadStrFromRes(4001).c_str());
                 //InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm2, L"Sort by");
-                InsertMenuW(hm, 1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
-                InsertMenuW(hm, 2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
-                InsertMenuW(hm, 3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
+                ddm->InsertItem(1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
+                ddm->InsertItem(2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
+                ddm->InsertItem(3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
                 if (!g_canRefreshMain)
                 {
-                    EnableMenuItem(hsm, 1001, MF_BYCOMMAND | MF_DISABLED);
-                    EnableMenuItem(hsm, 1002, MF_BYCOMMAND | MF_DISABLED);
-                    EnableMenuItem(hsm, 1003, MF_BYCOMMAND | MF_DISABLED);
-                    EnableMenuItem(hsm, 1004, MF_BYCOMMAND | MF_DISABLED);
-                    EnableMenuItem(hsm, 1005, MF_BYCOMMAND | MF_DISABLED);
+                    ddsm->EnableItem(1001, MF_BYCOMMAND | MF_DISABLED);
+                    ddsm->EnableItem(1002, MF_BYCOMMAND | MF_DISABLED);
+                    ddsm->EnableItem(1003, MF_BYCOMMAND | MF_DISABLED);
+                    ddsm->EnableItem(1004, MF_BYCOMMAND | MF_DISABLED);
+                    ddsm->EnableItem(1005, MF_BYCOMMAND | MF_DISABLED);
                 }
-                pICv1->QueryContextMenu(hm, 4, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+                ddm->QueryMenu(4, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
-                int itemCount = GetMenuItemCount(hm);
+                int itemCount = ddm->GetItemCount();
                 for (int i = 0; i < itemCount; i++)
                 {
-                    MENUITEMINFO mii = { 0 };
-                    mii.cbSize = sizeof(MENUITEMINFO);
+                    MENUITEMINFOW mii{};
+                    mii.cbSize = sizeof(MENUITEMINFOW);
                     mii.fMask = MIIM_ID;
-                    if (GetMenuItemInfoW(hm, i, TRUE, &mii))
+                    if (ddm->GetItemInfo(i, TRUE, &mii))
                     {
                         if (mii.wID == 2004)
                         {
-                            for (int j = 0; j < 5; j++) RemoveMenu(hm, i, MF_BYPOSITION);
+                            for (int j = 0; j < 5; j++) ddm->RemoveItem(i + 1, MF_BYPOSITION);
                             break;
                         }
                     }
@@ -129,7 +131,7 @@ namespace DirectDesktop
 
                 POINT pt;
                 GetCursorPos(&pt);
-                int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
+                int menuItemId = ddm->TrackContextMenu(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
                 bool touchmodeMem{};
                 RECT dimensions;
                 GetClientRect(wnd->GetHWND(), &dimensions);
@@ -203,13 +205,13 @@ namespace DirectDesktop
                         CMINVOKECOMMANDINFO ici;
                         ZeroMemory(&ici, sizeof(ici));
                         ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-                        ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
+                        ici.lpVerb = MAKEINTRESOURCEA(menuItemId - MIN_SHELL_ID);
                         ici.nShow = SW_SHOWNORMAL;
-                        pICv1->InvokeCommand(&ici);
+                        ddm->InvokeCommand(&ici);
                         break;
                 }
             }
-            pICv1->Release();
+            ddm->DestroyPopupDDMenu();
             pShellFolder->Release();
         }
     }
@@ -223,34 +225,35 @@ namespace DirectDesktop
         LPITEMIDLIST pidlChild = nullptr;
         HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
 
-        LPCONTEXTMENU pICv1 = nullptr;
-        ppFolder->GetUIObjectOf(nullptr, 1, (LPCITEMIDLIST*)&pidlChild, IID_IContextMenu, nullptr, (void**)&pICv1);
-        if (pICv1)
+        DDMenu* ddm = new DDMenu();
+        hr = ddm->InitializeItemEntries(ppFolder, (LPCITEMIDLIST*)&pidlChild);
+        if (SUCCEEDED(hr))
         {
-            HMENU hm = CreatePopupMenu();
+            ddm->CreatePopupDDMenu(false);
             if (g_touchmode)
             {
-                HMENU hsm = CreatePopupMenu();
+                DDMenu* ddsm = new DDMenu();
+                ddsm->CreatePopupDDMenu(false);
                 MENUITEMINFOW mii{};
                 mii.cbSize = sizeof(MENUITEMINFOW);
                 mii.fMask = MIIM_STATE;
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4089).c_str());
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4090).c_str());
-                AppendMenuW(hsm, MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4091).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4089).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4090).c_str());
+                ddsm->AppendItem(MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4091).c_str());
                 for (int menuitem = 1001; menuitem <= 1005; menuitem++)
                 {
                     mii.fState = MFS_UNCHECKED;
-                    SetMenuItemInfoW(hsm, menuitem, 0, &mii);
+                    ddsm->SetItemInfo(menuitem, 0, &mii);
                 }
                 mii.fState = MFS_CHECKED;
-                if (lvi->GetTileSize() == LVITS_ICONONLY) SetMenuItemInfoW(hsm, 1001, 0, &mii);
-                else if (lvi->GetTileSize() == LVITS_NONE) SetMenuItemInfoW(hsm, 1002, 0, &mii);
-                else SetMenuItemInfoW(hsm, 1003, 0, &mii);
-                InsertMenuW(hm, 0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)hsm, LoadStrFromRes(4088).c_str());
-                InsertMenuW(hm, 1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
-                if (!isDefaultRes()) EnableMenuItem(hm, 0, MF_BYPOSITION | MF_DISABLED);
+                if (lvi->GetTileSize() == LVITS_ICONONLY) ddsm->SetItemInfo(1001, 0, &mii);
+                else if (lvi->GetTileSize() == LVITS_NONE) ddsm->SetItemInfo(1002, 0, &mii);
+                else ddsm->SetItemInfo(1003, 0, &mii);
+                ddm->InsertItem(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, LoadStrFromRes(4088).c_str());
+                ddm->InsertItem(1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
+                if (!isDefaultRes()) ddm->EnableItem(0, MF_BYPOSITION | MF_DISABLED);
             }
-            pICv1->QueryContextMenu(hm, 2, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+            ddm->QueryMenu(2, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
 
             UINT uFlags = TPM_RIGHTBUTTON;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
@@ -266,7 +269,7 @@ namespace DirectDesktop
 
             POINT pt;
             GetCursorPos(&pt);
-            int menuItemId = TrackPopupMenuEx(hm, uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
+            int menuItemId = ddm->TrackContextMenu(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
             LVItemTileSize lvits = lvi->GetTileSize();
             int tilepadding = DESKPADDING_TOUCH * g_flScaleFactor;
             switch (menuItemId)
@@ -288,7 +291,7 @@ namespace DirectDesktop
                 lvi->SetTileSize(LVITS_ICONONLY);
                 lvi->SetTouchGrid(new LVItemTouchGrid);
                 RearrangeIcons(true, false, true);
-                lvi->SetRefreshState(true);
+                lvi->AddFlags(LVIF_REFRESH);
                 if (isDefaultRes())
                 {
                     textElem.Assign(regElem<RichText*>(L"textElem", lvi));
@@ -313,7 +316,7 @@ namespace DirectDesktop
                 lvi->SetTileSize(LVITS_NONE);
                 lvi->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
-                lvi->SetRefreshState(true);
+                lvi->AddFlags(LVIF_REFRESH);
                 if (isDefaultRes())
                 {
                     textElem.Assign(regElem<RichText*>(L"textElem", lvi));
@@ -338,7 +341,7 @@ namespace DirectDesktop
                 lvi->SetTileSize(LVITS_DETAILED);
                 lvi->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
-                lvi->SetRefreshState(true);
+                lvi->AddFlags(LVIF_REFRESH);
                 if (isDefaultRes())
                 {
                     textElem.Assign(regElem<RichText*>(L"textElem", lvi));
@@ -349,13 +352,13 @@ namespace DirectDesktop
                 CMINVOKECOMMANDINFO ici;
                 ZeroMemory(&ici, sizeof(ici));
                 ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-                ici.lpVerb = MAKEINTRESOURCEA(menuItemId - 1);
+                ici.lpVerb = MAKEINTRESOURCEA(menuItemId - MIN_SHELL_ID);
                 ici.nShow = SW_SHOWNORMAL;
-                pICv1->InvokeCommand(&ici);
+                ddm->InvokeCommand(&ici);
                 break;
             }
         }
-        pICv1->Release();
+        ddm->DestroyPopupDDMenu();
         CoTaskMemFree(pidl);
         ppFolder->Release();
     }

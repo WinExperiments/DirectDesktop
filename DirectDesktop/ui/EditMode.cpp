@@ -28,7 +28,8 @@ namespace DirectDesktop
     DDScalableElement* deskpreviewmask;
     Element *SimpleViewTop, *SimpleViewBottom;
     Element *SimpleViewTopInner, *SimpleViewBottomInner;
-    TouchButton *SimpleViewPower, *SimpleViewSearch, *SimpleViewSettings, *SimpleViewPages, *SimpleViewClose, *SimpleViewSoftClose;
+    TouchButton* SimpleViewPower, *SimpleViewSearch;
+    DDIconButton* SimpleViewSettings, *SimpleViewPages, *SimpleViewClose, *SimpleViewSoftClose;
     DDScalableTouchButton *nextpage, *prevpage;
     DDScalableRichText* pageinfo;
     TouchButton* PageViewer;
@@ -231,7 +232,8 @@ namespace DirectDesktop
                 DUI_SetGadgetZOrder(PV_IconShortcutPreview, -1);
                 DDScalableElement* peIcon = pm[yV->num]->GetIcon();
                 Element* peShortcutArrow = pm[yV->num]->GetShortcutArrow();
-                if (pm[yV->num]->GetHiddenState() == true)
+                DWORD lviFlags = pm[yV->num]->GetFlags();
+                if (lviFlags & LVIF_HIDDEN)
                 {
                     PV_IconShadowPreview->SetAlpha(192);
                     PV_IconPreview->SetAlpha(128);
@@ -265,7 +267,7 @@ namespace DirectDesktop
                     PV_IconPreview->SetWidth(peIcon->GetWidth() * yV->fl1);
                     PV_IconPreview->SetHeight(peIcon->GetHeight() * yV->fl1);
                 }
-                if (g_treatdirasgroup && pm[yV->num]->GetGroupedDirState() == true)
+                if (g_treatdirasgroup && lviFlags & LVIF_GROUP)
                 {
                     if (!g_touchmode)
                     {
@@ -296,7 +298,7 @@ namespace DirectDesktop
                 HBITMAP iconshortcutbmp = di->iconshortcut;
                 CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(iconshortcutbmp);
-                if (spvBitmapShortcut != nullptr && pm[yV->num]->GetShortcutState() == true) PV_IconShortcutPreview->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
+                if (spvBitmapShortcut != nullptr && lviFlags & LVIF_SHORTCUT) PV_IconShortcutPreview->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
                 break;
             }
         }
@@ -356,11 +358,12 @@ namespace DirectDesktop
         DesktopIcon di;
         if (!g_hiddenIcons && yV->num >= 0 && yV->peOptionalTarget1)
         {
-            if (pm[yV->num]->GetHasAdvancedIcon())
+            DWORD lviFlags = pm[yV->num]->GetFlags();
+            if (lviFlags & LVIF_ADVANCEDICON)
                 HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
             ApplyIcons(&pm, &di, false, yV->num, yV->fl1, -1);
             SendMessageW(editwnd->GetHWND(), WM_USER + 1, (WPARAM)&di, (LPARAM)yV);
-            if (pm[yV->num]->GetHasAdvancedIcon())
+            if (lviFlags & LVIF_ADVANCEDICON)
                 CoUninitialize();
         }
         Sleep(250);
@@ -905,7 +908,7 @@ namespace DirectDesktop
                     else if (i < g_currentPageID) assignFn(PV_Page, GoToPrevPage);
                     else if (i > g_currentPageID) assignFn(PV_Page, GoToNextPage);
                     int remainingIcons = 1;
-                    PV_Page->SetHiddenState(true);
+                    PV_Page->AddFlags(LVIF_HIDDEN);
                     CSafeElementPtr<Element> PV_PageIcons;
                     PV_PageIcons.Assign(regElem<Element*>(L"PV_PageIcons", PV_Page));
                     for (int j = 0; j < pm.size(); j++)
@@ -913,7 +916,7 @@ namespace DirectDesktop
                         if (pm[j]->GetPage() != i) continue;
                         remainingIcons++;
                         yValueEx* yV = new yValueEx{ j, 0.25, NULL, nullptr, PV_PageIcons };
-                        PV_Page->SetHiddenState(false);
+                        PV_Page->RemoveFlags(LVIF_HIDDEN);
                         QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
                     }
                     CSafeElementPtr<RichText> number;
@@ -1019,7 +1022,7 @@ namespace DirectDesktop
     {
         if (pProp == Element::MouseWithinProp())
         {
-            if (((LVItem*)elem)->GetHiddenState())
+            if (((LVItem*)elem)->GetFlags() & LVIF_HIDDEN)
             {
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", elem);
                 if (PV_Remove)
@@ -1350,10 +1353,10 @@ namespace DirectDesktop
         SimpleViewBottomInner = regElem<Element*>(L"SimpleViewBottomInner", pEdit);
         SimpleViewPower = regElem<TouchButton*>(L"SimpleViewPower", pEdit);
         SimpleViewSearch = regElem<TouchButton*>(L"SimpleViewSearch", pEdit);
-        SimpleViewSettings = regElem<TouchButton*>(L"SimpleViewSettings", pEdit);
-        SimpleViewPages = regElem<TouchButton*>(L"SimpleViewPages", pEdit);
-        SimpleViewClose = regElem<TouchButton*>(L"SimpleViewClose", pEdit);
-        SimpleViewSoftClose = regElem<TouchButton*>(L"SimpleViewSoftClose", pEdit);
+        SimpleViewSettings = regElem<DDIconButton*>(L"SimpleViewSettings", pEdit);
+        SimpleViewPages = regElem<DDIconButton*>(L"SimpleViewPages", pEdit);
+        SimpleViewClose = regElem<DDIconButton*>(L"SimpleViewClose", pEdit);
+        SimpleViewSoftClose = regElem<DDIconButton*>(L"SimpleViewSoftClose", pEdit);
         EM_Dim = regElem<Element*>(L"EM_Dim", pEdit);
         bg_left_top = regElem<Element*>(L"bg_left_top", pEdit);
         bg_left_middle = regElem<Element*>(L"bg_left_middle", pEdit);

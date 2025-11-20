@@ -642,15 +642,15 @@ namespace DirectDesktop
                 }
                 if (lParam && wcscmp((LPCWSTR)lParam, L"ShellState") == 0)
                 {
-                    RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL };
-                    g_showcheckboxes = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoCheckSelect");
-                    g_showHidden = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"Hidden");
-                    g_showSuperHidden = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"ShowSuperHidden");
-                    g_hideFileExt = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"HideFileExt");
-                    g_isThumbnailHidden = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconsOnly");
-                    g_iconunderline = GetRegistryValues(DDKey._hKeyName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
+                    RegKeyValue DDKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL);
+                    g_showcheckboxes = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoCheckSelect");
+                    g_showHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"Hidden");
+                    g_showSuperHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ShowSuperHidden");
+                    g_hideFileExt = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideFileExt");
+                    g_isThumbnailHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconsOnly");
+                    g_iconunderline = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
                     free(shellstate);
-                    GetRegistryBinValues(DDKey._hKeyName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
+                    GetRegistryBinValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
                     if (g_canRefreshMain)
                     {
                         SetTimer(wnd->GetHWND(), 10, 200, nullptr);
@@ -873,7 +873,7 @@ namespace DirectDesktop
                 {
                     if (lvi->GetPage() == g_currentPageID)
                     {
-                        if (lvi->GetFlying())
+                        if (lvi->GetFlags() & LVIF_FLYING)
                         {
                             int coef = g_launch ? 2 : 3;
                             float delay = (lvi->GetY() + lvi->GetHeight() / 2) / static_cast<float>(dimensions.bottom * coef);
@@ -886,9 +886,9 @@ namespace DirectDesktop
                             TriggerScaleIn(lvi, transDesc, 2, delay, delay + scale, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
                             TransitionStoryboardInfo tsbInfo = {};
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lvi->GetDisplayNode(), &tsbInfo);
-                            lvi->SetFlying(false);
+                            lvi->RemoveFlags(LVIF_FLYING);
                         }
-                        else if (lvi->GetMoving())
+                        else if (lvi->GetFlags() & LVIF_MOVING)
                         {
                             GTRANS_DESC transDesc[1];
                             TransitionStoryboardInfo tsbInfo = {};
@@ -919,7 +919,7 @@ namespace DirectDesktop
                             DWORD DelayedSetPos;
                             HANDLE hDelayedSetPos = CreateThread(nullptr, 0, SetElemPos, dea, NULL, nullptr);
                             if (hDelayedSetPos) CloseHandle(hDelayedSetPos);
-                            lvi->SetMoving(false);
+                            lvi->RemoveFlags(LVIF_MOVING);
                         }
                         DUI_SetGadgetZOrder(lvi, -1);
                     }
@@ -1021,7 +1021,7 @@ namespace DirectDesktop
                     CSafeElementPtr<Element> checkboxElem;
                     checkboxElem.Assign(regElem<Element*>(L"checkboxElem", g_outerElem));
                     innerElem->SetLayoutPos(g_innerElem->GetLayoutPos()), pm[lParam]->GetCheckbox()->SetLayoutPos(checkboxElem->GetLayoutPos());
-                    if (pm[lParam]->GetSizedFromGroup() == true) pm[lParam]->SetSizedFromGroup(false);
+                    pm[lParam]->RemoveFlags(LVIF_SFG);
                     if (g_touchmode)
                     {
                         // had to hardcode it as GetPadding is VERY unreliable on high dpi
@@ -1030,12 +1030,12 @@ namespace DirectDesktop
                         containerElem.Assign(regElem<Element*>(L"containerElem", pm[lParam]));
                         containerElem->SetPadding(space, space, space, space);
                         if (pm[lParam]->GetTileSize() == LVITS_ICONONLY) peText->SetVisible(false);
-                        if (pm[lParam]->GetSizedFromGroup())
+                        if (pm[lParam]->GetFlags() & LVIF_SFG)
                         {
                             pm[lParam]->SetWidth(g_touchSizeX);
                             pm[lParam]->SetHeight(g_touchSizeY);
-                            pm[lParam]->SetSizedFromGroup(false);
                         }
+                        pm[lParam]->RemoveFlags(LVIF_SFG);
                     }
                     else
                     {
@@ -1044,7 +1044,7 @@ namespace DirectDesktop
                         pm[lParam]->SetHeight(innerSizeY + lines_basedOnEllipsis + 6 * g_flScaleFactor);
                         peText->SetHeight(lines_basedOnEllipsis + 5 * g_flScaleFactor);
                         short shadedSize{}, shadedX{}, shadedY{};
-                        if (!pm[lParam]->GetHiddenState() && (!g_treatdirasgroup || !pm[lParam]->GetGroupedDirState()))
+                        if (!(pm[lParam]->GetFlags() & LVIF_HIDDEN) && (!g_treatdirasgroup || !(pm[lParam]->GetFlags() & LVIF_GROUP)))
                         {
                             shadedSize = 16;
                             shadedX = 8 * g_flScaleFactor;
@@ -1084,17 +1084,18 @@ namespace DirectDesktop
                 HBITMAP iconshortcutbmp = ((DesktopIcon*)wParam)->iconshortcut;
                 CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
                 DeleteObject(iconshortcutbmp);
-                if (spvBitmapShortcut && pm[lParam]->GetShortcutState()) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
+                DWORD lviFlags = pm[lParam]->GetFlags();
+                if (spvBitmapShortcut && lviFlags & LVIF_SHORTCUT) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
                 if (g_touchmode)
                 {
                     HBITMAP textbmp = ((DesktopIcon*)wParam)->text;
                     CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
                     DeleteObject(textbmp);
                     if (spvBitmapText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
-                    BYTE intensity = (pm[lParam]->GetHiddenState()) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
+                    BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
                     ((DDScalableElement*)pm[lParam])->SetDDCPIntensity(intensity);
                     ((DDScalableElement*)pm[lParam])->SetAssociatedColor(((DesktopIcon*)wParam)->crDominantTile);
-                    if (pm[lParam]->GetHiddenState())
+                    if (lviFlags & LVIF_HIDDEN)
                     {
                         short iconspace = 8 * g_flScaleFactor;
                         peIcon->SetPadding(iconspace, iconspace, iconspace, iconspace);
@@ -1224,7 +1225,7 @@ namespace DirectDesktop
                 vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
                 if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight)
                 {
-                    internalselectedLVItems[0]->SetDragState(true);
+                    internalselectedLVItems[0]->AddFlags(LVIF_DRAG);
                     g_dragpreview->SetVisible(!g_lockiconpos);
                 }
                 if (ppt.x < 16 * g_flScaleFactor) dragToPrev++;
@@ -1273,7 +1274,7 @@ namespace DirectDesktop
                         if (wParam != 0)
                         {
                             vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
-                            if (internalselectedLVItems[0]->GetDragState())
+                            if (internalselectedLVItems[0]->GetFlags() & LVIF_DRAG)
                             {
                                 POINT ppt;
                                 CValuePtr v;
@@ -1326,7 +1327,7 @@ namespace DirectDesktop
                                 short itemstodrag = internalselectedLVItems.size();
                                 for (short items = 0; items < itemstodrag; items++)
                                 {
-                                    internalselectedLVItems[items]->SetDragState(true);
+                                    internalselectedLVItems[items]->AddFlags(LVIF_DRAG);
                                 }
                                 for (short items = 0; items < itemstodrag; items++)
                                 {
@@ -1366,7 +1367,7 @@ namespace DirectDesktop
                                             pm[items2]->GetMemYPos() + pm[items2]->GetHeight() - textheight2 >= finaldestY &&
                                             pm[items2]->GetMemYPos() <= finaldestY + internalselectedLVItems[items]->GetHeight() - textheight &&
                                             pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage() &&
-                                            (pm[items2]->GetDragState() == false || g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY))
+                                            (!(pm[items2]->GetFlags() & LVIF_DRAG) || g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY))
                                         {
                                             if (g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY &&
                                                 pm[items2]->GetTileSize() == LVITS_ICONONLY && pm[items2]->GetTouchGrid()->GetItemCount() < 4 &&
@@ -1419,7 +1420,7 @@ namespace DirectDesktop
                             }
                             for (LVItem* lvi : internalselectedLVItems)
                             {
-                                lvi->SetDragState(false);
+                                lvi->RemoveFlags(LVIF_DRAG);
                             }
                             internalselectedLVItems.clear();
                         }
@@ -1431,7 +1432,7 @@ namespace DirectDesktop
                         if (wParam != NULL)
                         {
                             LVItem* item = (*(vector<LVItem*>*)wParam)[0];
-                            item->SetDragState(false);
+                            item->RemoveFlags(LVIF_DRAG);
                         }
                         break;
                     }
@@ -1439,7 +1440,7 @@ namespace DirectDesktop
                     {
                         vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
                         LVItem* item = internalselectedLVItems[0];
-                        item->SetDragState(false);
+                        item->RemoveFlags(LVIF_DRAG);
                         internalselectedLVItems.clear();
                         g_dragpreview->SetVisible(false);
                         MessageBeep(MB_OK);
@@ -1518,27 +1519,25 @@ namespace DirectDesktop
                 wstring foundsimplefilename = hideExt((wstring)fi->filename, isFileExtHidden, (attr & 16), outerElem);
                 if (attr & 16)
                 {
-                    outerElem->SetDirState(true);
+                    outerElem->AddFlags(LVIF_DIR);
                     unsigned short itemsInside = EnumerateFolder_Helper((LPWSTR)RemoveQuotes(foundfilename).c_str());
-                    if (itemsInside <= 192) outerElem->SetGroupedDirState(true);
+                    if (itemsInside <= 192) outerElem->AddFlags(LVIF_GROUP);
                     outerElem->SetItemCount(itemsInside);
                 }
-                else outerElem->SetDirState(false);
-                if (attr & 2) outerElem->SetHiddenState(true);
-                else outerElem->SetHiddenState(false);
+                if (attr & 2) outerElem->AddFlags(LVIF_HIDDEN);
                 if (isThumbnailHidden == 0)
                 {
                     bool image;
                     isSpecialProp(foundfilename, true, &image, &imageExts);
-                    outerElem->SetColorLock(image);
+                    if (image) outerElem->AddFlags(LVIF_COLORLOCK);
                 }
                 bool advancedicon;
                 isSpecialProp(foundfilename, true, &advancedicon, &advancedIconExts);
-                outerElem->SetColorLock(advancedicon);
+                outerElem->AddFlags(LVIF_ADVANCEDICON);
                 outerElem->SetSimpleFilename(foundsimplefilename);
                 outerElem->SetFilename(foundfilename);
                 outerElem->SetAccDesc(GetExplorerTooltipText(foundfilename).c_str());
-                if (outerElem->GetHiddenState() == true)
+                if (outerElem->GetFlags() & LVIF_HIDDEN)
                 {
                     iconElem->SetAlpha(128);
                     textElem->SetAlpha(g_touchmode ? 128 : 192);
@@ -1583,7 +1582,7 @@ namespace DirectDesktop
                     pm[currentID]->SetInternalYPos(0);
                 }
                 RearrangeIcons(false, false, true);
-                pm[currentID]->SetRefreshState(true);
+                pm[currentID]->AddFlags(LVIF_REFRESH);
                 if (!yV)
                 {
                     GTRANS_DESC transDesc[2];
@@ -1681,6 +1680,7 @@ namespace DirectDesktop
                         case 4:
                             dea->pe->SetX(dea->val1);
                             dea->pe->SetY(dea->val2);
+                            break;
                         }
                     }
                 }
@@ -1702,9 +1702,10 @@ namespace DirectDesktop
     DWORD WINAPI fastin(LPVOID lpParam)
     {
         yValue* yV = (yValue*)lpParam;
-        if (pm[yV->num]->GetRefreshState())
+        DWORD lviFlags = pm[yV->num]->GetFlags();
+        if (lviFlags & LVIF_REFRESH)
         {
-            if (pm[yV->num]->GetHasAdvancedIcon())
+            if (lviFlags & LVIF_ADVANCEDICON)
                 HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
             DesktopIcon di;
             ApplyIcons(&pm, &di, false, yV->num, 1, -1);
@@ -1718,7 +1719,7 @@ namespace DirectDesktop
                 CreateTextBitmap(capturedBitmap, pm[yV->num]->GetSimpleFilename().c_str(), yV->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode, NULL);
                 if (g_isGlass)
                     di.crDominantTile = RGB(224, 224, 224);
-                else if (g_treatdirasgroup && pm[yV->num]->GetGroupedDirState() == true)
+                else if (g_treatdirasgroup && lviFlags & LVIF_GROUP)
                 {
                     COLORREF crDefault = g_theme ? RGB(208, 208, 208) : RGB(48, 48, 48);
                     di.crDominantTile = pm[yV->num]->GetIcon()->GetAssociatedColor() == -1 ? crDefault : pm[yV->num]->GetIcon()->GetAssociatedColor();
@@ -1733,10 +1734,10 @@ namespace DirectDesktop
             }
             SendMessageW(wnd->GetHWND(), WM_USER + 4, (WPARAM)&di, yV->num);
             SendMessageW(wnd->GetHWND(), WM_USER + 3, NULL, yV->num);
-            if (pm[yV->num]->GetHasAdvancedIcon())
+            if (lviFlags & LVIF_ADVANCEDICON)
                 CoUninitialize();
         }
-        if (!pm[yV->num]->GetFlying()) SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
+        if (!(lviFlags & LVIF_FLYING)) SendMessageW(wnd->GetHWND(), WM_USER + 2, NULL, NULL);
         return 0;
     }
 
@@ -1948,7 +1949,7 @@ namespace DirectDesktop
             elemTargets.clear();
             btnTargets.clear();
             peContent->SetMinSize(320 * g_flScaleFactor, 0);
-            RegKeyValue rkv = { nullptr, nullptr, nullptr, iconElement->GetGroupColor() };
+            RegKeyValue rkv(nullptr, nullptr, nullptr, iconElement->GetGroupColor());
             DDCP_Group->SetRegKeyValue(rkv);
         }
     }
@@ -1960,7 +1961,7 @@ namespace DirectDesktop
         {
             CSafeElementPtr<LVItem> lviTarget;
             lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
-            lviTarget->SetMemorySelected(false);
+            lviTarget->RemoveFlags(LVIF_MEMSELECT);
             for (i = 0; i < pm.size(); i++)
             {
                 if (lviTarget == pm[i]) break;
@@ -1982,9 +1983,9 @@ namespace DirectDesktop
                 if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
             }
             IconThumbHelper(i);
-            lviTarget->SetSizedFromGroup(true);
+            lviTarget->AddFlags(LVIF_SFG);
             RearrangeIcons(true, false, true);
-            lviTarget->SetRefreshState(true);
+            lviTarget->AddFlags(LVIF_REFRESH);
             if (lviTarget->GetGroupSize() != LVIGS_NORMAL)
             {
                 lviTarget->SetOpenDirState(LVIODS_FULLSCREEN);
@@ -2309,7 +2310,7 @@ namespace DirectDesktop
         else if (g_iconsz > 40)
             paddingInner = 4;
         int padding = (g_iconsz - paddingInner - g_gpiconsz * 2) / 2;
-        if (pm[yV->num]->GetGroupedDirState() == true && g_treatdirasgroup == true)
+        if (pm[yV->num]->GetFlags() & LVIF_GROUP && g_treatdirasgroup == true)
         {
             int x = padding * g_flScaleFactor, y = padding * g_flScaleFactor;
             vector<ThumbIcons> strs;
@@ -2429,9 +2430,10 @@ namespace DirectDesktop
         IconToBitmap(dummyi, dummyii, 16, 16);
         IterateBitmap(dummyii, SimpleBitmapPixelHandler, 0, 0, 0.005, NULL);
         HBITMAP bmpForeground{};
-        if ((*pmLVItem)[id]->GetGroupedDirState() == false || g_treatdirasgroup == false)
+        DWORD lviFlags = (*pmLVItem)[id]->GetFlags();
+        if (!(lviFlags & LVIF_GROUP) || g_treatdirasgroup == false)
         {
-            bool useThumbnail = ((*pmLVItem)[id]->GetColorLock() || ((*pmLVItem)[id]->GetDirState() && !((*pmLVItem)[id]->GetGroupedDirState() && g_treatdirasgroup)));
+            bool useThumbnail = (lviFlags & (LVIF_COLORLOCK | LVIF_DIR)) && !(lviFlags & LVIF_GROUP && g_treatdirasgroup);
             if (g_touchmode && (*pmLVItem)[id]->GetTileSize() == LVITS_ICONONLY) GetShellItemImage(bmpForeground, RemoveQuotes((*pmLVItem)[id]->GetFilename()).c_str(), 32 * scale, 32 * scale, useThumbnail);
             else GetShellItemImage(bmpForeground, RemoveQuotes((*pmLVItem)[id]->GetFilename()).c_str(), g_iconsz * scale, g_iconsz * scale, useThumbnail);
         }
@@ -2448,7 +2450,7 @@ namespace DirectDesktop
             IterateBitmap(bmpBackground, SimpleBitmapPixelHandler, 0, (int)(4 * scale * g_flScaleFactor), shadowintensity, NULL);
             if (g_isDarkIconsEnabled)
             {
-                if ((*pmLVItem)[id]->GetColorLock() == false)
+                if (!(lviFlags & LVIF_COLORLOCK))
                 {
                     HBITMAP bmpOverlay{};
                     AddPaddingToBitmap(bmpForeground, bmpOverlay, 0, 0, 0, 0);
@@ -2461,7 +2463,7 @@ namespace DirectDesktop
                 }
                 if (GetGValue(GetMostFrequentLightnessFromIcon(bmpShortcut, g_iconsz * scale * g_flScaleFactor)) > 208) IterateBitmap(bmpShortcut, InvertConstHue, 1, 0, 1, NULL);
             }
-            if (g_isGlass && !g_isDarkIconsEnabled && !g_isColorized && (*pmLVItem)[id]->GetColorLock() == false)
+            if (g_isGlass && !g_isDarkIconsEnabled && !g_isColorized && !(lviFlags & LVIF_COLORLOCK))
             {
                 if (pmLVItem == &pm)
                 {
@@ -2514,12 +2516,12 @@ namespace DirectDesktop
             COLORREF iconcolor{};
             if (subdirectory) iconcolor = (crSubdir == -1) ? (iconColorID == 1) ? ImmersiveColor : IconColorizationColor : crSubdir;
             else iconcolor = (iconColorID == 1) ? ImmersiveColor : IconColorizationColor;
-            if ((*pmLVItem)[id]->GetColorLock() == false) IterateBitmap(bmpForeground, EnhancedBitmapPixelHandler, 1, 0, 1, iconcolor);
+            if (!(lviFlags & LVIF_COLORLOCK)) IterateBitmap(bmpForeground, EnhancedBitmapPixelHandler, 1, 0, 1, iconcolor);
             IterateBitmap(bmpShortcut, StandardBitmapPixelHandler, 1, 0, 1, iconcolor);
         }
         di->crDominantTile = GetDominantColorFromIcon(bmpForeground, g_iconsz, 48);
 
-        if ((!g_isGlass || pmLVItem == &pm) && !(*pmLVItem)[id]->GetHiddenState())
+        if ((!g_isGlass || pmLVItem == &pm) && !(lviFlags & LVIF_HIDDEN))
         {
             HBITMAP bmpBuf{};
             if (g_touchmode) AddPaddingToBitmap(bmpForeground, bmpBuf, shadowSpace, shadowSpace, shadowSpace, shadowSpace);
@@ -2554,7 +2556,7 @@ namespace DirectDesktop
         }
         CSafeElementPtr<Element> iconcontainer;
         iconcontainer.Assign(regElem<Element*>(L"iconcontainer", pm[id]));
-        if (pm[id]->GetGroupedDirState() == true && g_treatdirasgroup == true)
+        if (pm[id]->GetFlags() & LVIF_GROUP && g_treatdirasgroup == true)
         {
             peIcon->SetClass(L"groupthumbnail");
 
@@ -2580,7 +2582,7 @@ namespace DirectDesktop
             }
             COLORREF crDefault = g_theme ? RGB(208, 208, 208) : RGB(48, 48, 48);
             pm[i]->SetAssociatedColor(((DDScalableElement*)elem)->GetAssociatedColor() == -1 ? crDefault : ((DDScalableElement*)elem)->GetAssociatedColor());
-            pm[i]->SetRefreshState(true);
+            pm[i]->AddFlags(LVIF_REFRESH);
             yValue* yV = new yValue{ i };
             QueueUserWorkItem(RearrangeIconsHelper, yV, 0);
         }
@@ -2633,7 +2635,7 @@ namespace DirectDesktop
             if (groupdirectoryOld) return;
             CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
             parserSubview->GetSheet(g_theme ? L"popup" : L"popupdark", &sheetStorage);
-            lvi->SetMemorySelected(true);
+            lvi->AddFlags(LVIF_MEMSELECT);
             parserSubview->CreateElement(L"groupdirectory", nullptr, lvi, nullptr, (Element**)&groupdirectory);
             groupdirectory->SetValue(Element::SheetProp, 1, sheetStorage);
             lvi->Add((Element**)&groupdirectory, 1);
@@ -2702,7 +2704,7 @@ namespace DirectDesktop
             {
                 if (fNew)
                 {
-                    if ((*d_subpm)[j]->GetHiddenState() == true)
+                    if ((*d_subpm)[j]->GetFlags() & LVIF_HIDDEN)
                     {
                         (*d_subpm)[j]->GetIcon()->SetAlpha(128);
                         (*d_subpm)[j]->GetText()->SetAlpha(128);
@@ -2851,10 +2853,11 @@ namespace DirectDesktop
             if (!(ctrlKey & 0x8000))
             {
                 TouchButton* checkbox = ((LVItem*)elem)->GetCheckbox();
-                if (checkbox->GetMouseFocused() == false && ((LVItem*)elem)->GetDragState() == false)
+                DWORD lviFlags = ((LVItem*)elem)->GetFlags();
+                if (checkbox->GetMouseFocused() == false && !(lviFlags & LVIF_DRAG))
                 {
                     wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
-                    if (((LVItem*)elem)->GetGroupedDirState() == true && g_treatdirasgroup == true) ShowDirAsGroup((LVItem*)elem);
+                    if (lviFlags & LVIF_GROUP && g_treatdirasgroup == true) ShowDirAsGroup((LVItem*)elem);
                     else LaunchItem(temp.c_str());
                 }
             }
@@ -3217,8 +3220,8 @@ namespace DirectDesktop
                 InitializePreviewComponent(elem, g_dragpreview, g_touchmode, false);
                 CSafeElementPtr<Element> DP_FolderGroup;
                 DP_FolderGroup.Assign(regElem<Element*>(L"DP_FolderGroup", g_dragpreview));
-                DP_FolderGroup->SetVisible(g_treatdirasgroup && ((LVItem*)elem)->GetGroupedDirState());
-                if (g_treatdirasgroup && ((LVItem*)elem)->GetGroupedDirState())
+                DP_FolderGroup->SetVisible(g_treatdirasgroup && ((LVItem*)elem)->GetFlags() & LVIF_GROUP);
+                if (g_treatdirasgroup && ((LVItem*)elem)->GetFlags() & LVIF_GROUP)
                 {
                     DDScalableElement* peIcon = ((LVItem*)elem)->GetIcon();
                     if (peIcon->GetGroupColor() == 0)
@@ -3403,9 +3406,11 @@ namespace DirectDesktop
             if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 3 of 5 complete: Created an array of positions.");
             for (int j = 0; j < count; j++)
             {
-                pm[j]->SetRefreshState(reloadicons && !(pm[j]->GetGroupSize() != LVIGS_NORMAL && bAlreadyOpen && g_isColorizedOld == g_isColorized));
-                pm[j]->SetMoving(animation && pm[j]->GetPage() == g_currentPageID);
-                if (pm[j]->GetPage() != g_currentPageID && bAlreadyOpen) pm[j]->SetFlying(false);
+                if (reloadicons && !(pm[j]->GetGroupSize() != LVIGS_NORMAL && bAlreadyOpen && g_isColorizedOld == g_isColorized)) pm[j]->AddFlags(LVIF_REFRESH);
+                else pm[j]->RemoveFlags(LVIF_REFRESH);
+                if (animation && pm[j]->GetPage() == g_currentPageID) pm[j]->AddFlags(LVIF_MOVING);
+                else pm[j]->RemoveFlags(LVIF_MOVING);
+                if (pm[j]->GetPage() != g_currentPageID && bAlreadyOpen) pm[j]->RemoveFlags(LVIF_FLYING);
                 if (g_touchmode && !(g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL))
                 {
                     switch (pm[j]->GetTileSize())
@@ -3480,7 +3485,7 @@ namespace DirectDesktop
                                     positions[page - 1][xPos + i][yPos + k] = true;
                             else positions[page - 1][xPos + i][yPos] = true;
                         }
-                        if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != page || pm[j]->GetSizedFromGroup())
+                        if (!(pm[j]->GetFlags() & (LVIF_MOVING | LVIF_SFG)) || pm[j]->GetPreRefreshMemPage() != page)
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(yRender);
@@ -3509,7 +3514,7 @@ namespace DirectDesktop
                     }
                     else
                     {
-                        if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
+                        if (!(pm[j]->GetFlags() & (LVIF_MOVING | LVIF_SFG)) || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(yRender);
@@ -3607,7 +3612,7 @@ namespace DirectDesktop
                         pm[j]->SetPage(arrPage + 1);
                     }
                     else pm[j]->SetPage(g_maxPageID);
-                    if (pm[j]->GetPage() != g_currentPageID) pm[j]->SetFlying(false);
+                    if (pm[j]->GetPage() != g_currentPageID) pm[j]->RemoveFlags(LVIF_FLYING);
                     positions[arrPage][arrX][arrY] = true;
                     if ((g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL) || (g_touchmode && pm[j]->GetTileSize() > LVITS_NONE))
                     {
@@ -3644,7 +3649,7 @@ namespace DirectDesktop
                             xRender += outerSizeX / 2 * localeDirection;
                     }
                 }
-                if (!pm[j]->GetMoving() || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage() || pm[j]->GetSizedFromGroup())
+                if (!(pm[j]->GetFlags() & (LVIF_MOVING | LVIF_SFG)) || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
                 {
                     pm[j]->SetX(xRender);
                     pm[j]->SetY(yRender);
@@ -3652,7 +3657,7 @@ namespace DirectDesktop
                 pm[j]->SetMemXPos(xRender);
                 pm[j]->SetMemYPos(yRender);
             SKIPXY:
-                if ((pm[j]->GetPage() == g_currentPageID && !pm[j]->GetFlying()) || pm[j]->GetSizedFromGroup()) pm[j]->SetVisible(!g_hiddenIcons);
+                if ((pm[j]->GetPage() == g_currentPageID && !(pm[j]->GetFlags() & LVIF_FLYING)) || pm[j]->GetFlags() & LVIF_SFG) pm[j]->SetVisible(!g_hiddenIcons);
                 else pm[j]->SetVisible(false);
             }
 
@@ -3769,7 +3774,8 @@ namespace DirectDesktop
             outerElem->SetText(textElem);
             outerElem->SetCheckbox(checkboxElem);
             pm.push_back(outerElem);
-            outerElem->SetFlying(animation);
+            if (animation) outerElem->AddFlags(LVIF_FLYING);
+            else outerElem->RemoveFlags(LVIF_FLYING);
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
         EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, &count2, lviCount);
@@ -3795,7 +3801,7 @@ namespace DirectDesktop
         }
         for (int i = 0; i < lviCount; i++)
         {
-            if (pm[i]->GetHiddenState() == true)
+            if (pm[i]->GetFlags() & LVIF_HIDDEN)
             {
                 pm[i]->GetIcon()->SetAlpha(128);
                 pm[i]->GetText()->SetAlpha(128);
@@ -3934,7 +3940,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 83");
+            peTemp[1]->SetContentString(L"Build 84");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
@@ -4276,6 +4282,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDScalableTouchEdit::Register();
     LVItem::Register();
     DDLVActionButton::Register();
+    DDIconButton::Register();
     DDToggleButton::Register();
     DDCheckBox::Register();
     DDCheckBoxGlyph::Register();
@@ -4285,6 +4292,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDColorPicker::Register();
     DDColorPickerButton::Register();
     DDTabbedPages::Register();
+    DDMenuButton::Register();
     DDNotificationBanner::Register();
     HRESULT hr = CoInitializeEx(nullptr, DWMActive ? COINIT_APARTMENTTHREADED : COINIT_MULTITHREADED);
 
@@ -4435,55 +4443,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     TriggerScaleOut(nextpageMain, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.5f, false, false);
     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nextpageMain->GetDisplayNode(), &tsbInfo);
 
-    RegKeyValue DDKey = { HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL };
-    g_showcheckboxes = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoCheckSelect");
-    g_showHidden = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"Hidden");
-    g_showSuperHidden = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"ShowSuperHidden");
-    g_hideFileExt = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"HideFileExt");
-    g_isThumbnailHidden = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconsOnly");
-    g_iconunderline = GetRegistryValues(DDKey._hKeyName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
-    g_hiddenIcons = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"HideIcons");
-    g_iconsz = GetRegistryValues(DDKey._hKeyName, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
-    GetRegistryBinValues(DDKey._hKeyName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
+    RegKeyValue DDKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL);
+    g_showcheckboxes = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoCheckSelect");
+    g_showHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"Hidden");
+    g_showSuperHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ShowSuperHidden");
+    g_hideFileExt = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideFileExt");
+    g_isThumbnailHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconsOnly");
+    g_iconunderline = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
+    g_hiddenIcons = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideIcons");
+    g_iconsz = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
+    GetRegistryBinValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
 
-    DDKey._path = L"Software\\DirectDesktop";
-    if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultWidth"))
+    DDKey.SetPath(L"Software\\DirectDesktop");
+    if (!EnsureRegValueExists(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultWidth"))
     {
         g_defWidth = dimensions.right / g_flScaleFactor;
-        SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultWidth", g_defWidth, false, nullptr);
+        SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultWidth", g_defWidth, false, nullptr);
     }
-    else g_defWidth = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultWidth");
-    if (!EnsureRegValueExists(DDKey._hKeyName, DDKey._path, L"DefaultHeight"))
+    else g_defWidth = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultWidth");
+    if (!EnsureRegValueExists(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultHeight"))
     {
         g_defHeight = dimensions.bottom / g_flScaleFactor;
-        SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultHeight", g_defHeight, false, nullptr);
+        SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultHeight", g_defHeight, false, nullptr);
     }
-    else g_defHeight = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DefaultHeight");
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TreatDirAsGroup", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TripleClickAndHide", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"LockIconPos", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"TouchView", 0, true, nullptr);
-    g_treatdirasgroup = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TreatDirAsGroup");
-    g_tripleclickandhide = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TripleClickAndHide");
-    g_lockiconpos = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"LockIconPos");
-    g_touchmode = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"TouchView");
-    DDKey._path = L"Software\\DirectDesktop\\Personalize";
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AccentColorIcons", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DarkIcons", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoDarkIcons", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"GlassIcons", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID", 1, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorizationColor", 0, true, nullptr);
-    g_isColorized = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AccentColorIcons");
-    g_isDarkIconsEnabled = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DarkIcons");
-    g_automaticDark = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AutoDarkIcons");
-    g_isGlass = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"GlassIcons");
-    iconColorID = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorID");
-    IconColorizationColor = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"IconColorizationColor");
-    DDKey._path = L"Software\\DirectDesktop\\Debug";
+    else g_defHeight = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultHeight");
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TreatDirAsGroup", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TripleClickAndHide", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"LockIconPos", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TouchView", 0, true, nullptr);
+    g_treatdirasgroup = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TreatDirAsGroup");
+    g_tripleclickandhide = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TripleClickAndHide");
+    g_lockiconpos = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"LockIconPos");
+    g_touchmode = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TouchView");
+    DDKey.SetPath(L"Software\\DirectDesktop\\Personalize");
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AccentColorIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DarkIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoDarkIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"GlassIcons", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorID", 1, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorizationColor", 0, true, nullptr);
+    g_isColorized = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AccentColorIcons");
+    g_isDarkIconsEnabled = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DarkIcons");
+    g_automaticDark = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoDarkIcons");
+    g_isGlass = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"GlassIcons");
+    iconColorID = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorID");
+    IconColorizationColor = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorizationColor");
+    DDKey.SetPath(L"Software\\DirectDesktop\\Debug");
 
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"DebugMode", 0, true, nullptr);
-    g_debugmode = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"DebugMode");
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode", 0, true, nullptr);
+    g_debugmode = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode");
     while (*lpCmdLine && iswspace(*lpCmdLine)) {
         ++lpCmdLine;
     }
@@ -4492,14 +4500,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         g_debugmode = true;
     }
 
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationSpeed", 100, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationsShiftKey", 0, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"ShowDebugInfo", 1, true, nullptr);
-    SetRegistryValues(DDKey._hKeyName, DDKey._path, L"EnableExiting", 1, true, nullptr);
-    g_animCoef = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationSpeed");
-    g_AnimShiftKey = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"AnimationsShiftKey");
-    g_debuginfo = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"ShowDebugInfo");
-    g_enableexit = GetRegistryValues(DDKey._hKeyName, DDKey._path, L"EnableExiting");
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AnimationSpeed", 100, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AnimationsShiftKey", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ShowDebugInfo", 1, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"EnableExiting", 1, true, nullptr);
+    g_animCoef = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AnimationSpeed");
+    g_AnimShiftKey = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AnimationsShiftKey");
+    g_debuginfo = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ShowDebugInfo");
+    g_enableexit = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"EnableExiting");
     if (!g_debugmode)
     {
         g_animCoef = 100;

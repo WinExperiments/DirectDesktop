@@ -19,7 +19,8 @@ namespace DirectDesktop
     HWNDElement* parentShutdown;
     Element* pShutdown;
     WNDPROC WndProcShutdown;
-    DDScalableButton *SwitchUser, *SignOut, *SleepButton, *Hibernate, *Shutdown, *Restart, *StatusCancel;
+    DDIconButton* SwitchUser, *SignOut, *SleepButton, *Hibernate, *Shutdown, *Restart;
+    DDScalableTouchButton* StatusCancel;
     Element* StatusBarResid;
     Element* StatusText;
     Element* AdvancedOptions;
@@ -142,7 +143,7 @@ namespace DirectDesktop
 
     void PerformOperation(Element* elem, Event* iev)
     {
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == DDIconButton::Click)
         {
             static bool validation{};
             validation = !validation;
@@ -391,7 +392,7 @@ namespace DirectDesktop
                 parserShutdown->CreateElement(L"StatusBar", nullptr, nullptr, nullptr, (Element**)&StatusBarResid);
                 StatusBar->Add((Element**)&StatusBarResid, 1);
                 StatusText = regElem<DDScalableElement*>(L"StatusText", StatusBarResid);
-                StatusCancel = regElem<DDScalableButton*>(L"StatusCancel", StatusBarResid);
+                StatusCancel = regElem<DDScalableTouchButton*>(L"StatusCancel", StatusBarResid);
                 assignFn(StatusCancel, PerformOperation);
                 sizeY += StatusBarResid->GetHeight();
                 SetWindowPos(shutdownwnd->GetHWND(), nullptr, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
@@ -503,9 +504,9 @@ namespace DirectDesktop
             else
                 Logo->SetAccDesc(L"Windows 11");
         }
-        SwitchUser = regElem<DDScalableButton*>(L"SwitchUser", pShutdown), SignOut = regElem<DDScalableButton*>(L"SignOut", pShutdown), SleepButton = regElem<DDScalableButton*>(L"SleepButton", pShutdown),
-            Hibernate = regElem<DDScalableButton*>(L"Hibernate", pShutdown), Shutdown = regElem<DDScalableButton*>(L"Shutdown", pShutdown), Restart = regElem<DDScalableButton*>(L"Restart", pShutdown);
-        Button* buttons[6] = { SwitchUser, SignOut, SleepButton, Hibernate, Shutdown, Restart };
+        SwitchUser = regElem<DDIconButton*>(L"SwitchUser", pShutdown), SignOut = regElem<DDIconButton*>(L"SignOut", pShutdown), SleepButton = regElem<DDIconButton*>(L"SleepButton", pShutdown),
+            Hibernate = regElem<DDIconButton*>(L"Hibernate", pShutdown), Shutdown = regElem<DDIconButton*>(L"Shutdown", pShutdown), Restart = regElem<DDIconButton*>(L"Restart", pShutdown);
+        DDIconButton* buttons[6] = { SwitchUser, SignOut, SleepButton, Hibernate, Shutdown, Restart };
         CSafeElementPtr<DDCheckBox> delaytoggle;
         delaytoggle.Assign(regElem<DDCheckBox*>(L"delaytoggle", pShutdown));
         delayseconds = regElem<DDScalableTouchEdit*>(L"delayseconds", pShutdown);

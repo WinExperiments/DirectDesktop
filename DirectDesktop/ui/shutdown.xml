@@ -15,42 +15,12 @@
 		<Element id="atom(StatusBar)" layoutpos="top" layout="filllayout()"/>
 		<Element id="atom(ShutdownEventTracker)" layoutpos="top" layout="filllayout()"/>
 		<Element id="atom(ShutdownActions)" layoutpos="client" layout="gridlayout(2,3)" padding="rect(12rp,12rp,12rp,12rp)">
-			<DDScalableButton id="atom(SwitchUser)" class="dialogbutton" layout="filllayout()" accdesc="resstr(3053, library(shutdownux.dll))">
-				<Element layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
-					<RichText content="resstr(201)" class="dialogbuttonicon"/>
-					<DDScalableElement content="resstr(3052, library(shutdownux.dll))" class="dialogbuttontext" alpha="255" animation="none"/>
-				</Element>
-			</DDScalableButton>
-			<DDScalableButton id="atom(SignOut)" class="dialogbutton" layout="filllayout()" accdesc="resstr(3035, library(shutdownux.dll))">
-				<Element layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
-					<RichText content="resstr(202)" class="dialogbuttonicon"/>
-					<DDScalableElement content="resstr(3034, library(shutdownux.dll))" class="dialogbuttontext"/>
-				</Element>
-			</DDScalableButton>
-			<DDScalableButton id="atom(SleepButton)" class="dialogbutton" layout="filllayout()" accdesc="resstr(3021, library(shutdownux.dll))">
-				<Element layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
-					<RichText content="resstr(203)" class="dialogbuttonicon"/>
-					<DDScalableElement content="resstr(3019, library(shutdownux.dll))" class="dialogbuttontext"/>
-				</Element>
-			</DDScalableButton>
-			<DDScalableButton id="atom(Hibernate)" class="dialogbutton" layout="filllayout()" accdesc="resstr(3025, library(shutdownux.dll))">
-				<Element layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
-					<RichText content="resstr(204)" class="dialogbuttonicon"/>
-					<DDScalableElement content="resstr(3022, library(shutdownux.dll))" class="dialogbuttontext"/>
-				</Element>
-			</DDScalableButton>
-			<DDScalableButton id="atom(Shutdown)" class="dialogbutton" layout="filllayout()" accdesc="resstr(3015, library(shutdownux.dll))">
-				<Element layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
-					<RichText content="resstr(205)" class="dialogbuttonicon"/>
-					<DDScalableElement content="resstr(3013, library(shutdownux.dll))" class="dialogbuttontext"/>
-				</Element>
-			</DDScalableButton>
-			<DDScalableButton id="atom(Restart)" class="dialogbutton" layout="filllayout()" accdesc="resstr(3018, library(shutdownux.dll))">
-				<Element layout="verticalflowlayout(0,2,2,2)" background="argb(0,0,0,0)">
-					<RichText content="resstr(206)" class="dialogbuttonicon"/>
-					<DDScalableElement content="resstr(3016, library(shutdownux.dll))" class="dialogbuttontext"/>
-				</Element>
-			</DDScalableButton>
+			<DDIconButton id="atom(SwitchUser)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3052, library(shutdownux.dll))" iconcontent="resstr(201)" accdesc="resstr(3053, library(shutdownux.dll))"/>
+			<DDIconButton id="atom(SignOut)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3034, library(shutdownux.dll))" iconcontent="resstr(202)" accdesc="resstr(3035, library(shutdownux.dll))"/>
+			<DDIconButton id="atom(SleepButton)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3019, library(shutdownux.dll))" iconcontent="resstr(203)" accdesc="resstr(3021, library(shutdownux.dll))"/>
+			<DDIconButton id="atom(Hibernate)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3022, library(shutdownux.dll))" iconcontent="resstr(204)" accdesc="resstr(3025, library(shutdownux.dll))"/>
+			<DDIconButton id="atom(Shutdown)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3013, library(shutdownux.dll))" iconcontent="resstr(205)" accdesc="resstr(3015, library(shutdownux.dll))"/>
+			<DDIconButton id="atom(Restart)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3016, library(shutdownux.dll))" iconcontent="resstr(206)" accdesc="resstr(3018, library(shutdownux.dll))"/>
 		</Element>
 		<Element id="atom(AdvancedOptionsBar)" layoutpos="bottom" layout="flowlayout(0,0,0,0)" padding="rect(12rp,12rp,12rp,12rp)" background="argb(0,0,0,0)">
 			<DDScalableButton class="hyperlink" layout="flowlayout(0,2,0,2)" padding="rect(0,4rp,4rp,4rp)">
@@ -61,10 +31,10 @@
 		<Element id="atom(SeparatorLine2)" layoutpos="bottom" height="1rp"/>
 		<Element id="atom(AdvancedOptions)" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)" height="108rp">
 			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
-				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,4rp,0,0)" content="resstr(4035)"/>
+				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,2rp,0,2rp)" content="resstr(4035)"/>
 				<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="messagefont;115%" NeedsFontResize="true"/>
-				<DDScalableElement content="resstr(4036)" layoutpos="left" height="32rp" background="argb(0,0,0,0)" font="messagefont;115%" NeedsFontResize="true"
-								   compositedtext="true" textglowsize="0" contentalign="middlecenter" padding="rect(0,0,0,4rp)"/>
+				<DDScalableElement content="resstr(4036)" layoutpos="left" padding="rect(0,2rp,0,2rp)" height="32rp" background="argb(0,0,0,0)" font="messagefont;115%" NeedsFontResize="true"
+								   compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
 			</Element>
 			<Element layout="verticalflowlayout(0,0,0,2)" layoutpos="client" background="argb(0,0,0,0)">
 				<DDScalableButton id="atom(RestartWinRE)" margin="rect(0,0,0,4rp)" content="resstr(1810, library(bootux.dll))" class="hyperlink"/>
@@ -77,7 +47,7 @@
 			<RichText id="atom(StatusIcon)" font="14pt;Normal;None;Segoe Fluent Icons" content="resstr(207)" contentalign="middleleft"/>
 		</Element>
 		<Element layoutpos="right" layout="flowlayout(0,2,0,0)">
-			<DDScalableButton id="atom(StatusCancel)" class="dialogbutton" layout="filllayout()" minsize="size(96rp,32rp)" content="resstr(801, library(user32.dll))" font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+			<DDScalableTouchButton id="atom(StatusCancel)" class="pushbuttonsecondary" layout="filllayout()" minsize="size(96rp,32rp)" content="resstr(801, library(user32.dll))" contentalign="middlecenter"/>
 		</Element>
 		<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" padding="rect(0,0,8rp,0)">
 			<DDScalableElement id="atom(StatusText)" class="statustext" contentalign="middleleft|endellipsis"/>
@@ -111,22 +81,23 @@
 				<DDScalableElement foreground="black"/>
 			</if>
 			<if class="dialogbutton">
-				<DDScalableButton FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" margin="rect(0,0,12rp,12rp)" foreground="rgb(0,0,0)" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,-4rp,-4rp,-4rp)"/>
+				<DDIconButton FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" NeedsFontResize="true" tooltip="true" margin="rect(0,0,12rp,12rp)"
+							  foreground="rgb(0,0,0)" font="messagefont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,-4rp,-4rp,-4rp)"/>
 				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="1226"/>
+					<DDIconButton ImageIndex="2"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton FirstScaledImage="1233" foreground="rgb(64,64,64)"/>
+					<DDIconButton ImageIndex="3" foreground="rgb(64,64,64)"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton FirstScaledImage="1240" foreground="rgb(128,128,128)"/>
+					<DDIconButton ImageIndex="4" foreground="rgb(128,128,128)"/>
 				</if>
-			</if>
-			<if class="dialogbuttonicon">
-				<RichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
-			</if>
-			<if class="dialogbuttontext">
-				<DDScalableElement font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
+				<if id="atom(DDIB_Icon)">
+					<DDScalableRichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
+				</if>
+				<if id="atom(DDIB_Text)">
+					<DDScalableRichText padding="rect(0,8rp,0,0)"/>
+				</if>
 			</if>
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DirectUILight::Button,1,1,3803), black)"/>
@@ -168,22 +139,23 @@
 				<DDScalableElement foreground="white"/>
 			</if>
 			<if class="dialogbutton">
-				<DDScalableButton FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" margin="rect(0,0,12rp,12rp)" foreground="rgb(255,255,255)" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,-4rp,-4rp,-4rp)"/>
+				<DDIconButton FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" NeedsFontResize="true" tooltip="true" margin="rect(0,0,12rp,12rp)"
+							  foreground="rgb(255,255,255)" font="messagefont;115%" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,-4rp,-4rp,-4rp)"/>
 				<if mousefocused="true">
-					<DDScalableButton FirstScaledImage="2226"/>
+					<DDIconButton ImageIndex="2"/>
 				</if>
 				<if Pressed="true">
-					<DDScalableButton FirstScaledImage="2233" foreground="rgb(160,160,160)"/>
+					<DDIconButton ImageIndex="3" foreground="rgb(160,160,160)"/>
 				</if>
 				<if Enabled="false">
-					<DDScalableButton FirstScaledImage="2240" foreground="rgb(96,96,96)"/>
+					<DDIconButton ImageIndex="4" foreground="rgb(96,96,96)"/>
 				</if>
-			</if>
-			<if class="dialogbuttonicon">
-				<RichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
-			</if>
-			<if class="dialogbuttontext">
-				<DDScalableElement font="messagefont;115%" NeedsFontResize="true" compositedtext="true" textglowsize="0" padding="rect(0,8rp,0,0)"/>
+				<if id="atom(DDIB_Icon)">
+					<DDScalableRichText font="resstr(200)" padding="rect(0,8rp,0,0)"/>
+				</if>
+				<if id="atom(DDIB_Text)">
+					<DDScalableRichText padding="rect(0,8rp,0,0)"/>
+				</if>
 			</if>
 			<if id="atom(DelayBar)">
 				<Element foreground="themeable(gtc(DarkMode_Explorer::Button,1,1,3803), white)"/>

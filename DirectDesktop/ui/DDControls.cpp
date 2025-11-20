@@ -19,6 +19,7 @@ namespace DirectDesktop
     IClassInfo* DDScalableTouchEdit::s_pClassInfo;
     IClassInfo* LVItem::s_pClassInfo;
     IClassInfo* DDLVActionButton::s_pClassInfo;
+    IClassInfo* DDIconButton::s_pClassInfo;
     IClassInfo* DDToggleButton::s_pClassInfo;
     IClassInfo* DDCheckBox::s_pClassInfo;
     IClassInfo* DDCheckBoxGlyph::s_pClassInfo;
@@ -28,6 +29,7 @@ namespace DirectDesktop
     IClassInfo* DDColorPicker::s_pClassInfo;
     IClassInfo* DDColorPickerButton::s_pClassInfo;
     IClassInfo* DDTabbedPages::s_pClassInfo;
+    IClassInfo* DDMenuButton::s_pClassInfo;
     IClassInfo* DDNotificationBanner::s_pClassInfo;
 
     struct NotificationData
@@ -68,6 +70,56 @@ namespace DirectDesktop
         }
     }
 
+    vector<wstring> SplitLineBreaks(const wstring& originalstr, WCHAR chBreak)
+    {
+        vector<wstring> strs;
+        size_t start = 0;
+        size_t end = originalstr.find(chBreak);
+        while (end != wstring::npos)
+        {
+            strs.push_back(originalstr.substr(start, end - start));
+            start = end + 1;
+            end = originalstr.find(chBreak, start);
+        }
+        strs.push_back(originalstr.substr(start));
+        return strs;
+    }
+
+    int CalcLines(const wstring& textStr)
+    {
+        return count(textStr.begin(), textStr.end(), L'\n') + 1;
+    }
+
+    void GetLongestLine(HDC hdc, const wstring& textStr, SIZE* szText)
+    {
+        vector<wstring> divided = SplitLineBreaks(textStr, L'\n');
+        int saved{};
+        for (int i = 0; i < divided.size(); i++)
+        {
+            GetTextExtentPoint32W(hdc, divided[i].c_str(), lstrlenW(divided[i].c_str()), szText);
+            if (szText->cx > saved) saved = szText->cx;
+        }
+        szText->cx = saved;
+    }
+
+    void GetTextDimensions(Element* pe, const wstring& str, SIZE* psz, int* cy)
+    {
+        CValuePtr v;
+        HDC hdcMem = CreateCompatibleDC(nullptr);
+        int fontsize = pe->GetFontSize();
+        if (fontsize < 0) fontsize *= -1.5;
+        LOGFONTW lf = { fontsize, 0, 0, 0, pe->GetFontWeight(), pe->GetFontStyle() & 1, pe->GetFontStyle() & 2, pe->GetFontStyle() & 4,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_DONTCARE, NULL };
+        wcscpy_s(lf.lfFaceName, pe->GetFontFace(&v));
+        HFONT hFont = CreateFontIndirectW(&lf);
+        HGDIOBJ oldFont = SelectObject(hdcMem, hFont);
+        GetLongestLine(hdcMem, str, psz);
+        if (cy) *cy += (lf.lfHeight * CalcLines(str));
+        SelectObject(hdcMem, oldFont);
+        DeleteObject(hFont);
+        DeleteDC(hdcMem);
+    }
+
     template <typename T>
     void RedrawImageCore(T* pe)
     {
@@ -84,34 +136,53 @@ namespace DirectDesktop
             IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
         }
 
-        if (newImage != nullptr)
+        if (newImage)
         {
-            if (pe->GetAssociatedColor() != -1)
-                IterateBitmap(newImage, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
-            else if (pe->GetEnableAccent())
-                IterateBitmap(newImage, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, ImmersiveColor);
-            else if (pe->GetDDCPIntensity() != 255)
-                pe->SetAlpha(pe->GetDDCPIntensity());
+            BITMAP bm{};
+            GetObject(newImage, sizeof(BITMAP), &bm);
+            int bmHeightNew = bm.bmHeight / pe->GetImageCount();
 
+            HDC hdc = GetDC(nullptr);
+            HDC hdcSrc = CreateCompatibleDC(hdc);
+            HDC hdcDst = CreateCompatibleDC(hdc);
+            SelectObject(hdcSrc, newImage);
 
-            switch (pe->GetDrawType())
+            HBITMAP hbmIndexed = CreateCompatibleBitmap(hdc, bm.bmWidth, bmHeightNew);
+            SelectObject(hdcDst, hbmIndexed);
+            BitBlt(hdcDst, 0, 0, bm.bmWidth, bmHeightNew, hdcSrc, 0, (pe->GetImageIndex() - 1) * bmHeightNew, SRCCOPY);
+
+            if (hbmIndexed)
             {
-            case 1:
-            {
-                CValuePtr spvImage = Value::CreateGraphic(newImage, 7, 0xFFFFFFFF, true, false, false);
-                if (spvImage)
-                    pe->SetValue(Element::BackgroundProp, 1, spvImage);
-                break;
-            }
-            case 2:
-            {
-                CValuePtr spvImage = Value::CreateGraphic(newImage, 2, 0xFFFFFFFF, true, false, false);
-                if (spvImage)
-                    pe->SetValue(Element::ContentProp, 1, spvImage);
-                break;
-            }
+                if (pe->GetAssociatedColor() != -1)
+                    IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
+                else if (pe->GetEnableAccent())
+                    IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, ImmersiveColor);
+                else if (pe->GetDDCPIntensity() != 255)
+                    pe->SetAlpha(pe->GetDDCPIntensity());
+
+                switch (pe->GetDrawType())
+                {
+                    case 1:
+                    {
+                        CValuePtr spvImage = Value::CreateGraphic(hbmIndexed, 7, 0xFFFFFFFF, true, false, false);
+                        if (spvImage)
+                            pe->SetValue(Element::BackgroundProp, 1, spvImage);
+                        break;
+                    }
+                    case 2:
+                    {
+                        CValuePtr spvImage = Value::CreateGraphic(hbmIndexed, 2, 0xFFFFFFFF, true, false, false);
+                        if (spvImage)
+                            pe->SetValue(Element::ContentProp, 1, spvImage);
+                        break;
+                    }
+                }
+                DeleteObject(hbmIndexed);
             }
             DeleteObject(newImage);
+            DeleteDC(hdcSrc);
+            DeleteDC(hdcDst);
+            ReleaseDC(nullptr, hdc);
         }
     }
 
@@ -172,6 +243,30 @@ namespace DirectDesktop
         Value::GetIntMinusOne,
         &dataimpScaledImageIntervalsProp
     };
+    static const int vvimpImageCountProp[] = { 1, -1 };
+    static PropertyInfoData dataimpImageCountProp;
+    static const PropertyInfo impImageCountProp =
+    {
+        L"ImageCount",
+        0x2 | 0x4,
+        0x1,
+        vvimpImageCountProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpImageCountProp
+    };
+    static const int vvimpImageIndexProp[] = { 1, -1 };
+    static PropertyInfoData dataimpImageIndexProp;
+    static const PropertyInfo impImageIndexProp =
+    {
+        L"ImageIndex",
+        0x2 | 0x4,
+        0x1,
+        vvimpImageIndexProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpImageIndexProp
+    };
     static const int vvimpDrawTypeProp[] = { 1, -1 };
     static PropertyInfoData dataimpDrawTypeProp;
     static const PropertyInfo impDrawTypeProp =
@@ -220,7 +315,7 @@ namespace DirectDesktop
         Value::GetBoolFalse,
         &dataimpCheckedStateProp
     };
-    static const int vvimpAssociatedColorProp[] = { 1, -1 };
+    static const int vvimpAssociatedColorProp[] = { 9, 1, -1 };
     static PropertyInfoData dataimpAssociatedColorProp;
     static const PropertyInfo impAssociatedColorProp =
     {
@@ -256,7 +351,7 @@ namespace DirectDesktop
         Value::GetIntMinusOne,
         &dataimpColorIntensityProp
     };
-    static const int vvimpDefaultColorProp[] = { 1, -1 };
+    static const int vvimpDefaultColorProp[] = { 9, 1, -1 };
     static PropertyInfoData dataimpDefaultColorProp;
     static const PropertyInfo impDefaultColorProp =
     {
@@ -315,6 +410,30 @@ namespace DirectDesktop
         nullptr,
         Value::GetIntMinusOne,
         &dataimpListMaxHeightProp
+    };
+    static const int vvimpIconFontProp[] = { 5, -1 };
+    static PropertyInfoData dataimpIconFontProp;
+    static const PropertyInfo impIconFontProp =
+    {
+        L"IconFont",
+        0x2 | 0x4,
+        0x1,
+        vvimpIconFontProp,
+        nullptr,
+        Value::GetStringNull,
+        &dataimpIconFontProp
+    };
+    static const int vvimpIconContentProp[] = { 11, 5, -1 };
+    static PropertyInfoData dataimpIconContentProp;
+    static const PropertyInfo impIconContentProp =
+    {
+        L"IconContent",
+        0x2 | 0x4,
+        0x1,
+        vvimpIconContentProp,
+        nullptr,
+        Value::GetStringNull,
+        &dataimpIconContentProp
     };
 
     void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
@@ -380,6 +499,7 @@ namespace DirectDesktop
     void DDScalableElement::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
@@ -408,6 +528,8 @@ namespace DirectDesktop
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
+            &impImageCountProp,
+            &impImageIndexProp,
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
@@ -468,6 +590,40 @@ namespace DirectDesktop
     void DDScalableElement::SetScaledImageIntervals(int iScaleIntervals)
     {
         this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableElement::ImageCountProp()
+    {
+        return &impImageCountProp;
+    }
+
+    int DDScalableElement::GetImageCount()
+    {
+        int v = this->GetPropCommon(ImageCountProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableElement::SetImageCount(int iImageCount)
+    {
+        this->SetPropCommon(ImageCountProp, iImageCount, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableElement::ImageIndexProp()
+    {
+        return &impImageIndexProp;
+    }
+
+    int DDScalableElement::GetImageIndex()
+    {
+        int v = this->GetPropCommon(ImageIndexProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableElement::SetImageIndex(int iImageIndex)
+    {
+        this->SetPropCommon(ImageIndexProp, iImageIndex, true);
     }
 
     const PropertyInfo* WINAPI DDScalableElement::DrawTypeProp()
@@ -590,6 +746,7 @@ namespace DirectDesktop
     void DDScalableButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
@@ -618,6 +775,8 @@ namespace DirectDesktop
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
+            &impImageCountProp,
+            &impImageIndexProp,
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
@@ -678,6 +837,40 @@ namespace DirectDesktop
     void DDScalableButton::SetScaledImageIntervals(int iScaleIntervals)
     {
         this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableButton::ImageCountProp()
+    {
+        return &impImageCountProp;
+    }
+
+    int DDScalableButton::GetImageCount()
+    {
+        int v = this->GetPropCommon(ImageCountProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableButton::SetImageCount(int iImageCount)
+    {
+        this->SetPropCommon(ImageCountProp, iImageCount, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableButton::ImageIndexProp()
+    {
+        return &impImageIndexProp;
+    }
+
+    int DDScalableButton::GetImageIndex()
+    {
+        int v = this->GetPropCommon(ImageIndexProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableButton::SetImageIndex(int iImageIndex)
+    {
+        this->SetPropCommon(ImageIndexProp, iImageIndex, true);
     }
 
     const PropertyInfo* WINAPI DDScalableButton::DrawTypeProp()
@@ -849,6 +1042,7 @@ namespace DirectDesktop
     void DDScalableRichText::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
@@ -877,6 +1071,8 @@ namespace DirectDesktop
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
+            &impImageCountProp,
+            &impImageIndexProp,
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
@@ -936,6 +1132,40 @@ namespace DirectDesktop
     void DDScalableRichText::SetScaledImageIntervals(int iScaleIntervals)
     {
         this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableRichText::ImageCountProp()
+    {
+        return &impImageCountProp;
+    }
+
+    int DDScalableRichText::GetImageCount()
+    {
+        int v = this->GetPropCommon(ImageCountProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableRichText::SetImageCount(int iImageCount)
+    {
+        this->SetPropCommon(ImageCountProp, iImageCount, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableRichText::ImageIndexProp()
+    {
+        return &impImageIndexProp;
+    }
+
+    int DDScalableRichText::GetImageIndex()
+    {
+        int v = this->GetPropCommon(ImageIndexProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableRichText::SetImageIndex(int iImageIndex)
+    {
+        this->SetPropCommon(ImageIndexProp, iImageIndex, true);
     }
 
     const PropertyInfo* WINAPI DDScalableRichText::DrawTypeProp()
@@ -1048,6 +1278,7 @@ namespace DirectDesktop
     void DDScalableTouchButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp))
@@ -1077,6 +1308,8 @@ namespace DirectDesktop
         {
             &impFirstScaledImageProp,
             &impScaledImageIntervalsProp,
+            &impImageCountProp,
+            &impImageIndexProp,
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
@@ -1136,6 +1369,40 @@ namespace DirectDesktop
     void DDScalableTouchButton::SetScaledImageIntervals(int iScaleIntervals)
     {
         this->SetPropCommon(ScaledImageIntervalsProp, iScaleIntervals, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::ImageCountProp()
+    {
+        return &impImageCountProp;
+    }
+
+    int DDScalableTouchButton::GetImageCount()
+    {
+        int v = this->GetPropCommon(ImageCountProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableTouchButton::SetImageCount(int iImageCount)
+    {
+        this->SetPropCommon(ImageCountProp, iImageCount, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::ImageIndexProp()
+    {
+        return &impImageIndexProp;
+    }
+
+    int DDScalableTouchButton::GetImageIndex()
+    {
+        int v = this->GetPropCommon(ImageIndexProp, true);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void DDScalableTouchButton::SetImageIndex(int iImageIndex)
+    {
+        this->SetPropCommon(ImageIndexProp, iImageIndex, true);
     }
 
     const PropertyInfo* WINAPI DDScalableTouchButton::DrawTypeProp()
@@ -1309,6 +1576,12 @@ namespace DirectDesktop
 
     void DDScalableTouchEdit::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp))
+        {
+            ElementSetValue(_peBackground, ppi, pvNew, this);
+            ElementSetValue(_peEdit, ppi, pvNew, this);
+            ElementSetValue(_pePreview, ppi, pvNew, this);
+        }
         if (PropNotify::IsEqual(ppi, iIndex, Element::KeyWithinProp))
         {
             CValuePtr v;
@@ -1332,7 +1605,6 @@ namespace DirectDesktop
             ElementSetValue(_peBackground, ppi, pvNew, this);
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
         {
-            RedrawFontCore<DDScalableElement>(_pePreview, nullptr, this->GetNeedsFontResize());
             RedrawFontCore<TouchEdit2>(_peEdit, nullptr, this->GetNeedsFontResize());
         }
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
@@ -1450,6 +1722,16 @@ namespace DirectDesktop
         return hr;
     }
 
+    LVItemFlags operator&(LVItemFlags lhs, LVItemFlags rhs)
+    {
+        return static_cast<LVItemFlags>(static_cast<DWORD>(lhs) & static_cast<DWORD>(rhs));
+    }
+
+    LVItemFlags operator|(LVItemFlags lhs, LVItemFlags rhs)
+    {
+        return static_cast<LVItemFlags>(static_cast<DWORD>(lhs) | static_cast<DWORD>(rhs));
+    }
+
     LVItem::~LVItem()
     {
         if (_childItemss != nullptr)
@@ -1552,124 +1834,24 @@ namespace DirectDesktop
         _simplefilename = wsSimpleFilename;
     }
 
-    bool LVItem::GetDirState()
+    LVItemFlags LVItem::GetFlags()
     {
-        return _isDirectory;
+        return _flags;
     }
 
-    bool LVItem::GetGroupedDirState()
+    void LVItem::AddFlags(LVItemFlags lvif)
     {
-        return _isGrouped;
+        _flags = _flags | lvif;
     }
 
-    bool LVItem::GetHiddenState()
+    void LVItem::RemoveFlags(LVItemFlags lvif)
     {
-        return _isHidden;
+        _flags = _flags & static_cast<LVItemFlags>(0xFFFFFFFF - lvif);
     }
 
-    bool LVItem::GetMemorySelected()
+    void LVItem::SetFlags(LVItemFlags lvif)
     {
-        return _mem_isSelected;
-    }
-
-    bool LVItem::GetShortcutState()
-    {
-        return _isShortcut;
-    }
-
-    bool LVItem::GetColorLock()
-    {
-        return _colorLock;
-    }
-
-    bool LVItem::GetDragState()
-    {
-        return _dragged;
-    }
-
-    bool LVItem::GetRefreshState()
-    {
-        return _refreshable;
-    }
-
-    bool LVItem::GetSizedFromGroup()
-    {
-        return _sfg;
-    }
-
-    bool LVItem::GetFlying()
-    {
-        return _flying;
-    }
-
-    bool LVItem::GetMoving()
-    {
-        return _moving;
-    }
-
-    bool LVItem::GetHasAdvancedIcon()
-    {
-        return _hai;
-    }
-
-    void LVItem::SetDirState(bool dirState)
-    {
-        _isDirectory = dirState;
-    }
-
-    void LVItem::SetGroupedDirState(bool groupedDirState)
-    {
-        _isGrouped = groupedDirState;
-    }
-
-    void LVItem::SetHiddenState(bool hiddenState)
-    {
-        _isHidden = hiddenState;
-    }
-
-    void LVItem::SetMemorySelected(bool mem_isSelectedState)
-    {
-        _mem_isSelected = mem_isSelectedState;
-    }
-
-    void LVItem::SetShortcutState(bool shortcutState)
-    {
-        _isShortcut = shortcutState;
-    }
-
-    void LVItem::SetColorLock(bool colorLockState)
-    {
-        _colorLock = colorLockState;
-    }
-
-    void LVItem::SetDragState(bool dragstate)
-    {
-        _dragged = dragstate;
-    }
-
-    void LVItem::SetRefreshState(bool refreshstate)
-    {
-        _refreshable = refreshstate;
-    }
-
-    void LVItem::SetSizedFromGroup(bool sfg)
-    {
-        _sfg = sfg;
-    }
-
-    void LVItem::SetFlying(bool flying)
-    {
-        _flying = flying;
-    }
-
-    void LVItem::SetMoving(bool moving)
-    {
-        _moving = moving;
-    }
-
-    void LVItem::SetHasAdvancedIcon(bool hai)
-    {
-        _hai = hai;
+        _flags = lvif;
     }
 
     unsigned short LVItem::GetPage()
@@ -1956,6 +2138,128 @@ namespace DirectDesktop
         _assocItem = lvi;
     }
 
+    DDIconButton::~DDIconButton()
+    {
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDIconButton::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDIconButton::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDIconButton::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    bool DDIconButton::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = DDScalableTouchButton::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
+        {
+            result = false;
+            this->_SetValue(Element::AccNameProp, 1, pvNew, false);
+            ElementSetValue(_peContent, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDIconButton::IconFontProp))
+        {
+            result = false;
+            ElementSetValue(_peIcon, Element::FontProp(), pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDIconButton::IconContentProp))
+        {
+            result = false;
+            ElementSetValue(_peIcon, Element::ContentProp(), pvNew, this);
+        }
+        return result;
+    }
+
+    void DDIconButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp) || PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp))
+        {
+            if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp)) ElementSetValue(_peIcon, ppi, pvNew, this);
+            ElementSetValue(_peContent, ppi, pvNew, this);
+        }
+        DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    HRESULT DDIconButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDIconButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDIconButton::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((DDScalableTouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateIBVisual();
+        return hr;
+    }
+
+    HRESULT DDIconButton::Register()
+    {
+        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        {
+            &impIconFontProp,
+            &impIconContentProp
+        };
+        return ClassInfo<DDIconButton, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDIconButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    const PropertyInfo* WINAPI DDIconButton::IconFontProp()
+    {
+        return &impIconFontProp;
+    }
+
+    const PropertyInfo* WINAPI DDIconButton::IconContentProp()
+    {
+        return &impIconContentProp;
+    }
+
+    const WCHAR* DDIconButton::GetIconFont(Value** ppv)
+    {
+        if (_peIcon) return _peIcon->GetFont(ppv);
+        else return nullptr;
+    }
+
+    const WCHAR* DDIconButton::GetIconContent(Value** ppv)
+    {
+        if (_peIcon) return _peIcon->GetContentString(ppv);
+        else return nullptr;
+    }
+
+    HRESULT DDIconButton::_CreateIBVisual()
+    {
+        HRESULT hr = S_OK;
+        CValuePtr v;
+
+        BorderLayout::Create(0, nullptr, &v);
+        this->SetValue(Element::LayoutProp, 1, v);
+
+        hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peIcon);
+        if (SUCCEEDED(hr))
+        {
+            this->Add((Element**)&_peIcon, 1);
+            _peIcon->SetID(L"DDIB_Icon");
+            hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peContent);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peContent, 1);
+                _peContent->SetID(L"DDIB_Text");
+            }
+        }
+
+        return hr;
+    }
+
     IClassInfo* DDToggleButton::GetClassInfoPtr()
     {
         return s_pClassInfo;
@@ -2062,7 +2366,7 @@ namespace DirectDesktop
     bool DDCheckBox::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         bool result{};
-        result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        result = DDScalableTouchButton::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
         if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
         {
             result = false;
@@ -2074,16 +2378,16 @@ namespace DirectDesktop
 
     void DDCheckBox::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
-        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp))
         {
             ElementSetValue(_peGlyph, ppi, pvNew, this);
             ElementSetValue(_peText, ppi, pvNew, this);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp))
             ElementSetValue(_peText, ppi, pvNew, this);
-        if (PropNotify::IsEqual(ppi, iIndex, TouchButton::PressedProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, TouchButton::PressedProp))
             ElementSetValue(_peGlyph, Element::SelectedProp(), pvNew, this);
-        if (PropNotify::IsEqual(ppi, iIndex, DDCheckBox::CheckedStateProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, DDCheckBox::CheckedStateProp))
             ElementSetValue(_peGlyph, ppi, pvNew, this);
         DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
@@ -2152,7 +2456,6 @@ namespace DirectDesktop
         return hr;
     }
 
-
     IClassInfo* DDNumberedButton::GetClassInfoPtr()
     {
         return s_pClassInfo;
@@ -2184,7 +2487,7 @@ namespace DirectDesktop
                 ((DDCombobox*)this->_peLinked)->ToggleSelectionList(true);
             }
         }
-        TouchButton::OnEvent(pEvent);
+        DDScalableTouchButton::OnEvent(pEvent);
     }
 
     HRESULT DDNumberedButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
@@ -2197,7 +2500,7 @@ namespace DirectDesktop
         return ClassInfo<DDNumberedButton, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDNumberedButton", nullptr, 0);
     }
 
-    void DDNumberedButton::SetNumberID(BYTE id)
+    void DDNumberedButton::SetNumberID(short id)
     {
         _id = id;
     }
@@ -2207,7 +2510,7 @@ namespace DirectDesktop
         _peLinked = peLinked;
     }
 
-    LRESULT CALLBACK ComboboxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+    LRESULT CALLBACK DDCombobox::s_ComboboxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
         switch (uMsg)
         {
@@ -2249,7 +2552,7 @@ namespace DirectDesktop
         {
             this->ToggleSelectionList(false);
         }
-        TouchButton::OnEvent(pEvent);
+        DDScalableTouchButton::OnEvent(pEvent);
     }
 
     UID WINAPI DDCombobox::SelectionChange()
@@ -2338,12 +2641,15 @@ namespace DirectDesktop
         _peSelections[_selID]->SetSelected(false);
         _peSelections[index]->SetSelected(true);
         CValuePtr v;
-        _selID = index; 
         this->SetContentString(_peSelections[index]->GetContentString(&v));
-        Event ev;
-        ev.uidType._address = nullptr;
-        ev.uidType = DDCombobox::SelectionChange();
-        this->FireEvent(&ev, true, false);
+        if (index != _selID)
+        {
+            Event ev;
+            ev.uidType._address = nullptr;
+            ev.uidType = DDCombobox::SelectionChange();
+            this->FireEvent(&ev, true, false);
+        }
+        _selID = index;
     }
 
     void DDCombobox::ToggleSelectionList(bool fForceHide)
@@ -2414,7 +2720,7 @@ namespace DirectDesktop
             if (SUCCEEDED(hr))
             {
                 HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, 0x38, nullptr, &keyC, (Element**)&_peSelectionMenu);
-                SetWindowSubclass(_wndSelectionMenu->GetHWND(), ComboboxProc, 1, (DWORD_PTR)this);
+                SetWindowSubclass(_wndSelectionMenu->GetHWND(), s_ComboboxProc, 1, (DWORD_PTR)this);
                 _peSelectionMenu->SetVisible(true);
                 _peSelectionMenu->EndDefer(keyC);
                 _wndSelectionMenu->Host(_peSelectionMenu);
@@ -2502,10 +2808,17 @@ namespace DirectDesktop
 
     void DDSlider::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
-        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp))
         {
+            ElementSetValue(_peText, ppi, pvNew, this);
+            ElementSetValue(_peTrackHolder, ppi, pvNew, this);
+            ElementSetValue(_peSliderInner, ppi, pvNew, this);
+            ElementSetValue(_peTrackBase, ppi, pvNew, this);
+            ElementSetValue(_peFillBase, ppi, pvNew, this);
             ElementSetValue(_peTrack, ppi, pvNew, this);
             ElementSetValue(_peFill, ppi, pvNew, this);
+            ElementSetValue(_peThumb, ppi, pvNew, this);
+            ElementSetValue(_peThumbInner, ppi, pvNew, this);
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDSlider::IsVerticalProp) ||
             PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
@@ -2789,8 +3102,8 @@ namespace DirectDesktop
             if (_assocVal)
                 (*_assocVal) = assocVal * _coef;
             RegKeyValue rkv = this->GetRegKeyValue();
-            if (rkv._valueToFind)
-                SetRegistryValues(rkv._hKeyName, rkv._path, rkv._valueToFind, assocVal * _coef, false, nullptr);
+            if (rkv.GetValueToFind())
+                SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), assocVal * _coef, false, nullptr);
             g_atleastonesetting = true;
             _currValue = assocVal;
         }
@@ -3076,10 +3389,10 @@ namespace DirectDesktop
                 {
                     _peOverlayCheck->SetX((localeType == 1) ? this->GetWidth() - _btnWidth - _currentColorID * spacedWidth : _currentColorID * spacedWidth);
                     _peOverlayHover->SetX(-9999);
-                    if (_rkv._hKeyName != nullptr)
+                    if (_rkv.GetHKeyName() != nullptr)
                     {
-                        _rkv._dwValue = _rgpeColorButtons[_currentColorID]->GetOrder();
-                        SetRegistryValues(_rkv._hKeyName, _rkv._path, _rkv._valueToFind, _rkv._dwValue, false, nullptr);
+                        _rkv.SetValue(_rgpeColorButtons[_currentColorID]->GetOrder());
+                        SetRegistryValues(_rkv.GetHKeyName(), _rkv.GetPath(), _rkv.GetValueToFind(), _rkv.GetDwValue(), false, nullptr);
                     }
                     _ColorizeAssociatedItems<DDScalableElement>(_targetElems);
                     _ColorizeAssociatedItems<DDScalableButton>(_targetBtns);
@@ -3095,8 +3408,8 @@ namespace DirectDesktop
 
     void DDColorPicker::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
-        if (PropNotify::IsEqual(ppi, iIndex, Element::WidthProp()) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp()) ||
-            PropNotify::IsEqual(ppi, iIndex, DDColorPicker::FirstScaledImageProp()))
+        if (PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDColorPicker::FirstScaledImageProp))
         {
             int scaleInterval = GetCurrentScaleInterval();
             int scaleIntervalImage = this->GetScaledImageIntervals();
@@ -3284,7 +3597,7 @@ namespace DirectDesktop
     void DDColorPicker::SetRegKeyValue(RegKeyValue rkvNew)
     {
         _rkv = rkvNew;
-        int order = (_rkv._hKeyName) ? GetRegistryValues(_rkv._hKeyName, _rkv._path, _rkv._valueToFind) * _btnX : _rkv._dwValue * _btnX;
+        int order = (_rkv.GetHKeyName()) ? GetRegistryValues(_rkv.GetHKeyName(), _rkv.GetPath(), _rkv.GetValueToFind()) * _btnX : _rkv.GetDwValue() * _btnX;
         int checkedBtnX = (localeType == 1) ? this->GetWidth() - order - _btnWidth : order;
         _currentColorID = order / (this->GetWidth() / 8);
         _peOverlayCheck->SetX(checkedBtnX);
@@ -3671,6 +3984,626 @@ namespace DirectDesktop
         return 0;
     }
 
+    IClassInfo* DDMenuButton::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDMenuButton::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDMenuButton::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDMenuButton::OnEvent(Event* pEvent)
+    {
+        if (pEvent->uidType == TouchButton::Click && _peLinked)
+        {
+            ((DDMenu*)_peLinked)->_OnButtonClick(this);
+            _peLinked = nullptr;
+        }
+        DDScalableTouchButton::OnEvent(pEvent);
+    }
+
+    bool DDMenuButton::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = DDScalableTouchButton::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
+        {
+            result = false;
+            this->_SetValue(Element::AccNameProp, 1, pvNew, false);
+            vector<wstring> divided = SplitLineBreaks(pvNew->GetString(), L'\t');
+            _peMainText->SetContentString(divided[0].c_str());
+            if (divided.size() > 1)
+            {
+                _peHelpText->SetLayoutPos(2);
+                _peHelpText->SetContentString(divided[1].c_str());
+            }
+        }
+        return result;
+    }
+
+    void DDMenuButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp) || PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp))
+        {
+            if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp)) ElementSetValue(_peIcon, ppi, pvNew, this);
+            ElementSetValue(_peMainText, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::MouseFocusedProp))
+        {
+            if (this->_submenu)
+            {
+                if (this->GetMouseFocused())
+                {
+                    RECT rcParentMenu{};
+                    POINT ptZero{}, ptSelection{};
+                    GetWindowRect(((DDMenu*)this->_peLinked)->_wndSelectionMenu->GetHWND(), &rcParentMenu);
+                    ((DDMenu*)this->_peLinked)->_peSelections[0]->MapElementPoint(this, &ptZero, &ptSelection);
+                    this->_submenu->_SetVisible(rcParentMenu.right - round(g_flScaleFactor), rcParentMenu.top + ptSelection.y, (DDMenu*)this->_peLinked);
+                }
+            }
+            else if (this->_peLinked)
+            {
+                for (int i = 0; i < ((DDMenu*)this->_peLinked)->_count; i++)
+                {
+                    DDMenu* submenu = ((DDMenu*)this->_peLinked)->_peSelections[i]->_submenu;
+                    if (submenu)
+                        if (submenu->_wndSelectionMenu->GetHWND())
+                            ((DDMenu*)this->_peLinked)->_peSelections[i]->_submenu->_wndSelectionMenu->ShowWindow(SW_HIDE);
+                }
+            }
+        }
+        DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    HRESULT DDMenuButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDMenuButton, int>(0x1 | 0x2, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDMenuButton::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((DDScalableTouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateMBVisual();
+        return hr;
+    }
+
+    HRESULT DDMenuButton::Register()
+    {
+        return ClassInfo<DDMenuButton, DDNumberedButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDMenuButton", nullptr, 0);
+    }
+
+    HRESULT DDMenuButton::_CreateMBVisual()
+    {
+        HRESULT hr = S_OK;
+        CValuePtr v;
+
+        BorderLayout::Create(0, nullptr, &v);
+        this->SetValue(Element::LayoutProp, 1, v);
+
+        hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peIcon);
+        if (SUCCEEDED(hr))
+        {
+            this->Add((Element**)&_peIcon, 1);
+            _peIcon->SetID(L"DDMB_Icon");
+            _peIcon->SetLayoutPos(0);
+            hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peMainText);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peMainText, 1);
+                _peMainText->SetLayoutPos(0);
+                _peMainText->SetBackgroundColor(0);
+                hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peSubmenuArrow);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_peSubmenuArrow, 1);
+                    _peSubmenuArrow->SetID(L"DDMB_SubmenuArrow");
+                    _peSubmenuArrow->SetLayoutPos(-3);
+                    hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peHelpText);
+                    if (SUCCEEDED(hr))
+                    {
+                        this->Add((Element**)&_peHelpText, 1);
+                        _peHelpText->SetID(L"DDMB_HelpText");
+                        _peHelpText->SetLayoutPos(-3);
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
+    LRESULT CALLBACK DDMenu::s_MenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+    {
+        switch (uMsg)
+        {
+        case WM_CLOSE:
+            return 0;
+        case WM_ACTIVATE:
+            WCHAR className[64];
+            GetClassNameW((HWND)lParam, className, 64);
+            if (LOWORD(wParam) == WA_INACTIVE && wcscmp(className, L"DDMenu") != 0)
+                ((DDMenu*)dwRefData)->_DestroyUI(true);
+            break;
+        case WM_KEYDOWN:
+            if (wParam == VK_ESCAPE) ((DDMenu*)dwRefData)->_DestroyUI(true);
+            break;
+        }
+        return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    HRESULT DDMenu::InitializeDesktopEntries(IShellView* psv)
+    {
+        return psv->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu, (void**)&_pICv1);
+    }
+
+    HRESULT DDMenu::InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl)
+    {
+        return psf->GetUIObjectOf(nullptr, 1, ppidl, IID_IContextMenu, nullptr, (void**)&_pICv1);
+    }
+
+    HRESULT DDMenu::CreatePopupDDMenu(bool fLegacy)
+    {
+        _fUsingLegacy = fLegacy;
+        _hMenu = CreatePopupMenu();
+        HRESULT hr = S_OK;
+        if (!fLegacy)
+        {
+            DWORD keyM{};
+            CValuePtr spvLayout;
+            hr = NativeHWNDHost::Create(L"DDMenu", nullptr, nullptr, nullptr, 0, 0, 0, 0, WS_EX_TOOLWINDOW, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0x43, &_wndSelectionMenu);
+            if (SUCCEEDED(hr))
+            {
+                HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, 0x38, nullptr, &keyM, (Element**)&_peSelectionMenu);
+                SetWindowSubclass(_wndSelectionMenu->GetHWND(), s_MenuProc, 1, (DWORD_PTR)this);
+                _peSelectionMenu->SetVisible(true);
+                _peSelectionMenu->EndDefer(keyM);
+
+                if (DWMActive)
+                {
+                    WCHAR* WindowsBuildStr;
+                    GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+                    int WindowsBuild = _wtoi(WindowsBuildStr);
+                    free(WindowsBuildStr);
+                    int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
+                    if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
+                    {
+                        DWORD cornerPreference = DWMWCP_ROUND;
+                        DwmSetWindowAttribute(_wndSelectionMenu->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
+                    }
+                }
+
+                FillLayout::Create(0, nullptr, &spvLayout);
+                _peSelectionMenu->SetValue(Element::LayoutProp, 1, spvLayout);
+                LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+                StyleSheet* sheet = _peSelectionMenu->GetSheet();
+                CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+                parser->GetSheet(sheetName, &sheetStorage);
+                _peSelectionMenu->SetValue(Element::SheetProp, 1, sheetStorage);
+                free(sheet);
+                _peSelectionMenu->SetID(L"DDM_SelectionList");
+                hr = TouchScrollViewer::Create(_peSelectionMenu, nullptr, (Element**)&_tsvSelectionMenu);
+                if (SUCCEEDED(hr))
+                {
+                    _tsvSelectionMenu->SetLayoutPos(-1);
+                    _tsvSelectionMenu->SetActive(0xB);
+                    _tsvSelectionMenu->SetXBarVisibility(0);
+                    _tsvSelectionMenu->SetYBarVisibility(0);
+                    _tsvSelectionMenu->SetXScrollable(false);
+                    _tsvSelectionMenu->SetYScrollable(true);
+                    _tsvSelectionMenu->SetInteractionMode(18);
+                    hr = Element::Create(0, _tsvSelectionMenu, nullptr, &_peHostInner);
+                    if (SUCCEEDED(hr))
+                    {
+                        BorderLayout::Create(0, nullptr, &spvLayout);
+                        _peHostInner->SetValue(Element::LayoutProp, 1, spvLayout);
+                        _peHostInner->SetLayoutPos(-1);
+                        _peHostInner->SetID(L"DDM_SelectionListInner");
+                        _wndSelectionMenu->ShowWindow(SW_HIDE);
+                        if (_peHostInner)
+                        {
+                            _tsvSelectionMenu->Add(&_peHostInner, 1);
+                            _peSelectionMenu->Add((Element**)&_tsvSelectionMenu, 1);
+                            BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
+                            if (DWMActive)
+                            {
+                                AddLayeredRef(_tsvSelectionMenu->GetDisplayNode());
+                                SetGadgetFlags(_tsvSelectionMenu->GetDisplayNode(), NULL, NULL);
+                                MARGINS margins = { -1, -1, -1, -1 };
+                                DwmExtendFrameIntoClientArea(_wndSelectionMenu->GetHWND(), &margins);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
+    void DDMenu::DestroyPopupDDMenu()
+    {
+        if (_subLevel == 0)
+        {
+            this->_DestroyUI(true);
+            if (_pICv1) _pICv1->Release();
+            if (_hMenu) DestroyMenu(_hMenu);
+            delete this;
+        }
+        else return;
+    }
+
+    void DDMenu::_DestroyUI(bool fSource)
+    {
+        if (!_fDone)
+        {
+            if (fSource)
+            {
+                DDMenu* toDestroy = this;
+                while (toDestroy->_parent)
+                {
+                    toDestroy->_parent->_selectedCommand = toDestroy->_selectedCommand;
+                    toDestroy = toDestroy->_parent;
+                }
+                toDestroy->_DestroyUI(false);
+            }
+            else
+            {
+                _fDone = true;
+                for (int i = 0; i < _count; i++)
+                {
+                    if (_peSelections[i]->_submenu)
+                    {
+                        _peSelections[i]->_submenu->_DestroyUI(false);
+                        _peSelections[i]->_submenu = nullptr;
+                    }
+                }
+                if (!_fUsingLegacy)
+                    if (_wndSelectionMenu) _wndSelectionMenu->DestroyWindow();
+                if (_subLevel > 0)
+                {
+                    if (_hMenu) DestroyMenu(_hMenu);
+                    delete this;
+                }
+            }
+        }
+    }
+
+    bool DDMenu::GetItemInfo(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii)
+    {
+        return GetMenuItemInfoW(_hMenu, item, fByPosition, lpmii);
+    }
+
+    bool DDMenu::SetItemInfo(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii)
+    {
+        bool result = SetMenuItemInfoW(_hMenu, item, fByPosition, lpmii);
+        if (!_fUsingLegacy)
+        {
+            if (fByPosition)
+            {
+                _peSelections[item]->_lpmii = lpmii;
+                _ApplyMII(_peSelections[item], false);
+            }
+            else
+            {
+                int count = GetMenuItemCount(_hMenu);
+                for (int i = 0; i < count; i++)
+                {
+                    if (_peSelections[i]->_id == item)
+                    {
+                        _peSelections[i]->_lpmii = lpmii;
+                        _ApplyMII(_peSelections[i], false);
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    void DDMenu::AppendItem(UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem)
+    {
+        MENUITEMINFOW mii{};
+        mii.cbSize = sizeof(MENUITEMINFOW);
+        mii.fMask = 0x1EF;
+        mii.fType = uFlags;
+        mii.fState = uFlags;
+        mii.wID = uIDNewItem;
+        this->_AppendItem(&mii, lpNewItem, false);
+    }
+
+    void DDMenu::EnableItem(UINT uIDEnableItem, UINT uEnable)
+    {
+        int count = GetMenuItemCount(_hMenu);
+        int index{};
+        if (uEnable & MF_BYPOSITION) index = uIDEnableItem;
+        else if (!_fUsingLegacy)
+        {
+            while (uIDEnableItem > _peSelections[index]->_id && index < count)
+                index++;
+        }
+        if (count >= MAX_ITEMS || index < 0 || index > count)
+            return;
+        if (!_fUsingLegacy)
+            if (uEnable & (MF_GRAYED | MF_DISABLED)) _peSelections[index]->SetEnabled(false);
+        EnableMenuItem(_hMenu, uIDEnableItem, uEnable);
+    }
+
+    void DDMenu::InsertItem(UINT uPosition, UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem)
+    {
+        int index{};
+        if (uFlags & MF_BYPOSITION) index = uPosition;
+        else if (!_fUsingLegacy)
+        {
+            while (uPosition > _peSelections[index]->_id && index < _count)
+                index++;
+        }
+        if (_count >= MAX_ITEMS || index < 0 || index > _count)
+            return;
+        InsertMenuW(_hMenu, uPosition, uFlags, uIDNewItem, lpNewItem);
+        if (!_fUsingLegacy)
+        {
+            for (int i = _count - 1; i >= index; i--)
+            {
+                _peSelections[i + 1] = _peSelections[i];
+            }
+            DDMenuButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[index]));
+            _peHostInner->Insert((Element**)&_peSelections[index], 1, index);
+            _peSelections[index]->_id = uIDNewItem;
+            _peSelections[index]->_peLinked = this;
+            _peSelections[index]->SetContentString(lpNewItem);
+            if (uFlags & (MF_GRAYED | MF_DISABLED)) _peSelections[_count]->SetEnabled(false);
+            if (uFlags & MF_POPUP)
+            {
+                ((DDMenu*)uIDNewItem)->_RegisterAsSubmenu(_peSelections[index], this);
+                _peSelections[index]->_peSubmenuArrow->SetLayoutPos(2);
+            }
+            MENUITEMINFOW mii{};
+            mii.cbSize = sizeof(MENUITEMINFOW);
+            mii.fMask = 0x1EF;
+            mii.fType = uFlags;
+            mii.fState = uFlags;
+            mii.wID = uIDNewItem;
+            _peSelections[index]->_lpmii = &mii;
+            _ApplyMII(_peSelections[index], false);
+        }
+        _count++;
+    }
+
+    void DDMenu::RemoveItem(UINT uPosition, UINT uFlags)
+    {
+        int index{};
+        if (uFlags & MF_BYPOSITION) index = uPosition;
+        else if (!_fUsingLegacy)
+        {
+            while (uPosition > _peSelections[index]->_id && index < _count)
+                index++;
+        }
+        if (_count >= MAX_ITEMS || index < 0)
+            return;
+        if (!_fUsingLegacy)
+        {
+            if (_peSelections[index]->_submenu)
+                _peSelections[index]->_submenu->_DestroyUI(false);
+            CValuePtr v;
+            DynamicArray<Element*>* pel = _peSelections[index]->GetChildren(&v);
+            if (pel) _peSelections[index]->DestroyAll(true);
+            _peSelections[index]->Destroy(true);
+            _peSelections[index] = nullptr;
+            for (int i = index; i < _count - 1; i++)
+            {
+                _peSelections[i] = _peSelections[i + 1];
+            }
+        }
+        RemoveMenu(_hMenu, uPosition, uFlags);
+        _count--;
+    }
+
+    void DDMenu::QueryMenu(UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags)
+    {
+        HRESULT hr = _pICv1->QueryContextMenu(_hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags);
+        if (SUCCEEDED(hr) && !_fUsingLegacy)
+        {
+            int count = GetMenuItemCount(_hMenu);
+            if (count <= 0) return;
+            count = GetMenuItemCount(_hMenu);
+
+            for (int i = 0; i < count; i++)
+            {
+                MENUITEMINFOW mii{};
+                mii.cbSize = sizeof(MENUITEMINFOW);
+                mii.fMask = 0x1EF;
+                GetMenuItemInfoW(_hMenu, i, TRUE, &mii);
+                if (mii.wID < idCmdFirst || mii.wID > idCmdLast && mii.wID != -1)
+                    continue;
+                WCHAR text[256]{};
+                if (!(mii.fType & MF_SEPARATOR))
+                {
+                    mii.dwTypeData = text;
+                    mii.cch = _countof(text);
+                }
+                GetMenuItemInfoW(_hMenu, i, TRUE, &mii);
+                this->_AppendItem(&mii, text, true);
+            }
+        }
+    }
+
+    int DDMenu::TrackContextMenu(UINT uFlags, int x, int y, HWND hwnd, LPTPMPARAMS lptpm)
+    {
+        if (_fUsingLegacy) return TrackPopupMenuEx(_hMenu, uFlags, x, y, hwnd, lptpm);
+        else
+        {
+            this->_SetVisible(x, y, nullptr);
+
+            _selectedCommand = 0;
+            _fDone = false;
+
+            MSG msg;
+            while (!_fDone)
+            {
+                BOOL gm = GetMessageW(&msg, nullptr, 0, 0);
+                if (gm <= 0)
+                {
+                    if (gm == 0) PostQuitMessage(static_cast<int>(msg.wParam));
+                    break;
+                }
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+            }
+
+            int result = 0;
+            if (uFlags & TPM_RETURNCMD) result = _selectedCommand;
+            else
+            {
+                if (_selectedCommand != 0 && hwnd)
+                {
+                    PostMessageW(hwnd, WM_COMMAND, static_cast<WPARAM>(_selectedCommand), 0);
+                    result = TRUE;
+                }
+                else
+                    result = FALSE;
+            }
+            return result;
+        }
+    }
+
+    HRESULT DDMenu::InvokeCommand(CMINVOKECOMMANDINFO* pici)
+    {
+        return _pICv1->InvokeCommand(pici);
+    }
+
+    int DDMenu::GetItemCount()
+    {
+        return GetMenuItemCount(_hMenu);
+    }
+
+    void DDMenu::_AppendItem(LPCMENUITEMINFOW lpmii, LPCWSTR lpNewItem, bool fInternal)
+    {
+        if (_count >= MAX_ITEMS)
+            return;
+        if (!fInternal) AppendMenuW(_hMenu, lpmii->fType, lpmii->wID, lpNewItem);
+        if (!_fUsingLegacy)
+        {
+            DDMenuButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[_count]));
+            _peHostInner->Add((Element**)&_peSelections[_count], 1);
+            _peSelections[_count]->_id = lpmii->wID;
+            _peSelections[_count]->_peLinked = this;
+            _peSelections[_count]->SetContentString(lpNewItem);
+            _peSelections[_count]->_lpmii = (LPMENUITEMINFOW)lpmii;
+            _ApplyMII(_peSelections[_count], fInternal);
+        }
+        _count++;
+    }
+
+    void DDMenu::_ApplyMII(DDMenuButton* pmb, bool fInternal)
+    {
+        pmb->SetEnabled(!(pmb->_lpmii->fState & (MF_GRAYED | MF_DISABLED)));
+        if ((pmb->_lpmii->fType & MF_POPUP || pmb->_lpmii->hSubMenu) && !(pmb->_submenu))
+        {
+            if (fInternal)
+            {
+                int count = GetMenuItemCount(pmb->_lpmii->hSubMenu);
+                if (count <= 0) return;
+                DDMenu* psm = new DDMenu();
+                psm->CreatePopupDDMenu(_fUsingLegacy);
+                psm->_hMenu = pmb->_lpmii->hSubMenu;
+                count = GetMenuItemCount(psm->_hMenu);
+
+                for (int i = 0; i < count; i++)
+                {
+                    MENUITEMINFOW mii{};
+                    mii.cbSize = sizeof(MENUITEMINFOW);
+                    mii.fMask = 0x1EF;
+                    GetMenuItemInfoW(psm->_hMenu, i, TRUE, &mii);
+                    WCHAR text[256]{};
+                    if (!(mii.fType & MF_SEPARATOR))
+                    {
+                        mii.dwTypeData = text;
+                        mii.cch = _countof(text);
+                    }
+                    GetMenuItemInfoW(psm->_hMenu, i, TRUE, &mii);
+                    psm->_AppendItem(&mii, text, true);
+                }
+                psm->_RegisterAsSubmenu(_peSelections[_count], this);
+            }
+            else if (pmb->_lpmii->fType & MF_POPUP)
+                if (pmb->_lpmii->wID) ((DDMenu*)pmb->_lpmii->wID)->_RegisterAsSubmenu(_peSelections[_count], this);
+            pmb->_peSubmenuArrow->SetLayoutPos(2);
+        }
+        if (pmb->_lpmii->fType & MF_SEPARATOR) pmb->SetClass(L"menuseparator");
+        else pmb->SetClass(L"");
+        if (pmb->_lpmii->fType & MFT_RADIOCHECK) pmb->_fRadio = true;
+        if (pmb->_lpmii->fState & MF_CHECKED)
+        {
+            if (pmb->_lpmii->fType & MFT_RADIOCHECK || pmb->_fRadio) pmb->_peIcon->SetClass(L"radio");
+            else pmb->_peIcon->SetClass(L"check");
+        }
+        else pmb->_peIcon->SetClass(L"");
+        if (pmb->_lpmii->hbmpItem)
+        {
+            CValuePtr v = DirectUI::Value::CreateGraphic(pmb->_lpmii->hbmpItem, 2, 0xffffffff, false, false, false);
+            if (v) pmb->_peIcon->SetValue(Element::ContentProp, 1, v);
+        }
+    }
+
+    void DDMenu::_OnButtonClick(DDMenuButton* button)
+    {
+        if (!button || button->_submenu) return;
+        else
+        {
+            _selectedCommand = static_cast<int>(button->_id);
+            this->_DestroyUI(true);
+        }
+    }
+
+    void DDMenu::_RegisterAsSubmenu(DDMenuButton* pmb, DDMenu* parent)
+    {
+        pmb->_submenu = this;
+        this->_parent = parent;
+        this->_fUsingLegacy = ((DDMenu*)pmb->_peLinked)->_fUsingLegacy;
+        this->_subLevel = ((DDMenu*)pmb->_peLinked)->_subLevel + 1;
+        this->_pICv1 = ((DDMenu*)pmb->_peLinked)->_pICv1;
+    }
+
+    void DDMenu::_SetVisible(int x, int y, DDMenu* menu)
+    {
+        int width{}, height{};
+        RECT rcHost{}, dimensions{};
+        GetGadgetRect(_peSelectionMenu->GetDisplayNode(), &rcHost, 0xC);
+        width = rcHost.right + 2 * round(g_flScaleFactor);
+        height = rcHost.bottom + 2 * round(g_flScaleFactor);
+        SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+        if (x + width > dimensions.right)
+        {
+            if (menu)
+            {
+                RECT rcParent{};
+                GetClientRect(menu->_wndSelectionMenu->GetHWND(), &rcParent);
+                x -= rcParent.right + rcHost.right + round(g_flScaleFactor);
+            }
+            else x = dimensions.right - width;
+        }
+        if (x < dimensions.left)
+        {
+            width += x - dimensions.left;
+            x = dimensions.left;
+        }
+        if (y + height > dimensions.bottom) y -= height;
+        if (y < dimensions.top)
+        {
+            if (height > dimensions.bottom) height = dimensions.bottom - dimensions.top;
+            y = dimensions.top;
+        }
+        SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, x, y, width, height, NULL);
+        _wndSelectionMenu->Host(_peSelectionMenu);
+        _wndSelectionMenu->ShowWindow(SW_SHOWNOACTIVATE);
+    }
+
     LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
         NotificationData* nd = (NotificationData*)wParam;
@@ -3717,56 +4650,6 @@ namespace DirectDesktop
         }
         else delete ndTemp;
         return 0;
-    }
-
-    vector<wstring> SplitLineBreaks(const wstring& originalstr)
-    {
-        vector<wstring> strs;
-        size_t start = 0;
-        size_t end = originalstr.find(L'\n');
-        while (end != wstring::npos)
-        {
-            strs.push_back(originalstr.substr(start, end - start));
-            start = end + 1;
-            end = originalstr.find(L'\n', start);
-        }
-        strs.push_back(originalstr.substr(start));
-        return strs;
-    }
-
-    int CalcLines(const wstring& textStr)
-    {
-        return count(textStr.begin(), textStr.end(), L'\n') + 1;
-    }
-
-    void GetLongestLine(HDC hdc, const wstring& textStr, SIZE* szText)
-    {
-        vector<wstring> divided = SplitLineBreaks(textStr);
-        int saved{};
-        for (int i = 0; i < divided.size(); i++)
-        {
-            GetTextExtentPoint32W(hdc, divided[i].c_str(), lstrlenW(divided[i].c_str()), szText);
-            if (szText->cx > saved) saved = szText->cx;
-        }
-        szText->cx = saved;
-    }
-
-    void GetTextDimensions(Element* pe, const wstring& str, SIZE* psz, int& cy)
-    {
-        CValuePtr v;
-        HDC hdcMem = CreateCompatibleDC(nullptr);
-        int fontsize = pe->GetFontSize();
-        if (fontsize < 0) fontsize *= -1.5;
-        LOGFONTW lf = { fontsize, 0, 0, 0, pe->GetFontWeight(), pe->GetFontStyle() & 1, pe->GetFontStyle() & 2, pe->GetFontStyle() & 4,
-            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_DONTCARE, NULL };
-        wcscpy_s(lf.lfFaceName, pe->GetFontFace(&v));
-        HFONT hFont = CreateFontIndirectW(&lf);
-        HGDIOBJ oldFont = SelectObject(hdcMem, hFont);
-        GetLongestLine(hdcMem, str, psz);
-        cy += (lf.lfHeight * CalcLines(str));
-        SelectObject(hdcMem, oldFont);
-        DeleteObject(hFont);
-        DeleteDC(hdcMem);
     }
 
     DDNotificationBanner::~DDNotificationBanner()
@@ -3898,9 +4781,9 @@ namespace DirectDesktop
         cy += (hostpadding.top + hostpadding.bottom);
 
         SIZE szText{}, szText2{};
-        GetTextDimensions(_title, _titleStr, &szText, cy);
+        GetTextDimensions(_title, _titleStr, &szText, &cy);
         if (content)
-            GetTextDimensions(_content, content, &szText2, cy);
+            GetTextDimensions(_content, content, &szText2, &cy);
 
         cx += (max(szText.cx, szText2.cx));
         cy += (titlepadding.top + titlepadding.bottom);

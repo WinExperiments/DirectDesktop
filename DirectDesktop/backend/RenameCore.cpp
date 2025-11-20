@@ -28,7 +28,7 @@ namespace DirectDesktop
 
         size_t pos = 0;
         size_t found = wstring::npos;
-        if (lvi->GetShortcutState()) found = lvi->GetFilename().rfind(L".");
+        if (lvi->GetFlags() & LVIF_SHORTCUT) found = lvi->GetFilename().rfind(L".");
         size_t found2 = lvi->GetFilename().rfind(lvi->GetSimpleFilename(), found);
 
         while (found2 != wstring::npos)

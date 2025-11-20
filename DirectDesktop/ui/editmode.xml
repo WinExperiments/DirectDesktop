@@ -33,22 +33,10 @@
 		<Element id="atom(SimpleViewBottom)" layout="borderlayout()" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
 			<TouchScrollViewer id="atom(svBottomOptions)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
 				<Element layout="flowlayout(0,2,1,0)">
-					<TouchButton id="atom(SimpleViewClose)" shortcut="88" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
-						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-						<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</TouchButton>
-					<TouchButton id="atom(SimpleViewSoftClose)" shortcut="69" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
-						<RichText content="resstr(138)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-						<DDScalableRichText content="resstr(4009)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</TouchButton>
-					<TouchButton id="atom(SimpleViewPages)" shortcut="80" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview" margin="rect(0,0,6rp,0)">
-						<RichText content="resstr(155)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-						<DDScalableRichText content="resstr(4055)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</TouchButton>
-					<TouchButton id="atom(SimpleViewSettings)" shortcut="83" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" class="simpleview">
-						<RichText content="resstr(136)" font="resstr(135)" contentalign="middlecenter|endellipsis" padding="rect(4rp,4rp,4rp,4rp)" background="argb(0,0,0,0)"/>
-						<DDScalableRichText content="resstr(4010)" font="iconfont;115%" contentalign="middlecenter" padding="rect(4rp,0,4rp,4rp)" background="argb(0,0,0,0)"/>
-					</TouchButton>
+					<DDIconButton id="atom(SimpleViewClose)" shortcut="88" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4009)" iconcontent="resstr(138)" class="simpleview" margin="rect(0,0,6rp,0)"/>
+					<DDIconButton id="atom(SimpleViewSoftClose)" shortcut="69" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4009)" iconcontent="resstr(138)" class="simpleview" margin="rect(0,0,6rp,0)"/>
+					<DDIconButton id="atom(SimpleViewPages)" shortcut="80" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4055)" iconcontent="resstr(155)" class="simpleview" margin="rect(0,0,6rp,0)"/>
+					<DDIconButton id="atom(SimpleViewSettings)" shortcut="83" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4010)" iconcontent="resstr(136)" class="simpleview"/>
 				</Element>
 			</TouchScrollViewer>
 		</Element>
@@ -80,7 +68,7 @@
 	</TouchButton>
 	<LVItem resid="PV_Page" id="atom(PV_Page)" background="argb(0,0,0,0)" layout="filllayout()">
 		<DDScalableElement id="atom(PV_PageIcons)" class="roundoverlay" DrawType="1" layoutpos="client" layout="flowlayout(0,2,2,0)">
-			<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3066" ScaledImageIntervals="7" DrawType="1"
+			<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3038" ScaledImageIntervals="7" DrawType="1"
 							   font="36pt;None;None;Segoe UI Light" compositedtext="true" textglowsize="0" borderthickness="rect(8rp,8rp,8rp,8rp)" width="72rp" height="72rp" padding="rect(0,0,0,4rp)"/>
 		</DDScalableElement>
 		<Element id="atom(animateddimming)" class="popupbg" layoutpos="client" visible="false"/>
@@ -99,7 +87,7 @@
 	</DDScalableElement>
 	<Element resid="PV_IconShortcutPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
 	<DDScalableElement resid="PV_IconShadowTouchPreview" layoutpos="absolute" contentalign="middlecenter" FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
-	<DDScalableElement resid="PV_IconTouchPreview" layoutpos="absolute" contentalign="middlecenter" background="argb(0,0,0,0)" FirstScaledImage="3031" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"  padding="rect(-8rp,-8rp,-8rp,-8rp)" layout="filllayout()">
+	<DDScalableElement resid="PV_IconTouchPreview" layoutpos="absolute" contentalign="middlecenter" background="argb(0,0,0,0)" FirstScaledImage="3024" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"  padding="rect(-8rp,-8rp,-8rp,-8rp)" layout="filllayout()">
 		<Element id="atom(PV_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
 	</DDScalableElement>
 	<Element resid="PV_IconShortcutTouchPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
@@ -124,7 +112,7 @@
 			<Element foreground="black"/>
 			<DDScalableElement foreground="black"/>
 			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="1065" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableElement FirstScaledImage="1008" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
 				<Element background="argb(128,224,224,224)"/>
@@ -132,19 +120,29 @@
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="black"/>
 				<TouchButton background="argb(0,0,0,0)" foreground="black" contentalign="middlecenter"/>
+				<DDIconButton background="argb(0,0,0,0)" foreground="black" font="iconfont;115%"/>
 				<if mousefocused="true">
 					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
-					<if Pressed="true">
-						<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
-					</if>
+					<DDIconButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+				</if>
+				<if Pressed="true">
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<DDIconButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 				</if>
 				<if Enabled="false">
 					<TouchButton foreground="rgb(128,128,128)"/>
+					<DDIconButton foreground="rgb(128,128,128)"/>
 					<RichText foreground="rgb(128,128,128)"/>
+				</if>
+				<if id="atom(DDIB_Icon)">
+					<DDScalableRichText padding="rect(4rp,4rp,4rp,4rp)" font="resstr(135)"/>
+				</if>
+				<if id="atom(DDIB_Text)">
+					<DDScalableRichText padding="rect(4rp,0,4rp,4rp)"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
-				<DDScalableTouchButton layoutpos="absolute" width="0" FirstScaledImage="1065" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableTouchButton layoutpos="absolute" width="0" FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="1001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -157,24 +155,13 @@
 			</if>
 			<TouchEditInner padding="rect(0,0,44rp,0)"/>
 			<if class="enterbutton">
-				<LVItem width="40rp" height="40rp" background="argb(0,0,0,0)" foreground="rgb(0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
+				<LVItem width="40rp" height="40rp" background="argb(0,0,0,0)" foreground="rgb(0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7"
+						DrawType="1" ImageCount="8" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true">
-					<LVItem foreground="rgb(255,255,255)" FirstScaledImage="1254"/>
+					<LVItem foreground="rgb(255,255,255)" FirstScaledImage="1015" ImageIndex="6"/>
 				</if>
 				<if Pressed="true">
-					<LVItem foreground="20210" FirstScaledImage="1261"/>
-				</if>
-			</if>
-			<if class="PVActionButton">
-				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="1247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" compositedtext="true" textglowsize="0" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
-				<if Pressed="true">
-					<DDLVActionButton foreground="20210" FirstScaledImage="1261"/>
-				</if>
-			</if>
-			<if class="PVSecondaryActionButton">
-				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="1219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" compositedtext="true" textglowsize="0" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
-				<if Pressed="true">
-					<DDLVActionButton foreground="rgb(64,64,64)" FirstScaledImage="1233"/>
+					<LVItem foreground="20002" FirstScaledImage="1015" ImageIndex="7"/>
 				</if>
 			</if>
 			<if id="atom(PV_Home)">
@@ -194,7 +181,7 @@
 			<Element foreground="white"/>
 			<DDScalableElement foreground="white"/>
 			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="2065" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableElement FirstScaledImage="2008" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
 				<Element background="argb(128,32,32,32)"/>
@@ -202,19 +189,29 @@
 			<if class="simpleview">
 				<RichText background="argb(0,0,0,0)" foreground="white"/>
 				<TouchButton background="argb(0,0,0,0)" foreground="white" contentalign="middlecenter"/>
+				<DDIconButton background="argb(0,0,0,0)" foreground="white" font="iconfont;115%" iconfont="resstr(135)"/>
 				<if mousefocused="true">
 					<TouchButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
-					<if Pressed="true">
-						<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
-					</if>
+					<DDIconButton background="themeable(dtb(Desktop::ListView,1,2), argb(32,224,224,224))"/>
+				</if>
+				<if Pressed="true">
+					<TouchButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
+					<DDIconButton background="themeable(dtb(Desktop::ListView,1,6), argb(24,224,224,224))"/>
 				</if>
 				<if Enabled="false">
 					<TouchButton foreground="rgb(160,160,160)"/>
+					<DDIconButton foreground="rgb(160,160,160)"/>
 					<RichText foreground="rgb(160,160,160)"/>
+				</if>
+				<if id="atom(DDIB_Icon)">
+					<DDScalableRichText padding="rect(4rp,4rp,4rp,4rp)" font="resstr(135)"/>
+				</if>
+				<if id="atom(DDIB_Text)">
+					<DDScalableRichText padding="rect(4rp,0,4rp,4rp)"/>
 				</if>
 			</if>
 			<if class="pageselectoreditmode">
-				<DDScalableTouchButton layoutpos="absolute" width="0" FirstScaledImage="2065" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableTouchButton layoutpos="absolute" width="0" FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="groupthumbnail">
 				<DDScalableElement FirstScaledImage="2001" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-8rp,-8rp,-8rp,-8rp)"/>
@@ -227,24 +224,13 @@
 			</if>
 			<TouchEditInner padding="rect(0,0,44rp,0)"/>
 			<if class="enterbutton">
-				<LVItem width="40rp" height="40rp" background="argb(0,0,0,0)" foreground="rgb(255,255,255)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
+				<LVItem width="40rp" height="40rp" background="argb(0,0,0,0)" foreground="rgb(255,255,255)" FirstScaledImage="-1" ScaledImageIntervals="7"
+						DrawType="1" ImageCount="8" EnableAccent="true" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter" compositedtext="true" textglowsize="0"/>
 				<if mousefocused="true"> 
-					<LVItem foreground="rgb(0,0,0)" FirstScaledImage="2254"/>
+					<LVItem foreground="rgb(0,0,0)" FirstScaledImage="2015" ImageIndex="6"/>
 				</if>
 				<if Pressed="true">
-					<LVItem foreground="20209" FirstScaledImage="2261"/>
-				</if>
-			</if>
-			<if class="PVActionButton">
-				<DDLVActionButton foreground="rgb(0,0,0)" FirstScaledImage="2247" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" compositedtext="true" textglowsize="0" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
-				<if Pressed="true">
-					<DDLVActionButton foreground="20209" FirstScaledImage="2261"/>
-				</if>
-			</if>
-			<if class="PVSecondaryActionButton">
-				<DDLVActionButton foreground="rgb(255,255,255)" FirstScaledImage="2219" ScaledImageIntervals="7" DrawType="1" EnableAccent="true" compositedtext="true" textglowsize="0" borderthickness="rect(4rp,4rp,4rp,4rp)" contentalign="middlecenter"/>
-				<if Pressed="true">
-					<DDLVActionButton foreground="rgb(160,160,160)" FirstScaledImage="2233"/>
+					<LVItem foreground="20209" FirstScaledImage="2015" ImageIndex="7"/>
 				</if>
 			</if>
 			<if id="atom(PV_Home)">
