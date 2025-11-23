@@ -33,8 +33,7 @@
 		<Element id="atom(SimpleViewBottom)" layout="borderlayout()" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
 			<TouchScrollViewer id="atom(svBottomOptions)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
 				<Element layout="flowlayout(0,2,1,0)">
-					<DDIconButton id="atom(SimpleViewClose)" shortcut="88" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4009)" iconcontent="resstr(138)" class="simpleview" margin="rect(0,0,6rp,0)"/>
-					<DDIconButton id="atom(SimpleViewSoftClose)" shortcut="69" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4009)" iconcontent="resstr(138)" class="simpleview" margin="rect(0,0,6rp,0)"/>
+					<DDIconButton id="atom(SimpleViewClose)" shortcut="69" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4009)" iconcontent="resstr(138)" class="simpleview" margin="rect(0,0,6rp,0)"/>
 					<DDIconButton id="atom(SimpleViewPages)" shortcut="80" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4055)" iconcontent="resstr(155)" class="simpleview" margin="rect(0,0,6rp,0)"/>
 					<DDIconButton id="atom(SimpleViewSettings)" shortcut="83" layoutpos="right" width="90rp" height="90rp" layout="verticalflowlayout(0,2,2,2)" content="resstr(4010)" iconcontent="resstr(136)" class="simpleview"/>
 				</Element>

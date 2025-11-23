@@ -29,7 +29,7 @@ namespace DirectDesktop
     Element *SimpleViewTop, *SimpleViewBottom;
     Element *SimpleViewTopInner, *SimpleViewBottomInner;
     TouchButton* SimpleViewPower, *SimpleViewSearch;
-    DDIconButton* SimpleViewSettings, *SimpleViewPages, *SimpleViewClose, *SimpleViewSoftClose;
+    DDIconButton* SimpleViewSettings, *SimpleViewPages, *SimpleViewClose;
     DDScalableTouchButton *nextpage, *prevpage;
     DDScalableRichText* pageinfo;
     TouchButton* PageViewer;
@@ -224,12 +224,9 @@ namespace DirectDesktop
                 parserEdit->CreateElement(iconshortcut, nullptr, nullptr, nullptr, &PV_IconShortcutPreview);
                 CSafeElementPtr<Element> pePreviewContainer;
                 pePreviewContainer.Assign(yV->peOptionalTarget1);
-                pePreviewContainer->Add((Element**)&PV_IconShadowPreview, 1);
-                pePreviewContainer->Add((Element**)&PV_IconPreview, 1);
-                pePreviewContainer->Add(&PV_IconShortcutPreview, 1);
-                DUI_SetGadgetZOrder(PV_IconShadowPreview, -1);
-                DUI_SetGadgetZOrder(PV_IconPreview, -1);
-                DUI_SetGadgetZOrder(PV_IconShortcutPreview, -1);
+                pePreviewContainer->Insert((Element**)&PV_IconShadowPreview, 1, 0);
+                pePreviewContainer->Insert((Element**)&PV_IconPreview, 1, 0);
+                pePreviewContainer->Insert(&PV_IconShortcutPreview, 1, 0);
                 DDScalableElement* peIcon = pm[yV->num]->GetIcon();
                 Element* peShortcutArrow = pm[yV->num]->GetShortcutArrow();
                 DWORD lviFlags = pm[yV->num]->GetFlags();
@@ -457,7 +454,7 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::Click && !prevpage->GetMouseFocused() && !nextpage->GetMouseFocused() &&
             !SimpleViewPages->GetMouseFocused() && !SimpleViewClose->GetMouseFocused() &&
-            !SimpleViewSoftClose->GetMouseFocused() && !SimpleViewPower->GetMouseFocused() &&
+            !SimpleViewPower->GetMouseFocused() &&
             !SimpleViewSettings->GetMouseFocused() && !SimpleViewSearch->GetMouseFocused())
         {
             HideSimpleView(true);
@@ -922,7 +919,6 @@ namespace DirectDesktop
                     CSafeElementPtr<RichText> number;
                     number.Assign(regElem<RichText*>(L"number", PV_Page));
                     number->SetContentString(to_wstring(i).c_str());
-                    DUI_SetGadgetZOrder(number, 4);
                     CSafeElementPtr<Element> PV_HomeBadge;
                     PV_HomeBadge.Assign(regElem<Element*>(L"PV_HomeBadge", PV_Page));
                     DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", PV_Page);
@@ -1031,7 +1027,6 @@ namespace DirectDesktop
                     PV_Remove->SetVisible(elem->GetMouseWithin());
                     PV_Remove->SetAssociatedItem((LVItem*)elem);
                     assignFn(PV_Remove, RemoveSelectedPage);
-                    DUI_SetGadgetZOrder(PV_Remove, 1);
                 }
             }
             DDLVActionButton* PV_Home = regElem<DDLVActionButton*>(L"PV_Home", elem);
@@ -1041,7 +1036,6 @@ namespace DirectDesktop
                 PV_Home->SetVisible(elem->GetMouseWithin());
                 PV_Home->SetAssociatedItem((LVItem*)elem);
                 if (((LVItem*)elem)->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);
-                DUI_SetGadgetZOrder(PV_Home, 1);
             }
         }
     }
@@ -1050,9 +1044,24 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::Click)
         {
-            LPARAM lParam = (elem == SimpleViewSoftClose) ? 69 : NULL;
-            SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
-            SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, lParam);
+            DDMenu* ddm = new DDMenu();
+            ddm->CreatePopupDDMenu(false);
+            ddm->AppendMenuW(MF_STRING, 0, L"Restart E&xplorer");
+            ddm->AppendMenuW(MF_STRING, 69, L"Do not restart &Explorer");
+            UINT uFlags = TPM_RIGHTBUTTON | TPM_CENTERALIGN | TPM_BOTTOMALIGN | TPM_RETURNCMD;
+            if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
+
+            POINT ptZero{}, pt{};
+            RECT rcMenu{};
+            elem->GetRoot()->MapElementPoint(elem, &ptZero, &pt);
+            ddm->GetMenuRect(&rcMenu);
+            pt.x += elem->GetWidth() / 2;
+            LPARAM lParam = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, editwnd->GetHWND(), nullptr);
+            if (lParam >= 0)
+            {
+                SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+                SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, lParam);
+            }
         }
     }
 
@@ -1303,7 +1312,7 @@ namespace DirectDesktop
         g_animatePVEnter = true;
         if (!g_invokedpagechange) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
         static IElementListener *pel_GoToPrevPage, *pel_GoToNextPage, *pel_TriggerHSV1, *pel_ShowShutdownDialog, *pel_TriggerHSV2,
-                                *pel_ShowSearchUI, *pel_ShowSettings, *pel_TriggerHSV3, *pel_ShowPageViewer, *pel_ExitWindow, *pel_ExitWindow2;
+                                *pel_ShowSearchUI, *pel_ShowSettings, *pel_TriggerHSV3, *pel_ShowPageViewer, *pel_ExitWindow;
         RECT dimensions;
         POINT topLeftMon = GetTopLeftMonitor();
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -1356,7 +1365,6 @@ namespace DirectDesktop
         SimpleViewSettings = regElem<DDIconButton*>(L"SimpleViewSettings", pEdit);
         SimpleViewPages = regElem<DDIconButton*>(L"SimpleViewPages", pEdit);
         SimpleViewClose = regElem<DDIconButton*>(L"SimpleViewClose", pEdit);
-        SimpleViewSoftClose = regElem<DDIconButton*>(L"SimpleViewSoftClose", pEdit);
         EM_Dim = regElem<Element*>(L"EM_Dim", pEdit);
         bg_left_top = regElem<Element*>(L"bg_left_top", pEdit);
         bg_left_middle = regElem<Element*>(L"bg_left_middle", pEdit);
@@ -1369,7 +1377,7 @@ namespace DirectDesktop
         pageinfo = regElem<DDScalableRichText*>(L"pageinfo", pEdit);
 
         free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_TriggerHSV1), free(pel_ShowShutdownDialog), free(pel_TriggerHSV2),
-            free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_TriggerHSV3), free(pel_ShowPageViewer), free(pel_ExitWindow), free(pel_ExitWindow2);
+            free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_TriggerHSV3), free(pel_ShowPageViewer), free(pel_ExitWindow);
         pel_GoToPrevPage = (IElementListener*)assignFn(prevpage, GoToPrevPage, true);
         pel_GoToNextPage = (IElementListener*)assignFn(nextpage, GoToNextPage, true);
         pel_TriggerHSV1 = (IElementListener*)assignFn(fullscreenpopupbaseE, TriggerHSV, true);
@@ -1378,10 +1386,8 @@ namespace DirectDesktop
         pel_ShowSettings = (IElementListener*)assignFn(SimpleViewSettings, ShowSettings, true);
         pel_ShowPageViewer = (IElementListener*)assignFn(SimpleViewPages, ShowPageViewer, true);
         pel_ExitWindow = (IElementListener*)assignFn(SimpleViewClose, ExitWindow, true);
-        pel_ExitWindow2 = (IElementListener*)assignFn(SimpleViewSoftClose, ExitWindow, true);
 
         SimpleViewClose->SetLayoutPos(g_enableexit ? -1 : -3);
-        SimpleViewSoftClose->SetLayoutPos(g_enableexit ? -1 : -3);
 
         WndProcEdit = (WNDPROC)SetWindowLongPtrW(editwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeWindowProc);
         //WndProcEditBG = (WNDPROC)SetWindowLongPtrW(editbgwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeBGWindowProc);

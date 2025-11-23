@@ -162,8 +162,9 @@ namespace DirectDesktop
             }
             if (yV->peOptionalTarget1)
             {
+                Element* lvi = yV->peOptionalTarget1->GetParent()->GetParent();
                 CSafeElementPtr<TouchScrollViewer> groupdirlist;
-                groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", yV->peOptionalTarget1->GetParent()->GetParent()));
+                groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", lvi));
                 groupdirlist->SetVisible(true);
 
                 RECT rcList;
@@ -175,15 +176,26 @@ namespace DirectDesktop
                 TransitionStoryboardInfo tsbInfo = {};
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, groupdirlist->GetDisplayNode(), &tsbInfo);
 
-                CSafeElementPtr<Element> dirtitle; dirtitle.Assign(regElem<Element*>(L"dirtitle", yV->peOptionalTarget1->GetParent()->GetParent()));
+                CSafeElementPtr<Element> dirtitle; dirtitle.Assign(regElem<Element*>(L"dirtitle", lvi));
                 dirtitle->SetVisible(true);
                 TriggerFade(dirtitle, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, dirtitle->GetDisplayNode(), &tsbInfo);
 
                 CSafeElementPtr<Element> emptyview;
-                emptyview.Assign(regElem<Element*>(L"emptyview", yV->peOptionalTarget1->GetParent()->GetParent()));
+                emptyview.Assign(regElem<Element*>(L"emptyview", lvi));
                 emptyview->DestroyAll(true);
                 emptyview->Destroy(true);
+                
+                if (lvi->GetClassInfoW() == LVItem::GetClassInfoPtr())
+                {
+                    if (((LVItem*)lvi)->GetFlags() & LVIF_GROUP && g_treatdirasgroup)
+                    {
+                        ((LVItem*)lvi)->SetOpenDirState(LVIODS_PINNED);
+                        if (((LVItem*)lvi)->GetIcon()->GetGroupColor() != 0)
+                            ((LVItem*)lvi)->GetIcon()->SetAssociatedColor(((LVItem*)lvi)->GetAssociatedColor());
+                    }
+                }
+
                 yV->peOptionalTarget1->DestroyAll(true);
                 yV->peOptionalTarget1->Destroy(true);
             }
@@ -469,7 +481,11 @@ namespace DirectDesktop
                 flrY0 = 0.0f;
                 flrX1 = 0.0f;
                 flrY1 = 1.0f;
-                TriggerFade(peAnimateTo, transDesc, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
+                bool hide = true;
+                if (peAnimateTo->GetClassInfoW() == LVItem::GetClassInfoPtr())
+                    if (g_touchmode && ((LVItem*)peAnimateTo)->GetGroupSize() != LVIGS_NORMAL)
+                        hide = false;
+                TriggerFade(peAnimateTo, transDesc, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, hide, false, false);
                 TriggerScaleIn(peAnimateTo, transDesc, 1, 0.0f, 0.4f, flrX0, flrY0, flrX1, flrY1, 1 / animstartscaleX, 1 / animstartscaleY,
                     flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peAnimateTo->GetDisplayNode(), &tsbInfo);

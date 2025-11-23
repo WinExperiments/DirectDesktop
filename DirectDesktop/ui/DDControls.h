@@ -22,6 +22,7 @@ namespace DirectDesktop
     public:
         DDScalableElement()
             : _gc(0)
+            , _crAssoc(0)
         {
         }
 
@@ -49,7 +50,7 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        int GetAssociatedColor();
+        COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
@@ -58,13 +59,14 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetAssociatedColor(int iAssociatedColor);
+        void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
         unsigned short GetGroupColor();
         void SetGroupColor(unsigned short sGC);
 
     protected:
         unsigned short _gc;
+        COLORREF _crAssoc;
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -111,7 +113,7 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        int GetAssociatedColor();
+        COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
@@ -120,7 +122,7 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetAssociatedColor(int iAssociatedColor);
+        void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
 
         RegKeyValue GetRegKeyValue();
@@ -182,7 +184,7 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        int GetAssociatedColor();
+        COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
@@ -191,7 +193,7 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetAssociatedColor(int iAssociatedColor);
+        void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
 
     protected:
@@ -241,7 +243,7 @@ namespace DirectDesktop
         int GetDrawType();
         bool GetEnableAccent();
         bool GetNeedsFontResize();
-        int GetAssociatedColor();
+        COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
@@ -250,7 +252,7 @@ namespace DirectDesktop
         void SetDrawType(int iDrawType);
         void SetEnableAccent(bool bEnableAccent);
         void SetNeedsFontResize(bool bNeedsFontResize);
-        void SetAssociatedColor(int iAssociatedColor);
+        void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
 
         RegKeyValue GetRegKeyValue();
@@ -672,6 +674,9 @@ namespace DirectDesktop
         DDCombobox()
             : _selID(0)
             , _selSize(0)
+            , _hTimer(nullptr)
+            , _tick(0)
+            , _fDone(false)
             , _peDropDownGlyph(nullptr)
             , _wndSelectionMenu(nullptr)
             , _peSelectionMenu(nullptr)
@@ -704,6 +709,9 @@ namespace DirectDesktop
         static IClassInfo* s_pClassInfo;
         BYTE _selID;
         BYTE _selSize;
+        HWND _hTimer;
+        LONGLONG _tick;
+        bool _fDone;
         DDScalableRichText* _peDropDownGlyph;
         NativeHWNDHost* _wndSelectionMenu;
         HWNDElement* _peSelectionMenu;
@@ -711,6 +719,7 @@ namespace DirectDesktop
         Element* _peHostInner;
         DDNumberedButton* _peSelections[MAX_SELECTIONS];
         HRESULT _CreateCMBVisual();
+        static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         static LRESULT CALLBACK s_ComboboxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
     };
 
@@ -864,11 +873,11 @@ namespace DirectDesktop
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetColorIntensity();
-        int GetDefaultColor();
+        COLORREF GetDefaultColor();
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetColorIntensity(int iColorIntensity);
-        void SetDefaultColor(int iDefaultColor);
+        void SetDefaultColor(COLORREF iDefaultColor);
         RegKeyValue GetRegKeyValue();
         vector<DDScalableElement*> GetTargetElements();
         vector<DDScalableButton*> GetTargetButtons();
@@ -1002,12 +1011,16 @@ namespace DirectDesktop
         DDMenu()
             : _pICv1(nullptr)
             , _hMenu(nullptr)
+            , _hTimer(nullptr)
+            , _uTrackFlags(0)
             , _count(0)
             , _width(0)
             , _fUsingLegacy(false)
             , _fDone(false)
+            , _fAnimating(false)
             , _subLevel(0)
             , _selectedCommand(0)
+            , _tick(0)
             , _parent(nullptr)
             , _wndSelectionMenu(nullptr)
             , _peSelectionMenu(nullptr)
@@ -1024,28 +1037,33 @@ namespace DirectDesktop
         HRESULT InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl);
         HRESULT CreatePopupDDMenu(bool fLegacy);
         void DestroyPopupDDMenu();
-        bool GetItemInfo(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
-        bool SetItemInfo(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
-        void AppendItem(UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
-        void EnableItem(UINT uIDEnableItem, UINT uEnable);
-        void InsertItem(UINT uPosition, UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
-        void RemoveItem(UINT uPosition, UINT uFlags);
-        void QueryMenu(UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
-        int TrackContextMenu(UINT uFlags, int x, int y, HWND hwnd, LPTPMPARAMS lptpm);
+        bool GetMenuItemInfoW(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
+        bool SetMenuItemInfoW(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
+        void AppendMenuW(UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
+        void EnableMenuItem(UINT uIDEnableItem, UINT uEnable);
+        void InsertMenuW(UINT uPosition, UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
+        void RemoveMenu(UINT uPosition, UINT uFlags);
+        void QueryContextMenu(UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
+        int TrackPopupMenuEx(UINT uFlags, int x, int y, HWND hwnd, LPTPMPARAMS lptpm);
         HRESULT InvokeCommand(CMINVOKECOMMANDINFO* pici);
         int GetItemCount();
+        HRESULT GetMenuRect(LPRECT lprc);
 
     private:
         enum { MAX_ITEMS = 1024 };
 
         IContextMenu* _pICv1;
         HMENU _hMenu;
-        int _count{};
-        int _width{};
+        HWND _hTimer;
+        UINT _uTrackFlags;
+        int _count;
+        int _width;
         bool _fUsingLegacy;
         bool _fDone;
+        bool _fAnimating;
         BYTE _subLevel;
         int _selectedCommand;
+        LONGLONG _tick;
         DDMenu* _parent;
         NativeHWNDHost* _wndSelectionMenu;
         HWNDElement* _peSelectionMenu;
@@ -1056,8 +1074,10 @@ namespace DirectDesktop
         void _ApplyMII(DDMenuButton* pmb, bool fInternal);
         void _DestroyUI(bool fSource);
         void _OnButtonClick(DDMenuButton* button);
+        void _PopulateFromQuery(UINT idCmdFirst, UINT idCmdLast, UINT uCount, bool fCheckID);
         void _RegisterAsSubmenu(DDMenuButton* pmb, DDMenu* parent);
         void _SetVisible(int x, int y, DDMenu* menu);
+        static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         static LRESULT CALLBACK s_MenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
     };
 
