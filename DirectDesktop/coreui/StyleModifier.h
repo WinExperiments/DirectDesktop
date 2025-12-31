@@ -34,4 +34,5 @@ namespace DirectDesktop
     COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold);
     COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize);
     COLORREF GetLightestPixel(HBITMAP hbm);
+    COLORREF CreateGlowColor(COLORREF cr);
 }

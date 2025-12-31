@@ -162,15 +162,14 @@ namespace DirectDesktop
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         static IElementListener* pel_DisplayResults, * pel_CloseSearch;
-        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = NULL, dwHostFlags = NULL;
+        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x38;
-            dwHostFlags = 0x43;
+            dwCreateFlags |= 0x28;
         }
         NativeHWNDHost::Create(L"DD_SearchHost", L"DirectDesktop Everything Search Wrapper", nullptr, nullptr,
-            dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, dwExStyle, WS_POPUP, nullptr, dwHostFlags, &searchwnd);
+            dimensions.left, dimensions.top, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, dwExStyle, WS_POPUP, nullptr, 0x43, &searchwnd);
         DUIXmlParser::Create(&parserSearch, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
         parserSearch->SetXMLFromResource(IDR_UIFILE5, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
         HWNDElement::Create(searchwnd->GetHWND(), true, dwCreateFlags, nullptr, &key4, (Element**)&parentSearch);

@@ -165,20 +165,24 @@ namespace DirectDesktop
 
                 switch (pe->GetDrawType())
                 {
-                    case 1:
-                    {
-                        CValuePtr spvImage = Value::CreateGraphic(hbmIndexed, 7, 0xFFFFFFFF, true, false, false);
-                        if (spvImage)
-                            pe->SetValue(Element::BackgroundProp, 1, spvImage);
-                        break;
-                    }
-                    case 2:
-                    {
-                        CValuePtr spvImage = Value::CreateGraphic(hbmIndexed, 2, 0xFFFFFFFF, true, false, false);
-                        if (spvImage)
-                            pe->SetValue(Element::ContentProp, 1, spvImage);
-                        break;
-                    }
+                case 1:
+                {
+                    CValuePtr spvImage = Value::CreateGraphic(hbmIndexed, 7, 0xFFFFFFFF, true, false, false);
+                    if (spvImage)
+                        pe->SetValue(Element::BackgroundProp, 1, spvImage);
+                    else
+                        pe->SetBackgroundColor(0);
+                    break;
+                }
+                case 2:
+                {
+                    CValuePtr spvImage = Value::CreateGraphic(hbmIndexed, 2, 0xFFFFFFFF, true, false, false);
+                    if (spvImage)
+                        pe->SetValue(Element::ContentProp, 1, spvImage);
+                    else
+                        pe->SetBackgroundColor(0);
+                    break;
+                }
                 }
                 DeleteObject(hbmIndexed);
             }
@@ -1615,7 +1619,17 @@ namespace DirectDesktop
             result = false;
             this->_SetValue(Element::AccNameProp, 1, pvNew, false);
             ElementSetValue(_peEdit, ppi, pvNew, this);
-            ElementSetValue(_pePreview, Element::ContentProp(), pvNew, this);
+            CValuePtr v;
+            _pePreview->SetVisible(!_peEdit->GetKeyWithin());
+            if (!_peEdit->GetContentString(&v))
+            {
+                if (_peEdit->GetPromptText(&v))
+                {
+                    _pePreview->SetClass(L"prompttext");
+                    _pePreview->SetContentString(_peEdit->GetPromptText(&v));
+                }
+                else _pePreview->SetContentString(L"");
+            }
         }
         return result;
     }
@@ -2019,6 +2033,11 @@ namespace DirectDesktop
         if (_touchGrid) _touchGrid->Insert(this, index);
     }
 
+    DDScalableElement* LVItem::GetInnerElement()
+    {
+        return _peInner;
+    }
+
     DDScalableElement* LVItem::GetIcon()
     {
         return _peIcon;
@@ -2037,6 +2056,11 @@ namespace DirectDesktop
     TouchButton* LVItem::GetCheckbox()
     {
         return _peCheckbox;
+    }
+
+    void LVItem::SetInnerElement(DDScalableElement* peInner)
+    {
+        _peInner = peInner;
     }
 
     void LVItem::SetIcon(DDScalableElement* peIcon)
@@ -2536,6 +2560,49 @@ namespace DirectDesktop
         DDScalableTouchButton::OnEvent(pEvent);
     }
 
+    void DDNumberedButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        CValuePtr v;
+        if (PropNotify::IsEqual(ppi, iIndex, TouchButton::PressedProp))
+        {
+            if (this->GetSelected())
+            {
+                LPCWSTR className = this->GetClass(&v);
+                if (wcscmp(className, L"cmbsel") == 0)
+                {
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    float scaleRelease = (this->GetPressed()) ? 0.75f : 1.0f;
+                    CSafeElementPtr<DDScalableElement> indicator;
+                    indicator.Assign(regElem<DDScalableElement*>(L"DDCMB_SelectionIndicator", this));
+                    TriggerScaleOut(indicator, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, scaleRelease, 0.5f, 0.5f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, indicator->GetDisplayNode(), &tsbInfo);
+                }
+            }
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, TouchButton::SelectedProp))
+        {
+            LPCWSTR className = this->GetClass(&v);
+            if (wcscmp(className, L"cmbsel") == 0)
+            {
+                CSafeElementPtr<DDScalableElement> indicator;
+                indicator.Assign(regElem<DDScalableElement*>(L"DDCMB_SelectionIndicator", this));
+                indicator->SetVisible(this->GetSelected());
+            }
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp))
+        {
+            LPCWSTR className = this->GetClass(&v);
+            if (wcscmp(className, L"cmbsel") == 0)
+            {
+                CSafeElementPtr<DDScalableRichText> text;
+                text.Assign(regElem<DDScalableRichText*>(L"DDCMB_SelectionText", this));
+                ElementSetValue(text, ppi, pvNew, this);
+            }
+        }
+        DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
     HRESULT DDNumberedButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
         return CreateAndInit<DDNumberedButton, int>(0x1 | 0x2 | 0x8, pParent, pdwDeferCookie, ppElement);
@@ -2705,11 +2772,25 @@ namespace DirectDesktop
             _peSelections[i + 1] = _peSelections[i];
             _peSelections[i + 1]->SetNumberID(i + 1);
         }
+        CValuePtr spvLayout;
+        BorderLayout::Create(0, nullptr, &spvLayout);
         DDNumberedButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[index]));
         _peHostInner->Insert((Element**)&_peSelections[index], 1, index);
+        _peSelections[index]->SetValue(Element::LayoutProp(), 1, spvLayout);
+        DDScalableElement* peIndicator;
+        DDScalableElement::Create(_peSelections[index], nullptr, (Element**)&peIndicator);
+        _peSelections[index]->Add((Element**)&peIndicator, 1);
+        peIndicator->SetVisible(false);
+        peIndicator->SetID(L"DDCMB_SelectionIndicator");
+        DDScalableRichText* peText;
+        DDScalableRichText::Create(_peSelections[index], nullptr, (Element**)&peText);
+        _peSelections[index]->Add((Element**)&peText, 1);
+        peText->SetID(L"DDCMB_SelectionText");
+        peText->SetBackgroundColor(0);
+        peText->SetLayoutPos(0);
+        peText->SetContentString(pszSelectionStr);
         _peSelections[index]->SetNumberID(index);
         _peSelections[index]->SetLinkedElement(this);
-        _peSelections[index]->SetContentString(pszSelectionStr);
         _peSelections[index]->SetClass(L"cmbsel");
         _selSize++;
     }
@@ -2739,7 +2820,9 @@ namespace DirectDesktop
         _peSelections[_selID]->SetSelected(false);
         _peSelections[index]->SetSelected(true);
         CValuePtr v;
-        this->SetContentString(_peSelections[index]->GetContentString(&v));
+        CSafeElementPtr<DDScalableRichText> text;
+        text.Assign(regElem<DDScalableRichText*>(L"DDCMB_SelectionText", _peSelections[index]));
+        this->SetContentString(text->GetContentString(&v));
         if (index != _selID)
         {
             Event ev;
@@ -2775,7 +2858,7 @@ namespace DirectDesktop
             this->GetRoot()->MapElementPoint(this, &ptRoot, &ptDest);
             GetGadgetRect(this->GetDisplayNode(), &rcElement, 0xC);
             GetGadgetRect(_peHostInner->GetDisplayNode(), &rcList, 0xC);
-            rcList.top -= round(g_flScaleFactor), rcList.bottom += round(g_flScaleFactor); // Window borders, left and right are unused
+            rcList.top -= 1, rcList.bottom += 1; // Window borders, left and right are unused
             Element* peSelected = _peSelections[_selID] ? _peSelections[_selID] : _peHostInner;
             GetGadgetRect(peSelected->GetDisplayNode(), &rcSelected, 0xC);
             LONG halfHeight = (this->GetListMaxHeight() - rcElement.bottom + rcElement.top) / 2;
@@ -2785,7 +2868,7 @@ namespace DirectDesktop
             rcDest.bottom = min(rcList.bottom - rcList.top, this->GetListMaxHeight());
             if (rcDest.bottom < this->GetListMaxHeight())
             {
-                rcDest.top += halfHeight - rcSelected.top - round(g_flScaleFactor);
+                rcDest.top += halfHeight - rcSelected.top - 1;
             }
             else
             {
@@ -2840,14 +2923,13 @@ namespace DirectDesktop
         {
             this->Add((Element**)&_peDropDownGlyph, 1);
             _peDropDownGlyph->SetID(L"DDCMB_DropDownGlyph");
-            DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = NULL, dwHostFlags = NULL;
+            DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
             if (DWMActive)
             {
                 dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-                dwCreateFlags = 0x38;
-                dwHostFlags = 0x43;
+                dwCreateFlags |= 0x28;
             }
-            hr = NativeHWNDHost::Create(L"DDCMBMenuWindow", nullptr, nullptr, nullptr, 0, 0, 0, 0, dwExStyle, WS_POPUP | WS_BORDER | CBS_DROPDOWNLIST, HINST_THISCOMPONENT, dwHostFlags, &_wndSelectionMenu);
+            hr = NativeHWNDHost::Create(L"DDCMBMenuWindow", nullptr, nullptr, nullptr, 0, 0, 0, 0, dwExStyle, WS_POPUP | WS_BORDER | CBS_DROPDOWNLIST, HINST_THISCOMPONENT, 0x43, &_wndSelectionMenu);
             if (SUCCEEDED(hr))
             {
                 HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, dwCreateFlags, nullptr, &keyC, (Element**)&_peSelectionMenu);
@@ -2872,10 +2954,10 @@ namespace DirectDesktop
 
                 FillLayout::Create(0, nullptr, &spvLayout);
                 _peSelectionMenu->SetValue(Element::LayoutProp, 1, spvLayout);
-                LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+                LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
                 StyleSheet* sheet = _peSelectionMenu->GetSheet();
                 CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-                parser->GetSheet(sheetName, &sheetStorage);
+                g_parser->GetSheet(sheetName, &sheetStorage);
                 _peSelectionMenu->SetValue(Element::SheetProp, 1, sheetStorage);
                 free(sheet);
                 _peSelectionMenu->SetID(L"DDCMB_SelectionList");
@@ -3576,6 +3658,8 @@ namespace DirectDesktop
                 HBITMAP hbmPickerBtn = CreateCompatibleBitmap(hdc, _btnWidth, btnHeight);
                 SelectObject(hdcDst, hbmPickerBtn);
                 BitBlt(hdcDst, 0, 0, _btnWidth, btnHeight, hdcSrc, i * _btnWidth, 0, SRCCOPY);
+                if (i == 1)
+                    IterateBitmap(hbmPickerBtn, StandardBitmapPixelHandler, 1, 0, 1.0f, ImmersiveColor);
                 _rgpeColorButtons[i]->SetX(xPos);
                 _rgpeColorButtons[i]->SetY(btnY);
                 _rgpeColorButtons[i]->SetWidth(bm.bmWidth / 8);
@@ -3816,6 +3900,7 @@ namespace DirectDesktop
                     this->Add((Element**)&_peOverlayCheck, 1);
                     _peOverlayCheck->SetLayoutPos(-2);
                     _peOverlayCheck->SetID(L"DDColorPicker_CheckedCircle");
+
                 }
             }
         }
@@ -3883,8 +3968,8 @@ namespace DirectDesktop
                             CSafeElementPtr<Element> peEdge;
                             LPCWSTR peResID = (localeType == 1) ? _pszPageIDs[_pageSize - 1] : _pszPageIDs[0];
                             peEdge.Assign(regElem<Element*>(peResID, _peSubUIContainer));
-                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, 40.0f * g_flScaleFactor, 0.0f, false, false);
-                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false);
+                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, 40.0f * g_flScaleFactor, 0.0f, false, false, false);
+                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
                         }
                     }
@@ -3897,8 +3982,8 @@ namespace DirectDesktop
                             CSafeElementPtr<Element> peEdge;
                             LPCWSTR peResID = (localeType == 1) ? _pszPageIDs[0] : _pszPageIDs[_pageSize - 1];
                             peEdge.Assign(regElem<Element*>(peResID, _peSubUIContainer));
-                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, -40.0f * g_flScaleFactor, 0.0f, false, false);
-                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, -40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false);
+                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, -40.0f * g_flScaleFactor, 0.0f, false, false, false);
+                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, -40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
                         }
                     }
@@ -4013,7 +4098,7 @@ namespace DirectDesktop
             _peSubUIContainer->Add(&peSettingsPage, 1);
             _pfnTabs[index](peSettingsPage);
             GTRANS_DESC transDesc2[3];
-            TriggerTranslate(_peSubUIContainer, transDesc2, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false);
+            TriggerTranslate(_peSubUIContainer, transDesc2, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false, true);
             TriggerFade(_peSubUIContainer, transDesc2, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
             TriggerClip(_peSubUIContainer, transDesc2, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
             TransitionStoryboardInfo tsbInfo = {};
@@ -4036,12 +4121,12 @@ namespace DirectDesktop
                 {
                     if ((localeType == 0 && index < _pageID) || (localeType == 1 && index > _pageID))
                     {
-                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false);
+                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false, true);
                         TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, false, true);
                     }
                     else if ((localeType == 0 && index > _pageID) || (localeType == 1 && index < _pageID))
                     {
-                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false);
+                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false, true);
                         TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, false, true);
                     }
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pel->GetItem(id)->GetDisplayNode(), &tsbInfo);
@@ -4060,13 +4145,13 @@ namespace DirectDesktop
             {
                 if ((localeType == 0 && index < _pageID) || (localeType == 1 && index > _pageID))
                 {
-                    TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, (rcList.right - rcList.left) * -1, 0.0f, 0.0f, 0.0f, false, false);
+                    TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, (rcList.right - rcList.left) * -1, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
                 }
                 else if ((localeType == 0 && index > _pageID) || (localeType == 1 && index < _pageID))
                 {
-                    TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, rcList.right - rcList.left, 0.0f, 0.0f, 0.0f, false, false);
+                    TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, rcList.right - rcList.left, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
                 }
@@ -4208,7 +4293,6 @@ namespace DirectDesktop
                                     KillTimer(submenu->_hTimer, 1);
                                     KillTimer(submenu->_hTimer, 2);
                                     SetTimer(submenu->_hTimer, 3, 0, nullptr);
-                                    submenu->_fAnimating = true;
                                 }
                             }
                             else
@@ -4222,6 +4306,8 @@ namespace DirectDesktop
                     GetWindowRect(((DDMenu*)this->_peLinked)->_wndSelectionMenu->GetHWND(), &rcParentMenu);
                     ((DDMenu*)this->_peLinked)->_peSelections[0]->MapElementPoint(this, &ptZero, &ptSelection);
                     int x = (localeType == 1) ? rcParentMenu.left + round(g_flScaleFactor) : rcParentMenu.right - round(g_flScaleFactor);
+                    if (((DDMenu*)this->_peLinked)->_uTrackFlags & DDM_ANIMATESUBMENUS)
+                        this->_submenu->_uTrackFlags |= TPM_HORPOSANIMATION | DDM_ANIMATESUBMENUS;
                     this->_submenu->_SetVisible(x, rcParentMenu.top + ptSelection.y, (DDMenu*)this->_peLinked);
                 }
             }
@@ -4294,46 +4380,100 @@ namespace DirectDesktop
         case WM_TIMER:
             switch (wParam)
             {
+            case 7:
+                KillTimer(hWnd, wParam);
+                menu->_wndSelectionMenu->DestroyWindow();
+                DestroyWindow(hWnd);
+                if (menu->_subLevel == 0)
+                {
+                    if (menu->_pICv1) menu->_pICv1->Release();
+                    if (menu->_pICAlt) menu->_pICAlt->Release();
+                }
+                delete menu;
+                break;
             case 1:
             case 3:
             case 5:
                 KillTimer(hWnd, wParam);
                 KillTimer(hWnd, wParam + 1);
-                menu->_tick = GetTickCount64();
-                SetTimer(hWnd, wParam + 1, 10, nullptr);
+                if (menu->_subLevel != 0)
+                {
+                    if (wParam == 1)
+                    {
+                        if (menu->_parent->_peSelections[menu->_uID]->GetMouseFocused())
+                            goto MENUANIM;
+                    }
+                    else goto MENUANIM;
+                }
+                else
+                {
+                MENUANIM:
+                    if (wParam == 1) menu->_wndSelectionMenu->ShowWindow(SW_SHOW);
+                    menu->_tick = GetTickCount64();
+                    GetWindowRect(menu->_wndSelectionMenu->GetHWND(), &(menu->_rcMenu));
+                    SetTimer(hWnd, wParam + 1, 10, nullptr);
+                }
+                menu->_fAnimating = false;
                 break;
             case 2:
             case 4:
             case 6:
                 LONGLONG dwTickDiff = GetTickCount64() - menu->_tick;
                 LONGLONG dwAlphaDiff{}, dwAlphaThreshold;
+                RECT rcAnim = { menu->_rcMenu.left, menu->_rcMenu.top };
+                short localeDirection = (localeType == 1) ? -1 : 1;
                 if (wParam == 2)
                 {
                     dwAlphaDiff = dwTickDiff * 2.5f;
+                    if (menu->_uTrackFlags & 0x3C00) dwAlphaDiff /= 1.5f;
                     dwAlphaThreshold = 255;
                 }
                 else
                 {
                     dwAlphaDiff = 255 - dwTickDiff * 3.3f;
+                    if (menu->_uTrackFlags & 0x3C00) dwAlphaDiff /= 1.25f;
                     dwAlphaThreshold = 0;
                 }
-                if (dwAlphaDiff <= dwAlphaThreshold && wParam == 2)
+                if (((dwAlphaDiff <= dwAlphaThreshold && wParam == 2) || (dwAlphaDiff >= dwAlphaThreshold && wParam != 2))
+                    && IsWindowVisible(menu->_wndSelectionMenu->GetHWND()))
+                {
+                    if (wParam != 2)
+                        menu->_fAnimating = true;
                     SetLayeredWindowAttributes(menu->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
-                else if (dwAlphaDiff >= dwAlphaThreshold && wParam != 2)
-                    SetLayeredWindowAttributes(menu->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
+                    if (wParam != 6 || menu->_subLevel == 0)
+                    {
+                        if (menu->_uTrackFlags & TPM_HORPOSANIMATION)
+                            rcAnim.left -= (255 - dwAlphaDiff) * g_flScaleFactor / 16 * localeDirection;
+                        else if (menu->_uTrackFlags & TPM_HORNEGANIMATION)
+                            rcAnim.left += (255 - dwAlphaDiff) * g_flScaleFactor / 16 * localeDirection;
+                        if (menu->_uTrackFlags & TPM_VERPOSANIMATION)
+                            rcAnim.top -= (255 - dwAlphaDiff) * g_flScaleFactor / 16;
+                        else if (menu->_uTrackFlags & TPM_VERNEGANIMATION)
+                            rcAnim.top += (255 - dwAlphaDiff) * g_flScaleFactor / 16;
+                        if (menu->_uTrackFlags & 0x3C00)
+                            SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, rcAnim.left, rcAnim.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
+                    }
+                }
                 else
                 {
                     dwAlphaDiff = dwAlphaThreshold;
+                    DWORD dwFlags = SWP_NOSIZE | SWP_NOZORDER;
+                    if (dwAlphaDiff == 0)
+                        dwFlags |= SWP_NOACTIVATE;
                     SetLayeredWindowAttributes(menu->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
+                    SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, menu->_rcMenu.left, menu->_rcMenu.top, NULL, NULL, dwFlags);
                     KillTimer(hWnd, wParam - 1);
                     KillTimer(hWnd, wParam);
                     if (wParam == 4)
                         menu->_wndSelectionMenu->ShowWindow(SW_HIDE);
                     else if (wParam == 6)
                     {
-                        menu->_wndSelectionMenu->DestroyWindow();
-                        DestroyWindow(hWnd);
-                        delete menu;
+                        if (menu->_subLevel == 0)
+                        {
+                            SetTimer(hWnd, 7, 2000, nullptr);
+                            menu->_wndSelectionMenu->ShowWindow(SW_HIDE);
+                        }
+                        else SetTimer(hWnd, 7, 0, nullptr);
                     }
                 }
                 break;
@@ -4364,31 +4504,72 @@ namespace DirectDesktop
 
     HRESULT DDMenu::InitializeDesktopEntries(IShellView* psv)
     {
-        return psv->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu, (void**)&_pICv1);
+        HRESULT hr = psv->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu, (void**)&_pICv1);
+        if (_pICv1)
+        {
+            void** ppv = (void**)malloc(8);
+            *ppv = nullptr;
+            hr = _pICv1->QueryInterface(IID_IContextMenu3, ppv);
+            _interfaceLevel = 3;
+            if (FAILED(hr))
+            {
+                hr = _pICv1->QueryInterface(IID_IContextMenu2, ppv);
+                _interfaceLevel = 2;
+            }
+
+            if (SUCCEEDED(hr))
+            {
+                _pICv1->Release();
+                _pICv1 = (IContextMenu*)*ppv;
+            }
+            else _interfaceLevel = 1;
+            hr = S_OK;
+        }
+        return hr;
     }
 
     HRESULT DDMenu::InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl)
     {
-        return psf->GetUIObjectOf(nullptr, 1, ppidl, IID_IContextMenu, nullptr, (void**)&_pICv1);
+        HRESULT hr = psf->GetUIObjectOf(nullptr, 1, ppidl, IID_IContextMenu, nullptr, (void**)&_pICv1);
+        if (_pICv1)
+        {
+            void** ppv = (void**)malloc(8);
+            *ppv = nullptr;
+            hr = _pICv1->QueryInterface(IID_IContextMenu3, ppv);
+            _interfaceLevel = 3;
+            if (FAILED(hr))
+            {
+                hr = _pICv1->QueryInterface(IID_IContextMenu2, ppv);
+                _interfaceLevel = 2;
+            }
+
+            if (SUCCEEDED(hr))
+            {
+                _pICv1->Release();
+                _pICv1 = (IContextMenu*)*ppv;
+            }
+            else _interfaceLevel = 1;
+            hr = S_OK;
+        }
+        return hr;
     }
 
-    HRESULT DDMenu::CreatePopupDDMenu(bool fLegacy)
+    HRESULT DDMenu::CreatePopupMenu(bool fLegacy)
     {
         _fUsingLegacy = fLegacy;
-        _hMenu = CreatePopupMenu();
+        _hMenu = ::CreatePopupMenu();
         HRESULT hr = S_OK;
         if (!fLegacy)
         {
             DWORD keyM{};
             CValuePtr spvLayout;
-            DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = NULL, dwHostFlags = NULL;
+            DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
             if (DWMActive)
             {
                 dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-                dwCreateFlags = 0x38;
-                dwHostFlags = 0x43;
+                dwCreateFlags |= 0x28;
             }
-            hr = NativeHWNDHost::Create(L"DDMenu", nullptr, nullptr, nullptr, 0, 0, 0, 0, dwExStyle, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, dwHostFlags, &_wndSelectionMenu);
+            hr = NativeHWNDHost::Create(L"DDMenu", nullptr, nullptr, nullptr, 0, 0, 0, 0, dwExStyle, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0x43, &_wndSelectionMenu);
             if (SUCCEEDED(hr))
             {
                 HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, dwCreateFlags, nullptr, &keyM, (Element**)&_peSelectionMenu);
@@ -4412,10 +4593,10 @@ namespace DirectDesktop
 
                 FillLayout::Create(0, nullptr, &spvLayout);
                 _peSelectionMenu->SetValue(Element::LayoutProp, 1, spvLayout);
-                LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+                LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
                 StyleSheet* sheet = _peSelectionMenu->GetSheet();
                 CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-                parser->GetSheet(sheetName, &sheetStorage);
+                g_parser->GetSheet(sheetName, &sheetStorage);
                 _peSelectionMenu->SetValue(Element::SheetProp, 1, sheetStorage);
                 free(sheet);
                 _peSelectionMenu->SetID(L"DDM_SelectionList");
@@ -4464,12 +4645,11 @@ namespace DirectDesktop
         return hr;
     }
 
-    void DDMenu::DestroyPopupDDMenu()
+    void DDMenu::DestroyPopupMenu()
     {
         if (_subLevel == 0)
         {
             this->_DestroyUI(true);
-            if (_pICv1) _pICv1->Release();
             if (_hMenu) DestroyMenu(_hMenu);
         }
         else return;
@@ -4498,6 +4678,7 @@ namespace DirectDesktop
                     if (_peSelections[i]->_id == item)
                     {
                         _peSelections[i]->_lpmii = lpmii;
+                        if (lpmii->fMask & MIIM_FTYPE) _peSelections[i]->_fRadio = lpmii->fType & MFT_RADIOCHECK;
                         _ApplyMII(_peSelections[i], false);
                         break;
                     }
@@ -4507,13 +4688,36 @@ namespace DirectDesktop
         return result;
     }
 
+    void DDMenu::SetMenuItemGlyph(UINT item, BOOL fByPosition, LPCWSTR pszGlyph)
+    {
+        if (!_fUsingLegacy)
+        {
+            if (fByPosition)
+                _peSelections[item]->_peIcon->SetContentString(pszGlyph);
+            else
+            {
+                int count = GetMenuItemCount(_hMenu);
+                for (int i = 0; i < count; i++)
+                {
+                    if (_peSelections[i]->_id == item)
+                    {
+                        _peSelections[i]->_peIcon->SetContentString(pszGlyph);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     void DDMenu::AppendMenuW(UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem)
     {
         MENUITEMINFOW mii{};
         mii.cbSize = sizeof(MENUITEMINFOW);
         mii.fMask = 0x1EF;
-        ::AppendMenuW(_hMenu, uFlags, uIDNewItem, lpNewItem);
+        UINT_PTR uIDNewItemPopup = (uFlags & MF_POPUP) ? (UINT_PTR)((DDMenu*)uIDNewItem)->_hMenu : uIDNewItem;
+        ::AppendMenuW(_hMenu, uFlags, uIDNewItemPopup, lpNewItem);
         ::GetMenuItemInfoW(_hMenu, _count, TRUE, &mii);
+        if (uFlags & MFT_RADIOCHECK) mii.fType |= MFT_RADIOCHECK;
         this->_AppendItem(&mii, lpNewItem, false);
     }
 
@@ -4545,12 +4749,17 @@ namespace DirectDesktop
         }
         if (_count >= MAX_ITEMS || index < 0 || index > _count)
             return;
-        ::InsertMenuW(_hMenu, uPosition, uFlags, uIDNewItem, lpNewItem);
+
+        UINT_PTR uIDNewItemPopup = (uFlags & MF_POPUP) ? (UINT_PTR)((DDMenu*)uIDNewItem)->_hMenu : uIDNewItem;
+        ::InsertMenuW(_hMenu, uPosition, uFlags, uIDNewItemPopup, lpNewItem);
         if (!_fUsingLegacy)
         {
             for (int i = _count - 1; i >= index; i--)
             {
                 _peSelections[i + 1] = _peSelections[i];
+                _peSelections[i + 1]->_uOrder = i + 1;
+                if (_peSelections[i + 1]->_submenu)
+                    _peSelections[i + 1]->_submenu->_uID = i + 1;
             }
             DDMenuButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[index]));
             _peHostInner->Insert((Element**)&_peSelections[index], 1, index);
@@ -4561,16 +4770,15 @@ namespace DirectDesktop
             if (uFlags & MF_POPUP)
             {
                 ((DDMenu*)uIDNewItem)->_RegisterAsSubmenu(_peSelections[index], this);
-                _peSelections[index]->_peSubmenuArrow->SetLayoutPos(2);
+                ((DDMenu*)uIDNewItem)->_fDynamicInit = true;
                 _peSelections[index]->_id = -1;
             }
             MENUITEMINFOW mii{};
             mii.cbSize = sizeof(MENUITEMINFOW);
             mii.fMask = 0x1EF;
-            mii.fType = uFlags;
-            mii.fState = uFlags;
-            mii.wID = uIDNewItem;
+            ::GetMenuItemInfoW(_hMenu, uPosition, (bool)(uFlags & MF_BYPOSITION), &mii);
             _peSelections[index]->_lpmii = &mii;
+            _peSelections[index]->_fRadio = mii.fType & MFT_RADIOCHECK;
             _ApplyMII(_peSelections[index], false);
         }
         _count++;
@@ -4599,6 +4807,9 @@ namespace DirectDesktop
             for (int i = index; i < _count - 1; i++)
             {
                 _peSelections[i] = _peSelections[i + 1];
+                _peSelections[i]->_uOrder = i;
+                if (_peSelections[i]->_submenu)
+                    _peSelections[i]->_submenu->_uID = i;
             }
         }
         ::RemoveMenu(_hMenu, uPosition, uFlags);
@@ -4607,14 +4818,17 @@ namespace DirectDesktop
 
     void DDMenu::QueryContextMenu(UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags)
     {
+        LRESULT res{};
+        this->HandleMenuMsg(WM_INITMENUPOPUP, (WPARAM)_hMenu, MAKELPARAM(0, 1), &res);
         HRESULT hr = _pICv1->QueryContextMenu(_hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags);
+        _idCmdFirst = idCmdFirst;
+        _idCmdLast = idCmdLast;
         if (SUCCEEDED(hr) && !_fUsingLegacy)
         {
             int count = GetMenuItemCount(_hMenu);
             if (count <= 0) return;
-            count = GetMenuItemCount(_hMenu);
 
-            this->_PopulateFromQuery(idCmdFirst, idCmdLast, count, true);
+            this->_PopulateFromQuery(count, true);
         }
     }
 
@@ -4626,7 +4840,7 @@ namespace DirectDesktop
             this->_uTrackFlags = uFlags;
             this->_SetVisible(x, y, nullptr);
 
-            _selectedCommand = -1;
+            _selectedCommand = 0;
             _fDone = false;
 
             MSG msg;
@@ -4642,7 +4856,7 @@ namespace DirectDesktop
                 DispatchMessageW(&msg);
             }
 
-            int result = -1;
+            int result = 0;
             if (uFlags & TPM_RETURNCMD) result = _selectedCommand;
             else if (!(uFlags & TPM_NONOTIFY))
             {
@@ -4660,7 +4874,63 @@ namespace DirectDesktop
 
     HRESULT DDMenu::InvokeCommand(CMINVOKECOMMANDINFO* pici)
     {
-        return _pICv1->InvokeCommand(pici);
+        HRESULT hr = _pICv1->InvokeCommand(pici);
+        if (FAILED(hr))
+        {
+            if (!_fUsingLegacy && this->_pICAlt)
+            {
+                //int i = 0;
+                //bool fInvoked = false;
+                //while (_peSelections[i])
+                //{
+                //    if (_peSelections[i]->_submenu)
+                //    {
+                //        DDMenu* psm = _peSelections[i]->_submenu;
+                //        int j = 0;
+                //        while (psm->_peSelections[j])
+                //        {
+                //            if (psm->_peSelections[j]->_id == (UINT)pici->lpVerb)
+                //            {
+                                hr = _pICAlt->InvokeCommand(pici);
+                //                CSafeElementPtr<DDNotificationBanner> ddnb;
+                //                ddnb.Assign(new DDNotificationBanner);
+                //                ddnb->CreateBanner(DDNT_INFO, to_wstring((UINT_PTR)(this->_pICAlt)).c_str(), to_wstring((UINT_PTR)(this->_pICv1)).c_str(), 5);
+                //                fInvoked = true;
+                //                break;
+                //            }
+                //            j++;
+                //        }
+                //        if (fInvoked) break;
+                //    }
+                //    //CSafeElementPtr<DDNotificationBanner> ddnb;
+                //    //ddnb.Assign(new DDNotificationBanner);
+                //    //ddnb->CreateBanner(DDNT_INFO, to_wstring((UINT)pici->lpVerb).c_str(), to_wstring((UINT_PTR)_peSelections[i]->_submenu).c_str(), 5);
+                //    i++;
+                //}
+            }
+            else return E_NOTIMPL;
+        }
+        return hr;
+    }
+
+    HRESULT DDMenu::HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT* plResult)
+    {
+        HRESULT hr = E_FAIL;
+        switch (_interfaceLevel)
+        {
+        case 2:
+            hr = ((IContextMenu2*)_pICv1)->HandleMenuMsg(uMsg, wParam, lParam);
+            break;
+        case 3:
+            hr = ((IContextMenu3*)_pICv1)->HandleMenuMsg2(uMsg, wParam, lParam, plResult);
+            break;
+        }
+        return hr;
+    }
+
+    HRESULT DDMenu::GetCommandString(UINT_PTR idCmd, UINT uType, UINT* pReserved, CHAR* pszName, UINT cchMax)
+    {
+        return _pICv1->GetCommandString(idCmd, uType, pReserved, pszName, cchMax);
     }
 
     int DDMenu::GetItemCount()
@@ -4688,9 +4958,11 @@ namespace DirectDesktop
             DDMenuButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[_count]));
             _peHostInner->Add((Element**)&_peSelections[_count], 1);
             _peSelections[_count]->_id = lpmii->wID;
+            _peSelections[_count]->_uOrder = _count;
             _peSelections[_count]->_peLinked = this;
             _peSelections[_count]->SetContentString(lpNewItem);
             _peSelections[_count]->_lpmii = (LPMENUITEMINFOW)lpmii;
+            if (lpmii->fMask & MIIM_FTYPE) _peSelections[_count]->_fRadio = lpmii->fType & MFT_RADIOCHECK;
             _ApplyMII(_peSelections[_count], fInternal);
         }
         _count++;
@@ -4706,23 +4978,24 @@ namespace DirectDesktop
                 int count = GetMenuItemCount(pmb->_lpmii->hSubMenu);
                 if (count <= 0) return;
                 DDMenu* psm = new DDMenu();
-                psm->CreatePopupDDMenu(_fUsingLegacy);
+                psm->CreatePopupMenu(_fUsingLegacy);
                 psm->_hMenu = pmb->_lpmii->hSubMenu;
-                count = GetMenuItemCount(psm->_hMenu);
-
-                psm->_PopulateFromQuery(NULL, NULL, count, false);
                 psm->_RegisterAsSubmenu(_peSelections[_count], this);
             }
             else if (pmb->_lpmii->fType & MF_POPUP)
-                if (pmb->_lpmii->wID) ((DDMenu*)pmb->_lpmii->wID)->_RegisterAsSubmenu(_peSelections[_count], this);
-            pmb->_peSubmenuArrow->SetLayoutPos(2);
+            {
+                if (pmb->_lpmii->wID)
+                {
+                    ((DDMenu*)pmb->_lpmii->wID)->_RegisterAsSubmenu(_peSelections[_count], this);
+                    ((DDMenu*)pmb->_lpmii->wID)->_fDynamicInit = true;
+                }
+            }
         }
         if (pmb->_lpmii->fType & MF_SEPARATOR) pmb->SetClass(L"menuseparator");
-        else pmb->SetClass(L"");
-        if (pmb->_lpmii->fType & MFT_RADIOCHECK) pmb->_fRadio = true;
+        else pmb->SetClass(L"menusel");
         if (pmb->_lpmii->fState & MF_CHECKED)
         {
-            if (pmb->_lpmii->fType & MFT_RADIOCHECK || pmb->_fRadio) pmb->_peIcon->SetClass(L"radio");
+            if (pmb->_fRadio) pmb->_peIcon->SetClass(L"radio");
             else pmb->_peIcon->SetClass(L"check");
         }
         else pmb->_peIcon->SetClass(L"");
@@ -4786,7 +5059,7 @@ namespace DirectDesktop
         }
     }
 
-    void DDMenu::_PopulateFromQuery(UINT idCmdFirst, UINT idCmdLast, UINT uCount, bool fCheckID)
+    void DDMenu::_PopulateFromQuery(UINT uCount, bool fCheckID)
     {
         for (int i = 0; i < uCount; i++)
         {
@@ -4794,7 +5067,7 @@ namespace DirectDesktop
             mii.cbSize = sizeof(MENUITEMINFOW);
             mii.fMask = 0x1EF;
             ::GetMenuItemInfoW(_hMenu, i, TRUE, &mii);
-            if ((mii.wID < idCmdFirst || mii.wID > idCmdLast) && mii.wID != -1 && fCheckID)
+            if (fCheckID && (mii.wID < _idCmdFirst || mii.wID > _idCmdLast) && mii.wID != -1)
                 continue;
             WCHAR text[256]{};
             if (!(mii.fType & MF_SEPARATOR))
@@ -4807,22 +5080,89 @@ namespace DirectDesktop
         }
     }
 
+    //void DDMenu::_OptimizeForNewSubmenu()
+    //{
+    //    IContextMenu* pICNew{};
+    //    IContextMenu2* pICv2{};
+    //    IShellItem* pShellItem{};
+    //    IShellExtInit* pShellExtInit{};
+
+    //    CLSID CLSID_NewMenu = { 0xD969A300, 0xE7FF, 0x11D0, { 0xA9, 0x3B, 0x00, 0xA0, 0xC9, 0x0F, 0x27, 0x19 } };
+    //    HRESULT hr = SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, g_hToken, IID_PPV_ARGS(&pShellItem));
+    //    if (SUCCEEDED(hr))
+    //    {
+    //        hr = CoCreateInstance(CLSID_NewMenu, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pICNew));
+    //        if (SUCCEEDED(hr))
+    //        {
+    //            hr = pICNew->QueryInterface(IID_PPV_ARGS(&pICv2));
+    //            if (SUCCEEDED(hr))
+    //            {
+    //                hr = pICNew->QueryInterface(IID_PPV_ARGS(&pShellExtInit));
+    //                if (SUCCEEDED(hr))
+    //                {
+    //                    DDMenu* parent = this->_parent;
+    //                    while (parent)
+    //                        parent = parent->_parent;
+    //                    if (parent)
+    //                        parent->_pICAlt = pICNew;
+    //                    this->_fUniqueCM = true;
+    //                    LPITEMIDLIST pFolderPidl{};
+    //                    hr = SHGetIDListFromObject(pShellItem, &pFolderPidl);
+    //                    if (SUCCEEDED(hr))
+    //                    {
+    //                        hr = pShellExtInit->Initialize(pFolderPidl, nullptr, nullptr);
+    //                        if (SUCCEEDED(hr))
+    //                        {
+    //                            this->QueryContextMenu(0, 1, 256, NULL);
+    //                        }
+    //                    }
+    //                    CSafeElementPtr<DDNotificationBanner> ddnb;
+    //                    ddnb.Assign(new DDNotificationBanner);
+    //                    ddnb->CreateBanner(DDNT_SUCCESS, L"test", nullptr, 5);
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+
     void DDMenu::_RegisterAsSubmenu(DDMenuButton* pmb, DDMenu* parent)
     {
         pmb->_submenu = this;
+        pmb->_peSubmenuArrow->SetLayoutPos(2);
+        this->_uID = pmb->_uOrder;
         this->_parent = parent;
         this->_fUsingLegacy = ((DDMenu*)pmb->_peLinked)->_fUsingLegacy;
         this->_subLevel = ((DDMenu*)pmb->_peLinked)->_subLevel + 1;
         this->_pICv1 = ((DDMenu*)pmb->_peLinked)->_pICv1;
+        this->_interfaceLevel = ((DDMenu*)pmb->_peLinked)->_interfaceLevel;
     }
 
     void DDMenu::_SetVisible(int x, int y, DDMenu* menu)
     {
+        if (_subLevel > 0 && !this->_fDynamicInit)
+        {
+            LRESULT res;
+            int count;
+            CHAR verb[MAX_PATH];
+            this->GetCommandString(this->_parent->_peSelections[_uID]->_id - this->_parent->_idCmdFirst, GCS_VERBA, nullptr, verb, MAX_PATH);
+            //CSafeElementPtr<DDNotificationBanner> ddnb;
+            //ddnb.Assign(new DDNotificationBanner);
+            //ddnb->CreateBanner(DDNT_INFO, to_wstring(this->_parent->_peSelections[_uID]->_id - this->_parent->_idCmdFirst).c_str(), to_wstring(_uID).c_str(), 5);
+            //if (verb && strcmp(verb, "New") == 0)
+            //    this->_OptimizeForNewSubmenu();
+            this->HandleMenuMsg(WM_INITMENUPOPUP, (WPARAM)_hMenu, MAKELPARAM(0, 1), &res);
+            //if (!_fUniqueCM)
+            //{
+                count = GetMenuItemCount(_hMenu);
+                this->_PopulateFromQuery(count, false);
+            //}
+            this->_fDynamicInit = true;
+        }
         int width{}, height{};
         RECT rcHost{}, rcParent{}, dimensions{};
         GetGadgetRect(_peSelectionMenu->GetDisplayNode(), &rcHost, 0xC);
-        width = rcHost.right + 2 * round(g_flScaleFactor);
-        height = rcHost.bottom + 2 * round(g_flScaleFactor);
+        width = rcHost.right + 2;
+        height = rcHost.bottom + 2;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         short localeDirection = (localeType == 1) ? -1 : 1;
         if (localeType == 1) x -= width;
@@ -4843,6 +5183,11 @@ namespace DirectDesktop
                 {
                     menu->GetMenuRect(&rcParent);
                     x += rcParent.right + width;
+                    if (menu->_uTrackFlags & DDM_ANIMATESUBMENUS)
+                    {
+                        this->_uTrackFlags &= (0x1FFFF - TPM_HORPOSANIMATION);
+                        this->_uTrackFlags |= TPM_HORNEGANIMATION;
+                    }
                 }
                 else x = dimensions.left;
             }
@@ -4859,7 +5204,12 @@ namespace DirectDesktop
                 if (menu)
                 {
                     menu->GetMenuRect(&rcParent);
-                    x -= rcParent.right + rcHost.right + round(g_flScaleFactor);
+                    x -= rcParent.right + rcHost.right + 4 - 2 * round(g_flScaleFactor);
+                    if (menu->_uTrackFlags & DDM_ANIMATESUBMENUS)
+                    {
+                        this->_uTrackFlags &= (0x1FFFF - TPM_HORPOSANIMATION);
+                        this->_uTrackFlags |= TPM_HORNEGANIMATION;
+                    }
                 }
                 else x = dimensions.right - width;
             }
@@ -4885,14 +5235,12 @@ namespace DirectDesktop
         }
         SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, x, y, width, height, NULL);
         _wndSelectionMenu->Host(_peSelectionMenu);
-        if (DWMActive && !(IsWindowVisible(_wndSelectionMenu->GetHWND())))
+        if (!(IsWindowVisible(_wndSelectionMenu->GetHWND())))
         {
-            _fAnimating = false;
             SetLayeredWindowAttributes(_wndSelectionMenu->GetHWND(), NULL, 0, LWA_ALPHA);
             SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
-            SetTimer(_hTimer, 1, 0, nullptr);
+            SetTimer(_hTimer, 1, menu ? 300 : 0, nullptr);
         }
-        _wndSelectionMenu->ShowWindow(SW_SHOW);
     }
 
     LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -4970,7 +5318,6 @@ namespace DirectDesktop
     void DDNotificationBanner::CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout)
     {
         static bool notificationopen{};
-        static HANDLE AutoCloseHandle;
         //if (notificationopen) DestroyBanner(&notificationopen);
         unsigned long keyN{};
         Element* pHostElement;
@@ -4984,10 +5331,10 @@ namespace DirectDesktop
         Element::Create(0, pDDNB, nullptr, &pHostElement);
         _pDDNB->Add(&pHostElement, 1);
 
-        LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+        LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
         StyleSheet* sheet = pHostElement->GetSheet();
         CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-        parser->GetSheet(sheetName, &sheetStorage);
+        g_parser->GetSheet(sheetName, &sheetStorage);
         pHostElement->SetValue(Element::SheetProp, 1, sheetStorage);
         free(sheet);
 
@@ -5074,7 +5421,7 @@ namespace DirectDesktop
         }
 
         // Window borders
-        cx += (round(g_flScaleFactor)) * 2;
+        cx += 2;
 
         if (_wnd)
         {
@@ -5141,10 +5488,10 @@ namespace DirectDesktop
             Element::Create(0, _pDDNB, nullptr, &_peButtonSection);
             _pDDNB->Add(&_peButtonSection, 1);
 
-            LPWSTR sheetName = g_theme ? (LPWSTR)L"default" : (LPWSTR)L"defaultdark";
+            LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
             StyleSheet* sheet = _peButtonSection->GetSheet();
             CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-            parser->GetSheet(sheetName, &sheetStorage);
+            g_parser->GetSheet(sheetName, &sheetStorage);
             _peButtonSection->SetValue(Element::SheetProp, 1, sheetStorage);
             free(sheet);
 

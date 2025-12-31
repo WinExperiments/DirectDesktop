@@ -124,7 +124,7 @@ namespace DirectDesktop
                     if (peIcon)
                     {
                         short shadedSize{}, shadedX{}, shadedY{};
-                        if (!(lviFlags & LVIF_HIDDEN))
+                        if (!(lviFlags & LVIF_HIDDEN || g_isGlass))
                         {
                             shadedSize = 16;
                             shadedX = 8 * g_flScaleFactor;
@@ -150,10 +150,11 @@ namespace DirectDesktop
                 if (spvBitmapText && peText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
                 if (g_touchmode)
                 {
-                    BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 32 : 255;
-                    ((DDScalableElement*)(*l_pm)[num])->SetDDCPIntensity(intensity);
-                    ((DDScalableElement*)(*l_pm)[num])->SetAssociatedColor((*vdi)[num]->crDominantTile);
-                    if (lviFlags & LVIF_HIDDEN)
+                    BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 64 : 255;
+                    (*l_pm)[num]->SetDDCPIntensity(intensity);
+                    (*l_pm)[num]->SetAssociatedColor((*vdi)[num]->crDominantTile);
+                    (*l_pm)[num]->GetInnerElement()->SetAssociatedColor(CreateGlowColor((*vdi)[num]->crDominantTile));
+                    if (lviFlags & LVIF_HIDDEN || g_isGlass)
                     {
                         short iconspace = 8 * g_flScaleFactor;
                         peIcon->SetPadding(iconspace, iconspace, iconspace, iconspace);
@@ -170,7 +171,7 @@ namespace DirectDesktop
                 RECT rcList;
                 groupdirlist->GetVisibleRect(&rcList);
                 GTRANS_DESC transDesc[3];
-                TriggerTranslate(groupdirlist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false);
+                TriggerTranslate(groupdirlist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false, false);
                 TriggerFade(groupdirlist, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                 TriggerClip(groupdirlist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
                 TransitionStoryboardInfo tsbInfo = {};
@@ -585,9 +586,7 @@ namespace DirectDesktop
             float coef{};
             if (pProp == TouchButton::PressedProp())
             {
-                CSafeElementPtr<Element> innerElem;
-                innerElem.Assign(regElem<Element*>(L"innerElem", elem));
-                innerElem->SetEnabled(!((LVItem*)elem)->GetPressed());
+                ((LVItem*)elem)->GetInnerElement()->SetEnabled(!((LVItem*)elem)->GetPressed());
                 coef = ((LVItem*)elem)->GetPressed() ? 0.9325f : 1.0f;
                 goto TLVITEMANIMATION;
             }
@@ -639,15 +638,10 @@ namespace DirectDesktop
                 parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&outerElemGrouped);
                 outerElemGrouped->SetValue(Element::SheetProp, 1, sheetStorage);
                 lvi_SubUIContainer->Add((Element**)&outerElemGrouped, 1);
-                CSafeElementPtr<DDScalableElement> iconElem;
-                iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElemGrouped));
-                CSafeElementPtr<Element> shortcutElem;
-                shortcutElem.Assign(regElem<Element*>(L"shortcutElem", outerElemGrouped));
-                CSafeElementPtr<RichText> textElem;
-                textElem.Assign(regElem<RichText*>(L"textElem", outerElemGrouped));
-                outerElemGrouped->SetIcon(iconElem);
-                outerElemGrouped->SetShortcutArrow(shortcutElem);
-                outerElemGrouped->SetText(textElem);
+                outerElemGrouped->SetInnerElement(regElem<DDScalableElement*>(L"innerElem", outerElemGrouped));
+                outerElemGrouped->SetIcon(regElem<DDScalableElement*>(L"iconElem", outerElemGrouped));
+                outerElemGrouped->SetShortcutArrow(regElem<Element*>(L"shortcutElem", outerElemGrouped));
+                outerElemGrouped->SetText(regElem<RichText*>(L"textElem", outerElemGrouped));
                 subpm->push_back(outerElemGrouped);
             }
             CSafeElementPtr<LVItem> PendingContainer;
@@ -1126,14 +1120,13 @@ namespace DirectDesktop
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
 
-        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = NULL, dwHostFlags = NULL;
+        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x38;
-            dwHostFlags = 0x43;
+            dwCreateFlags |= 0x28;
         }
-        NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, 9999, 9999, dwExStyle, WS_POPUP, nullptr, dwHostFlags, &subviewwnd);
+        NativeHWNDHost::Create(L"DD_SubviewHost", L"DirectDesktop Subview", nullptr, nullptr, dimensions.left, dimensions.top, 9999, 9999, dwExStyle, WS_POPUP, nullptr, 0x43, &subviewwnd);
         DUIXmlParser::Create(&parserSubview, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
         parserSubview->SetXMLFromResource(IDR_UIFILE3, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
         HWNDElement::Create(subviewwnd->GetHWND(), true, dwCreateFlags, nullptr, &key2, (Element**)&subviewparent);

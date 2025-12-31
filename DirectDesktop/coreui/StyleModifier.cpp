@@ -513,4 +513,18 @@ namespace DirectDesktop
 
         return outLightestColor;
     }
+
+    COLORREF CreateGlowColor(COLORREF cr)
+    {
+        rgb_t glow = { GetRValue(cr), GetGValue(cr), GetBValue(cr) };
+        hsl_t glowHSL = rgb2hsl(glow);
+        int glowCoef = (((static_cast<int>(glowHSL.h) / 120) * 120) + 60) - glowHSL.h;
+        glowHSL.h += glowCoef * 0.5f * glowHSL.l / 255.0f;
+        float flLightCoef = 1.0f;
+        if (glowHSL.s < 0)
+            flLightCoef = sqrt(cos(glowCoef / 180.0f * 3.1415926f));
+        glowHSL.l += (255 - glowHSL.l) * (glowHSL.l / 192.0f) * flLightCoef;
+        glow = hsl2rgb(glowHSL);
+        return RGB(glow.r, glow.g, glow.b);
+    }
 }

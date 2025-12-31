@@ -2446,6 +2446,69 @@
     <Image Include="ImageResources\2330.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="ImageResources\11301.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11302.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11303.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11304.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11305.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11306.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11307.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11308.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11309.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11310.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11311.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11312.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11313.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11314.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11401.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11402.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11403.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11404.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11405.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11406.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ImageResources\11407.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="imageresources\uifile5.bin">
@@ -2491,9 +2554,5 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DirectDesktop.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Natvis Include="$(MSBuildThisFileDirectory)..\..\natvis\wil.natvis" />
-    <Natvis Include="$(MSBuildThisFileDirectory)..\..\natvis\wil.natstepfilter" />
   </ItemGroup>
 </Project>

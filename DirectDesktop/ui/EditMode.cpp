@@ -252,6 +252,7 @@ namespace DirectDesktop
 
                     PV_IconShadowPreview->SetDDCPIntensity(pm[yV->num]->GetDDCPIntensity());
                     PV_IconShadowPreview->SetAssociatedColor(pm[yV->num]->GetAssociatedColor());
+                    PV_IconPreview->SetAssociatedColor(pm[yV->num]->GetInnerElement()->GetAssociatedColor());
                     PV_IconShortcutPreview->SetX(PV_IconPreview->GetX() + (PV_IconPreview->GetWidth() - PV_IconShortcutPreview->GetWidth()) / 2.0);
                     PV_IconShortcutPreview->SetY(PV_IconPreview->GetY() + (PV_IconPreview->GetHeight() - PV_IconShortcutPreview->GetHeight()) / 2.0);
                 }
@@ -285,7 +286,7 @@ namespace DirectDesktop
                     else PV_FolderGroup->SetForegroundColor(g_colorPickerPalette[peIcon->GetGroupColor()]);
                     PV_FolderGroup->SetVisible(true);
                     int glyphiconsize = min(PV_IconPreview->GetWidth(), PV_IconPreview->GetHeight());
-                    float sizeCoef = (log(glyphiconsize / (yV->fl1 * g_iconsz)) / log(100)) + 1;
+                    float sizeCoef = (log(glyphiconsize / (yV->fl1 * g_iconsz * g_flScaleFactor)) / log(100)) + 1;
                     PV_FolderGroup->SetFontSize(g_touchmode ? static_cast<int>(foldericonsize * g_flScaleFactor * yV->fl1) : static_cast<int>(glyphiconsize / (2.0f * sizeCoef)));
                 }
                 HBITMAP iconbmp = di->icon;
@@ -465,7 +466,43 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::Click)
         {
-            DisplayShutdownDialog();
+            DDMenu* ddm = new DDMenu();
+            ddm->CreatePopupMenu(false);
+            ddm->AppendMenuW(MF_STRING, 2001, LoadStrFromRes(3052, L"shutdownux.dll").c_str());
+            ddm->AppendMenuW(MF_STRING, 2002, LoadStrFromRes(3034, L"shutdownux.dll").c_str());
+            ddm->AppendMenuW(MF_STRING, 2003, LoadStrFromRes(3019, L"shutdownux.dll").c_str());
+            ddm->AppendMenuW(MF_STRING, 2004, LoadStrFromRes(3022, L"shutdownux.dll").c_str());
+            ddm->AppendMenuW(MF_STRING, 2005, LoadStrFromRes(3013, L"shutdownux.dll").c_str());
+            ddm->AppendMenuW(MF_STRING, 2006, LoadStrFromRes(3016, L"shutdownux.dll").c_str());
+            ddm->AppendMenuW(MF_STRING, 2007, L"More...");
+            for (int i = 1; i <= 6; i++)
+                ddm->SetMenuItemGlyph(i + 2000, FALSE, LoadStrFromRes(i + 200).c_str());
+            UINT uFlags = TPM_RIGHTBUTTON | TPM_CENTERALIGN | TPM_TOPALIGN | TPM_RETURNCMD | TPM_VERPOSANIMATION;
+            if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
+
+            POINT ptZero{}, pt{};
+            RECT rcMenu{};
+            elem->GetRoot()->MapElementPoint(elem, &ptZero, &pt);
+            ddm->GetMenuRect(&rcMenu);
+            pt.x += elem->GetWidth() / 2;
+            pt.y += elem->GetHeight();
+            UINT uID = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, editwnd->GetHWND(), nullptr);
+            switch (uID)
+            {
+            case 2001:
+            case 2002:
+            case 2003:
+            case 2004:
+            case 2005:
+            case 2006:
+                delayedshutdownstatuses[uID - 2001] = true; // Used by shutdown dialog
+                SendMessageW(wnd->GetHWND(), WM_USER + 19, NULL, uID - 2000);
+                break;
+            case 2007:
+                DisplayShutdownDialog();
+                break;
+            }
+            ddm->DestroyPopupMenu();
         }
     }
 
@@ -708,13 +745,13 @@ namespace DirectDesktop
             short direction = (localeType == 1) ? -1 : 1;
             if (g_currentPageID > 1)
             {
-                TriggerTranslate(prevpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, prevpage->GetX() - dimensions.right * 0.1 * direction, prevpage->GetY(), prevpage->GetX(), prevpage->GetY(), false, false);
+                TriggerTranslate(prevpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, prevpage->GetX() - dimensions.right * 0.1 * direction, prevpage->GetY(), prevpage->GetX(), prevpage->GetY(), false, false, false);
                 TriggerScaleIn(bg_left_middle, transDesc2, 1, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, 1.0f, 1.0f, 1.0f - scaleOrigin, 0.5f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
             }
             if (g_currentPageID < g_maxPageID)
             {
-                TriggerTranslate(nextpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, nextpage->GetX() + dimensions.right * 0.1 * direction, nextpage->GetY(), nextpage->GetX(), nextpage->GetY(), false, false);
+                TriggerTranslate(nextpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, nextpage->GetX() + dimensions.right * 0.1 * direction, nextpage->GetY(), nextpage->GetX(), nextpage->GetY(), false, false, false);
                 TriggerScaleIn(bg_right_middle, transDesc2, 1, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, scaleOrigin, 0.5f, 1.0f, 1.0f, scaleOrigin, 0.5f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
             }
@@ -1045,10 +1082,10 @@ namespace DirectDesktop
         if (iev->uidType == TouchButton::Click)
         {
             DDMenu* ddm = new DDMenu();
-            ddm->CreatePopupDDMenu(false);
-            ddm->AppendMenuW(MF_STRING, 0, L"Restart E&xplorer");
+            ddm->CreatePopupMenu(false);
+            ddm->AppendMenuW(MF_STRING, 1, L"Restart E&xplorer");
             ddm->AppendMenuW(MF_STRING, 69, L"Do not restart &Explorer");
-            UINT uFlags = TPM_RIGHTBUTTON | TPM_CENTERALIGN | TPM_BOTTOMALIGN | TPM_RETURNCMD;
+            UINT uFlags = TPM_RIGHTBUTTON | TPM_CENTERALIGN | TPM_BOTTOMALIGN | TPM_RETURNCMD | TPM_VERNEGANIMATION;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
 
             POINT ptZero{}, pt{};
@@ -1057,7 +1094,8 @@ namespace DirectDesktop
             ddm->GetMenuRect(&rcMenu);
             pt.x += elem->GetWidth() / 2;
             LPARAM lParam = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, editwnd->GetHWND(), nullptr);
-            if (lParam >= 0)
+            ddm->DestroyPopupMenu();
+            if (lParam > 0)
             {
                 SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
                 SendMessageW(wnd->GetHWND(), WM_CLOSE, NULL, lParam);
@@ -1321,15 +1359,14 @@ namespace DirectDesktop
             int rightMon = GetRightMonitor();
             topLeftMon.x = dimensions.right + dimensions.left - rightMon;
         }
-        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = NULL, dwHostFlags = NULL;
+        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
-            dwCreateFlags = 0x38;
-            dwHostFlags = 0x43;
+            dwCreateFlags |= 0x28;
         }
         NativeHWNDHost::Create(L"DD_EditModeHost", L"DirectDesktop Edit Mode", nullptr, nullptr, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
-                               9999, 9999, dwExStyle, WS_POPUP, nullptr, dwHostFlags, &editwnd);
+                               9999, 9999, dwExStyle, WS_POPUP, nullptr, 0x43, &editwnd);
         HWNDElement::Create(editwnd->GetHWND(), true, dwCreateFlags, nullptr, &key5, (Element**)&editparent);
         //NativeHWNDHost::Create(L"DD_EditModeBlur", L"DirectDesktop Edit Mode Blur Helper", nullptr, NULL, dimensions.left - topLeftMon.x, dimensions.top - topLeftMon.y,
         //dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, NULL, WS_POPUP, nullptr, 0x43, &editbgwnd);

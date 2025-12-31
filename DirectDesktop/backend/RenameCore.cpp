@@ -127,7 +127,7 @@ namespace DirectDesktop
                         DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
                         DestroyWindow(hWnd);
                         textElement.Assign(((LVItem*)dwRefData)->GetText());
-                        innerElement.Assign(regElem<RichText*>(L"innerElem", (Element*)dwRefData));
+                        innerElement.Assign(((LVItem*)dwRefData)->GetInnerElement());
                         textElement->SetVisible(true);
                         if (!g_touchmode)
                             innerElement->SetVisible(true);
@@ -179,7 +179,7 @@ namespace DirectDesktop
                     DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
                     DestroyWindow(hWnd);
                     textElement.Assign(((LVItem*)dwRefData)->GetText());
-                    innerElement.Assign(regElem<RichText*>(L"innerElem", (Element*)dwRefData));
+                    innerElement.Assign(((LVItem*)dwRefData)->GetInnerElement());
                     textElement->SetVisible(true);
                     if (!g_touchmode)
                         innerElement->SetVisible(true);
@@ -199,14 +199,16 @@ namespace DirectDesktop
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
 
-    void ShowRename()
+    void ShowRename(LVItem* lviOpt)
     {
         int itemWidth{}, itemHeight{}, itemX{}, itemY{}, textWidth{}, textHeight{}, textX{}, textY{};
         int found{};
         int itemID{};
+        if (lviOpt)
+            found++;
         for (int items = 0; items < pm.size(); items++)
         {
-            if (pm[items]->GetSelected() == true)
+            if (pm[items]->GetSelected() == true && pm[items] != lviOpt)
             {
                 found++;
                 if (found > 1)
@@ -220,27 +222,29 @@ namespace DirectDesktop
                 itemID = items;
             }
         }
+        if (!lviOpt)
+            lviOpt = pm[itemID];
         if (found == 1)
         {
             static RichText* textElement{};
             static Element* innerElement{};
             static Element* RenameBoxTexture{};
-            if (pm[itemID]->GetPage() == g_currentPageID)
+            if (lviOpt->GetPage() == g_currentPageID)
             {
                 RECT dimensions{};
                 GetClientRect(wnd->GetHWND(), &dimensions);
                 int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
                 g_renameactive = true;
-                textElement = pm[itemID]->GetText();
-                innerElement = regElem<RichText*>(L"innerElem", pm[itemID]);
+                textElement = lviOpt->GetText();
+                innerElement = lviOpt->GetInnerElement();
                 textElement->SetVisible(false);
                 if (!g_touchmode)
                     innerElement->SetVisible(false);
                 LoadLibraryW(L"Msftedit.dll");
-                itemWidth = pm[itemID]->GetWidth();
-                itemHeight = pm[itemID]->GetHeight();
-                itemX = (localeType == 1) ? dimensions.right - pm[itemID]->GetMemXPos() - itemWidth : pm[itemID]->GetMemXPos();
-                itemY = pm[itemID]->GetMemYPos();
+                itemWidth = lviOpt->GetWidth();
+                itemHeight = lviOpt->GetHeight();
+                itemX = (localeType == 1) ? dimensions.right - lviOpt->GetMemXPos() - itemWidth : lviOpt->GetMemXPos();
+                itemY = lviOpt->GetMemYPos();
                 // 0.4.9: width, x, and y are hardcoded due to changing layoutpos of text from absolute to top in touchmode
                 textWidth = g_touchmode ? textElement->GetWidth() - 6 * g_flScaleFactor : textElement->GetWidth();
                 // 0.5.2: Text element now contains the shadow, so the height increased. As a result, 4 is now 2
@@ -270,7 +274,7 @@ namespace DirectDesktop
                 parser->GetSheet(sheetName, &sheetStorage);
                 RenameBoxTexture->SetValue(Element::SheetProp, 1, sheetStorage);
                 DWORD alignment = g_touchmode ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
-                HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, pm[itemID]->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
+                HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, lviOpt->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
                     ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, wnd->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, nullptr);
                 LOGFONTW lf{};
                 int dpiAdjusted = (g_dpiLaunch * 96.0) * (g_dpiLaunch / 96.0) / g_dpi;
@@ -295,10 +299,10 @@ namespace DirectDesktop
                 else
                     SetWindowPos(hRichEdit, HWND_TOP, itemX + rcPadding.left, itemY + itemHeight - textHeight + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
                 SetFocus(hRichEdit);
-                int textLen = pm[itemID]->GetSimpleFilename().find_last_of(L".");
-                if (textLen == wstring::npos) textLen = pm[itemID]->GetSimpleFilename().length();
+                int textLen = lviOpt->GetSimpleFilename().find_last_of(L".");
+                if (textLen == wstring::npos) textLen = lviOpt->GetSimpleFilename().length();
                 SendMessageW(hRichEdit, EM_SETSEL, 0, textLen);
-                SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)pm[itemID]);
+                SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)lviOpt);
             }
         }
     }

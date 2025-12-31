@@ -35,9 +35,11 @@ namespace DirectDesktop
     }
 
     void TriggerTranslate(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
-        float rX0, float rY0, float rX1, float rY1, float initialPosX, float initialPosY, float targetPosX, float targetPosY, bool fHide, bool fDestroy)
+        float rX0, float rY0, float rX1, float rY1, float initialPosX, float initialPosY, float targetPosX, float targetPosY, bool fHide, bool fDestroy, bool fAutoPos)
     {
         DWORD animCoef = g_animCoef;
+        POINT ptZero{}, ptLoc{};
+        if (fAutoPos) pe->GetParent()->MapElementPoint(pe, &ptZero, &ptLoc);
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
         flDelay *= (animCoef / 100.0f);
         flDuration *= (animCoef / 100.0f);
@@ -51,10 +53,10 @@ namespace DirectDesktop
         rgTrans[transIndex].Curve.ptfl1.y = rY0;
         rgTrans[transIndex].Curve.ptfl2.x = rX1;
         rgTrans[transIndex].Curve.ptfl2.y = rY1;
-        rgTrans[transIndex].vInitial.flX = initialPosX;
-        rgTrans[transIndex].vInitial.flY = initialPosY;
-        rgTrans[transIndex].vEnd.flX = targetPosX;
-        rgTrans[transIndex].vEnd.flY = targetPosY;
+        rgTrans[transIndex].vInitial.flX = initialPosX + ptLoc.x;
+        rgTrans[transIndex].vInitial.flY = initialPosY + ptLoc.y;
+        rgTrans[transIndex].vEnd.flX = targetPosX + ptLoc.x;
+        rgTrans[transIndex].vEnd.flY = targetPosY + ptLoc.y;
         float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
@@ -181,6 +183,42 @@ namespace DirectDesktop
             if (hHide) CloseHandle(hHide);
         }
     }
+    void TriggerRotate(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
+        float rX0, float rY0, float rX1, float rY1, float initialAngle, float targetAngle, float targetOriginX, float targetOriginY, bool fHide, bool fDestroy)
+    {
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        flDelay *= (animCoef / 100.0f);
+        flDuration *= (animCoef / 100.0f);
+        rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
+        rgTrans[transIndex].nFlags = 0x201;
+        rgTrans[transIndex].nProperty = 4;
+        rgTrans[transIndex].dwTicket = GetGadgetTicket(pe->GetDisplayNode());
+        rgTrans[transIndex].flDelay = flDelay;
+        rgTrans[transIndex].flDuration = flDuration;
+        rgTrans[transIndex].Curve.ptfl1.x = rX0;
+        rgTrans[transIndex].Curve.ptfl1.y = rY0;
+        rgTrans[transIndex].Curve.ptfl2.x = rX1;
+        rgTrans[transIndex].Curve.ptfl2.y = rY1;
+        rgTrans[transIndex].vInitial.flScalar = initialAngle;
+        rgTrans[transIndex].vEnd.flScalar = targetAngle;
+        rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
+        rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
+        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        if (fDestroy)
+        {
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
+            HANDLE hDestroy = CreateThread(nullptr, 0, DestroyElement, dea, NULL, nullptr);
+            if (hDestroy) CloseHandle(hDestroy);
+        }
+        else if (fHide)
+        {
+            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
+            HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
+            if (hHide) CloseHandle(hHide);
+        }
+    }
     void TriggerSkew(Element* pe, GTRANS_DESC* rgTrans, UINT transIndex, float flDelay, float flDuration,
         float rX0, float rY0, float rX1, float rY1, float initialAngleX, float initialAngleY, float targetAngleX, float targetAngleY, bool fHide, bool fDestroy)
     {
@@ -262,4 +300,4 @@ namespace DirectDesktop
             if (hHide) CloseHandle(hHide);
         }
     }
-}
+} 

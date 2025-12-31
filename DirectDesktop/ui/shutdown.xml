@@ -11,10 +11,17 @@
 			</Element>
 		</Element>
 		<DDScalableElement id="atom(Logo)" direction="ltr" ScaledImageIntervals="7" DrawType="2" contentalign="middlecenter" layoutpos="top" height="96rp" padding="rect(0,0,0,16rp)"/> // Use 12rp instead of 16 if using standard titlebar
-		<Element id="atom(SeparatorLine)" layoutpos="top" height="1rp"/>
-		<Element id="atom(StatusBar)" layoutpos="top" layout="filllayout()"/>
-		<Element id="atom(ShutdownEventTracker)" layoutpos="top" layout="filllayout()"/>
-		<Element id="atom(ShutdownActions)" layoutpos="client" layout="gridlayout(2,3)" padding="rect(12rp,12rp,12rp,12rp)">
+		<Element class="separator" layoutpos="top" height="1rp"/>
+		<Element id="atom(StatusBar)" layoutpos="top" layout="filllayout()" class="section"/>
+		<Element id="atom(ShutdownEventTracker)" layoutpos="top" layout="filllayout()" class="section"/>
+		<Element layoutpos="bottom" layout="flowlayout(0,0,0,0)" padding="rect(12rp,12rp,12rp,12rp)" background="argb(0,0,0,0)">
+			<DDScalableButton id="atom(AdvancedOptionsExpando)" class="hyperlink" layout="flowlayout(0,2,0,2)" padding="rect(-4rp,0,0,0)">
+				<RichText id="atom(AdvancedOptionsArrow)" background="argb(0,0,0,0)" padding="rect(0,1rp,0,0)"/>
+				<DDScalableElement content="resstr(543, library(bootux.dll))" background="argb(0,0,0,0)"/>
+			</DDScalableButton>
+		</Element>
+		<Element class="separator" layoutpos="bottom" height="1rp"/>
+		<Element id="atom(ShutdownActions)" class="section" layoutpos="top" height="211rp" layout="gridlayout(2,3)" padding="rect(12rp,12rp,12rp,12rp)">
 			<DDIconButton id="atom(SwitchUser)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3052, library(shutdownux.dll))" iconcontent="resstr(201)" accdesc="resstr(3053, library(shutdownux.dll))"/>
 			<DDIconButton id="atom(SignOut)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3034, library(shutdownux.dll))" iconcontent="resstr(202)" accdesc="resstr(3035, library(shutdownux.dll))"/>
 			<DDIconButton id="atom(SleepButton)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3019, library(shutdownux.dll))" iconcontent="resstr(203)" accdesc="resstr(3021, library(shutdownux.dll))"/>
@@ -22,14 +29,7 @@
 			<DDIconButton id="atom(Shutdown)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3013, library(shutdownux.dll))" iconcontent="resstr(205)" accdesc="resstr(3015, library(shutdownux.dll))"/>
 			<DDIconButton id="atom(Restart)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3016, library(shutdownux.dll))" iconcontent="resstr(206)" accdesc="resstr(3018, library(shutdownux.dll))"/>
 		</Element>
-		<Element id="atom(AdvancedOptionsBar)" layoutpos="bottom" layout="flowlayout(0,0,0,0)" padding="rect(12rp,12rp,12rp,12rp)" background="argb(0,0,0,0)">
-			<DDScalableButton class="hyperlink" layout="flowlayout(0,2,0,2)" padding="rect(0,4rp,4rp,4rp)">
-				<RichText id="atom(AdvancedOptionsArrow)" background="argb(0,0,0,0)" padding="rect(0,1rp,0,0)"/>
-				<DDScalableElement content="resstr(543, library(bootux.dll))" background="argb(0,0,0,0)"/>
-			</DDScalableButton>
-		</Element>
-		<Element id="atom(SeparatorLine2)" layoutpos="bottom" height="1rp"/>
-		<Element id="atom(AdvancedOptions)" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)" height="108rp">
+		<Element id="atom(AdvancedOptions)" class="section" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)">
 			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
 				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,2rp,0,2rp)" content="resstr(4035)"/>
 				<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="messagefont;115%" NeedsFontResize="true"/>
@@ -42,7 +42,7 @@
 			</Element>
 		</Element>
 	</HWNDElement>
-	<Element resid="StatusBar" layout="borderlayout()" height="52rp" padding="rect(12rp,12rp,12rp,0)" background="argb(0,0,0,0)">
+	<Element resid="StatusBar" layout="borderlayout()" padding="rect(12rp,12rp,12rp,0)" background="argb(0,0,0,0)">
 		<Element layoutpos="left" layout="flowlayout(0,2,0,0)">
 			<RichText id="atom(StatusIcon)" font="14pt;Normal;None;Segoe Fluent Icons" content="resstr(207)" contentalign="middleleft"/>
 		</Element>
@@ -54,7 +54,7 @@
 			<DDScalableElement id="atom(ReasonText)" layoutpos="none" class="statustext" contentalign="middleleft|endellipsis"/>
 		</Element>
 	</Element>
-	<Element resid="ShutdownEventTracker" layout="borderlayout()" height="92rp" padding="rect(12rp,12rp,12rp,0)" background="argb(0,0,0,0)">
+	<Element resid="ShutdownEventTracker" layout="borderlayout()" padding="rect(12rp,12rp,12rp,0)" background="argb(0,0,0,0)">
 		<DDScalableElement id="atom(SETText)" layoutpos="top" class="statustext" font="messagefont;115%;bold" height="20rp"/>
 		<DDScalableElement id="atom(SETDescription)" layoutpos="top" class="statustext" content="resstr(3003, library(shutdownux.dll))" font="messagefont;100%" height="28rp"/>
 		<DDCombobox id="atom(SETReason)" layoutpos="top" listmaxheight="360rp"/>
@@ -79,6 +79,12 @@
 			</if>
 			<if id="atom(TitlebarText)">
 				<DDScalableElement foreground="black"/>
+			</if>
+			<if class="section">
+				<Element background="argb(102,255,255,255)"/>
+			</if>
+			<if class="separator">
+				<Element background="argb(32,0,0,0)"/>
 			</if>
 			<if class="dialogbutton">
 				<DDIconButton FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" NeedsFontResize="true" tooltip="true" margin="rect(0,0,12rp,12rp)"
@@ -137,6 +143,12 @@
 			</if>
 			<if id="atom(TitlebarText)">
 				<DDScalableElement foreground="white"/>
+			</if>
+			<if class="section">
+				<Element background="argb(12,255,255,255)"/>
+			</if>
+			<if class="separator">
+				<Element background="argb(32,255,255,255)"/>
 			</if>
 			<if class="dialogbutton">
 				<DDIconButton FirstScaledImage="2015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="1" NeedsFontResize="true" tooltip="true" margin="rect(0,0,12rp,12rp)"

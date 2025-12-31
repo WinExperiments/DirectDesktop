@@ -28,8 +28,12 @@ namespace DirectDesktop
     DDScalableTouchEdit* delayseconds;
 
     HANDLE ActionThread, TimerThread;
+    HWND hShutdownTimer;
     int savedremaining; // Display remaining time immediately when the dialog is invoked
     wstring reasonStr = LoadStrFromRes(8261, L"user32.dll");
+    bool g_dialogAnimation = false;
+
+    typedef HWND(WINAPI* pfnSHCreateWorkerWindowW)(WNDPROC, HWND, DWORD, DWORD, LPVOID);
 
     struct DialogValues
     {
@@ -114,6 +118,59 @@ namespace DirectDesktop
         return CallWindowProc(WndProcShutdown, hWnd, uMsg, wParam, lParam);
     }
 
+    LRESULT CALLBACK ShutdownTimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        static RECT rcWindow{}, rcGadget{};
+        static LONGLONG s_tick{};
+        static short windowDirection;
+        CSafeElementPtr<Element> ShutdownActions;
+        switch (uMsg)
+        {
+        case WM_TIMER:
+            switch (wParam)
+            {
+            case 1:
+            case 3:
+                KillTimer(hWnd, wParam);
+                KillTimer(hWnd, wParam + 1);
+                windowDirection = (wParam == 1) ? -1 : 1;
+                s_tick = GetTickCount64();
+                GetClientRect(shutdownwnd->GetHWND(), &rcWindow);
+                rcWindow.right += 2;
+                rcWindow.bottom += 2;
+                ShutdownActions.Assign(regElem<Element*>(L"ShutdownActions", pShutdown));
+                ShutdownActions->SetLayoutPos(-3);
+                GetGadgetRect(AdvancedOptions->GetDisplayNode(), &rcGadget, 0xC);
+                ShutdownActions->SetLayoutPos(1);
+                SetTimer(hWnd, wParam + 1, 10, nullptr);
+                break;
+            case 2:
+            case 4:
+                LONGLONG dwTickDiff = GetTickCount64() - s_tick;
+                LONGLONG dwDistDiff{}, dwDistThreshold;
+                dwDistDiff = dwTickDiff * windowDirection * 0.67f;
+                dwDistThreshold = (rcGadget.bottom - rcGadget.top) * windowDirection;
+                if (abs(dwDistDiff) <= abs(dwDistThreshold))
+                {
+                    SetWindowPos(shutdownwnd->GetHWND(), NULL, NULL, NULL, rcWindow.right, rcWindow.bottom + dwDistDiff, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
+                }
+                else
+                {
+                    dwDistDiff = dwDistThreshold;
+                    SetWindowPos(shutdownwnd->GetHWND(), NULL, NULL, NULL, rcWindow.right, rcWindow.bottom + dwDistDiff, SWP_NOMOVE | SWP_NOZORDER);
+                    KillTimer(hWnd, wParam - 1);
+                    KillTimer(hWnd, wParam);
+                    if (windowDirection == -1)
+                        AdvancedOptions->SetLayoutPos(-3);
+                    g_dialogAnimation = false;
+                }
+                break;
+            }
+            return 0;
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
     DWORD WINAPI ShowTimerStatus(LPVOID lpParam)
     {
         DialogValues* dv = (DialogValues*)lpParam;
@@ -186,30 +243,20 @@ namespace DirectDesktop
 
     void ToggleAdvancedOptions(Element* elem, Event* iev)
     {
-        static int expanded{};
-        if (iev->uidType == Button::Click)
+        if (iev->uidType == Button::Click && !g_dialogAnimation)
         {
-            expanded++;
-            short pos = expanded & 2 ? 3 : -3;
-            bool arrowselection = expanded & 2 ? true : false;
-            AdvancedOptions->SetLayoutPos(pos);
+            AdvancedOptions->SetLayoutPos(3);
             CSafeElementPtr<RichText> AdvancedOptionsArrow;
             AdvancedOptionsArrow.Assign(regElem<RichText*>(L"AdvancedOptionsArrow", elem));
-            AdvancedOptionsArrow->SetSelected(arrowselection);
-            int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
-            int sizeX = 500 * g_flScaleFactor;
-            int sizeY = 400 * g_flScaleFactor;
-            if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 92 * g_flScaleFactor;
-            for (int i = 0; i < 6; i++)
-            {
-                if (delayedshutdownstatuses[i] == true)
-                {
-                    sizeY += StatusBarResid->GetHeight();
-                    break;
-                }
-            }
-            if (expanded & 2) sizeY += AdvancedOptions->GetHeight();
-            SetWindowPos(shutdownwnd->GetHWND(), nullptr, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
+            elem->SetSelected(!elem->GetSelected());
+            short angle = elem->GetSelected() ? 180 : -180;
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerRotate(AdvancedOptionsArrow, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, angle, 0.0f, 0.5f, 0.5f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, AdvancedOptionsArrow->GetDisplayNode(), &tsbInfo);
+            BYTE timerID = (elem->GetSelected()) ? 3 : 1;
+            SetTimer(hShutdownTimer, timerID, 0, nullptr);
+            g_dialogAnimation = true;
         }
     }
 
@@ -335,13 +382,12 @@ namespace DirectDesktop
         int ShutdownReasonUI = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Policies\\Microsoft\\Windows NT\\Reliability", L"ShutdownReasonUI");
         int sizeX = 500 * g_flScaleFactor;
         int sizeY = 400 * g_flScaleFactor;
-        if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2) sizeY += 92 * g_flScaleFactor;
-        RECT dimensions;
+        RECT dimensions, rcGadgetRect{};
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), nullptr, nullptr, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, nullptr, 0x43, &shutdownwnd);
         DUIXmlParser::Create(&parserShutdown, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
         parserShutdown->SetXMLFromResource(IDR_UIFILE4, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
-        HWNDElement::Create(shutdownwnd->GetHWND(), true, NULL, nullptr, &key3, (Element**)&parentShutdown);
+        NativeHWNDHost::Create(L"DD_ShutdownHost", caption.c_str(), nullptr, nullptr, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, nullptr, 0x43, &shutdownwnd);
+        HWNDElement::Create(shutdownwnd->GetHWND(), true, 0x10, nullptr, &key3, (Element**)&parentShutdown);
         Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList = nullptr;
         if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
             IID_ITaskbarList, (void**)&pTaskbarList)))
@@ -365,16 +411,10 @@ namespace DirectDesktop
         Logo.Assign(regElem<DDScalableElement*>(L"Logo", pShutdown));
         CSafeElementPtr<Element> StatusBar;
         StatusBar.Assign(regElem<Element*>(L"StatusBar", pShutdown));
-        CSafeElementPtr<Element> SeparatorLine;
-        SeparatorLine.Assign(regElem<Element*>(L"SeparatorLine", pShutdown));
-        CSafeElementPtr<Element> SeparatorLine2;
-        SeparatorLine2.Assign(regElem<Element*>(L"SeparatorLine2", pShutdown));
-        CSafeElementPtr<Element> ShutdownActions;
-        ShutdownActions.Assign(regElem<Element*>(L"ShutdownActions", pShutdown));
         CSafeElementPtr<Element> ShutdownEventTracker;
         ShutdownEventTracker.Assign(regElem<Element*>(L"ShutdownEventTracker", pShutdown));
-        CSafeElementPtr<Element> AdvancedOptionsBar;
-        AdvancedOptionsBar.Assign(regElem<Element*>(L"AdvancedOptionsBar", pShutdown));
+        CSafeElementPtr<DDScalableButton> AdvancedOptionsExpando;
+        AdvancedOptionsExpando.Assign(regElem<DDScalableButton*>(L"AdvancedOptionsExpando", pShutdown));
         RestartWinRE = regElem<DDScalableButton*>(L"RestartWinRE", pShutdown);
         RestartBIOS = regElem<DDScalableButton*>(L"RestartBIOS", pShutdown);
         FIRMWARE_TYPE firmwareType{};
@@ -394,8 +434,6 @@ namespace DirectDesktop
                 StatusText = regElem<DDScalableElement*>(L"StatusText", StatusBarResid);
                 StatusCancel = regElem<DDScalableTouchButton*>(L"StatusCancel", StatusBarResid);
                 assignFn(StatusCancel, PerformOperation);
-                sizeY += StatusBarResid->GetHeight();
-                SetWindowPos(shutdownwnd->GetHWND(), nullptr, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
                 StatusText->SetContentString(GetNotificationString(i + 1, savedremaining).c_str());
                 if (ShutdownReasonUI == 1 || ShutdownReasonUI == 2)
                 {
@@ -407,6 +445,8 @@ namespace DirectDesktop
                     ReasonText->SetContentString(cReason);
                     if (cReason) delete[] cReason;
                 }
+                GetGadgetRect(StatusBarResid->GetDisplayNode(), &rcGadgetRect, 0xC);
+                sizeY += rcGadgetRect.bottom - rcGadgetRect.top;
                 break;
             }
         }
@@ -431,7 +471,10 @@ namespace DirectDesktop
             for (short s = 8299; s <= 8301; s++) SETReason->InsertSelection(DDCombobox::MAX_SELECTIONS, LoadStrFromRes(s, L"user32.dll").c_str());
             SETReason->SetSelection(0);
             assignFn(SETReason, UpdateShutdownReasonCode);
+            GetGadgetRect(ShutdownEventTracker->GetDisplayNode(), &rcGadgetRect, 0xC);
+            sizeY += rcGadgetRect.bottom - rcGadgetRect.top;
         }
+        SetWindowPos(shutdownwnd->GetHWND(), nullptr, 0, 0, sizeX, sizeY, SWP_NOMOVE | SWP_NOZORDER);
         WCHAR* cBuffer = new WCHAR[64];
         int dpiAdjusted = (g_dpi * 96.0) / g_dpiLaunch;
         StringCchPrintfW(cBuffer, 64, LoadStrFromRes(208).c_str(), static_cast<int>((min(GetSystemMetricsForDpi(SM_CXSMICON, dpiAdjusted), GetSystemMetricsForDpi(SM_CYSMICON, dpiAdjusted))) * 0.75));
@@ -440,26 +483,6 @@ namespace DirectDesktop
         stars->SetFont(cBuffer);
         delete[] cBuffer;
         TitlebarText->SetContentString(caption.c_str());
-        HICON dummyi = (HICON)LoadImageW(LoadLibraryW(L"imageres.dll"), MAKEINTRESOURCE(2), IMAGE_ICON, 16, 16, LR_SHARED);
-        HBITMAP colorBMP{}, colorBMP2{};
-        IconToBitmap(dummyi, colorBMP, 16, 16);
-        IconToBitmap(dummyi, colorBMP2, 16, 16);
-        COLORREF separator = g_theme ? RGB(0, 0, 0) : RGB(255, 255, 255);
-        float bodyalpha = g_theme ? 0.4 : 0.05;
-        IterateBitmap(colorBMP, SimpleBitmapPixelHandler, 3, 0, 0.125, separator);
-        CValuePtr spvColorBMP = DirectUI::Value::CreateGraphic(colorBMP, 7, 0xffffffff, false, false, false);
-        SeparatorLine->SetValue(Element::BackgroundProp, 1, spvColorBMP);
-        SeparatorLine2->SetValue(Element::BackgroundProp, 1, spvColorBMP);
-        DeleteObject(colorBMP);
-        COLORREF white = RGB(255, 255, 255);
-        IterateBitmap(colorBMP2, SimpleBitmapPixelHandler, 3, 0, bodyalpha, white);
-        CValuePtr spvColorBMP2 = DirectUI::Value::CreateGraphic(colorBMP2, 7, 0xffffffff, false, false, false);
-        ShutdownActions->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
-        AdvancedOptions->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
-        StatusBar->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
-        ShutdownEventTracker->SetValue(Element::BackgroundProp, 1, spvColorBMP2);
-        DeleteObject(dummyi);
-        DeleteObject(colorBMP2);
         WCHAR* WindowsBuildStr;
         GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
         int WindowsBuild = _wtoi(WindowsBuildStr);
@@ -488,7 +511,7 @@ namespace DirectDesktop
             DwmSetWindowAttribute(shutdownwnd->GetHWND(), DWMWA_SYSTEMBACKDROP_TYPE, &backdrop_type, sizeof(backdrop_type));
             DWORD cornerPreference = DWMWCP_ROUND;
             DwmSetWindowAttribute(shutdownwnd->GetHWND(), DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, sizeof(cornerPreference));
-            pShutdown->SetBackgroundStdColor(7);
+            pShutdown->SetBackgroundColor(0);
         }
         if (WindowsBuild < 21996)
         {
@@ -515,10 +538,17 @@ namespace DirectDesktop
         {
             assignFn(btn, PerformOperation);
         }
-        assignFn(AdvancedOptionsBar, ToggleAdvancedOptions);
+        assignFn(AdvancedOptionsExpando, ToggleAdvancedOptions);
         assignFn(delaytoggle, ToggleDelayOption);
         assignFn(RestartWinRE, AdvancedShutdown);
         assignFn(RestartBIOS, AdvancedShutdown);
+        HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+        if (hShlwapi)
+        {
+            pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+            hShutdownTimer = SHCreateWorkerWindowW(ShutdownTimerProc, HWND_MESSAGE, 0, 0, nullptr);
+        }
     }
 
     void DestroyShutdownDialog()
@@ -526,9 +556,12 @@ namespace DirectDesktop
         CSafeElementPtr<DDScalableElement> delaysecondsbackground;
         delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
         if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
-        AnimateWindow(shutdownwnd->GetHWND(), 120, AW_BLEND | AW_HIDE);
+        DWORD animCoef = g_animCoef;
+        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        AnimateWindow(shutdownwnd->GetHWND(), (120 * animCoef / 100), AW_BLEND | AW_HIDE);
         pShutdown->DestroyAll(true);
         shutdownwnd->DestroyWindow();
+        DestroyWindow(hShutdownTimer);
         g_dialogopen = false;
     }
 }

@@ -11,7 +11,6 @@ namespace DirectDesktop
     extern int g_dpi, g_dpiOld, g_dpiLaunch;
     extern bool g_atleastonesetting;
     extern DWORD g_animCoef;
-    extern DUIXmlParser* parser;
     extern int GetCurrentScaleInterval();
     struct yValue;
 
@@ -384,6 +383,7 @@ namespace DirectDesktop
             , _opendirstate(LVIODS_NONE)
             , _smallPos(1)
             , _touchGrid(nullptr)
+            , _peInner(nullptr)
             , _peIcon(nullptr)
             , _peShortcutArrow(nullptr)
             , _peText(nullptr)
@@ -438,10 +438,12 @@ namespace DirectDesktop
         LVItemTouchGrid* GetTouchGrid();
         void SetTouchGrid(LVItemTouchGrid* lvitg);
         void SetTouchGrid(LVItemTouchGrid* lvitg, BYTE index);
+        DDScalableElement* GetInnerElement();
         DDScalableElement* GetIcon();
         Element* GetShortcutArrow();
         RichText* GetText();
         TouchButton* GetCheckbox();
+        void SetInnerElement(DDScalableElement* peInner);
         void SetIcon(DDScalableElement* peIcon);
         void SetShortcutArrow(Element* peShortcutArrow);
         void SetText(RichText* peText);
@@ -453,29 +455,30 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
-        wstring _filename{};
-        wstring _simplefilename{};
+        wstring _filename;
+        wstring _simplefilename;
         LVItemFlags _flags;
-        unsigned short _xPos = 65535;
-        unsigned short _yPos = 65535;
-        unsigned short _mem_xPos = 0;
-        unsigned short _mem_yPos = 0;
-        unsigned short _page{};
-        unsigned short _mem_page{};
-        unsigned short _prmem_page{};
-        unsigned short _mem_iconsize{};
-        unsigned short _itemCount{};
-        unsigned short _itemIndex{};
-        LVItemGroupSize _groupsize = LVIGS_NORMAL;
-        LVItemTileSize _tilesize = LVITS_NONE;
-        LVItemOpenDirState _opendirstate = LVIODS_NONE;
-        BYTE _smallPos = 1;
-        LVItemTouchGrid* _touchGrid{};
-        DDScalableElement* _peIcon{};
-        Element* _peShortcutArrow{};
-        RichText* _peText{};
-        TouchButton* _peCheckbox{};
-        vector<LVItem*>* _childItemss{};
+        unsigned short _xPos;
+        unsigned short _yPos;
+        unsigned short _mem_xPos;
+        unsigned short _mem_yPos;
+        unsigned short _page;
+        unsigned short _mem_page;
+        unsigned short _prmem_page;
+        unsigned short _mem_iconsize;
+        unsigned short _itemCount;
+        unsigned short _itemIndex;
+        LVItemGroupSize _groupsize;
+        LVItemTileSize _tilesize;
+        LVItemOpenDirState _opendirstate;
+        BYTE _smallPos;
+        LVItemTouchGrid* _touchGrid;
+        DDScalableElement* _peInner;
+        DDScalableElement* _peIcon;
+        Element* _peShortcutArrow;
+        RichText* _peText;
+        TouchButton* _peCheckbox;
+        vector<LVItem*>* _childItemss;
         vector<IElementListener*> _pels;
     };
 
@@ -657,6 +660,7 @@ namespace DirectDesktop
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
         void OnEvent(Event* pEvent) override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         static HRESULT Register();
         void SetNumberID(short id);
@@ -976,6 +980,7 @@ namespace DirectDesktop
             , _submenu(nullptr)
             , _lpmii(nullptr)
             , _fRadio(false)
+            , _uOrder(0)
         {
         }
 
@@ -1000,27 +1005,35 @@ namespace DirectDesktop
         DDScalableRichText* _peSubmenuArrow;
         DDMenu* _submenu;
         LPMENUITEMINFOW _lpmii;
-        bool _fRadio; // TODO: Use MFT_RADIOCHECK flag directly
+        bool _fRadio;
+        UINT _uOrder;
         HRESULT _CreateMBVisual();
     };
 
     class DDMenu
     {
         friend class DDMenuButton;
+#define DDM_ANIMATESUBMENUS 0x10000
     public:
         DDMenu()
             : _pICv1(nullptr)
+            , _pICAlt(nullptr)
             , _hMenu(nullptr)
             , _hTimer(nullptr)
+            , _interfaceLevel(0)
             , _uTrackFlags(0)
+            , _uID(0)
             , _count(0)
             , _width(0)
             , _fUsingLegacy(false)
             , _fDone(false)
-            , _fAnimating(false)
+            , _fAnimating(true) // Needed for initial displaying
+            , _fDynamicInit(false)
+            , _fUniqueCM(false)
             , _subLevel(0)
             , _selectedCommand(0)
             , _tick(0)
+            , _rcMenu{}
             , _parent(nullptr)
             , _wndSelectionMenu(nullptr)
             , _peSelectionMenu(nullptr)
@@ -1035,10 +1048,11 @@ namespace DirectDesktop
         }
         HRESULT InitializeDesktopEntries(IShellView* psv);
         HRESULT InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl);
-        HRESULT CreatePopupDDMenu(bool fLegacy);
-        void DestroyPopupDDMenu();
+        HRESULT CreatePopupMenu(bool fLegacy);
+        void DestroyPopupMenu();
         bool GetMenuItemInfoW(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
         bool SetMenuItemInfoW(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
+        void SetMenuItemGlyph(UINT item, BOOL fByPosition, LPCWSTR pszGlyph);
         void AppendMenuW(UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
         void EnableMenuItem(UINT uIDEnableItem, UINT uEnable);
         void InsertMenuW(UINT uPosition, UINT uFlags, UINT_PTR uIDNewItem, LPCWSTR lpNewItem);
@@ -1046,6 +1060,8 @@ namespace DirectDesktop
         void QueryContextMenu(UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
         int TrackPopupMenuEx(UINT uFlags, int x, int y, HWND hwnd, LPTPMPARAMS lptpm);
         HRESULT InvokeCommand(CMINVOKECOMMANDINFO* pici);
+        HRESULT HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT* plResult);
+        HRESULT GetCommandString(UINT_PTR idCmd, UINT uType, UINT* pReserved, CHAR* pszName, UINT cchMax);
         int GetItemCount();
         HRESULT GetMenuRect(LPRECT lprc);
 
@@ -1053,17 +1069,25 @@ namespace DirectDesktop
         enum { MAX_ITEMS = 1024 };
 
         IContextMenu* _pICv1;
+        IContextMenu* _pICAlt;
         HMENU _hMenu;
         HWND _hTimer;
+        BYTE _interfaceLevel;
         UINT _uTrackFlags;
+        UINT _uID;
+        UINT _idCmdFirst;
+        UINT _idCmdLast;
         int _count;
         int _width;
         bool _fUsingLegacy;
         bool _fDone;
         bool _fAnimating;
+        bool _fDynamicInit;
+        bool _fUniqueCM;
         BYTE _subLevel;
         int _selectedCommand;
         LONGLONG _tick;
+        RECT _rcMenu;
         DDMenu* _parent;
         NativeHWNDHost* _wndSelectionMenu;
         HWNDElement* _peSelectionMenu;
@@ -1074,7 +1098,8 @@ namespace DirectDesktop
         void _ApplyMII(DDMenuButton* pmb, bool fInternal);
         void _DestroyUI(bool fSource);
         void _OnButtonClick(DDMenuButton* button);
-        void _PopulateFromQuery(UINT idCmdFirst, UINT idCmdLast, UINT uCount, bool fCheckID);
+        //void _OptimizeForNewSubmenu();
+        void _PopulateFromQuery(UINT uCount, bool fCheckID);
         void _RegisterAsSubmenu(DDMenuButton* pmb, DDMenu* parent);
         void _SetVisible(int x, int y, DDMenu* menu);
         static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

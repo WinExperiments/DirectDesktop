@@ -20,5 +20,5 @@ namespace DirectDesktop
     template <typename elemType>
     extern elemType regElem(const wchar_t* elemName, Element* peParent);
 
-    void ShowRename();
+    void ShowRename(LVItem* lviOpt);
 }

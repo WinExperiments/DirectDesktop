@@ -23,6 +23,9 @@ namespace DirectDesktop
     extern HWND g_msgwnd;
     extern bool DWMActive;
     extern bool g_treatdirasgroup, g_canRefreshMain;
+    extern DUIXmlParser* g_parser;
+    extern DDMenu* g_menu;
+    extern HANDLE g_hToken;
 
     struct yValue
     {

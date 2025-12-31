@@ -46,7 +46,7 @@
 			<Element layout="flowlayout(0,2,2,2)" width="96rp" height="96rp">
 				<ModernProgressRing width="72rp" height="72rp"/>
 			</Element>
-			<DDScalableRichText content="Loading" font="iconfont;133%;semibold" class="popuptext" contentalign="middlecenter"/>
+			<DDScalableRichText content="resstr(41480, library(explorerframe.dll))" font="iconfont;133%;semibold" class="popuptext" contentalign="middlecenter"/>
 		</Element>
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
