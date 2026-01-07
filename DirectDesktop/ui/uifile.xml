@@ -19,6 +19,7 @@
 					</Element>
 					<Element id="atom(shortcutElem)" direction="ltr" layoutpos="absolute" contentalign="bottomleft"/>
 					<RichText id="atom(textElem)" layoutpos="bottom" contentalign="topcenter"/>
+					<RichText id="atom(folderItemsElem)" contentalign="middlecenter" layoutpos="absolute"/>
 					<Element layout="ninegridlayout()" layoutpos="ninetopleft">
 						<TouchButton id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopleft" margin="rect(6rp,6rp,0,0)"/>
 					</Element>
@@ -38,6 +39,9 @@
 								</Element>
 							</Element>
 							<Element id="atom(shortcutElem)" direction="ltr" contentalign="bottomleft" layoutpos="left"/>
+							<Element id="atom(itemcountcontainer)" layoutpos="right" layout="borderlayout()">
+								<RichText id="atom(folderItemsElem)" contentalign="middlecenter|endellipsis" layoutpos="bottom"/>
+							</Element>
 						</Element>
 						<Element layoutpos="top" layout="borderlayout()">
 							<RichText id="atom(textElem)" layoutpos="top"/>
@@ -62,6 +66,7 @@
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
+		<DDScalableRichText id="atom(folderItemsElem)" class="itemcount" visible="false" layoutpos="absolute" contentalign="middlecenter" font="iconfont;100%" minsize="size(16rp,16rp)"/>
 		<Element layout="ninegridlayout()" layoutpos="ninetopleft" background="argb(0,0,0,0)">
 			<TouchButton id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
 		</Element>
@@ -75,6 +80,9 @@
 					<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="bottom" width="48rp" height="48rp" DrawType="1"/>
 				</Element>
 				<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" contentalign="bottomleft" layoutpos="left" width="48rp" height="48rp" padding="rect(8rp,8rp,8rp,8rp)"/>
+				<Element id="atom(itemcountcontainer)" layoutpos="right" layout="borderlayout()" padding="rect(8rp,8rp,0,8rp)">
+					<DDScalableRichText id="atom(folderItemsElem)" class="itemcount" visible="false" layoutpos="bottom" contentalign="middlecenter|endellipsis" font="iconfont;100%" minsize="size(16rp,16rp)"/>
+				</Element>
 			</Element>
 			<Element layoutpos="top" layout="borderlayout()" padding="rect(4rp,4rp,4rp,0)">
 				<RichText id="atom(textElem)" layoutpos="top" width="112rp" height="56rp" background="argb(0,0,0,0)"/>
@@ -126,6 +134,9 @@
 						<TouchButton content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
+			</if>
+			<if class="itemcount">
+				<DDScalableRichText FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-4rp,-8rp,-4rp,-8rp)" foreground="rgb(255,255,255)"/>
 			</if>
 			<if class="pageselector">
 				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
@@ -188,6 +199,9 @@
 						<TouchButton content="themeable(dtb(DirectUI::Button,3,6), 'b')"/>
 					</if>
 				</if>
+			</if>
+			<if class="itemcount">
+				<DDScalableRichText FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-4rp,-8rp,-4rp,-8rp)" foreground="rgb(0,0,0)"/>
 			</if>
 			<if class="pageselector">
 				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)"/>

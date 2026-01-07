@@ -558,6 +558,41 @@ namespace DirectDesktop
         }
     }
 
+    void TriggerLaunchEffect(LVItem* lvi)
+    {
+        POINT ptZero{}, peIconOrigin{};
+        Element* peSrc = g_touchmode ? (Element*)lvi : (Element*)(lvi->GetIcon());
+        UIContainer->MapElementPoint(peSrc, &ptZero, &peIconOrigin);
+        RECT rcIcon{};
+        GetGadgetRect(peSrc->GetDisplayNode(), &rcIcon, 0x8);
+        peIconOrigin.x += (rcIcon.right - rcIcon.left) / 2;
+        peIconOrigin.y += (rcIcon.bottom - rcIcon.top) / 2;
+        int scalediconsize = sqrt((rcIcon.right - rcIcon.left) * (rcIcon.bottom - rcIcon.top)) / 2;
+        switch (g_itemlauncheffect)
+        {
+        case 0:
+            for (int i = 0; i < rand() % 5 + 2; i++)
+            {
+                Element* peEffect;
+                Element::Create(0, UIContainer, nullptr, &peEffect);
+                peEffect->SetWidth(6 * g_flScaleFactor);
+                peEffect->SetHeight(24 * g_flScaleFactor);
+                peEffect->SetLayoutPos(-2);
+                peEffect->SetBackgroundColor(4285714665);
+                UIContainer->Add(&peEffect, 1);
+                GTRANS_DESC transDesc[2];
+                TransitionStoryboardInfo tsbInfo = {};
+                float deviation = sqrt((rand() % 100) / 100.0f) * (rand() & 1 ? -1 : 1);
+                int time = 90 + rand() % 10;
+                TriggerTranslate(peEffect, transDesc, 0, 0.0f, time / 100.0f, 1.0f, 0.0f, 1.0f, 1.0f, peIconOrigin.x - 3 * g_flScaleFactor, peIconOrigin.y + scalediconsize,
+                    peIconOrigin.x + deviation * 4 * scalediconsize, peIconOrigin.y + UIContainer->GetHeight(), false, false, false);
+                TriggerRotate(peEffect, transDesc, 1, 0.0f, time / 80.0f, 0.25f, 0.1f, 0.9f, 0.75f, -deviation * 180.0f, 0.0f, 0.5f, static_cast<float>(-scalediconsize) / peEffect->GetHeight(), false, true);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEffect->GetDisplayNode(), &tsbInfo);
+            }
+            break;
+        }
+    }
+
     DWORD WINAPI EndExplorer(LPVOID lpParam)
     {
         Sleep(250);
@@ -658,6 +693,10 @@ namespace DirectDesktop
                     g_hideFileExt = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideFileExt");
                     g_isThumbnailHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconsOnly");
                     g_iconunderline = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
+                    WCHAR* fontsmoothingStr;
+                    GetRegistryStrValues(DDKey.GetHKeyName(), L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
+                    g_fontsmoothing = _wtoi(fontsmoothingStr);
+                    free(fontsmoothingStr);
                     free(shellstate);
                     GetRegistryBinValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
                     if (g_canRefreshMain)
@@ -714,14 +753,14 @@ namespace DirectDesktop
                         if (messagemitigation % 4 == 3)
                         {
                             RearrangeIcons(false, true, true);
-                            for (int j = 0; j < pm.size(); j++)
-                            {
-                                if (pm[j]->GetOpenDirState() == LVIODS_PINNED || pm[j]->GetOpenDirState() == LVIODS_FULLSCREEN)
-                                    if (pm[j]->GetIcon()->GetAssociatedColor() == 0 || pm[j]->GetIcon()->GetAssociatedColor() == -1)
-                                        UpdateGroupOnColorChange(pm[j]->GetIcon(), DDScalableElement::AssociatedColorProp(), NULL, nullptr, nullptr); // to refresh neutrally colored ones
-                            }
                             messagemitigation = 0;
                         }
+                    }
+                    for (int j = 0; j < pm.size(); j++)
+                    {
+                        if ((pm[j]->GetOpenDirState() == LVIODS_PINNED && g_themeOld == g_theme) || pm[j]->GetOpenDirState() == LVIODS_FULLSCREEN)
+                            if (pm[j]->GetIcon()->GetAssociatedColor() == 0 || pm[j]->GetIcon()->GetAssociatedColor() == -1)
+                                UpdateGroupOnColorChange(pm[j]->GetIcon(), DDScalableElement::AssociatedColorProp(), NULL, nullptr, nullptr); // to refresh neutrally colored ones
                     }
                     g_themeOld = g_theme;
                 }
@@ -968,6 +1007,7 @@ namespace DirectDesktop
                 Element* peShortcutArrow = pm[lParam]->GetShortcutArrow();
                 RichText* peText = pm[lParam]->GetText();
                 TouchButton* peCheckbox = pm[lParam]->GetCheckbox();
+                DDScalableRichText* peItemCount = pm[lParam]->GetItemCountElement();
                 v_pels.push_back(assignExtendedFn(pm[lParam], ItemDragListener, true));
                 v_pels.push_back(assignFn(pm[lParam], ItemRightClick, true));
                 v_pels.push_back(assignExtendedFn(peIcon, UpdateGroupOnColorChange, true));
@@ -1019,6 +1059,7 @@ namespace DirectDesktop
                     peInner->SetLayoutPos(-3);
                     peCheckbox->SetLayoutPos(-3);
                     peText->SetLayoutPos(-3);
+                    peItemCount->SetVisible(false);
                     if (g_touchmode)
                     {
                         CSafeElementPtr<Element> containerElem;
@@ -1049,6 +1090,14 @@ namespace DirectDesktop
                             pm[lParam]->SetWidth(g_touchSizeX);
                             pm[lParam]->SetHeight(g_touchSizeY);
                         }
+                        if (g_showfolderitemcount && pm[lParam]->GetFlags() & LVIF_DIR)
+                        {
+                            peItemCount->SetVisible(true);
+                            WCHAR itemCount[64];
+                            if (pm[lParam]->GetItemCount() == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
+                            else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), pm[lParam]->GetItemCount());
+                            peItemCount->SetContentString(itemCount);
+                        }
                     }
                     else
                     {
@@ -1071,6 +1120,15 @@ namespace DirectDesktop
                         peShortcutArrow->SetHeight(g_shiconsz * g_flScaleFactor);
                         peShortcutArrow->SetX(iconPaddingX);
                         peShortcutArrow->SetY((iconPaddingY * 0.575) + (g_iconsz - g_shiconsz) * g_flScaleFactor);
+                        if (g_showfolderitemcount && pm[lParam]->GetFlags() & LVIF_DIR)
+                        {
+                            peItemCount->SetVisible(true);
+                            RECT rcItemCount;
+                            peItemCount->SetContentString(to_wstring(pm[lParam]->GetItemCount()).c_str());
+                            GetGadgetRect(peItemCount->GetDisplayNode(), &rcItemCount, 0);
+                            peItemCount->SetX(g_iconsz * g_flScaleFactor + iconPaddingX - rcItemCount.right + rcItemCount.left);
+                            peItemCount->SetY((iconPaddingY * 0.575) + g_iconsz * g_flScaleFactor - rcItemCount.bottom + rcItemCount.top);
+                        }
                     }
                     SelectItemListener(pm[lParam], Element::SelectedProp(), 69, nullptr, nullptr);
                     pm[lParam]->RemoveFlags(LVIF_SFG);
@@ -1110,12 +1168,25 @@ namespace DirectDesktop
                     BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 128 : 255;
                     pm[lParam]->SetDDCPIntensity(intensity);
                     pm[lParam]->SetAssociatedColor(((DesktopIcon*)wParam)->crDominantTile);
-                    pm[lParam]->GetInnerElement()->SetAssociatedColor(CreateGlowColor(((DesktopIcon*)wParam)->crDominantTile));
+                    COLORREF glowcolor = CreateGlowColor(((DesktopIcon*)wParam)->crDominantTile);
+                    pm[lParam]->GetInnerElement()->SetAssociatedColor(glowcolor);
+                    pm[lParam]->GetItemCountElement()->SetAssociatedColor(glowcolor);
+                    if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
+                        pm[lParam]->GetItemCountElement()->SetForegroundStdColor(7);
+                    else pm[lParam]->GetItemCountElement()->SetForegroundStdColor(136);
                     if (lviFlags & LVIF_HIDDEN)
                     {
                         short iconspace = 8 * g_flScaleFactor;
                         peIcon->SetPadding(iconspace, iconspace, iconspace, iconspace);
                     }
+                }
+                else if (g_isGlass)
+                {
+                    COLORREF glowcolor = CreateGlowColor(((DesktopIcon*)wParam)->crDominantTile);
+                    pm[lParam]->GetItemCountElement()->SetAssociatedColor(glowcolor);
+                    if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
+                        pm[lParam]->GetItemCountElement()->SetForegroundStdColor(7);
+                    else pm[lParam]->GetItemCountElement()->SetForegroundStdColor(136);
                 }
                 break;
             }
@@ -1572,6 +1643,7 @@ namespace DirectDesktop
                 outerElem->SetShortcutArrow(regElem<Element*>(L"shortcutElem", outerElem));
                 outerElem->SetText(textElem);
                 outerElem->SetCheckbox(regElem<TouchButton*>(L"checkboxElem", outerElem));
+                outerElem->SetItemCountElement(regElem<DDScalableRichText*>(L"folderItemsElem", outerElem));
                 pm.push_back(outerElem);
 
                 int currentID = pm.size() - 1;
@@ -1837,8 +1909,13 @@ namespace DirectDesktop
                 if (lvi->GetIcon()->GetGroupColor() > 0) emptygraphic->SetAssociatedColor(g_colorPickerPalette[lvi->GetIcon()->GetGroupColor()]);
                 else emptygraphic->SetAssociatedColor(-1);
             }
-            else if (g_isColorized)
+            else
             {
+                if (g_isColorized)
+                {
+                    for (LVItem* lviChild : *(lvi->GetChildItems()))
+                        lviChild->AddFlags(LVIF_REFRESH);
+                }
                 yValueEx* yV = new yValueEx{ static_cast<int>(lvi->GetChildItems()->size()), NULL, NULL, lvi->GetChildItems(), nullptr, lvi };
                 DWORD animThread2;
                 HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
@@ -1882,7 +1959,7 @@ namespace DirectDesktop
 
     void OpenCustomizePage(Element* elem, Event* iev)
     {
-        if (iev->uidType == DDLVActionButton::Click || iev->uidType == DDLVActionButton::MultipleClick)
+        if (iev->uidType == DDLVActionButton::Click)
         {
             CSafeElementPtr<Element> groupdirectory;
             groupdirectory.Assign(regElem<Element*>(L"groupdirectory", elem->GetParent()->GetParent()->GetParent()->GetParent()->GetParent()));
@@ -1914,7 +1991,6 @@ namespace DirectDesktop
             Group_Back->SetVisible(true);
             Group_Back->SetAssociatedItem(((DDLVActionButton*)elem)->GetAssociatedItem());
             Group_Back->SetAccDesc(backTo);
-            assignFn(Group_Back, CloseCustomizePage);
             dirname->SetContentString(LoadStrFromRes(4027).c_str());
             dirdetails->SetVisible(false);
             More->SetVisible(false);
@@ -1972,7 +2048,7 @@ namespace DirectDesktop
     void PinGroup(Element* elem, Event* iev)
     {
         static int i{};
-        if (iev->uidType == DDLVActionButton::Click || iev->uidType == DDLVActionButton::MultipleClick)
+        if (iev->uidType == DDLVActionButton::Click)
         {
             CSafeElementPtr<LVItem> lviTarget;
             lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
@@ -2098,7 +2174,7 @@ namespace DirectDesktop
     void ShowMoreOptions(Element* elem, Event* iev)
     {
         HANDLE hAutoHide{};
-        if (iev->uidType == DDLVActionButton::Click || iev->uidType == DDLVActionButton::MultipleClick)
+        if (iev->uidType == DDLVActionButton::Click)
         {
             g_ensureNoRefresh = true;
             elem->SetLayoutPos(-3);
@@ -2508,6 +2584,7 @@ namespace DirectDesktop
                     IterateBitmap(bmpForeground, DesaturateWhitenGlass, 1, 0, 1, GetLightestPixel(bmpForeground));
                     COLORREF glassColor = GetColorFromPixel(hdc, iconmidpoint);
                     IncreaseBrightness(glassColor);
+                    di->crDominantTile = glassColor;
                     IterateBitmap(bmpForeground, StandardBitmapPixelHandler, 3, 0, 0.8, glassColor);
                     CompositeBitmaps(bmpForeground, bmpOverlay3, false, 0);
                     DeleteObject(bmpOverlay3);
@@ -2579,8 +2656,9 @@ namespace DirectDesktop
             peIcon->SetWidth(g_iconsz * g_flScaleFactor + 2 * groupspace);
             peIcon->SetHeight(g_iconsz * g_flScaleFactor + 2 * groupspace);
         }
-        CSafeElementPtr<Element> iconcontainer;
+        CSafeElementPtr<Element> iconcontainer, itemcountcontainer;
         iconcontainer.Assign(regElem<Element*>(L"iconcontainer", pm[id]));
+        itemcountcontainer.Assign(regElem<Element*>(L"itemcountcontainer", pm[id]));
         if (pm[id]->GetFlags() & LVIF_GROUP && g_treatdirasgroup == true)
         {
             peIcon->SetClass(L"groupthumbnail");
@@ -2590,14 +2668,15 @@ namespace DirectDesktop
                 if (pm[id]->GetGroupSize() == LVIGS_NORMAL)
                 {
                     iconcontainer->SetPadding(groupspace, groupspace, groupspace, groupspace);
+                    itemcountcontainer->SetPadding(0, 0, -groupspace, 0);
                     peIcon->SetWidth(g_iconsz * g_flScaleFactor);
                     peIcon->SetHeight(g_iconsz * g_flScaleFactor);
                     peIcon->SetPadding(-groupspace, -groupspace, -groupspace, -groupspace);
                 }
                 else
                 {
-                    // Reliability of this code to be checked.
                     iconcontainer->SetPadding(0, 0, 0, 0);
+                    itemcountcontainer->SetPadding(groupspace, groupspace, 0, groupspace);
                     peIcon->SetPadding(0, 0, 0, 0);
                 }
             }
@@ -2619,7 +2698,12 @@ namespace DirectDesktop
                 COLORREF crDefault = g_theme ? RGB(208, 208, 208) : RGB(48, 48, 48);
                 COLORREF crAssoc = ((DDScalableElement*)elem)->GetAssociatedColor();
                 pm[i]->SetAssociatedColor((crAssoc == 0 || crAssoc == -1) ? crDefault : crAssoc);
-                pm[i]->GetInnerElement()->SetAssociatedColor(CreateGlowColor((crAssoc == 0 || crAssoc == -1) ? crDefault : crAssoc));
+                COLORREF glowcolor = CreateGlowColor((crAssoc == 0 || crAssoc == -1) ? crDefault : crAssoc);
+                pm[i]->GetInnerElement()->SetAssociatedColor(glowcolor);
+                pm[i]->GetItemCountElement()->SetAssociatedColor(glowcolor);
+                if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
+                    pm[i]->GetItemCountElement()->SetForegroundStdColor(7);
+                else pm[i]->GetItemCountElement()->SetForegroundStdColor(136);
                 if (pm[i]->GetOpenDirState() == LVIODS_NONE)
                 {
                     pm[i]->AddFlags(LVIF_REFRESH);
@@ -2642,18 +2726,37 @@ namespace DirectDesktop
             }
             if (pm[icon2]->GetOpenDirState() == LVIODS_FULLSCREEN || pm[icon2]->GetOpenDirState() == LVIODS_PINNED)
             {
-                if (pm[icon2]->GetOpenDirState() == LVIODS_FULLSCREEN && ((DDScalableElement*)elem)->GetGroupColor() == 1)
-                    fullscreeninner->SetAssociatedColor(((DDScalableElement*)elem)->GetAssociatedColor());
-                else if (pm[icon2]->GetOpenDirState() == LVIODS_PINNED)
+                DDScalableRichText* peItemCount = pm[icon2]->GetItemCountElement();
+                if (g_isGlass || g_touchmode);
+                else if (((DDScalableElement*)elem)->GetGroupColor() == 0)
                 {
+                    if (g_isColorized)
+                        peItemCount->SetAssociatedColor((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]);
+                    else peItemCount->SetAssociatedColor(g_colorPickerPalette[1]);
+                }
+                else peItemCount->SetAssociatedColor(g_colorPickerPalette[((DDScalableElement*)elem)->GetGroupColor()]);
+
+                if (((DDScalableElement*)elem)->GetGroupColor() < 2)
+                {
+                    Element* peListParent{};
+                    if (pm[icon2]->GetOpenDirState() == LVIODS_FULLSCREEN)
+                    {
+                        fullscreeninner->SetAssociatedColor(((DDScalableElement*)elem)->GetAssociatedColor());
+                        peListParent = fullscreeninner;
+                    }
+                    else if (pm[icon2]->GetOpenDirState() == LVIODS_PINNED)
+                        peListParent = pm[icon2];
+
                     CSafeElementPtr<Element> groupdirlist;
-                    groupdirlist.Assign(regElem<Element*>(L"groupdirlist", pm[icon2]));
+                    groupdirlist.Assign(regElem<Element*>(L"groupdirlist", peListParent));
                     if (pm[icon2]->GetChildItems() && groupdirlist->GetVisible())
                     {
-                        bool fRefreshIcons = ((g_isColorized && g_themeOld == g_theme) || (g_automaticDark && g_themeOld != g_theme));
-                        bool fRefreshText = (g_themeOld != g_theme);
+                        if (g_isColorized)
+                            for (LVItem* lviChild : *(pm[icon2]->GetChildItems()))
+                                lviChild->AddFlags(LVIF_REFRESH);
+                    
                         yValueEx* yV = new yValueEx{ static_cast<int>(pm[icon2]->GetChildItems()->size()), NULL, NULL,
-                            pm[icon2]->GetChildItems(), nullptr, pm[icon2] };
+                            pm[icon2]->GetChildItems(), nullptr, peListParent };
                         DWORD animThread2;
                         HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
                         if (animThreadHandle2) CloseHandle(animThreadHandle2);
@@ -2721,6 +2824,7 @@ namespace DirectDesktop
                     outerElemGrouped->SetIcon(regElem<DDScalableElement*>(L"iconElem", outerElemGrouped));
                     outerElemGrouped->SetShortcutArrow(regElem<Element*>(L"shortcutElem", outerElemGrouped));
                     outerElemGrouped->SetText(regElem<RichText*>(L"textElem", outerElemGrouped));
+                    outerElemGrouped->SetItemCountElement(regElem<DDScalableRichText*>(L"folderItemsElem", outerElemGrouped));
                     d_subpm->push_back(outerElemGrouped);
                 }
                 EnumerateFolder((LPWSTR)RemoveQuotes(lvi->GetFilename()).c_str(), &(*d_subpm), &count2, lviCount);
@@ -2746,6 +2850,7 @@ namespace DirectDesktop
                         (*d_subpm)[j]->GetIcon()->SetAlpha(128);
                         (*d_subpm)[j]->GetText()->SetAlpha(128);
                     }
+                    (*d_subpm)[j]->AddFlags(LVIF_REFRESH);
                     v_pels.push_back(assignFn((*d_subpm)[j], SelectSubItem, true));
                     v_pels.push_back(assignFn((*d_subpm)[j], ItemRightClick, true));
                     v_pels.push_back(assignExtendedFn((*d_subpm)[j], SelectSubItemListener, true));
@@ -2806,6 +2911,8 @@ namespace DirectDesktop
                 dirtitle->SetVisible(true);
             }
         }
+        CSafeElementPtr<DDLVActionButton> Group_Back;
+        Group_Back.Assign(regElem<DDLVActionButton*>(L"Group_Back", groupdirectory));
         CSafeElementPtr<DDLVActionButton> More;
         More.Assign(regElem<DDLVActionButton*>(L"More", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Smaller;
@@ -2842,6 +2949,7 @@ namespace DirectDesktop
             assignFn(Customize, OpenCustomizePage);
             assignFn(Unpin, PinGroup);
         }
+        assignFn(Group_Back, CloseCustomizePage);
         Smaller->SetEnabled(true);
         Larger->SetEnabled(true);
         if (lvi->GetGroupSize() == LVIGS_SMALL) Smaller->SetEnabled(false);
@@ -2895,7 +3003,12 @@ namespace DirectDesktop
                 {
                     wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
                     if (lviFlags & LVIF_GROUP && g_treatdirasgroup == true) ShowDirAsGroup((LVItem*)elem);
-                    else LaunchItem(temp.c_str());
+                    else
+                    {
+                        if (g_itemlauncheffectsenabled && DWMActive)
+                            TriggerLaunchEffect((LVItem*)elem);
+                        LaunchItem(temp.c_str());
+                    }
                 }
             }
         }
@@ -3184,6 +3297,12 @@ namespace DirectDesktop
         Value* v = peSrc->GetValue(Element::ContentProp, 1, nullptr);
         peDst->SetValue(Element::ContentProp, 1, v);
         v->Release();
+        v = peSrc->GetValue(Element::FontProp, 1, nullptr);
+        peDst->SetValue(Element::FontProp, 1, v);
+        v->Release();
+        v = peSrc->GetValue(Element::ForegroundProp, 1, nullptr);
+        peDst->SetValue(Element::ForegroundProp, 1, v);
+        v->Release();
         RECT rc{};
         peSrc->GetRenderBorderThickness(&rc);
         peDst->SetBorderThickness(rc.left, rc.top, rc.right, rc.bottom);
@@ -3273,7 +3392,7 @@ namespace DirectDesktop
                     if (peIcon->GetGroupColor() == 0)
                     {
                         if (g_isColorized)
-                            DP_FolderGroup->SetForegroundColor((iconColorID == 1) ? g_colorPickerPalette[1] : g_colorPickerPalette[iconColorID]);
+                            DP_FolderGroup->SetForegroundColor(g_colorPickerPalette[iconColorID]);
                         else DP_FolderGroup->SetForegroundColor(g_colorPickerPalette[1]);
                     }
                     else DP_FolderGroup->SetForegroundColor(g_colorPickerPalette[peIcon->GetGroupColor()]);
@@ -3816,6 +3935,7 @@ namespace DirectDesktop
             outerElem->SetShortcutArrow(regElem<Element*>(L"shortcutElem", outerElem));
             outerElem->SetText(regElem<RichText*>(L"textElem", outerElem));
             outerElem->SetCheckbox(regElem<TouchButton*>(L"checkboxElem", outerElem));
+            outerElem->SetItemCountElement(regElem<DDScalableRichText*>(L"folderItemsElem", outerElem));
             pm.push_back(outerElem);
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
@@ -3983,7 +4103,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 86");
+            peTemp[1]->SetContentString(L"Build 87");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
@@ -4500,6 +4620,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     g_hideFileExt = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideFileExt");
     g_isThumbnailHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconsOnly");
     g_iconunderline = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
+    WCHAR* fontsmoothingStr;
+    GetRegistryStrValues(DDKey.GetHKeyName(), L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
+    g_fontsmoothing = _wtoi(fontsmoothingStr);
+    free(fontsmoothingStr);
     g_hiddenIcons = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideIcons");
     g_iconsz = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize");
     GetRegistryBinValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
@@ -4518,10 +4642,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     else g_defHeight = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DefaultHeight");
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TreatDirAsGroup", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"FolderItemCount", 1, true, nullptr);
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TripleClickAndHide", 0, true, nullptr);
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"LockIconPos", 0, true, nullptr);
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TouchView", 0, true, nullptr);
     g_treatdirasgroup = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TreatDirAsGroup");
+    g_showfolderitemcount = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"FolderItemCount");
     g_tripleclickandhide = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TripleClickAndHide");
     g_lockiconpos = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"LockIconPos");
     g_touchmode = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"TouchView");
@@ -4532,12 +4658,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"GlassIcons", 0, true, nullptr);
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorID", 1, true, nullptr);
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorizationColor", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ItemLaunchEffectsEnabled", 0, true, nullptr);
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ItemLaunchEffect", 1, true, nullptr);
     g_isColorized = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AccentColorIcons");
     g_isDarkIconsEnabled = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DarkIcons");
     g_automaticDark = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoDarkIcons");
     g_isGlass = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"GlassIcons");
     iconColorID = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorID");
     IconColorizationColor = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconColorizationColor");
+    g_itemlauncheffectsenabled = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ItemLaunchEffectsEnabled");
+    g_itemlauncheffect = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ItemLaunchEffect");
     DDKey.SetPath(L"Software\\DirectDesktop\\Debug");
 
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode", 0, true, nullptr);

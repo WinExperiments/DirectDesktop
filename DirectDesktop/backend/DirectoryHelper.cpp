@@ -820,9 +820,7 @@ namespace DirectDesktop
         return 1;
     }
 
-    // A portion of this function (parsing) was sourced from
     // https://stackoverflow.com/questions/70039190/how-to-read-the-values-of-iconlayouts-reg-binary-registry-file
-    // and "translated" to C++ using AI.
 
     void GetPos(bool getSpotlightIcon, int* setSpotlightIcon)
     {
@@ -843,9 +841,10 @@ namespace DirectDesktop
             // First 4 WORDs
             head.push_back(*reinterpret_cast<uint16_t*>(&value[offset + i * 2]));
         }
-        head.push_back(*reinterpret_cast<uint32_t*>(&value[offset + 8])); // DWORD at offset + 8
+        head.push_back(*reinterpret_cast<uint16_t*>(&value[offset + 8]));
+        head.push_back(*reinterpret_cast<uint16_t*>(&value[offset + 10])); // DWORD at offset + 8
 
-        uint32_t number_of_items = head[4];
+        uint32_t number_of_items = head[4] + HIWORD(head[5]);
         offset += 12;
 
         if (logging == IDYES && !getSpotlightIcon)
@@ -960,11 +959,14 @@ namespace DirectDesktop
         vector<uint16_t> head2;
         size_t offs = offset;
         for (int x = 0; x < 32; x++)
-        {
             head2.push_back(*reinterpret_cast<uint16_t*>(&value[offs + x * 2]));
-        }
         offs += 64;
-        if (logging == IDYES) MainLogger.WriteLine(L"Information: Parsed head2.");
+        if (logging == IDYES)
+        {
+            WCHAR parseMessage[64];
+            StringCchPrintfW(parseMessage, 64, L"Information: Parsed head2, currently at offset 0x%x.\n", offs);
+            MainLogger.WriteLine(parseMessage);
+        }
 
         // Parse position tables
         for (uint32_t x = 0; x < number_of_items; ++x)
@@ -972,11 +974,17 @@ namespace DirectDesktop
             uint16_t column = *reinterpret_cast<uint16_t*>(&value[offs + 2]);
             uint16_t row = *reinterpret_cast<uint16_t*>(&value[offs + 6]);
             uint16_t index = *reinterpret_cast<uint16_t*>(&value[offs + 8]);
-            desktop_items[index].column = column;
-            desktop_items[index].row = row;
+            if (index < number_of_items)
+            {
+                desktop_items[index].column = column;
+                desktop_items[index].row = row;
+            }
             offs += 10;
+            WCHAR tableMessage[96];
+            StringCchPrintfW(tableMessage, 96, L"Position table: Index %d, column %d, row %d, offset 0x%x. (%s)", index, column, row, offs, index < number_of_items ? L"VALID" : L"INVALID");
+            if (logging == IDYES) MainLogger.WriteLine(tableMessage);
         }
-        if (logging == IDYES) MainLogger.WriteLine(L"Information: Parsed position table.");
+        if (logging == IDYES) MainLogger.WriteLine(L"\nInformation: Parsed position table.");
 
         // This is such a bad way to sort...
         vector<LVItem*> pmBuf, pmBuf2;
@@ -1023,12 +1031,6 @@ namespace DirectDesktop
         {
             int r = new_desktop_items[index].row, c = new_desktop_items[index].column;
             short tempXPos{}, tempYPos{}, bitsX = 128, bitsY = 128, bitsXAccumulator{}, bitsYAccumulator{};
-            if (logging == IDYES)
-            {
-                WCHAR details[320];
-                StringCchPrintfW(details, 320, L"\nItem prepared for arrangement (%d of %d)\nItem name: %s\nX (encoded): %d, Y (encoded): %d", index + 1, fileCount, pm[index]->GetFilename().c_str(), desktop_items[index].column, desktop_items[index].row);
-                MainLogger.WriteLine(details);
-            }
             while (true)
             {
                 if (c == 0)
@@ -1208,8 +1210,19 @@ namespace DirectDesktop
                             unsigned short colorID = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
                             offsetSizeKey += 2;
                             peIcon->SetGroupColor(colorID);
-                            if (pm[j]->GetGroupSize() == LVIGS_NORMAL)
+                            if (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)
+                            {
                                 pm[j]->GetIcon()->SetAssociatedColor(colorPickerPalette[colorID]);
+                                DDScalableRichText* peItemCount = pm[j]->GetItemCountElement();
+                                if (g_isGlass || g_touchmode);
+                                else if (peIcon->GetGroupColor() == 0)
+                                {
+                                    if (g_isColorized)
+                                        peItemCount->SetAssociatedColor((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]);
+                                    else peItemCount->SetAssociatedColor(g_colorPickerPalette[1]);
+                                }
+                                else peItemCount->SetAssociatedColor(g_colorPickerPalette[colorID]);
+                            }
                             else
                             {
                                 pm[j]->SetAssociatedColor(colorPickerPalette[colorID]);

@@ -13,7 +13,9 @@ namespace DirectDesktop
     extern BYTE g_showSuperHidden;
     extern BYTE g_hideFileExt;
     extern BYTE g_iconunderline;
+    extern BYTE g_fontsmoothing;
     extern bool g_treatdirasgroup;
+    extern bool g_showfolderitemcount;
     extern bool g_tripleclickandhide;
     extern bool g_lockiconpos;
     extern bool g_isColorized;
@@ -22,6 +24,8 @@ namespace DirectDesktop
     extern bool g_automaticDark;
     extern bool g_isGlass;
     extern bool g_isThumbnailHidden;
+    extern bool g_itemlauncheffectsenabled;
+    extern BYTE g_itemlauncheffect;
     extern BYTE iconColorID;
     extern COLORREF IconColorizationColor;
     extern bool g_atleastonesetting;

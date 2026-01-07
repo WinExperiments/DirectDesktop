@@ -17,7 +17,9 @@ namespace DirectDesktop
     BYTE g_showSuperHidden;
     BYTE g_hideFileExt;
     BYTE g_iconunderline;
+    BYTE g_fontsmoothing;
     bool g_treatdirasgroup;
+    bool g_showfolderitemcount;
     bool g_tripleclickandhide;
     bool g_lockiconpos;
     bool g_isColorized;
@@ -26,6 +28,8 @@ namespace DirectDesktop
     bool g_automaticDark;
     bool g_isGlass;
     bool g_isThumbnailHidden;
+    bool g_itemlauncheffectsenabled;
+    BYTE g_itemlauncheffect;
     BYTE iconColorID;
     COLORREF IconColorizationColor;
     bool g_atleastonesetting{};
@@ -140,8 +144,6 @@ namespace DirectDesktop
                 if (rkv.GetValueToFind() == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
                 if (rkv.GetValueToFind() == L"IconUnderline") regSetter = (!ddtb->GetCheckedState() + 2);
                 if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
-                if (ddtb->GetAssociatedFn() != nullptr)
-                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
                 if (ddtb->GetShellInteraction())
                 {
                     SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
@@ -155,6 +157,8 @@ namespace DirectDesktop
                     if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
                     return;
                 }
+                if (ddtb->GetAssociatedFn() != nullptr)
+                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }
@@ -167,14 +171,14 @@ namespace DirectDesktop
                 RegKeyValue rkv = ddcmb->GetRegKeyValue();
                 BYTE regSetter = ddcmb->GetSelection();
                 if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
-                if (ddcmb->GetAssociatedFn() != nullptr)
-                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 if (ddcmb->GetShellInteraction())
                 {
                     SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
                     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
                 }
                 else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
+                if (ddcmb->GetAssociatedFn() != nullptr)
+                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }

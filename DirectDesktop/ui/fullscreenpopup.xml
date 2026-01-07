@@ -106,6 +106,7 @@
 			<DDScalableElement id="atom(ClickModeLabel)" class="settingslabeltext"/>
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
+			<DDCheckBox id="atom(ShowFolderItemCount)" shortcut="auto" minsize="size(0,40rp)" padding="rect(0,0,0,8rp)" content="Show folder item count on icons"/>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDToggleButton id="atom(TreatDirAsGroup)"/>
 			</Element>
@@ -217,6 +218,14 @@
 			</Element>
 			<RichText class="SettingsIcon" content="resstr(138)"/>
 			<DDScalableElement content="resstr(4079)" class="settingslabeltext"/>
+		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableElement class="LoneSection" layout="borderlayout()">
+			<RichText class="SettingsIcon" content="TEMP" font="9pt;Normal;None;Segoe UI"/>
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDCombobox id="atom(LaunchEffectsSelection)" width="112rp" listmaxheight="360rp"/>
+			</Element>
+			<DDCheckBox id="atom(LaunchEffects)" layoutpos="left" width="300rp" shortcut="auto" minsize="size(0,40rp)" content="Effects on item launch"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableElement class="TopSection" layout="borderlayout()">

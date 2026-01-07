@@ -1084,6 +1084,15 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableRichText>(this);
         }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FontFaceProp))
+        {
+            CValuePtr v;
+            const WCHAR* fontFace = this->GetFontFace(&v);
+            this->SetAliasedRendering((!g_fontsmoothing || this->GetFontQuality() == 3) &&
+                wcscmp(fontFace, L"Segoe UI Symbol") != 0 &&
+                wcscmp(fontFace, L"Segoe MDL2 Assets") != 0 &&
+                wcscmp(fontFace, L"Segoe Fluent Icons") != 0);
+        }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableRichText>(this, nullptr, this->GetNeedsFontResize());
         RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
@@ -1330,6 +1339,15 @@ namespace DirectDesktop
                 return;
             }
             RedrawImageCore<DDScalableTouchButton>(this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FontFaceProp))
+        {
+            CValuePtr v;
+            const WCHAR* fontFace = this->GetFontFace(&v);
+            this->SetAliasedRendering((!g_fontsmoothing || this->GetFontQuality() == 3) &&
+                wcscmp(fontFace, L"Segoe UI Symbol") != 0 &&
+                wcscmp(fontFace, L"Segoe MDL2 Assets") != 0 &&
+                wcscmp(fontFace, L"Segoe Fluent Icons") != 0);
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableTouchButton>(this, nullptr, this->GetNeedsFontResize());
@@ -1799,12 +1817,12 @@ namespace DirectDesktop
             _childItemss->clear();
             _childItemss = nullptr;
         }
-        this->ClearAllListeners();
-        for (auto pel : _pels)
+        if (_pels.size() > 0)
         {
-            delete pel;
+            for (auto pel : _pels)
+                delete pel;
+            _pels.clear();
         }
-        _pels.clear();
         if (_touchGrid) if (_touchGrid->GetItemCount() == 0) delete _touchGrid;
         this->DestroyAll(true);
     }
@@ -2058,6 +2076,11 @@ namespace DirectDesktop
         return _peCheckbox;
     }
 
+    DDScalableRichText* LVItem::GetItemCountElement()
+    {
+        return _peItemCount;
+    }
+
     void LVItem::SetInnerElement(DDScalableElement* peInner)
     {
         _peInner = peInner;
@@ -2083,6 +2106,11 @@ namespace DirectDesktop
         _peCheckbox = peCheckbox;
     }
 
+    void LVItem::SetItemCountElement(DDScalableRichText* peItemCount)
+    {
+        _peItemCount = peItemCount;
+    }
+
     vector<LVItem*>* LVItem::GetChildItems()
     {
         return _childItemss;
@@ -2102,7 +2130,11 @@ namespace DirectDesktop
     {
         for (auto pel : _pels)
         {
+            // More elements can be added but these are the ones with listeners so far
+            if (_peIcon) _peIcon->RemoveListener(pel);
+            if (_peCheckbox) _peCheckbox->RemoveListener(pel);
             this->RemoveListener(pel);
+            delete pel;
         }
     }
 
@@ -2662,7 +2694,9 @@ namespace DirectDesktop
                     SetLayeredWindowAttributes(cmb->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
                     KillTimer(hWnd, wParam - 1);
                     KillTimer(hWnd, wParam);
-                    if (wParam == 4)
+                    if (wParam == 2 && cmb->_peSelections[0])
+                        cmb->_peSelections[0]->SetKeyFocus();
+                    else if (wParam == 4)
                         cmb->_wndSelectionMenu->ShowWindow(SW_HIDE);
                 }
                 break;
@@ -2933,7 +2967,9 @@ namespace DirectDesktop
             if (SUCCEEDED(hr))
             {
                 HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, dwCreateFlags, nullptr, &keyC, (Element**)&_peSelectionMenu);
+                HWND hwndInner = FindWindowExW(_wndSelectionMenu->GetHWND(), nullptr, L"DirectUIHWND", nullptr);
                 SetWindowSubclass(_wndSelectionMenu->GetHWND(), s_ComboboxProc, 1, (DWORD_PTR)this);
+                SetWindowSubclass(hwndInner, s_ComboboxProc, 1, (DWORD_PTR)this);
                 _peSelectionMenu->SetVisible(true);
                 _peSelectionMenu->EndDefer(keyC);
                 _wndSelectionMenu->Host(_peSelectionMenu);
@@ -4464,7 +4500,9 @@ namespace DirectDesktop
                     SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, menu->_rcMenu.left, menu->_rcMenu.top, NULL, NULL, dwFlags);
                     KillTimer(hWnd, wParam - 1);
                     KillTimer(hWnd, wParam);
-                    if (wParam == 4)
+                    if (wParam == 2 && menu->_peSelections[0])
+                        menu->_peSelections[0]->SetKeyFocus();
+                    else if (wParam == 4)
                         menu->_wndSelectionMenu->ShowWindow(SW_HIDE);
                     else if (wParam == 6)
                     {
@@ -4573,7 +4611,9 @@ namespace DirectDesktop
             if (SUCCEEDED(hr))
             {
                 HWNDElement::Create(_wndSelectionMenu->GetHWND(), true, dwCreateFlags, nullptr, &keyM, (Element**)&_peSelectionMenu);
+                HWND hwndInner = FindWindowExW(_wndSelectionMenu->GetHWND(), nullptr, L"DirectUIHWND", nullptr);
                 SetWindowSubclass(_wndSelectionMenu->GetHWND(), s_MenuProc, 1, (DWORD_PTR)this);
+                SetWindowSubclass(hwndInner, s_MenuProc, 1, (DWORD_PTR)this);
                 _peSelectionMenu->SetVisible(true);
                 _peSelectionMenu->EndDefer(keyM);
 

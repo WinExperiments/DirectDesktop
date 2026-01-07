@@ -388,6 +388,7 @@ namespace DirectDesktop
             , _peShortcutArrow(nullptr)
             , _peText(nullptr)
             , _peCheckbox(nullptr)
+            , _peItemCount(nullptr)
             , _childItemss(nullptr)
             , _pels{}
         {
@@ -443,11 +444,13 @@ namespace DirectDesktop
         Element* GetShortcutArrow();
         RichText* GetText();
         TouchButton* GetCheckbox();
+        DDScalableRichText* GetItemCountElement();
         void SetInnerElement(DDScalableElement* peInner);
         void SetIcon(DDScalableElement* peIcon);
         void SetShortcutArrow(Element* peShortcutArrow);
         void SetText(RichText* peText);
         void SetCheckbox(TouchButton* peCheckbox);
+        void SetItemCountElement(DDScalableRichText* peItemCount);
         vector<LVItem*>* GetChildItems();
         void SetChildItems(vector<LVItem*>* vpm);
         void SetListeners(vector<IElementListener*> pels);
@@ -478,6 +481,7 @@ namespace DirectDesktop
         Element* _peShortcutArrow;
         RichText* _peText;
         TouchButton* _peCheckbox;
+        DDScalableRichText* _peItemCount;
         vector<LVItem*>* _childItemss;
         vector<IElementListener*> _pels;
     };

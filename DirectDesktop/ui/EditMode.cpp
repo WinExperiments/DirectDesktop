@@ -280,7 +280,7 @@ namespace DirectDesktop
                     if (peIcon->GetGroupColor() == 0)
                     {
                         if (g_isColorized)
-                            PV_FolderGroup->SetForegroundColor((iconColorID == 1) ? g_colorPickerPalette[1] : g_colorPickerPalette[iconColorID]);
+                            PV_FolderGroup->SetForegroundColor(g_colorPickerPalette[iconColorID]);
                         else PV_FolderGroup->SetForegroundColor(g_colorPickerPalette[1]);
                     }
                     else PV_FolderGroup->SetForegroundColor(g_colorPickerPalette[peIcon->GetGroupColor()]);
