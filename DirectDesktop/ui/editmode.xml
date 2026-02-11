@@ -3,7 +3,7 @@
 		<Element id="atom(centered)" layoutpos="client" background="sgraphic(2064,7,-1,0,0,1,1)"/>
 	</HWNDElement-->
 	<HWNDElement resid="editmode" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="edit">
-		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" background="argb(0,0,0,0)" behaviors="PVL::AnimationTrap()">
+		<Element id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false" background="argb(0,0,0,0)" behaviors="PVL::AnimationTrap()">
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 			</Element>
@@ -19,7 +19,7 @@
 			</Element>
 			<DDScalableTouchButton id="atom(prevpage)" layout="filllayout()" class="pageselectoreditmode"/>
 			<DDScalableTouchButton id="atom(nextpage)" layout="filllayout()" class="pageselectoreditmode"/>
-		</TouchButton>
+		</Element>
 		<Element id="atom(SimpleViewTop)" layout="filllayout()" layoutpos="top" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
 			<Element layout="flowlayout(0,2,2,3)" layoutpos="client">
 				<DDScalableRichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" contentalign="middlecenter"/>
@@ -40,10 +40,10 @@
 			</TouchScrollViewer>
 		</Element>
 	</HWNDElement>
-	<DDScalableElement resid="fullscreeninner" layoutpos="absolute" background="argb(0,0,0,0)"/>
+	<DDScalableTouchButton resid="fullscreeninner" layoutpos="absolute" background="argb(0,0,0,0)"/>
 	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1"/>
 	<Element resid="deskpreviewmask" background="rgb(0,0,0)" layoutpos="absolute"/>
-	<TouchButton resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()">
+	<Element resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()">
 		<Element id="atom(PV_Inner)" layoutpos="client" layout="filllayout()">
 			<Element class="popupbg" id="atom(bg)" layoutpos="client" visible="false"/>
 			<Element class="popupbg" id="atom(bg_left)" layoutpos="absolute" visible="false"/>
@@ -64,7 +64,7 @@
 				<TouchButton id="atom(PV_Add)" width="64rp" height="64rp" content="resstr(161)" font="resstr(135)" class="simpleview" tooltip="true" accdesc="resstr(4056)"/>
 			</Element>
 		</Element>
-	</TouchButton>
+	</Element>
 	<LVItem resid="PV_Page" id="atom(PV_Page)" background="argb(0,0,0,0)" layout="filllayout()">
 		<DDScalableElement id="atom(PV_PageIcons)" class="roundoverlay" DrawType="1" layoutpos="client" layout="flowlayout(0,2,2,0)">
 			<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3038" ScaledImageIntervals="7" DrawType="1"

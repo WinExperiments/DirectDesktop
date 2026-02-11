@@ -169,6 +169,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="backend\DragAndDrop.h" />
     <ClInclude Include="build_timestamp.h" />
     <ClInclude Include="coreui\AnimationHelper.h" />
     <ClInclude Include="coreui\AccentColorHelper.h" />
@@ -195,6 +196,9 @@
     <ClInclude Include="ui\Subview.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="backend\DragAndDrop.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="coreui\AnimationHelper.cpp" />
     <ClCompile Include="coreui\AccentColorHelper.cpp" />
     <ClCompile Include="coreui\BitmapHelper.cpp" />

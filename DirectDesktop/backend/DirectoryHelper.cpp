@@ -37,6 +37,8 @@ namespace DirectDesktop
 
     wstring ThumbIcons::GetFilename()
     {
+        if (!_filename.length())
+            _filename = L"";
         return _filename;
     }
 
@@ -1218,10 +1220,10 @@ namespace DirectDesktop
                                 else if (peIcon->GetGroupColor() == 0)
                                 {
                                     if (g_isColorized)
-                                        peItemCount->SetAssociatedColor((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]);
-                                    else peItemCount->SetAssociatedColor(g_colorPickerPalette[1]);
+                                        peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
+                                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
                                 }
-                                else peItemCount->SetAssociatedColor(g_colorPickerPalette[colorID]);
+                                else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[colorID]);
                             }
                             else
                             {

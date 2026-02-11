@@ -133,10 +133,6 @@ namespace DirectDesktop
 
                         UINT uFlags = TPM_RIGHTBUTTON | TPM_RETURNCMD | DDM_ANIMATESUBMENUS;
                         if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
-                        if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
-                            uFlags |= TPM_RIGHTALIGN;
-                        else
-                            uFlags |= TPM_LEFTALIGN;
 
                         SetForegroundWindow(wnd->GetHWND());
                         POINT pt;
@@ -292,10 +288,6 @@ namespace DirectDesktop
 
             UINT uFlags = TPM_RIGHTBUTTON | TPM_RETURNCMD | DDM_ANIMATESUBMENUS;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
-            if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
-                uFlags |= TPM_RIGHTALIGN;
-            else
-                uFlags |= TPM_LEFTALIGN;
 
             POINT pt;
             GetCursorPos(&pt);

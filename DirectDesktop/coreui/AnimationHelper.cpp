@@ -34,6 +34,7 @@ namespace DirectDesktop
         return 0;
     }
 
+    // Original author: AllieTheFox, modified by WinExperiments
     void EulerRotationToAxisRotation(GTRANS_VALUE* pvEulerRotation1, GTRANS_VALUE* pvEulerRotation2)
     {
         if (pvEulerRotation1 && pvEulerRotation2)

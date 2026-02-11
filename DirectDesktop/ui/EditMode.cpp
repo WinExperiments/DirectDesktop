@@ -19,10 +19,10 @@ namespace DirectDesktop
     Element *pEdit, *pEditBG;
     unsigned long key5 = 0, key6 = 0;
     WNDPROC WndProcEdit, WndProcEditBG;
-    DDScalableElement* fullscreeninnerE;
+    DDScalableTouchButton* fullscreeninnerE;
     Element* popupcontainerE;
-    TouchButton* fullscreenpopupbaseE;
-    TouchButton* centeredE;
+    Element* fullscreenpopupbaseE;
+    Element* centeredE;
     TouchButton* centeredEBG;
     DDScalableElement* simpleviewoverlay;
     DDScalableElement* deskpreviewmask;
@@ -32,7 +32,7 @@ namespace DirectDesktop
     DDIconButton* SimpleViewSettings, *SimpleViewPages, *SimpleViewClose;
     DDScalableTouchButton *nextpage, *prevpage;
     DDScalableRichText* pageinfo;
-    TouchButton* PageViewer;
+    Element* PageViewer;
     DDScalableTouchEdit* PV_EnterPage;
     Element* EM_Dim;
     Element* bg_left_top, *bg_left_middle, *bg_left_bottom, *bg_right_top, *bg_right_middle, *bg_right_bottom;
@@ -43,8 +43,10 @@ namespace DirectDesktop
     void ShowPageOptionsOnHover(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ClosePageViewer(Element* elem, Event* iev);
     void ShowPageViewer(Element* elem, Event* iev);
+    void TriggerHSV(Element* elem, Event* iev);
     void RemoveSelectedPage(Element* elem, Event* iev);
     void SetSelectedPageHome(Element* elem, Event* iev);
+    void CreatePagePreview();
     void _UpdateSimpleViewContent(bool animate, DWORD animFlags);
     bool ValidateStrDigits(const WCHAR* str);
     bool g_animatePVEnter = true;
@@ -205,6 +207,9 @@ namespace DirectDesktop
                             Event* iev = new Event{ PageViewer, TouchButton::Click };
                             ShowPageViewer(PageViewer, iev);
                         }
+                        break;
+                    case 5:
+                        CreatePagePreview();
                         break;
                 }
                 break;
@@ -410,6 +415,9 @@ namespace DirectDesktop
         //SetPopupSize(fullscreeninnerE, width, height);
         fullscreenpopupbaseE->SetVisible(true);
         fullscreeninnerE->SetVisible(true);
+        static IElementListener* pel;
+        free(pel);
+        pel = assignFn(fullscreeninnerE, TriggerHSV, true);
     }
 
     void fullscreenAnimation4()
@@ -453,13 +461,8 @@ namespace DirectDesktop
 
     void TriggerHSV(Element* elem, Event* iev)
     {
-        if (iev->uidType == TouchButton::Click && !prevpage->GetMouseFocused() && !nextpage->GetMouseFocused() &&
-            !SimpleViewPages->GetMouseFocused() && !SimpleViewClose->GetMouseFocused() &&
-            !SimpleViewPower->GetMouseFocused() &&
-            !SimpleViewSettings->GetMouseFocused() && !SimpleViewSearch->GetMouseFocused())
-        {
+        if (iev->uidType == TouchButton::Click)
             HideSimpleView(true);
-        }
     }
 
     void ShowShutdownDialog(Element* elem, Event* iev)
@@ -737,8 +740,8 @@ namespace DirectDesktop
         if (fReverse)
         {
             GTRANS_DESC transDesc2[2];
-            TriggerFade(PageViewer, transDesc2, 0, 0.333f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, true, true);
-            TriggerFade(fullscreenpopupbaseE, transDesc2, 1, 0.3f, 0.367f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
+            TriggerFade(PageViewer, transDesc2, 0, 0.31f, 0.36f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, true, true);
+            TriggerFade(fullscreenpopupbaseE, transDesc2, 1, 0.3f, 0.35f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
             DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
             float scaleOrigin = (localeType == 1) ? 1.0f : 0.0f;
@@ -844,8 +847,8 @@ namespace DirectDesktop
             {
                 if (PV_Home->GetMouseWithin()) return;
             }
-            RefreshSimpleView(0x0);
             TriggerEMToPV(true);
+            RefreshSimpleView(0x0);
         }
     }
 
@@ -1103,10 +1106,8 @@ namespace DirectDesktop
         }
     }
 
-    void _UpdateSimpleViewContent(bool animate, DWORD animFlags)
+    void CreatePagePreview()
     {
-        RECT dimensions;
-        GetClientRect(editwnd->GetHWND(), &dimensions);
         for (int j = 0; j < pm.size(); j++)
         {
             Element* peContainer{};
@@ -1130,6 +1131,15 @@ namespace DirectDesktop
             yValueEx* yV = new yValueEx{ j, peContainerScale, NULL, nullptr, peContainer };
             QueueUserWorkItem(CreateDesktopPreviewHelper, yV, 0);
         }
+    }
+
+    void _UpdateSimpleViewContent(bool animate, DWORD animFlags)
+    {
+        RECT dimensions;
+        GetClientRect(editwnd->GetHWND(), &dimensions);
+
+        if (animFlags && !(animFlags & 0x10))
+            CreatePagePreview();
 
         CSafeElementPtr<RichText> SimpleViewHomeBadge;
         SimpleViewHomeBadge.Assign(regElem<RichText*>(L"SimpleViewHomeBadge", pEdit));
@@ -1236,6 +1246,7 @@ namespace DirectDesktop
         }
         else
         {
+            // 0.5.6: bg_extras are never destroyed, which is problematic as long as the edit mode isn't closed
             Element* bg_main[7]{};
             Element* bg_extras[4]{};
             short localeDirection = (localeType == 1) ? -1 : 1;
@@ -1287,10 +1298,10 @@ namespace DirectDesktop
                     flMiddleSmAnim2 = localeDirection * prevpage->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) + (1 + localeDirection) / 2.0f;
                 }
                 GTRANS_DESC transDesc[8];
-                TriggerScaleIn(bg_extras[0], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, false, true);
-                TriggerScaleOut(bg_extras[1], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[1]), 0.0f, flOrig, 0.0f, false, true);
-                TriggerScaleOut(bg_extras[2], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 0.0f, (centeredE->GetHeight() / static_cast<float>(bg_extras[2]->GetHeight())), flMiddleSmAnim, 0.5f, false, true);
-                TriggerScaleOut(bg_extras[3], transDesc, 3, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[3]), 0.0f, flOrig, 1.0f, false, true);
+                TriggerScaleIn(bg_extras[0], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, false, false);
+                TriggerScaleOut(bg_extras[1], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[1]), 0.0f, flOrig, 0.0f, false, false);
+                TriggerScaleOut(bg_extras[2], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 0.0f, (centeredE->GetHeight() / static_cast<float>(bg_extras[2]->GetHeight())), flMiddleSmAnim, 0.5f, false, false);
+                TriggerScaleOut(bg_extras[3], transDesc, 3, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[3]), 0.0f, flOrig, 1.0f, false, false);
                 TriggerScaleIn(bg_main[0], transDesc, 4, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
                     1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, false, false);
                 TriggerScaleIn(bg_main[1], transDesc, 5, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
@@ -1331,6 +1342,9 @@ namespace DirectDesktop
         Element* XScrollbar;
         svBottomOptions->GetHScrollbar(&XScrollbar);
         svBottomOptions->SetXScrollable(XScrollbar->GetVisible());
+
+        if (!animFlags || animFlags & 0x10)
+            SetTimer(editwnd->GetHWND(), 5, 10, nullptr);
     }
     void RefreshSimpleView(DWORD animFlags)
     {
@@ -1349,8 +1363,8 @@ namespace DirectDesktop
         g_editmode = true;
         g_animatePVEnter = true;
         if (!g_invokedpagechange) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
-        static IElementListener *pel_GoToPrevPage, *pel_GoToNextPage, *pel_TriggerHSV1, *pel_ShowShutdownDialog, *pel_TriggerHSV2,
-                                *pel_ShowSearchUI, *pel_ShowSettings, *pel_TriggerHSV3, *pel_ShowPageViewer, *pel_ExitWindow;
+        static IElementListener *pel_GoToPrevPage, *pel_GoToNextPage, *pel_ShowShutdownDialog,
+                                *pel_ShowSearchUI, *pel_ShowSettings, *pel_ShowPageViewer, *pel_ExitWindow;
         RECT dimensions;
         POINT topLeftMon = GetTopLeftMonitor();
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -1389,9 +1403,9 @@ namespace DirectDesktop
         //pEditBG->SetVisible(true);
         //pEditBG->EndDefer(key6);
 
-        fullscreenpopupbaseE = regElem<TouchButton*>(L"fullscreenpopupbase", pEdit);
-        popupcontainerE = regElem<TouchButton*>(L"popupcontainer", pEdit);
-        centeredE = regElem<TouchButton*>(L"centered", pEdit);
+        fullscreenpopupbaseE = regElem<Element*>(L"fullscreenpopupbase", pEdit);
+        popupcontainerE = regElem<Element*>(L"popupcontainer", pEdit);
+        centeredE = regElem<Element*>(L"centered", pEdit);
         //centeredEBG = regElem<Button*>(L"centered", pEditBG);
         SimpleViewTop = regElem<Element*>(L"SimpleViewTop", pEdit);
         SimpleViewBottom = regElem<Element*>(L"SimpleViewBottom", pEdit);
@@ -1413,11 +1427,10 @@ namespace DirectDesktop
         nextpage = regElem<DDScalableTouchButton*>(L"nextpage", pEdit);
         pageinfo = regElem<DDScalableRichText*>(L"pageinfo", pEdit);
 
-        free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_TriggerHSV1), free(pel_ShowShutdownDialog), free(pel_TriggerHSV2),
-            free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_TriggerHSV3), free(pel_ShowPageViewer), free(pel_ExitWindow);
+        free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_ShowShutdownDialog),
+            free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_ShowPageViewer), free(pel_ExitWindow);
         pel_GoToPrevPage = (IElementListener*)assignFn(prevpage, GoToPrevPage, true);
         pel_GoToNextPage = (IElementListener*)assignFn(nextpage, GoToNextPage, true);
-        pel_TriggerHSV1 = (IElementListener*)assignFn(fullscreenpopupbaseE, TriggerHSV, true);
         pel_ShowShutdownDialog = (IElementListener*)assignFn(SimpleViewPower, ShowShutdownDialog, true);
         pel_ShowSearchUI = (IElementListener*)assignFn(SimpleViewSearch, ShowSearchUI, true);
         pel_ShowSettings = (IElementListener*)assignFn(SimpleViewSettings, ShowSettings, true);

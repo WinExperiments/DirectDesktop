@@ -14,6 +14,7 @@
 #include "build_timestamp.h"
 #include "backend\ContextMenus.h"
 #include "backend\DirectoryHelper.h"
+#include "backend\DragAndDrop.h"
 #include "backend\RenameCore.h"
 #include "backend\SettingsHelper.h"
 #include "coreui\BitmapHelper.h"
@@ -55,6 +56,8 @@ namespace DirectDesktop
     HWND g_hSHELLDLL_DefView = nullptr;
     HWND g_hWndTaskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
     HWND g_msgwnd;
+    CDropTarget* g_droptarget;
+    CMinimalDragImage* pMinimal = new CMinimalDragImage();
     Logger MainLogger;
 
     DWORD shutdownReason = SHTDN_REASON_UNKNOWN;
@@ -337,6 +340,7 @@ namespace DirectDesktop
     DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam);
     void ShowDirAsGroupDesktop(LVItem* lvi, bool fNew);
     void SelectItem(Element* elem, Event* iev);
+    void DragItem(LPCWSTR filename);
     void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
@@ -716,6 +720,8 @@ namespace DirectDesktop
                     GetPos2(false);
                     if (g_themeOld != g_theme)
                     {
+                        if (g_issubviewopen)
+                            BlurBackground(subviewwnd->GetHWND(), true, true, 0x33, regElem<Element*>(L"fullscreenpopupbg", pSubview));
                         if (g_automaticDark)
                         {
                             g_isDarkIconsEnabled = !g_theme;
@@ -768,6 +774,7 @@ namespace DirectDesktop
             }
             case WM_CLOSE:
             {
+                MyRevokeDragDrop(g_droptarget);
                 SetPos(isDefaultRes());
                 subviewwnd->ShowWindow(SW_HIDE);
                 if (lParam == 420)
@@ -816,7 +823,7 @@ namespace DirectDesktop
                 {
                     case 1:
                         if (g_editmode) HideSimpleView(true);
-                        else ShowSimpleView(true, 0x0);
+                        else ShowSimpleView(true, 0x10);
                         break;
                     case 2:
                         InitLayout(true, true, true);
@@ -1170,7 +1177,7 @@ namespace DirectDesktop
                     pm[lParam]->SetAssociatedColor(((DesktopIcon*)wParam)->crDominantTile);
                     COLORREF glowcolor = CreateGlowColor(((DesktopIcon*)wParam)->crDominantTile);
                     pm[lParam]->GetInnerElement()->SetAssociatedColor(glowcolor);
-                    pm[lParam]->GetItemCountElement()->SetAssociatedColor(glowcolor);
+                    pm[lParam]->GetItemCountElement()->SetAssociatedColor(0xFF000000 | glowcolor);
                     if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
                         pm[lParam]->GetItemCountElement()->SetForegroundStdColor(7);
                     else pm[lParam]->GetItemCountElement()->SetForegroundStdColor(136);
@@ -1183,7 +1190,7 @@ namespace DirectDesktop
                 else if (g_isGlass)
                 {
                     COLORREF glowcolor = CreateGlowColor(((DesktopIcon*)wParam)->crDominantTile);
-                    pm[lParam]->GetItemCountElement()->SetAssociatedColor(glowcolor);
+                    pm[lParam]->GetItemCountElement()->SetAssociatedColor(0xFF000000 | glowcolor);
                     if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
                         pm[lParam]->GetItemCountElement()->SetForegroundStdColor(7);
                     else pm[lParam]->GetItemCountElement()->SetForegroundStdColor(136);
@@ -1514,15 +1521,6 @@ namespace DirectDesktop
                         g_dragpreview->SetVisible(false);
                         break;
                     }
-                    case 1:
-                    {
-                        if (wParam != NULL)
-                        {
-                            LVItem* item = (*(vector<LVItem*>*)wParam)[0];
-                            item->RemoveFlags(LVIF_DRAG);
-                        }
-                        break;
-                    }
                     case 2:
                     {
                         vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
@@ -1699,7 +1697,10 @@ namespace DirectDesktop
             }
             case WM_USER + 23:
             {
-                break;
+                vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
+                DragItem(RemoveQuotes(internalselectedLVItems[0]->GetFilename()).c_str());
+                isIconPressed = 0;
+                return 0;
             }
             case WM_USER + 24:
             {
@@ -1762,6 +1763,9 @@ namespace DirectDesktop
                         case 4:
                             dea->pe->SetX(dea->val1);
                             dea->pe->SetY(dea->val2);
+                            break;
+                        case 5:
+                            RedrawBorderCore<DDScalableElement>((DDScalableElement*)(dea->pe));
                             break;
                         }
                     }
@@ -1857,7 +1861,55 @@ namespace DirectDesktop
             }
             ppFolder->Release();
         }
-        CoTaskMemFree(pidl);
+        ILFree(pidl);
+    }
+
+    void DragItem(LPCWSTR filename)
+    {
+        LPITEMIDLIST pidl = nullptr;
+        HRESULT hr = SHParseDisplayName(filename, nullptr, &pidl, 0, nullptr);
+        if (SUCCEEDED(hr))
+        {
+            IShellFolder* ppFolder = nullptr;
+            LPITEMIDLIST pidlChild = nullptr;
+            hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
+            if (SUCCEEDED(hr))
+            {
+                IDataObject* pdoBase = nullptr;
+                ppFolder->GetUIObjectOf(nullptr, 1, (LPCITEMIDLIST*)&pidlChild, IID_IDataObject, nullptr, (void**)&pdoBase);
+                if (SUCCEEDED(hr))
+                {
+                    CDataObject* pdo = new CDataObject(pdoBase);
+                    IDragSourceHelper* pHelper{};
+
+                    if (pMinimal)
+                        pMinimal->QueryInterface(IID_IDragSourceHelper, (void**)&pHelper);
+                    RECT rcElement;
+                    HBITMAP hbmPreview;
+                    g_dragpreview->SetX(0);
+                    g_dragpreview->SetY(0);
+                    GetGadgetBitmap(g_dragpreview->GetDisplayNode(), &hbmPreview, &rcElement);
+                    IterateBitmap(hbmPreview, UndoPremultiplication, 1, 0, 1, NULL);
+                    g_dragpreview->SetVisible(false);
+                    SHDRAGIMAGE sdi = { 0 };
+                    sdi.sizeDragImage.cx = rcElement.right;
+                    sdi.sizeDragImage.cy = rcElement.bottom;
+                    sdi.hbmpDragImage = hbmPreview;
+                    sdi.crColorKey = CLR_NONE;
+                    sdi.ptOffset.x = origX;
+                    sdi.ptOffset.y = origY;
+                    hr = pHelper->InitializeFromBitmap(&sdi, pdo);
+                    IDropSource* pds = new CDropSource();
+                    DWORD dwEffect = 0;
+                    DoDragDrop(pdo, pds, DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK, &dwEffect);
+                    pdo->Release();
+                    pds->Release();
+                    DeleteObject(hbmPreview);
+                }
+            }
+            ppFolder->Release();
+        }
+        ILFree(pidl);
     }
 
     void CloseCustomizePage(Element* elem, Event* iev)
@@ -2700,7 +2752,7 @@ namespace DirectDesktop
                 pm[i]->SetAssociatedColor((crAssoc == 0 || crAssoc == -1) ? crDefault : crAssoc);
                 COLORREF glowcolor = CreateGlowColor((crAssoc == 0 || crAssoc == -1) ? crDefault : crAssoc);
                 pm[i]->GetInnerElement()->SetAssociatedColor(glowcolor);
-                pm[i]->GetItemCountElement()->SetAssociatedColor(glowcolor);
+                pm[i]->GetItemCountElement()->SetAssociatedColor(0xFF000000 | glowcolor);
                 if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
                     pm[i]->GetItemCountElement()->SetForegroundStdColor(7);
                 else pm[i]->GetItemCountElement()->SetForegroundStdColor(136);
@@ -2731,10 +2783,10 @@ namespace DirectDesktop
                 else if (((DDScalableElement*)elem)->GetGroupColor() == 0)
                 {
                     if (g_isColorized)
-                        peItemCount->SetAssociatedColor((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]);
-                    else peItemCount->SetAssociatedColor(g_colorPickerPalette[1]);
+                        peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
+                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
                 }
-                else peItemCount->SetAssociatedColor(g_colorPickerPalette[((DDScalableElement*)elem)->GetGroupColor()]);
+                else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[((DDScalableElement*)elem)->GetGroupColor()]);
 
                 if (((DDScalableElement*)elem)->GetGroupColor() < 2)
                 {
@@ -3175,20 +3227,17 @@ namespace DirectDesktop
         {
             GetCursorPos(&ppt2);
             ScreenToClient(wnd->GetHWND(), &ppt2);
-            Sleep(10);
             SendMessageW(wnd->GetHWND(), WM_USER + 17, (WPARAM)((vector<LVItem*>*)lpParam), (LPARAM)&ppt);
-            if (g_lockiconpos && (abs(ppt.x - ppt2.x) > dragWidth || abs(ppt.y - ppt2.y) > dragHeight))
+            Sleep(20);
+            if ((abs(ppt.x - ppt2.x) > dragWidth || abs(ppt.y - ppt2.y) > dragHeight))
             {
-                SendMessageW(wnd->GetHWND(), WM_USER + 18, (WPARAM)((vector<LVItem*>*)lpParam), 2);
-                isIconPressed = false;
-            }
-            if (!isIconPressed)
-            {
-                SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)((vector<LVItem*>*)lpParam), 0);
-                Sleep(100);
-                SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)((vector<LVItem*>*)lpParam), 1);
+                if (g_lockiconpos)
+                    SendMessageW(wnd->GetHWND(), WM_USER + 18, (WPARAM)((vector<LVItem*>*)lpParam), 2);
+                PostMessageW(wnd->GetHWND(), WM_USER + 23, (WPARAM)((vector<LVItem*>*)lpParam), NULL);
                 break;
             }
+            else if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000))
+                break;
         }
         return 0;
     }
@@ -3199,6 +3248,8 @@ namespace DirectDesktop
         HANDLE marqueeThreadHandle;
         if (pProp == TouchButton::PressedProp())
         {
+            //// TRIPLE CLICK AND HIDE
+            // execution
             if (g_tripleclickandhide == true && ((TouchButton*)elem)->GetPressed() == true)
             {
                 g_emptyclicks++;
@@ -3240,6 +3291,7 @@ namespace DirectDesktop
                     g_emptyclicks = 1;
                 }
             }
+            // Hitbox
             if (!isPressed)
             {
                 RECT dimensions{};
@@ -3270,6 +3322,7 @@ namespace DirectDesktop
             }
             isPressed = 1;
         }
+        //// SELECTION RECTANGLE
         else if ((!(GetAsyncKeyState(VK_LBUTTON) & 0x8000) || !elem->GetMouseWithin()) && isPressed)
         {
             RECT dimensions{};
@@ -3401,11 +3454,10 @@ namespace DirectDesktop
                     DP_FolderGroup->SetFontSize(static_cast<int>(glyphiconsize / (2.0f * sizeCoef)));
                     if (((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL)
                     {
-                        Element* rgpeUnwanted[4];
+                        Element* rgpeUnwanted[3];
                         rgpeUnwanted[0] = (regElem<Element*>(L"innerElem", g_dragpreview));
                         rgpeUnwanted[1] = (regElem<Element*>(L"textElem", g_dragpreview));
-                        rgpeUnwanted[2] = (regElem<Element*>(L"textElemShadow", g_dragpreview));
-                        rgpeUnwanted[3] = (regElem<Element*>(L"checkboxElem", g_dragpreview));
+                        rgpeUnwanted[2] = (regElem<Element*>(L"checkboxElem", g_dragpreview));
                         for (int i = 0; i < ARRAYSIZE(rgpeUnwanted); i++)
                             if (rgpeUnwanted[i]) rgpeUnwanted[i]->SetVisible(false);
                     }
@@ -4103,7 +4155,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 87");
+            peTemp[1]->SetContentString(L"Build 88");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
@@ -4300,8 +4352,8 @@ namespace DirectDesktop
                         if (activity & 0x8) HidePopupCore(false, true);
                         if (g_pageviewer)
                         {
-                            RefreshSimpleView(0x0);
                             TriggerEMToPV(true);
+                            RefreshSimpleView(0x0);
                         }
                         else if (activity & 0x11) HideSimpleView(true);
                         if (activity & 0x20) DestroySearchPage();
@@ -4463,7 +4515,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDTabbedPages::Register();
     DDMenuButton::Register();
     DDNotificationBanner::Register();
-    HRESULT hr = OleInitialize(nullptr);
+    MyDragDropInit(nullptr);
 
     WCHAR localeName[256]{};
     ULONG numLanguages{};
@@ -4541,6 +4593,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SetWindowLongPtrW(wnd->GetHWND(), GWL_STYLE, 0x56003A40L);
     SetWindowPos(wnd->GetHWND(), nullptr, NULL, NULL, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, SWP_NOMOVE | SWP_NOZORDER);
     WndProc = (WNDPROC)SetWindowLongPtrW(wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)SubclassWindowProc);
+
+    CLIPFORMAT cf_list[1] = { CF_HDROP };
+    HWND hwndInner = FindWindowExW(wnd->GetHWND(), nullptr, L"DirectUIHWND", nullptr);
+    g_droptarget = MyRegisterDragDrop(hwndInner, cf_list, 1, WM_NULL, TheDropProc, NULL);
 
     parser->CreateElement(L"main", parent, nullptr, nullptr, &pMain);
     pMain->SetVisible(true);

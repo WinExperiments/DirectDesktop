@@ -226,6 +226,66 @@ namespace DirectDesktop
         }
     }
 
+    // Original author: Amrsatrio, modified by WinExperiments
+    template <typename T>
+    void RedrawBorderCore(T* pe)
+    {
+        CValuePtr v;
+        RECT rcElement, rcRadius = *(pe->GetBorderRadius(&v));
+
+        AddLayeredRef(pe->GetDisplayNode());
+
+        Microsoft::WRL::ComPtr<IDCompositionVisual> spVisual;
+        Microsoft::WRL::ComPtr<IDCompositionVisual> spVisualContent;
+        Microsoft::WRL::ComPtr<IDCompositionDevice> spDUserDevice;
+
+        HRESULT hr = ResultFromWin32Bool(GetGadgetVisual(0, pe->GetDisplayNode(), &spVisual, &spVisualContent, &spDUserDevice));
+
+        if (!spDUserDevice.Get()) return;
+
+        Microsoft::WRL::ComPtr<IDCompositionRectangleClip> spClip;
+        spDUserDevice->CreateRectangleClip(&spClip);
+
+        GetGadgetRect(pe->GetDisplayNode(), &rcElement, 0x8);
+
+        spClip->SetLeft((float)rcElement.left);
+        spClip->SetTop((float)rcElement.top);
+        spClip->SetRight((float)rcElement.right);
+        spClip->SetBottom((float)rcElement.bottom);
+
+        
+        float circularRadius = min((float)(rcElement.right - rcElement.left), (float)(rcElement.bottom - rcElement.top)) / 2.0f;
+        if (rcRadius.left == -1) rcRadius.left = circularRadius;
+        if (rcRadius.top == -1) rcRadius.top = circularRadius;
+        if (rcRadius.right == -1) rcRadius.right = circularRadius;
+        if (rcRadius.bottom == -1) rcRadius.bottom = circularRadius;
+
+        spClip->SetBottomLeftRadiusX(rcRadius.bottom);
+        spClip->SetBottomLeftRadiusY(rcRadius.bottom);
+        spClip->SetBottomRightRadiusX(rcRadius.right);
+        spClip->SetBottomRightRadiusY(rcRadius.right);
+        spClip->SetTopLeftRadiusX(rcRadius.left);
+        spClip->SetTopLeftRadiusY(rcRadius.left);
+        spClip->SetTopRightRadiusX(rcRadius.top);
+        spClip->SetTopRightRadiusY(rcRadius.top);
+
+        spVisualContent->SetClip(spClip.Get());
+        spDUserDevice->Commit();
+    }
+
+    DWORD WINAPI RedrawBorderCoreDelayed(LPVOID lpParam)
+    {
+        DelayedElementActions* dea = (DelayedElementActions*)lpParam;
+        Sleep(dea->dwMillis);
+        dea = (DelayedElementActions*)lpParam;
+        if (dea->pe)
+        {
+            SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 5);
+        }
+        else delete dea;
+        return 0;
+    }
+
     static const int vvimpFirstScaledImageProp[] = { 1, -1 };
     static PropertyInfoData dataimpFirstScaledImageProp;
     static const PropertyInfo impFirstScaledImageProp =
@@ -442,6 +502,18 @@ namespace DirectDesktop
         Value::GetStringNull,
         &dataimpIconContentProp
     };
+    static const int vvimpBorderRadiusProp[] = { 8, -1 };
+    static PropertyInfoData dataimpBorderRadiusProp;
+    static const PropertyInfo impBorderRadiusProp =
+    {
+        L"BorderRadius",
+        0x2 | 0x4,
+        0x1,
+        vvimpBorderRadiusProp,
+        nullptr,
+        Value::GetRectZero,
+        &dataimpBorderRadiusProp
+    };
 
     void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
@@ -519,6 +591,28 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableElement>(this);
         }
+        //static RECT rcOld, rcCurrent;
+        //GetGadgetRect(this->GetDisplayNode(), &rcCurrent, 0x8);
+        //if ((rcOld.right - rcOld.left != rcCurrent.right - rcCurrent.left || rcOld.bottom - rcOld.top != rcCurrent.bottom - rcCurrent.top) &&
+        //    this->IsHosted() && DWMActive)
+        //{
+        //    CValuePtr v;
+        //    RECT rcRadius = *(this->GetBorderRadius(&v));
+        //    if (rcRadius.left != 0 || rcRadius.top != 0 || rcRadius.right != 0 || rcRadius.bottom != 0)
+        //        RedrawBorderCore<DDScalableElement>(this);
+        //}
+        //GetGadgetRect(this->GetDisplayNode(), &rcOld, 0x8);
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        {
+            if (this->IsHosted())
+                RedrawBorderCore<DDScalableElement>(this);
+            else
+            {
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
+                if (hRedraw) CloseHandle(hRedraw);
+            }
+        }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableElement>(this, nullptr, this->GetNeedsFontResize());
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
@@ -541,7 +635,8 @@ namespace DirectDesktop
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
             &impAssociatedColorProp,
-            &impDDCPIntensityProp
+            &impDDCPIntensityProp,
+            &impBorderRadiusProp
         };
         return ClassInfo<DDScalableElement, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableElement", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -721,6 +816,35 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
+    const PropertyInfo* WINAPI DDScalableElement::BorderRadiusProp()
+    {
+        return &impBorderRadiusProp;
+    }
+
+    const RECT* DDScalableElement::GetBorderRadius(Value** ppv)
+    {
+        Value* pv;
+        if (this->IsDestroyed())
+        {
+            pv = impBorderRadiusProp.pData->_pvDefault;
+            *ppv = pv;
+        }
+        else
+            pv = GetValue(BorderRadiusProp, 2, nullptr);
+        return pv->GetRect();
+    }
+
+    void DDScalableElement::SetBorderRadius(int l, int t, int r, int b)
+    {
+        Value* pv = Value::CreateRect(l, t, r, b, DSV_None);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(BorderRadiusProp, 1, pv);
+            pv->Release();
+        }
+    }
+
     unsigned short DDScalableElement::GetGroupColor()
     {
         return _gc;
@@ -777,6 +901,28 @@ namespace DirectDesktop
             }
             RedrawImageCore<DDScalableButton>(this);
         }
+        //static RECT rcOld, rcCurrent;
+        //GetGadgetRect(this->GetDisplayNode(), &rcCurrent, 0x8);
+        //if ((rcOld.right - rcOld.left != rcCurrent.right - rcCurrent.left || rcOld.bottom - rcOld.top != rcCurrent.bottom - rcCurrent.top) &&
+        //    this->IsHosted() && DWMActive)
+        //{
+        //    CValuePtr v;
+        //    RECT rcRadius = *(this->GetBorderRadius(&v));
+        //    if (rcRadius.left != 0 || rcRadius.top != 0 || rcRadius.right != 0 || rcRadius.bottom != 0)
+        //        RedrawBorderCore<DDScalableButton>(this);
+        //}
+        //GetGadgetRect(this->GetDisplayNode(), &rcOld, 0x8);
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        {
+            if (this->IsHosted())
+                RedrawBorderCore<DDScalableButton>(this);
+            else
+            {
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
+                if (hRedraw) CloseHandle(hRedraw);
+            }
+        }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableButton>(this, nullptr, this->GetNeedsFontResize());
         Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
@@ -799,7 +945,8 @@ namespace DirectDesktop
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
             &impAssociatedColorProp,
-            &impDDCPIntensityProp
+            &impDDCPIntensityProp,
+            &impBorderRadiusProp
         };
         return ClassInfo<DDScalableButton, Button>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -979,6 +1126,35 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
+    const PropertyInfo* WINAPI DDScalableButton::BorderRadiusProp()
+    {
+        return &impBorderRadiusProp;
+    }
+
+    const RECT* DDScalableButton::GetBorderRadius(Value** ppv)
+    {
+        Value* pv;
+        if (this->IsDestroyed())
+        {
+            pv = impBorderRadiusProp.pData->_pvDefault;
+            *ppv = pv;
+        }
+        else
+            pv = GetValue(BorderRadiusProp, 2, nullptr);
+        return pv->GetRect();
+    }
+
+    void DDScalableButton::SetBorderRadius(int l, int t, int r, int b)
+    {
+        Value* pv = Value::CreateRect(l, t, r, b, DSV_None);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(BorderRadiusProp, 1, pv);
+            pv->Release();
+        }
+    }
+
     RegKeyValue DDScalableButton::GetRegKeyValue()
     {
         return _rkv;
@@ -1093,9 +1269,28 @@ namespace DirectDesktop
                 wcscmp(fontFace, L"Segoe MDL2 Assets") != 0 &&
                 wcscmp(fontFace, L"Segoe Fluent Icons") != 0);
         }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        {
+            if (this->IsHosted())
+                RedrawBorderCore<DDScalableRichText>(this);
+            else
+            {
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
+                if (hRedraw) CloseHandle(hRedraw);
+            }
+        }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableRichText>(this, nullptr, this->GetNeedsFontResize());
         RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+        //if ((PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) ||
+        //    PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
+        //    PropNotify::IsEqual(ppi, iIndex, Element::ContentProp) ||
+        //    PropNotify::IsEqual(ppi, iIndex, Element::LayoutPosProp)) &&
+        //    this->IsHosted() && DWMActive)
+        //{
+        //    RedrawBorderCore<DDScalableRichText>(this);
+        //}
     }
 
     HRESULT DDScalableRichText::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
@@ -1114,7 +1309,9 @@ namespace DirectDesktop
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
-            &impAssociatedColorProp
+            &impAssociatedColorProp,
+            &impDDCPIntensityProp,
+            &impBorderRadiusProp
         };
         return ClassInfo<DDScalableRichText, RichText>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableRichText", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -1294,6 +1491,35 @@ namespace DirectDesktop
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
     }
 
+    const PropertyInfo* WINAPI DDScalableRichText::BorderRadiusProp()
+    {
+        return &impBorderRadiusProp;
+    }
+
+    const RECT* DDScalableRichText::GetBorderRadius(Value** ppv)
+    {
+        Value* pv;
+        if (this->IsDestroyed())
+        {
+            pv = impBorderRadiusProp.pData->_pvDefault;
+            *ppv = pv;
+        }
+        else
+            pv = GetValue(BorderRadiusProp, 2, nullptr);
+        return pv->GetRect();
+    }
+
+    void DDScalableRichText::SetBorderRadius(int l, int t, int r, int b)
+    {
+        Value* pv = Value::CreateRect(l, t, r, b, DSV_None);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(BorderRadiusProp, 1, pv);
+            pv->Release();
+        }
+    }
+
     DDScalableTouchButton::~DDScalableTouchButton()
     {
         this->DestroyAll(true);
@@ -1349,9 +1575,28 @@ namespace DirectDesktop
                 wcscmp(fontFace, L"Segoe MDL2 Assets") != 0 &&
                 wcscmp(fontFace, L"Segoe Fluent Icons") != 0);
         }
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        {
+            if (this->IsHosted())
+                RedrawBorderCore<DDScalableTouchButton>(this);
+            else
+            {
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
+                if (hRedraw) CloseHandle(hRedraw);
+            }
+        }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableTouchButton>(this, nullptr, this->GetNeedsFontResize());
         TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+        //if ((PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) ||
+        //    PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
+        //    PropNotify::IsEqual(ppi, iIndex, Element::ContentProp) ||
+        //    PropNotify::IsEqual(ppi, iIndex, Element::LayoutPosProp)) &&
+        //    this->IsHosted() && DWMActive)
+        //{
+        //    RedrawBorderCore<DDScalableTouchButton>(this);
+        //}
     }
 
     HRESULT DDScalableTouchButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
@@ -1370,7 +1615,9 @@ namespace DirectDesktop
             &impDrawTypeProp,
             &impEnableAccentProp,
             &impNeedsFontResizeProp,
-            &impAssociatedColorProp
+            &impAssociatedColorProp,
+            &impDDCPIntensityProp,
+            &impBorderRadiusProp
         };
         return ClassInfo<DDScalableTouchButton, TouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -1548,6 +1795,35 @@ namespace DirectDesktop
     void DDScalableTouchButton::SetDDCPIntensity(int intensity)
     {
         this->SetPropCommon(DDCPIntensityProp, intensity, true);
+    }
+
+    const PropertyInfo* WINAPI DDScalableTouchButton::BorderRadiusProp()
+    {
+        return &impBorderRadiusProp;
+    }
+
+    const RECT* DDScalableTouchButton::GetBorderRadius(Value** ppv)
+    {
+        Value* pv;
+        if (this->IsDestroyed())
+        {
+            pv = impBorderRadiusProp.pData->_pvDefault;
+            *ppv = pv;
+        }
+        else
+            pv = GetValue(BorderRadiusProp, 2, nullptr);
+        return pv->GetRect();
+    }
+
+    void DDScalableTouchButton::SetBorderRadius(int l, int t, int r, int b)
+    {
+        Value* pv = Value::CreateRect(l, t, r, b, DSV_None);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(BorderRadiusProp, 1, pv);
+            pv->Release();
+        }
     }
 
     RegKeyValue DDScalableTouchButton::GetRegKeyValue()

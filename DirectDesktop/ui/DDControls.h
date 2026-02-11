@@ -15,6 +15,9 @@ namespace DirectDesktop
     struct yValue;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
+    
+    template <typename T>
+    void RedrawBorderCore(T* pe);
 
     class DDScalableElement : public Element
     {
@@ -42,6 +45,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
+        static const PropertyInfo* WINAPI BorderRadiusProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetImageCount();
@@ -51,6 +55,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
+        const RECT* GetBorderRadius(Value** ppv);
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetImageCount(int iImageCount);
@@ -60,6 +65,7 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
+        void SetBorderRadius(int l, int t, int r, int b);
         unsigned short GetGroupColor();
         void SetGroupColor(unsigned short sGC);
 
@@ -105,6 +111,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
+        static const PropertyInfo* WINAPI BorderRadiusProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetImageCount();
@@ -114,6 +121,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
+        const RECT* GetBorderRadius(Value** ppv);
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetImageCount(int iImageCount);
@@ -123,6 +131,7 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
+        void SetBorderRadius(int l, int t, int r, int b);
 
         RegKeyValue GetRegKeyValue();
         void (*GetAssociatedFn())(bool, bool, bool);
@@ -176,6 +185,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
+        static const PropertyInfo* WINAPI BorderRadiusProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetImageCount();
@@ -185,6 +195,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
+        const RECT* GetBorderRadius(Value** ppv);
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetImageCount(int iImageCount);
@@ -194,6 +205,7 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
+        void SetBorderRadius(int l, int t, int r, int b);
 
     protected:
         auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
@@ -235,6 +247,7 @@ namespace DirectDesktop
         static const PropertyInfo* WINAPI NeedsFontResizeProp();
         static const PropertyInfo* WINAPI AssociatedColorProp();
         static const PropertyInfo* WINAPI DDCPIntensityProp();
+        static const PropertyInfo* WINAPI BorderRadiusProp();
         int GetFirstScaledImage();
         int GetScaledImageIntervals();
         int GetImageCount();
@@ -244,6 +257,7 @@ namespace DirectDesktop
         bool GetNeedsFontResize();
         COLORREF GetAssociatedColor();
         int GetDDCPIntensity();
+        const RECT* GetBorderRadius(Value** ppv);
         void SetFirstScaledImage(int iFirstImage);
         void SetScaledImageIntervals(int iScaleIntervals);
         void SetImageCount(int iImageCount);
@@ -253,6 +267,7 @@ namespace DirectDesktop
         void SetNeedsFontResize(bool bNeedsFontResize);
         void SetAssociatedColor(COLORREF crAssociatedColor);
         void SetDDCPIntensity(int intensity);
+        void SetBorderRadius(int l, int t, int r, int b);
 
         RegKeyValue GetRegKeyValue();
         void (*GetAssociatedFn())(bool, bool, bool);

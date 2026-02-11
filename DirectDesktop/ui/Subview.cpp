@@ -9,6 +9,7 @@
 #include "..\coreui\ColorHelper.h"
 #include "..\coreui\StyleModifier.h"
 #include "..\DirectDesktop.h"
+#include <wrl.h>
 
 using namespace DirectUI;
 
@@ -163,7 +164,7 @@ namespace DirectDesktop
                     if (g_showfolderitemcount && (*l_pm)[num]->GetFlags() & LVIF_DIR)
                     {
                         DDScalableRichText* peItemCount = (*l_pm)[num]->GetItemCountElement();
-                        peItemCount->SetAssociatedColor(glowcolor);
+                        peItemCount->SetAssociatedColor(0xFF000000 | glowcolor);
                         if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
                             peItemCount->SetForegroundStdColor(7);
                         else peItemCount->SetForegroundStdColor(136);
@@ -299,7 +300,7 @@ namespace DirectDesktop
                         lvbutton.Assign(regElem<DDLVActionButton*>(L"OpenInExplorer", lvi));
                         groupcolor = lvbutton->GetAssociatedItem()->GetIcon()->GetGroupColor();
                     }
-                    peItemCount->SetAssociatedColor((groupcolor == 0) ? (iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[1] : g_colorPickerPalette[groupcolor]);
+                    peItemCount->SetAssociatedColor(0xFF000000 | ((groupcolor == 0) ? (iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[1] : g_colorPickerPalette[groupcolor]));
                 }
             }
             break;

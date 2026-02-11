@@ -19,7 +19,7 @@ namespace DirectDesktop
     extern NativeHWNDHost* editbgwnd;
     extern HWND g_hWndTaskbar, g_hWorkerW, g_hSHELLDLL_DefView;
     extern Element* mainContainer, *UIContainer;
-    extern TouchButton* PageViewer;
+    extern Element* PageViewer;
     extern int localeType;
     extern int g_currentPageID, g_maxPageID;
     extern void SetPopupSize(Element* elem, int width, int height);
@@ -28,8 +28,8 @@ namespace DirectDesktop
     extern TouchButton *nextpageMain, *prevpageMain;
     extern DDScalableTouchButton *nextpage, *prevpage;
     extern DDScalableRichText* pageinfo;
-    extern DDScalableElement* fullscreeninnerE;
-    extern TouchButton* centeredE;
+    extern DDScalableTouchButton* fullscreeninnerE;
+    extern Element* centeredE;
 
     extern void testEventListener3(Element* elem, Event* iev);
     extern void ShowSettings(Element* elem, Event* iev);

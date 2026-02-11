@@ -13,7 +13,7 @@
 				</TouchButton>
 				<Element id="atom(selector)" layout="borderlayout()" class="selector" visible="false" layoutpos="absolute" background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="filllayout()" background="argb(0,0,0,0)">
-					<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false"/>
+					<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false" mousefocused="false"/>
 					<Element id="atom(iconElem)" contentalign="bottomcenter" layout="filllayout()" layoutpos="absolute">
 						<Element id="atom(DP_FolderGroup)" layoutpos="client" contentalign="middlecenter" visible="false" background="argb(0,0,0,0)"/>
 					</Element>
@@ -136,7 +136,7 @@
 				</if>
 			</if>
 			<if class="itemcount">
-				<DDScalableRichText FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-4rp,-8rp,-4rp,-8rp)" foreground="rgb(255,255,255)"/>
+				<DDScalableRichText FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-5rp,-8rp,-5rp,-8rp)" foreground="rgb(255,255,255)"/>
 			</if>
 			<if class="pageselector">
 				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)"/>
@@ -201,7 +201,7 @@
 				</if>
 			</if>
 			<if class="itemcount">
-				<DDScalableRichText FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-4rp,-8rp,-4rp,-8rp)" foreground="rgb(0,0,0)"/>
+				<DDScalableRichText FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)" padding="rect(-5rp,-8rp,-5rp,-8rp)" foreground="rgb(0,0,0)"/>
 			</if>
 			<if class="pageselector">
 				<TouchButton background="argb(0,0,0,0)" width="16rp" foreground="white" contentalign="middlecenter" font="resstr(139)"/>

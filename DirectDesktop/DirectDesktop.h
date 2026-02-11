@@ -229,4 +229,25 @@ namespace DirectDesktop
     }
     EventListener* assignFn(Element* elemName, void (*fnName)(Element* elem, Event* iev), bool fReturn = false);
     EventListener2* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
+
+    inline HRESULT ResultFromWin32(__in DWORD dwErr)
+    {
+        return HRESULT_FROM_WIN32(dwErr);
+    }
+
+    inline HRESULT ResultFromLastError()
+    {
+        return ResultFromWin32(GetLastError());
+    }
+
+    inline HRESULT ResultFromKnownLastError()
+    {
+        HRESULT hr = ResultFromLastError();
+        return (SUCCEEDED(hr) ? E_FAIL : hr);
+    }
+
+    inline HRESULT ResultFromWin32Bool(BOOL b)
+    {
+        return b ? S_OK : ResultFromKnownLastError();
+    }
 }

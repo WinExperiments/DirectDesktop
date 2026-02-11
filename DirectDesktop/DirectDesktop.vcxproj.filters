@@ -105,6 +105,9 @@
     <ClInclude Include="build_timestamp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="backend\DragAndDrop.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coreui\AccentColorHelper.cpp">
@@ -157,6 +160,9 @@
     </ClCompile>
     <ClCompile Include="ui\Subview.cpp">
       <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\DragAndDrop.cpp">
+      <Filter>Source Files\backend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
