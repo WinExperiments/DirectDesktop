@@ -82,7 +82,8 @@ namespace DirectDesktop
                             {
                                 if (PV_EnterPage)
                                 {
-                                    if (PV_EnterPage->GetContentString(&v) != nullptr) removedPage = _wtoi(PV_EnterPage->GetContentString(&v));
+                                    if (PV_EnterPage->GetContentString(&v) != nullptr)
+                                        removedPage = _wtoi(PV_EnterPage->GetContentString(&v));
                                     if (!ValidateStrDigits(PV_EnterPage->GetContentString(&v)) || removedPage < 1 || removedPage > g_maxPageID)
                                     {
                                         MessageBeep(MB_OK);
@@ -121,8 +122,12 @@ namespace DirectDesktop
                                     return 0;
                                 }
                             }
-                            if (removedPage == g_homePageID) g_homePageID = 1;
-                            else if (removedPage < g_maxPageID && removedPage < g_homePageID) g_homePageID--;
+                            if (removedPage == g_homePageID || (removedPage < g_maxPageID && removedPage < g_homePageID))
+                                g_homePageID--;
+                            if (g_homePageID < 1) g_homePageID = 1;
+                            if (removedPage == g_currentPageID || (removedPage < g_maxPageID && removedPage < g_currentPageID))
+                                g_currentPageID--;
+                            if (g_currentPageID < 1) g_currentPageID = 1;
                             if (removedPage < g_maxPageID)
                             {
                                 for (int i = removedPage + 1; i <= g_maxPageID; i++)
@@ -145,6 +150,7 @@ namespace DirectDesktop
                                 ShowPageViewer(PageViewer, iev);
                             }
                         }
+                        g_editingpages = false;
                         break;
                     case 2:
                         if (timerPtr)
@@ -192,6 +198,7 @@ namespace DirectDesktop
                                 ShowPageViewer(PageViewer, iev);
                             }
                         }
+                        g_editingpages = false;
                         break;
                     case 3: 
                         RefreshSimpleView(0x0);
@@ -207,6 +214,7 @@ namespace DirectDesktop
                             Event* iev = new Event{ PageViewer, TouchButton::Click };
                             ShowPageViewer(PageViewer, iev);
                         }
+                        g_editingpages = false;
                         break;
                     case 5:
                         CreatePagePreview();
@@ -843,10 +851,11 @@ namespace DirectDesktop
         if (iev->uidType == TouchButton::Click)
         {
             CSafeElementPtr<DDLVActionButton> PV_Home; PV_Home.Assign(regElem<DDLVActionButton*>(L"PV_Home", elem));
+            CSafeElementPtr<DDLVActionButton> PV_Remove; PV_Remove.Assign(regElem<DDLVActionButton*>(L"PV_Remove", elem));
             if (PV_Home)
-            {
                 if (PV_Home->GetMouseWithin()) return;
-            }
+            if (PV_Remove)
+                if (PV_Remove->GetMouseWithin()) return;
             TriggerEMToPV(true);
             RefreshSimpleView(0x0);
         }
@@ -941,9 +950,6 @@ namespace DirectDesktop
                         if (g_maxPageID & 1 && i == g_maxPageID)
                             PV_CreateDimRect(pagesrow2, ceil(dimensions.right * 0.1375), ceil(dimensions.bottom * 0.25));
                     }
-                    if (i == g_currentPageID) assignFn(PV_Page, ClosePageViewer);
-                    else if (i < g_currentPageID) assignFn(PV_Page, GoToPrevPage);
-                    else if (i > g_currentPageID) assignFn(PV_Page, GoToNextPage);
                     int remainingIcons = 1;
                     PV_Page->AddFlags(LVIF_HIDDEN);
                     CSafeElementPtr<Element> PV_PageIcons;
@@ -986,6 +992,9 @@ namespace DirectDesktop
                         if (PV_Page->GetPage() != g_homePageID) assignFn(PV_Home, SetSelectedPageHome);
                     }
                     if (isDefaultRes()) assignExtendedFn(PV_Page, ShowPageOptionsOnHover);
+                    if (i == g_currentPageID) assignFn(PV_Page, ClosePageViewer);
+                    else if (i < g_currentPageID) assignFn(PV_Page, GoToPrevPage);
+                    else if (i > g_currentPageID) assignFn(PV_Page, GoToNextPage);
                 }
                 if (g_maxPageID >= 3) rowpadding->SetWidth(pagesrow1->GetWidth());
                 SetTransElementPosition(bg_top, 0, 0, dimensions.right, topYHeight);

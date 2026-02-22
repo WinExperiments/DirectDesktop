@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "..\DirectDesktop.h"
 #include "AnimationHelper.h"
+#include "..\coreui\BitmapHelper.h"
+#include "..\coreui\StyleModifier.h"
 
 using namespace DirectUI;
 
@@ -404,6 +406,38 @@ namespace DirectDesktop
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
+        }
+    }
+
+    void TriggerCrossfade(Element* pe, float flDelay, float flDuration)
+    {
+        if (pe->GetVisible())
+        {
+            Element* peClone{};
+            Element::Create(0, pe->GetRoot(), nullptr, &peClone);
+            pe->GetRoot()->Add(&peClone, 1);
+            AddLayeredRef(peClone->GetDisplayNode());
+            SetGadgetStyle(peClone->GetDisplayNode(), NULL, NULL);
+            RECT rcGadget;
+            GetGadgetRect(pe->GetDisplayNode(), &rcGadget, 0xC);
+            peClone->SetLayoutPos(-2);
+            peClone->SetX(rcGadget.left);
+            peClone->SetY(rcGadget.top);
+            peClone->SetWidth(rcGadget.right - rcGadget.left);
+            peClone->SetHeight(rcGadget.bottom - rcGadget.top);
+            HBITMAP hbmOld;
+            GetGadgetBitmap(pe->GetDisplayNode(), &hbmOld, &rcGadget);
+            IterateBitmap(hbmOld, UndoPremultiplication, 1, 0, 1, NULL);
+            CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(hbmOld, 7, 0xffffffff, false, false, false);
+            if (spvBitmap)
+                peClone->SetValue(Element::BackgroundProp, 1, spvBitmap);
+            DeleteObject(hbmOld);
+            GTRANS_DESC rgTrans[3];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerFade(pe, rgTrans, 0, flDelay, flDuration * 0.9f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerFade(peClone, rgTrans, 1, flDelay + flDuration * 0.1f, flDuration, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
+            TriggerScaleOut(peClone, rgTrans, 2, 0.0f, flDuration + 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, false, true); // Give the element some time to get destroyed
+            ScheduleGadgetTransitions_DWMCheck(0, 3, rgTrans, nullptr, &tsbInfo);
         }
     }
 } 

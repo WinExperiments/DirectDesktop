@@ -407,7 +407,8 @@ namespace DirectDesktop
                     switch (pNotify->Action)
                     {
                         case FILE_ACTION_ADDED:
-                            InitNewLVItem(path, filename);
+                            if (!g_overridefilelistener)
+                                InitNewLVItem(path, filename, nullptr, NULL);
                             break;
                         case FILE_ACTION_REMOVED:
                             RemoveLVItem(path, filename);

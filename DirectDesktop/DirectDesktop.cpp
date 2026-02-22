@@ -68,6 +68,7 @@ namespace DirectDesktop
     int g_lastDpiChangeTick;
     bool g_ignoreWorkAreaChange = false;
     bool DWMActive;
+    bool g_overridefilelistener;
 
     wstring LoadStrFromRes(UINT id)
     {
@@ -220,7 +221,7 @@ namespace DirectDesktop
         HDC screen = GetDC(nullptr);
         g_dpi = GetDeviceCaps(screen, LOGPIXELSX);
         ReleaseDC(nullptr, screen);
-        g_flScaleFactor = g_dpi / 96.0;
+        g_flScaleFactor = g_dpi / 96.0f;
         g_dpiLaunch = g_dpi;
         g_touchSizeX *= g_flScaleFactor;
         g_touchSizeY *= g_flScaleFactor;
@@ -232,7 +233,7 @@ namespace DirectDesktop
         g_dpiOld = g_dpi;
         g_dpi = GetDpiForWindow(hWnd);
         g_isDpiPreviouslyChanged = true;
-        g_flScaleFactor = g_dpi / 96.0;
+        g_flScaleFactor = g_dpi / 96.0f;
         g_touchSizeX *= static_cast<float>(g_dpi) / g_dpiOld;
         g_touchSizeY *= static_cast<float>(g_dpi) / g_dpiOld;
     }
@@ -288,6 +289,8 @@ namespace DirectDesktop
     {
         wstring filepath;
         wstring filename;
+        POINTL* ppt;
+        UINT page;
     };
 
     struct ThumbnailIcon
@@ -340,7 +343,7 @@ namespace DirectDesktop
     DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam);
     void ShowDirAsGroupDesktop(LVItem* lvi, bool fNew);
     void SelectItem(Element* elem, Event* iev);
-    void DragItem(LPCWSTR filename);
+    void DragItem(vector<LVItem*> vItems);
     void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
@@ -1305,8 +1308,6 @@ namespace DirectDesktop
             }
             case WM_USER + 17:
             {
-                static int dragToPrev{}, dragToNext{};
-                CValuePtr v;
                 POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(wnd->GetHWND(), &ppt);
@@ -1320,43 +1321,11 @@ namespace DirectDesktop
                 if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight)
                 {
                     internalselectedLVItems[0]->AddFlags(LVIF_DRAG);
-                    g_dragpreview->SetVisible(!g_lockiconpos);
-                }
-                if (ppt.x < 16 * g_flScaleFactor) dragToPrev++;
-                else dragToPrev = 0;
-                if (ppt.x > dimensions.right - 16 * g_flScaleFactor) dragToNext++;
-                else dragToNext = 0;
-                if (dragToPrev > 50 && g_currentPageID > 1)
-                {
-                    g_currentPageID--;
-                    short animSrc = (localeType == 1) ? 1 : -1;
-                    animSrc *= dimensions.right;
-                    for (int i = 0; i < internalselectedLVItems.size(); i++)
-                        internalselectedLVItems[i]->SetPage(g_currentPageID);
-                    TriggerPageTransition(-1, dimensions);
-                    nextpageMain->SetVisible(true);
-                    if (g_currentPageID == 1) prevpageMain->SetVisible(false);
-                    dragToPrev = 18;
-                }
-                if (dragToNext > 50 && g_currentPageID < g_maxPageID)
-                {
-                    g_currentPageID++;
-                    short animSrc = (localeType == 1) ? -1 : 1;
-                    animSrc *= dimensions.right;
-                    for (int i = 0; i < internalselectedLVItems.size(); i++)
-                        internalselectedLVItems[i]->SetPage(g_currentPageID);
-                    TriggerPageTransition(1, dimensions);
-                    prevpageMain->SetVisible(true);
-                    if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
-                    dragToNext = 18;
+                    g_dragpreview->SetVisible(true);
                 }
                 if (localeType == 1) ppt.x = dimensions.right - ppt.x;
                 g_dragpreview->SetX(ppt.x - origX);
                 g_dragpreview->SetY(ppt.y - origY);
-                if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000) && isIconPressed)
-                {
-                    isIconPressed = 0;
-                }
                 break;
             }
             case WM_USER + 18:
@@ -1518,16 +1487,13 @@ namespace DirectDesktop
                             }
                             internalselectedLVItems.clear();
                         }
-                        g_dragpreview->SetVisible(false);
                         break;
                     }
                     case 2:
                     {
                         vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
                         LVItem* item = internalselectedLVItems[0];
-                        item->RemoveFlags(LVIF_DRAG);
                         internalselectedLVItems.clear();
-                        g_dragpreview->SetVisible(false);
                         MessageBeep(MB_OK);
                         CSafeElementPtr<DDNotificationBanner> ddnb;
                         ddnb.Assign(new DDNotificationBanner);
@@ -1656,6 +1622,25 @@ namespace DirectDesktop
                     pm[currentID]->SetInternalYPos(yV->fl2);
                     delete yV;
                 }
+                else if (fi->ppt)
+                {
+                    // 0.5.6.1: TODO later: collision detection (also add to WM_USER + 18... or merge logic of both)
+                    short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
+                    short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
+                    short localeDirection = (localeType == 1) ? -1 : 1;
+                    short desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
+                    short desktoppadding_x = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
+                    short desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
+                    if (g_touchmode)
+                    {
+                        outerSizeX = g_touchSizeX + desktoppadding;
+                        outerSizeY = g_touchSizeY + desktoppadding;
+                    }
+                    pm[currentID]->SetPage(fi->page);
+                    pm[currentID]->SetInternalXPos(round((fi->ppt->x - desktoppadding_x * localeDirection) / outerSizeX));
+                    pm[currentID]->SetInternalYPos(round((fi->ppt->y - desktoppadding_y) / outerSizeY));
+                    delete fi->ppt;
+                }
                 else {
                     pm[currentID]->SetPage(1);
                     pm[currentID]->SetInternalXPos(0);
@@ -1698,8 +1683,7 @@ namespace DirectDesktop
             case WM_USER + 23:
             {
                 vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
-                DragItem(RemoveQuotes(internalselectedLVItems[0]->GetFilename()).c_str());
-                isIconPressed = 0;
+                DragItem(internalselectedLVItems);
                 return 0;
             }
             case WM_USER + 24:
@@ -1864,52 +1848,51 @@ namespace DirectDesktop
         ILFree(pidl);
     }
 
-    void DragItem(LPCWSTR filename)
+    void DragItem(vector<LVItem*> vItems)
     {
-        LPITEMIDLIST pidl = nullptr;
-        HRESULT hr = SHParseDisplayName(filename, nullptr, &pidl, 0, nullptr);
+        const UINT cidl = vItems.size();
+        vector<LPITEMIDLIST> rgpidl;
+        for (int i = 0; i < cidl; i++)
+        {
+            LPITEMIDLIST pidl = nullptr;
+            if (SUCCEEDED(SHParseDisplayName((LPWSTR)RemoveQuotes(vItems[i]->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr)))
+                rgpidl.push_back(pidl);
+        }
+        ComPtr<IShellItemArray> pItemArray = nullptr;
+        HRESULT hr = SHCreateShellItemArrayFromIDLists(rgpidl.size(), (LPCITEMIDLIST*)rgpidl.data(), &pItemArray);
         if (SUCCEEDED(hr))
         {
-            IShellFolder* ppFolder = nullptr;
-            LPITEMIDLIST pidlChild = nullptr;
-            hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
+            ComPtr<IDataObject> pdo = nullptr;
+            hr = pItemArray->BindToHandler(nullptr, BHID_DataObject, IID_IDataObject, (void**)&pdo);
             if (SUCCEEDED(hr))
             {
-                IDataObject* pdoBase = nullptr;
-                ppFolder->GetUIObjectOf(nullptr, 1, (LPCITEMIDLIST*)&pidlChild, IID_IDataObject, nullptr, (void**)&pdoBase);
-                if (SUCCEEDED(hr))
-                {
-                    CDataObject* pdo = new CDataObject(pdoBase);
-                    IDragSourceHelper* pHelper{};
-
-                    if (pMinimal)
-                        pMinimal->QueryInterface(IID_IDragSourceHelper, (void**)&pHelper);
-                    RECT rcElement;
-                    HBITMAP hbmPreview;
-                    g_dragpreview->SetX(0);
-                    g_dragpreview->SetY(0);
-                    GetGadgetBitmap(g_dragpreview->GetDisplayNode(), &hbmPreview, &rcElement);
-                    IterateBitmap(hbmPreview, UndoPremultiplication, 1, 0, 1, NULL);
-                    g_dragpreview->SetVisible(false);
-                    SHDRAGIMAGE sdi = { 0 };
-                    sdi.sizeDragImage.cx = rcElement.right;
-                    sdi.sizeDragImage.cy = rcElement.bottom;
-                    sdi.hbmpDragImage = hbmPreview;
-                    sdi.crColorKey = CLR_NONE;
-                    sdi.ptOffset.x = origX;
-                    sdi.ptOffset.y = origY;
-                    hr = pHelper->InitializeFromBitmap(&sdi, pdo);
-                    IDropSource* pds = new CDropSource();
-                    DWORD dwEffect = 0;
-                    DoDragDrop(pdo, pds, DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK, &dwEffect);
-                    pdo->Release();
-                    pds->Release();
-                    DeleteObject(hbmPreview);
-                }
+                ComPtr<IDragSourceHelper> pHelper{};
+                if (pMinimal)
+                    pMinimal->QueryInterface(IID_IDragSourceHelper, (void**)&pHelper);
+                RECT rcElement;
+                HBITMAP hbmPreview;
+                g_dragpreview->SetX(0);
+                g_dragpreview->SetY(0);
+                GetGadgetBitmap(g_dragpreview->GetDisplayNode(), &hbmPreview, &rcElement);
+                IterateBitmap(hbmPreview, UndoPremultiplication, 1, 0, 1, NULL);
+                g_dragpreview->SetVisible(false);
+                SHDRAGIMAGE shdi = { 0 };
+                shdi.sizeDragImage.cx = rcElement.right;
+                shdi.sizeDragImage.cy = rcElement.bottom;
+                shdi.hbmpDragImage = hbmPreview;
+                shdi.crColorKey = CLR_NONE;
+                shdi.ptOffset.x = origX;
+                shdi.ptOffset.y = origY;
+                hr = pHelper->InitializeFromBitmap(&shdi, pdo.Get());
+                IDropSource* pds = new CDropSource(pdo.Get());
+                DWORD dwEffect = 0;
+                DoDragDrop(pdo.Get(), pds, DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK, &dwEffect);
+                vItems[0]->RemoveFlags(LVIF_DRAG);
+                isIconPressed = 0;
+                pds->Release();
+                DeleteObject(hbmPreview);
             }
-            ppFolder->Release();
         }
-        ILFree(pidl);
     }
 
     void CloseCustomizePage(Element* elem, Event* iev)
@@ -2793,6 +2776,12 @@ namespace DirectDesktop
                     Element* peListParent{};
                     if (pm[icon2]->GetOpenDirState() == LVIODS_FULLSCREEN)
                     {
+                        TriggerCrossfade(fullscreeninner, 0.0f, 0.133f);
+                        CSafeElementPtr<DDColorPicker> ddcp;
+                        ddcp.Assign(regElem<DDColorPicker*>(L"DDCP_Group", fullscreeninner));
+                        fullscreeninner->SetDDCPIntensity(ddcp->GetColorIntensity());
+                        if (((DDScalableElement*)elem)->GetGroupColor() == 0)
+                            fullscreeninner->SetDDCPIntensity(255);
                         fullscreeninner->SetAssociatedColor(((DDScalableElement*)elem)->GetAssociatedColor());
                         peListParent = fullscreeninner;
                     }
@@ -4043,9 +4032,12 @@ namespace DirectDesktop
         if (value) free(value);
     }
 
-    void InitNewLVItem(const wstring& filepath, const wstring& filename)
+    void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page)
     {
-        FileInfo* fi = new FileInfo{ filepath, filename };
+        POINTL* ppt2 = nullptr;
+        if (ppt)
+            ppt2 = new POINTL{ ppt->x, ppt->y };
+        FileInfo* fi = new FileInfo{ filepath, filename, ppt2, page };
         PostMessageW(wnd->GetHWND(), WM_USER + 20, NULL, (LPARAM)fi);
     }
 
@@ -4155,7 +4147,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 88");
+            peTemp[1]->SetContentString(L"Build 89");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");

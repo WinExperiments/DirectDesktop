@@ -34,39 +34,12 @@ namespace DirectDesktop
 
 	typedef DWORD(*MYDDCALLBACK)(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hData, HWND hWnd, DWORD dwKeyState, POINTL pt, void* pUserData);
 
-	class CDataObject : public IDataObject
-	{
-	public:
-		CDataObject();
-		CDataObject(IDataObject* pDataObject);
-		~CDataObject();
-		FORMATETC pFmtEtc[2];
-		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
-		ULONG STDMETHODCALLTYPE AddRef();
-		ULONG STDMETHODCALLTYPE Release();
-		HRESULT STDMETHODCALLTYPE GetData(FORMATETC* pFmtEtcIn, STGMEDIUM* pMedium);
-		HRESULT STDMETHODCALLTYPE GetDataHere(FORMATETC* pFmtEtc, STGMEDIUM* pMedium);
-		HRESULT STDMETHODCALLTYPE QueryGetData(FORMATETC* pFmtEtc);
-		HRESULT STDMETHODCALLTYPE GetCanonicalFormatEtc(FORMATETC* pFmtEtcIn, FORMATETC* pFmtEtcOut);
-		HRESULT STDMETHODCALLTYPE SetData(FORMATETC* pFmtEtc, STGMEDIUM* pMedium, BOOL fRelease);
-		HRESULT STDMETHODCALLTYPE EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** ppenumFmtEtc);
-		HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC* pFmtEtc, DWORD advf, IAdviseSink* pAdvSink, DWORD* pdwConnection);
-		HRESULT STDMETHODCALLTYPE DUnadvise(DWORD dwConnection);
-		HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA** ppEnumAdvise);
-
-	private:
-		IDataObject* pDataObject;
-		LONG lRefCount;
-		std::vector<MYOBJDATA> pData;
-		HRESULT _CopyMedium(STGMEDIUM* pMediumSrc, STGMEDIUM* pMediumDst, FORMATETC* pFmtEtc);
-		int _GetDataIndex(const FORMATETC* pfe);
-		void _SetFORMATETC(FORMATETC* pfe, UINT cf, TYMED tymed, LONG lindex, DWORD dwAspect, DVTARGETDEVICE* ptd);
-	};
-
 	class CDropSource : public IDropSource
 	{
 	public:
 		CDropSource();
+		CDropSource(IDataObject* pdtobj);
+		~CDropSource();
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 		ULONG STDMETHODCALLTYPE AddRef();
 		ULONG STDMETHODCALLTYPE Release();
@@ -76,8 +49,8 @@ namespace DirectDesktop
 	private:
 		LONG lRefCount;
 		BOOL bRightClick;
-		HWND hWndMenu;
-		HMENU hPopup;
+		IDragSourceHelper* pDragSourceHelper;
+		IDataObject* pdtobj;
 	};
 
 	class CDropTarget : public IDropTarget
@@ -100,7 +73,11 @@ namespace DirectDesktop
 	private:
 		LONG lRefCount;
 		ULONG lNumFormats;
+		ULONGLONG dwTickCountL;
+		ULONGLONG dwTickCountR;
+		WORD ptLocFlags;
 		HWND hWnd;
+		RECT rcDimensions;
 		BOOL bAllowDrop;
 		BOOL bSameDrive;
 		BOOL bVirtual;
@@ -114,6 +91,18 @@ namespace DirectDesktop
 		BOOL _QueryDataObject();
 		DWORD _DropEffect(DWORD dwKeyState, POINTL pt, DWORD dwAllowed);
 		void _SetDropDescription(DROPIMAGETYPE type, LPCWSTR pszMsg, LPCWSTR pszDest);
+	};
+
+	enum DragImageFlags : DWORD
+	{
+		DIF_NONE = 0x00000000,
+		DIF_CURDATAINITED = 0x00000001,
+		DIF_SHOWTEXT = 0x00000002,
+		DIF_DEFAULTIMAGE = 0x00000004,
+		DIF_HELPERFLAG = 0x00000008,
+		DIF_COMPUTINGIMG = 0x00000010,
+		DIF_DISABLETEXT = 0x00000020,
+		DIF_CANADDINFO = 0x00000040
 	};
 
 	class CMinimalDragImage : public IDragSourceHelper, public IDropTargetHelper
@@ -133,24 +122,26 @@ namespace DirectDesktop
 		HRESULT STDMETHODCALLTYPE DragOver(POINT* ppt, DWORD dwEffect);
 		HRESULT STDMETHODCALLTYPE Drop(IDataObject* pdtobj, POINT* ppt, DWORD dwEffect);
 		HRESULT STDMETHODCALLTYPE Show(BOOL fShow);
-		void FreeDragData();
+		inline IDataObject* GetDataObject();
 	private:
-		SHDRAGIMAGE  _shdi;
-		HWND         _hwndTarget;
-		HWND         _hwnd;
-		HDC          _hdcDragImage;
-		HBITMAP      _hbmpOld;
-		BOOL         _fLayeredSupported;
-		BOOL         _fCursorDataInited;
-		POINT       _ptDebounce;
-		struct
-		{
-			BOOL    bDragging;
-			BOOL    bLocked;
-			HWND    hwndLock;
-			BOOL    bSingle;
-			DWORD   idThreadEntered;
-		} _Single;
+		SHDRAGIMAGE _shdi;
+		HWND _hwndTarget;
+		HWND _hwnd;
+		HDC _hdcDragImage;
+		HDC _hdcWindow;
+		HTHEME _hTheme;
+		HBITMAP _hbmpOld;
+		HBITMAP _hbmpUnk;
+		void* _pvBits;
+		RECT _rc;
+		POINT _pt;
+		DragImageFlags _flags;
+		IDataObject* _pdtobj;
+		DROPDESCRIPTION _desc;
+		UINT _imgType;
+		DWORD _dwCount;
+		HRESULT _Create32BitHBITMAP(HBITMAP* phbm, SIZE* psz, HDC* phdc, HDC* phdc2, void** ppvBits);
+		void FreeDragData();
 		void _InitDragData();
 		HRESULT _LoadFromDataObject(IDataObject* pdtobj);
 		HRESULT _SaveToDataObject(IDataObject* pdtobj);
@@ -159,6 +150,23 @@ namespace DirectDesktop
 		HRESULT _SetLayeredDragging(LPSHDRAGIMAGE pshdi);
 		BOOL _CreateDragWindow();
 		BOOL _PreProcessDragBitmap(void** ppvBits);
+		void _PreProcessGDIBitmap(RECT* prc);
+		void _ExtractOneTimeData();
+		void _ExtractContinualData();
+		HRESULT _AddInfoToWindow();
+		void _ComputeFinalSize();
+		HRESULT _GetEffectImageRect(RECT* prc);
+		HRESULT _GetImageBackgroundRect(RECT* prc);
+		HRESULT _GetTextRect(RECT* prc);
+		HRESULT _GetTooltipRect(RECT* prcSrc, RECT* prcSrc2, RECT* prcDst);
+		void _DrawImageAndDesc(LPWSTR szMessage, LPWSTR szInsert);
+		int _SizeDescriptionLine(int iPartId, LPCWSTR pszPrefix, LPCWSTR pszInsert, LPCWSTR pszSuffix, RECT* prcBounds, RECT* rc1, RECT* rc2, RECT* rc3);
+		void _DrawDescriptionLine(int iPartId, int iStateId, LPCWSTR pszText, RECT* prcBounds);
+		void _DrawDescriptionLineComp(int iPartId, LPCWSTR pszPrefix, LPCWSTR pszInsert, LPCWSTR pszSuffix,
+			RECT* prcBounds1, RECT* prcBounds2, RECT* prcBounds3);
+		void _DrawTooltipBackground(RECT* prcSrc, RECT* prcBounds, int width);
+		LRESULT CALLBACK _DragWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
+		static LRESULT CALLBACK s_DragWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	};
 
 	void MyDragDropInit(HANDLE hHeap);
@@ -166,10 +174,16 @@ namespace DirectDesktop
 	HRESULT SetDragImageManual(IDataObject* pdo, HBITMAP hbmp, SIZE size, POINT offset);
 	CDropTarget* MyRegisterDragDrop(HWND hWnd, CLIPFORMAT* pFormat, ULONG lFmt, UINT nMsg, MYDDCALLBACK pDropProc, void* pUserData);
 	CDropTarget* MyRevokeDragDrop(IDropTarget* pTarget);
+	HRESULT DataObj_GetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, void* pvData, size_t cbData, LONG lindex);
+	HRESULT DataObj_SetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, const void* pvData, size_t cbData, LONG lindex);
 	extern DWORD TheDropProc(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hdata, HWND hwnd, DWORD key_state, POINTL pt, void* param);
 
 	extern HANDLE g_hHeap;
 	extern bool isIconPressed;
+	extern bool g_touchmode;
 	extern CMinimalDragImage* pMinimal;
 	extern vector<LVItem*> selectedLVItems;
+	extern DirectUI::TouchButton* prevpageMain, *nextpageMain;
+	extern void TriggerPageTransition(int direction, RECT& dimensions);
+	extern void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page);
 }

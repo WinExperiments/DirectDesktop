@@ -1,19 +1,43 @@
-// 0.5.6: This was a tedious task, therefore it is not well done and may leak!
-// It will be improved later.
-// References:
 // https://anton.maurovic.com/posts/win32-api-approach-to-windows-drag-and-drop/
 // https://sourceforge.net/projects/win32cdnd/files/
 // https://devblogs.microsoft.com/oldnewthing/20041206-00/?p=37133
-// https://devblogs.microsoft.com/oldnewthing/20080311-00/?p=23153
 
 #include "pch.h"
+#include <wrl.h>
 #include "DragAndDrop.h"
 #include "..\DirectDesktop.h"
+
+using namespace Microsoft::WRL;
 
 namespace DirectDesktop
 {
 	HANDLE g_hHeap;
 #define MYDD_HEAP (g_hHeap == NULL ? (g_hHeap = GetProcessHeap()) : g_hHeap)
+
+	void qmemcpy(void* dest, const void* src, size_t num)
+	{
+		if (num == 0) return;
+		size_t align = alignof(void*);
+		size_t offset = (uintptr_t)src & (align - 1);
+		if (offset)
+		{
+			size_t align_num = align - offset;
+			if (align_num > num) align_num = num;
+			memcpy((char*)dest, (const char*)src, align_num);
+			dest = (char*)dest + align_num;
+			src = (const char*)src + align_num;
+			num -= align_num;
+		}
+		while (num >= sizeof(size_t))
+		{
+			*(size_t*)dest = *(const size_t*)src;
+			dest = (char*)dest + sizeof(size_t);
+			src = (const char*)src + sizeof(size_t);
+			num -= sizeof(size_t);
+		}
+		if (num)
+			memcpy(dest, src, num);
+	}
 
 	HRESULT CreateHGlobalFromBlob(const void* pvData, size_t cbData, UINT uFlags, HGLOBAL* phglob)
 	{
@@ -51,7 +75,7 @@ namespace DirectDesktop
 		{
 			pDropDesc->type = type;
 			wcscpy_s(pDropDesc->szMessage, pszMsg);
-			wcscpy_s(pDropDesc->szInsert, pszDest);
+			if (pszDest) wcscpy_s(pDropDesc->szInsert, pszDest);
 			GlobalUnlock(medium.hGlobal);
 		}
 
@@ -59,211 +83,122 @@ namespace DirectDesktop
 			ReleaseStgMedium(&medium);
 	}
 
-	CDataObject::CDataObject() : lRefCount(1)
+	HRESULT DataObj_GetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, void* pvData, size_t cbData, LONG lindex)
 	{
-		this->_SetFORMATETC(&pFmtEtc[0], RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR), TYMED_HGLOBAL, -1, DVASPECT_CONTENT, nullptr);
-		this->_SetFORMATETC(&pFmtEtc[1], RegisterClipboardFormat(CFSTR_FILECONTENTS), TYMED_HGLOBAL, 0, DVASPECT_CONTENT, nullptr);
-	}
-
-	CDataObject::CDataObject(IDataObject* pDataObject) : lRefCount(1), pDataObject(pDataObject)
-	{
-		if (this->pDataObject)
-			this->pDataObject->AddRef();
-		this->_SetFORMATETC(&pFmtEtc[0], RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR), TYMED_HGLOBAL, -1, DVASPECT_CONTENT, nullptr);
-		this->_SetFORMATETC(&pFmtEtc[1], RegisterClipboardFormat(CFSTR_FILECONTENTS), TYMED_HGLOBAL, 0, DVASPECT_CONTENT, nullptr);
-	}
-
-	CDataObject::~CDataObject()
-	{
-		if (this->pDataObject)
-			this->pDataObject->Release();
-		for (MYOBJDATA& entry : pData)
-			ReleaseStgMedium(&entry.stgm);
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::QueryInterface(REFIID riid, LPVOID* ppvObject)
-	{
-		if (riid == IID_IDataObject || riid == IID_IUnknown)
+		void* pv;
+		FORMATETC fmtetc = { cf, 0, DVASPECT_CONTENT, lindex, TYMED_HGLOBAL };
+		STGMEDIUM medium = { 0 };
+		HRESULT hr = pdtobj->GetData(&fmtetc, &medium);
+		if (SUCCEEDED(hr))
 		{
-			*ppvObject = static_cast<IDataObject*>(this);
-			AddRef();
-			return S_OK;
-		}
-		*ppvObject = nullptr;
-		return E_NOINTERFACE;
-	}
-
-	ULONG STDMETHODCALLTYPE CDataObject::AddRef()
-	{
-		return InterlockedIncrement(&lRefCount);
-	}
-
-	ULONG STDMETHODCALLTYPE CDataObject::Release()
-	{
-		LONG nCount;
-		if ((nCount = InterlockedDecrement(&lRefCount)) == 0)
-			delete this;
-		return nCount;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::GetData(LPFORMATETC pFmtEtc, LPSTGMEDIUM pMedium)
-	{
-		for (MYOBJDATA& entry : pData)
-		{
-			if (pFmtEtc->cfFormat == entry.fe.cfFormat && (pFmtEtc->tymed & entry.fe.tymed) && pFmtEtc->lindex == entry.fe.lindex)
-				return _CopyMedium(&entry.stgm, pMedium, pFmtEtc);
-		}
-		if (pDataObject)
-			return pDataObject->GetData(pFmtEtc, pMedium);
-		ZeroMemory(pMedium, sizeof(*pMedium));
-		switch (this->_GetDataIndex(pFmtEtc))
-		{
-		case 0:
-			FILEGROUPDESCRIPTORW fgd;
-			ZeroMemory(&fgd, sizeof(fgd));
-			fgd.cItems = 1;
-			StringCchCopyW(fgd.fgd[0].cFileName, ARRAYSIZE(fgd.fgd[0].cFileName), L"Unspecified");
-			pMedium->tymed = TYMED_HGLOBAL;
-			return CreateHGlobalFromBlob(&fgd, sizeof(fgd),	GMEM_MOVEABLE, &pMedium->hGlobal);
-		case 1:
-			pMedium->tymed = TYMED_HGLOBAL;
-			return CreateHGlobalFromBlob("Unspecified", 11, GMEM_MOVEABLE, &pMedium->hGlobal);
-		}
-
-		return DV_E_FORMATETC;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::GetDataHere(LPFORMATETC pFmtEtc, LPSTGMEDIUM pMedium)
-	{
-		return E_NOTIMPL;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::QueryGetData(LPFORMATETC pFmtEtc)
-	{
-		if (!pFmtEtc) return E_INVALIDARG;
-		for (MYOBJDATA& entry : pData)
-		{
-			if (pFmtEtc->cfFormat == entry.fe.cfFormat && (pFmtEtc->tymed & entry.fe.tymed))
-				return S_OK;
-		}
-		if (this->_GetDataIndex(pFmtEtc) != -1)
-			return S_OK;
-		if (pDataObject)
-			return pDataObject->QueryGetData(pFmtEtc);
-		return DV_E_FORMATETC;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::GetCanonicalFormatEtc(LPFORMATETC pFmtEtcIn, LPFORMATETC pFmtEtcOut)
-	{
-		*pFmtEtcOut = *pFmtEtcIn;
-		pFmtEtcOut->ptd = nullptr;
-		return DATA_S_SAMEFORMATETC;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::SetData(LPFORMATETC pFmtEtc, LPSTGMEDIUM pMedium, BOOL fRelease)
-	{
-		if (!pFmtEtc || !pMedium)
-			return E_INVALIDARG;
-		for (MYOBJDATA& entry : pData)
-		{
-			if (entry.fe.cfFormat == pFmtEtc->cfFormat && entry.fe.lindex == pFmtEtc->lindex)
+			pv = GlobalLock(medium.hBitmap);
+			if (pv)
 			{
-				ReleaseStgMedium(&entry.stgm);
-				if (fRelease)
-					entry.stgm = *pMedium;
+				if (GlobalSize(medium.hBitmap) >= cbData)
+					CopyMemory(pvData, pv, cbData);
 				else
-					_CopyMedium(pMedium, &entry.stgm, pFmtEtc);
-				return S_OK;
+					hr = E_UNEXPECTED;
+				GlobalUnlock(medium.hBitmap);
 			}
+			else
+				hr = E_UNEXPECTED;
+			ReleaseStgMedium(&medium);
 		}
-		MYOBJDATA newData;
-		newData.fe = *pFmtEtc;
-		if (fRelease)
-			newData.stgm = *pMedium;
-		else
-			_CopyMedium(pMedium, &newData.stgm, pFmtEtc);
-		pData.push_back(newData);
-		return S_OK;
+		return hr;
 	}
 
-	HRESULT STDMETHODCALLTYPE CDataObject::EnumFormatEtc(DWORD dwDirection, LPENUMFORMATETC* ppEnumFmtEtc)
+	HRESULT DataObj_SetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, const void* pvData, size_t cbData, LONG lindex)
 	{
-		if (dwDirection != DATADIR_GET)
+		HRESULT hr = E_OUTOFMEMORY;
+		HGLOBAL hglob = GlobalAlloc(GMEM_ZEROINIT, cbData);
+		if (hglob)
 		{
-			*ppEnumFmtEtc = nullptr;
-			return E_NOTIMPL;
+			CopyMemory(hglob, pvData, cbData);
+			FORMATETC fmtetc = { cf, 0, DVASPECT_CONTENT, lindex, TYMED_HGLOBAL };
+			STGMEDIUM medium = { 0 };
+			medium.tymed = TYMED_HGLOBAL;
+			medium.hGlobal = hglob;
+			hr = pdtobj->SetData(&fmtetc, &medium, TRUE);
+			if (FAILED(hr))
+				GlobalFree(hglob);
 		}
-		/* Note that this is for W2K and up only. Before this, this will NOT work! */
-		return SHCreateStdEnumFmtEtc(ARRAYSIZE(pFmtEtc), pFmtEtc, ppEnumFmtEtc);
+		return hr;
 	}
 
-	HRESULT STDMETHODCALLTYPE CDataObject::DAdvise(LPFORMATETC pFormatetc, DWORD advf, LPADVISESINK pAdvSink, DWORD* pdwConnection)
+	// This function takes a string with "%1" format and creates two strings (prefix & suffix) for later use
+	// Example: pszFormat = "Using %1 is cool" -> ppszPrefix = "Using ", ppszSuffix = " is cool"
+	HRESULT GetStringsFromFormat(WCHAR* pszFormat, WCHAR** ppszPrefix, WCHAR** ppszSuffix)
 	{
-		return OLE_E_ADVISENOTSUPPORTED;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::DUnadvise(DWORD dwConnection)
-	{
-		return OLE_E_ADVISENOTSUPPORTED;
-	}
-
-	HRESULT STDMETHODCALLTYPE CDataObject::EnumDAdvise(LPENUMSTATDATA* ppEnumAdvise)
-	{
-		return OLE_E_ADVISENOTSUPPORTED;
-	}
-
-
-	HRESULT CDataObject::_CopyMedium(STGMEDIUM* pMediumSrc, STGMEDIUM* pMediumDst, FORMATETC* pFmtEtc)
-	{
-		if (!pMediumSrc || !pMediumDst || !pFmtEtc)
-			return E_INVALIDARG;
-		pMediumDst->tymed = pMediumSrc->tymed;
-		pMediumDst->pUnkForRelease = pMediumSrc->pUnkForRelease;
-		if (pMediumDst->pUnkForRelease)
-			pMediumDst->pUnkForRelease->AddRef();
-
-		switch (pMediumSrc->tymed)
+		LPWSTR pszLoc = nullptr;
+		HRESULT hr = SHLocalStrDupW(pszFormat, &pszLoc);
+		if (SUCCEEDED(hr))
 		{
-		case TYMED_HGLOBAL:
-		{
-			pMediumDst->hGlobal = (HGLOBAL)OleDuplicateData(pMediumSrc->hGlobal, pFmtEtc->cfFormat, GMEM_MOVEABLE);
-			return pMediumDst->hGlobal ? S_OK : E_OUTOFMEMORY;
+			LPWSTR pszR = pszLoc;
+			LPWSTR pszW = pszLoc;
+			LPWSTR pszSplit = nullptr;
+			while (*pszR)
+			{
+				if (*pszR == L'%')
+				{
+					pszR++;
+					if (*pszR == L'%')
+					{
+						*pszW = L'%';
+						pszW++;
+					}
+					else if (*pszR == L'1')
+					{
+						*pszW = L'\0';
+						pszW++;
+						pszSplit = pszW;
+					}
+					else
+					{
+						LocalFree(pszLoc);
+						return E_FAIL;
+					}
+				}
+				else
+				{
+					*pszW = *pszR;
+					pszW++;
+				}
+				pszR++;
+			}
+			*pszW = L'\0';
+			if (pszSplit)
+			{
+				*ppszPrefix = pszLoc;
+				*ppszSuffix = pszSplit;
+				hr = S_OK;
+			}
+			else
+				hr = E_FAIL;
+			LocalFree(pszLoc);
 		}
-
-		case TYMED_ISTREAM:
-		{
-			pMediumDst->pstm = pMediumSrc->pstm;
-			if (!pMediumDst->pstm)
-				return E_UNEXPECTED;
-			pMediumDst->pstm->AddRef();
-			return S_OK;
-		}
-
-		default:
-			return DV_E_TYMED;
-		}
+		return hr;
 	}
 
-	int CDataObject::_GetDataIndex(const FORMATETC* pfe)
+	CDropSource::CDropSource() : lRefCount(1), bRightClick(FALSE)
 	{
-		for (int i = 0; i < ARRAYSIZE(pFmtEtc); i++)
-		{
-			if (pfe->cfFormat == pFmtEtc[i].cfFormat && (pfe->tymed & pFmtEtc[i].tymed))
-				return i;
-		}
-		return -1;
+		if (pMinimal)
+			pMinimal->QueryInterface(IID_IDragSourceHelper, (void**)&pDragSourceHelper);
 	}
 
-	void CDataObject::_SetFORMATETC(FORMATETC* pfe, UINT cf, TYMED tymed, LONG lindex, DWORD dwAspect, DVTARGETDEVICE* ptd)
+	CDropSource::CDropSource(IDataObject* pdtobj) : lRefCount(1), bRightClick(FALSE)
 	{
-		pfe->cfFormat = (CLIPFORMAT)cf;
-		pfe->tymed = tymed;
-		pfe->lindex = lindex;
-		pfe->dwAspect = dwAspect;
-		pfe->ptd = ptd;
+		if (pMinimal)
+			pMinimal->QueryInterface(IID_IDragSourceHelper, (void**)&pDragSourceHelper);
+		this->pdtobj = pdtobj;
+		pdtobj->AddRef();
 	}
 
-	CDropSource::CDropSource() : lRefCount(1), bRightClick(FALSE) {}
+	CDropSource::~CDropSource()
+	{
+		pDragSourceHelper->Release();
+		if (pdtobj)
+			pdtobj->Release();
+	}
 
 	HRESULT STDMETHODCALLTYPE CDropSource::QueryInterface(REFIID riid, LPVOID* ppvObject)
 	{
@@ -303,6 +238,40 @@ namespace DirectDesktop
 
 	HRESULT STDMETHODCALLTYPE CDropSource::GiveFeedback(DWORD dwEffect)
 	{
+		if (IsAppThemed())
+		{
+			UINT uData = 0;
+			CLIPFORMAT cf = RegisterClipboardFormatW(L"IsShowingLayered");
+			if (SUCCEEDED(DataObj_GetBlobWithIndex(pdtobj, cf, &uData, sizeof(uData), -1)))
+			{
+				SetCursor(LoadCursorW(NULL, IDC_ARROW));
+				UINT effectID = 2;
+				switch (dwEffect & 7)
+				{
+				case DROPEFFECT_NONE:
+					effectID = 1;
+					break;
+				case DROPEFFECT_COPY:
+					effectID = 3;
+					break;
+				case DROPEFFECT_LINK:
+					effectID = 4;
+					break;
+				}
+				HWND hWnd{};
+				cf = RegisterClipboardFormatW(L"DragWindow");
+				if (SUCCEEDED(DataObj_GetBlobWithIndex(pdtobj, cf, &hWnd, 4, -1)))
+				{
+					RECT rcWindow;
+					GetWindowRect(hWnd, &rcWindow);
+					if (rcWindow.right - rcWindow.left > 0 || rcWindow.bottom - rcWindow.top > 0)
+					{
+						SendMessageW(hWnd, WM_USER + 2, effectID, NULL);
+						return S_OK;
+					}
+				}
+			}
+		}
 		return DRAGDROP_S_USEDEFAULTCURSORS;
 	}
 
@@ -349,7 +318,6 @@ namespace DirectDesktop
 		if (this->pDataObject) this->pDataObject->AddRef();
 		if (isIconPressed)
 		{
-			*pdwEffect = DROPEFFECT_MOVE;
 			bAllowDrop = TRUE;
 		}
 		else if (bAllowDrop = this->_QueryDataObject())
@@ -390,12 +358,11 @@ namespace DirectDesktop
 							CoTaskMemFree(pszFilePath);
 						}
 					}
-					pItem->Release();
+				FOCUS:
+					;
 				}
-				pItemArray->Release();
 			}
 			///////////////////////////////////////////////////////////
-		FOCUS:
 			SetFocus(this->hWnd);
 		}
 		else
@@ -403,6 +370,8 @@ namespace DirectDesktop
 
 		if (pDropTargetHelper)
 			pDropTargetHelper->DragEnter(this->hWnd, pDataObject, (POINT*)&pt, *pdwEffect);
+
+		GetClientRect(hWnd, &rcDimensions);
 		return S_OK;
 	}
 
@@ -411,36 +380,69 @@ namespace DirectDesktop
 		if (bAllowDrop)
 		{
 			this->dwKeyState = dwKeyState;
-			if (isIconPressed)
-				*pdwEffect = DROPEFFECT_MOVE;
-			else
+			*pdwEffect = this->_DropEffect(dwKeyState, pt, *pdwEffect);
+			if (*pdwEffect != dwLastEffect)
 			{
-				*pdwEffect = this->_DropEffect(dwKeyState, pt, *pdwEffect);
-				if (*pdwEffect != dwLastEffect)
+				dwLastEffect = *pdwEffect;
+				switch (*pdwEffect)
 				{
-					dwLastEffect = *pdwEffect;
-					switch (*pdwEffect)
-					{
-					case DROPEFFECT_COPY:
-						this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49872, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
-						break;
-					case DROPEFFECT_MOVE:
+				case DROPEFFECT_COPY:
+					this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49872, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
+					break;
+				case DROPEFFECT_MOVE:
+					if (isIconPressed)
+						this->_SetDropDescription(g_lockiconpos ? DROPIMAGE_NONE : DROPIMAGE_NOIMAGE, LoadStrFromRes(4044).c_str(), nullptr);
+					else
 						this->_SetDropDescription(DROPIMAGE_MOVE, LoadStrFromRes(49873, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
-						break;
-					case DROPEFFECT_LINK:
-						this->_SetDropDescription(DROPIMAGE_LINK, LoadStrFromRes(49874, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
-						break;
-					default:
-						this->_SetDropDescription(DROPIMAGE_NONE, LoadStrFromRes(49879, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
-						break;
-					}
+					break;
+				case DROPEFFECT_LINK:
+					this->_SetDropDescription(DROPIMAGE_LINK, LoadStrFromRes(49874, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
+					break;
+				default:
+					this->_SetDropDescription(DROPIMAGE_NONE, LoadStrFromRes(49879, L"shell32.dll").c_str(), LoadStrFromRes(21769, L"shell32.dll").c_str());
+					break;
 				}
 			}
-			if (pDropTargetHelper)
-				pDropTargetHelper->DragOver((POINT*)&pt, *pdwEffect);
 		}
 		else
 			*pdwEffect = DROPEFFECT_NONE;
+		if (pDropTargetHelper)
+			pDropTargetHelper->DragOver((POINT*)&pt, *pdwEffect);
+
+		if (pt.x <= 16 * g_flScaleFactor)
+		{
+			if (!(HIBYTE(ptLocFlags)))
+				dwTickCountL = GetTickCount64();
+			ptLocFlags = 256;
+		}
+		else if (pt.x > rcDimensions.right - 16 * g_flScaleFactor)
+		{
+			if (!(LOBYTE(ptLocFlags)))
+				dwTickCountR = GetTickCount64();
+			ptLocFlags = 1;
+		}
+		else
+			ptLocFlags = 0;
+		if (GetTickCount64() > dwTickCountL + 500 && ptLocFlags == 256 && g_currentPageID > 1)
+		{
+			g_currentPageID--;
+			for (int i = 0; i < selectedLVItems.size(); i++)
+				selectedLVItems[i]->SetPage(g_currentPageID);
+			TriggerPageTransition(-1, rcDimensions);
+			nextpageMain->SetVisible(true);
+			if (g_currentPageID == 1) prevpageMain->SetVisible(false);
+			dwTickCountL += 680;
+		}
+		if (GetTickCount64() > dwTickCountR + 500 && ptLocFlags == 1 && g_currentPageID < g_maxPageID)
+		{
+			g_currentPageID++;
+			for (int i = 0; i < selectedLVItems.size(); i++)
+				selectedLVItems[i]->SetPage(g_currentPageID);
+			TriggerPageTransition(1, rcDimensions);
+			prevpageMain->SetVisible(true);
+			if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
+			dwTickCountR += 680;
+		}
 
 		return S_OK;
 	}
@@ -465,8 +467,18 @@ namespace DirectDesktop
 
 		if (isIconPressed)
 		{
-			SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)&selectedLVItems, 0);
-			return S_OK;
+			DWORD pdwEffect2 = _DropEffect(dwKeyState, pt, *pdwEffect);
+			if (pdwEffect2 == DROPEFFECT_MOVE)
+			{
+				SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)&selectedLVItems, 0);
+				if (pDataObject)
+				{
+					pDataObject->Release();
+					pDataObject = nullptr;
+				}
+				dwLastEffect = DROPEFFECT_NONE;
+				return S_OK;
+			}
 		}
 
 		FORMATETC fmtetc = { CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL | TYMED_ISTREAM | TYMED_ISTORAGE };
@@ -553,9 +565,9 @@ namespace DirectDesktop
 
 	DWORD CDropTarget::_DropEffect(DWORD dwKeyState, POINTL pt, DWORD dwAllowed)
 	{
-		DWORD dwEffect = DROPEFFECT_COPY;
-		if (bSameDrive)
-			dwEffect = DROPEFFECT_MOVE;
+		DWORD dwEffect = DROPEFFECT_MOVE;
+		if (!bSameDrive && !isIconPressed)
+			dwEffect = DROPEFFECT_COPY;
 		if (dwKeyState & MK_CONTROL)
 			dwEffect = dwAllowed & DROPEFFECT_COPY;
 		if (dwKeyState & MK_SHIFT)
@@ -578,23 +590,21 @@ namespace DirectDesktop
 
 	void CDropTarget::_SetDropDescription(DROPIMAGETYPE type, LPCWSTR pszMsg, LPCWSTR pszDest)
 	{
-		if (!pDataObject || !pszDest) return;
+		if (!pDataObject || !pszMsg) return;
 		SetDropDescriptionBase(pDataObject, type, pszMsg, pszDest);
 	}
 
-	UINT g_cRev = 0;
-	const LARGE_INTEGER g_li0 = { 0 };
-
-	LRESULT CALLBACK DragWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	DragImageFlags operator&(DragImageFlags lhs, DragImageFlags rhs)
 	{
-		switch (uMsg)
-		{
-		case WM_DESTROY:
-			DestroyWindow(hwnd);
-			return 0;
-		}
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		return static_cast<DragImageFlags>(static_cast<DWORD>(lhs) & static_cast<DWORD>(rhs));
 	}
+
+	DragImageFlags operator|(DragImageFlags lhs, DragImageFlags rhs)
+	{
+		return static_cast<DragImageFlags>(static_cast<DWORD>(lhs) | static_cast<DWORD>(rhs));
+	}
+
+	const LARGE_INTEGER g_li0 = { 0 };
 
 	CMinimalDragImage::~CMinimalDragImage()
 	{
@@ -626,8 +636,10 @@ namespace DirectDesktop
 		return 1;
 	}
 
-	STDMETHODIMP CMinimalDragImage::InitializeFromBitmap(LPSHDRAGIMAGE pshdi, IDataObject* pdtobj)
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::InitializeFromBitmap(LPSHDRAGIMAGE pshdi, IDataObject* pdtobj)
 	{
+		if (!pshdi || !pdtobj)
+			return E_INVALIDARG;
 		FreeDragData();
 		HRESULT hr = _SetLayeredDragging(pshdi);
 		if (SUCCEEDED(hr))
@@ -636,155 +648,184 @@ namespace DirectDesktop
 			if (FAILED(hr))
 				FreeDragData();
 		}
-		return E_FAIL;
+		return hr;
 	}
 
-	STDMETHODIMP CMinimalDragImage::InitializeFromWindow(HWND hwnd, POINT* ppt, IDataObject* pdtobj)
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::InitializeFromWindow(HWND hwnd, POINT* ppt, IDataObject* pdtobj)
 	{
 		return E_NOTIMPL;
 	}
 
-	STDMETHODIMP CMinimalDragImage::DragEnter(HWND hwndTarget, IDataObject* pdtobj, POINT* ppt, DWORD dwEffect)
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::DragEnter(HWND hwndTarget, IDataObject* pdtobj, POINT* ppt, DWORD dwEffect)
 	{
+		IUnknown_Set((IUnknown**)&_pdtobj, (IUnknown*)pdtobj);
+		if (_pdtobj)
+			_ExtractOneTimeData();
 		HRESULT hr = _LoadFromDataObject(pdtobj);
 		if (SUCCEEDED(hr))
 		{
 			_hwndTarget = hwndTarget ? hwndTarget : GetDesktopWindow();
-			_Single.bDragging = TRUE;
-			_Single.hwndLock = _hwndTarget;
-			_Single.bLocked = FALSE;
-			_Single.idThreadEntered = GetCurrentThreadId();
-
-			_ptDebounce.x = 0;
-			_ptDebounce.y = 0;
-
 			if (_shdi.hbmpDragImage)
 			{
-				if (_CreateDragWindow() && _hdcDragImage)
+				hr = _AddInfoToWindow();
+				if (SUCCEEDED(hr))
 				{
-					POINT ptSrc = { 0, 0 };
-					POINT pt;
-
-					SetWindowPos(_hwnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-					DWORD dw = GetMessagePos();
-					pt.x = ((int)LOWORD(dw)) - _shdi.ptOffset.x;
-					pt.y = ((int)HIWORD(dw)) - _shdi.ptOffset.y;
-
-					BLENDFUNCTION blend;
-					blend.BlendOp = AC_SRC_OVER;
-					blend.BlendFlags = 0;
-					blend.AlphaFormat = AC_SRC_ALPHA;
-					blend.SourceConstantAlpha = 0xFF;
-
-					HDC hdc = GetDC(_hwnd);
-					if (hdc)
+					if (_CreateDragWindow() && _hdcDragImage)
 					{
-						DWORD fULWType = ULW_ALPHA;
-						UpdateLayeredWindow(_hwnd, hdc, &pt, &(_shdi.sizeDragImage), _hdcDragImage, &ptSrc, NULL, &blend, fULWType);
-						ReleaseDC(_hwnd, hdc);
+						DragOver(ppt, dwEffect);
+						hr = S_OK;
 					}
-					hr = S_OK;
+					else
+						hr = E_FAIL;
 				}
 			}
 		}
 		return hr;
 	}
 
-	STDMETHODIMP CMinimalDragImage::DragLeave()
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::DragLeave()
 	{
-		if (_fCursorDataInited)
-		{
-			if (_hwnd)
-				FreeDragData();
-			else if (_Single.bDragging && _Single.idThreadEntered == GetCurrentThreadId())
-			{
-				_Single.bDragging = FALSE;
-				DAD_SetDragImage((HIMAGELIST)-1, NULL);
-			}
-			_ptDebounce.x = 0;
-			_ptDebounce.y = 0;
-		}
+		if (_flags & DIF_CURDATAINITED)
+			FreeDragData();
 		return S_OK;
 	}
 
-	STDMETHODIMP CMinimalDragImage::DragOver(POINT* ppt, DWORD dwEffect)
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::DragOver(POINT* ppt, DWORD dwEffect)
 	{
-		if (_fCursorDataInited)
+		if (_flags & DIF_CURDATAINITED)
 		{
-			// Avoid flickering
-			ppt->x &= ~1;
-			ppt->y &= ~1;
-
-			if (_ptDebounce.x != ppt->x || _ptDebounce.y != ppt->y)
+			POINT pt = { ppt->x, ppt->y };
+			SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+			HDC hdc = GetDC(_hwnd);
+			if (hdc)
 			{
-				_ptDebounce.x = ppt->x;
-				_ptDebounce.y = ppt->y;
-				POINT pt;
 				GetCursorPos(&pt);
-				pt.x -= _shdi.ptOffset.x;
-				pt.y -= _shdi.ptOffset.y;
-
-				SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-				UpdateLayeredWindow(_hwnd, NULL, &pt, NULL, NULL, NULL, 0, NULL, 0);
+				pt.x -= (_shdi.ptOffset.x + _rc.left);
+				pt.y -= (_shdi.ptOffset.y + _rc.top);
+				POINT ptSrc = { 0, 0 };
+				SIZE sz = { _rc.right, _rc.bottom };
+				BLENDFUNCTION blend = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
+				if (_rc.left > 0 || _rc.top > 0)
+				{
+					SetWindowPos(_hwnd, NULL, pt.x, pt.y, NULL, NULL, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
+					_AddInfoToWindow();
+				}
+				HDC hdcComposite = _hdcDragImage;
+				if (_hbmpUnk)
+				{
+					hdcComposite = _hdcWindow;
+					if (_flags & DIF_DEFAULTIMAGE)
+					{
+						// No idea why the -4 is needed
+						pt.x -= 4;
+						pt.y -= 4;
+					}
+				}
+				UpdateLayeredWindow(_hwnd, hdc, &pt, &sz, hdcComposite, &ptSrc, _shdi.crColorKey, &blend, ULW_ALPHA);
+				ReleaseDC(_hwnd, hdc);
 			}
+			_ExtractContinualData();
 		}
 		return S_OK;
 	}
 
-	STDMETHODIMP CMinimalDragImage::Drop(IDataObject* pdtobj, POINT* ppt, DWORD dwEffect)
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::Drop(IDataObject* pdtobj, POINT* ppt, DWORD dwEffect)
 	{
 		return DragLeave();
 	}
 
-	STDMETHODIMP CMinimalDragImage::Show(BOOL bShow)
+	HRESULT STDMETHODCALLTYPE CMinimalDragImage::Show(BOOL bShow)
 	{
 		return E_NOTIMPL;
+	}
+
+	IDataObject* CMinimalDragImage::GetDataObject()
+	{
+		return _pdtobj;
+	}
+
+	HRESULT CMinimalDragImage::_Create32BitHBITMAP(HBITMAP* phbm, SIZE* psz, HDC* phdc, HDC* phdc2, void** ppvBits)
+	{
+		BITMAPINFO bmi = { 0 };
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = psz->cx;
+		bmi.bmiHeader.biHeight = psz->cy;
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+		*phdc2 = CreateCompatibleDC(*phdc);
+		if (*phdc2)
+		{
+			*phbm = CreateDIBSection(*phdc2, &bmi, DIB_RGB_COLORS, ppvBits, NULL, NULL);
+			if (*phbm)
+				return S_OK;
+			DeleteObject(*phdc2);
+		}
+		return E_OUTOFMEMORY;
 	}
 
 	void CMinimalDragImage::FreeDragData()
 	{
 		if (_hwnd)
 		{
-			SendMessageW(_hwnd, WM_DESTROY, NULL, NULL);
+			SendMessageW(_hwnd, WM_USER + 1, NULL, NULL);
 			_hwnd = NULL;
 		}
-		_fCursorDataInited = FALSE;
 		if (_hbmpOld)
 		{
 			SelectObject(_hdcDragImage, _hbmpOld);
 			_hbmpOld = NULL;
+		}
+		if (_hbmpUnk)
+		{
+			DeleteObject(_hbmpUnk);
+			_hbmpUnk = NULL;
 		}
 		if (_hdcDragImage)
 		{
 			DeleteDC(_hdcDragImage);
 			_hdcDragImage = NULL;
 		}
+		if (_hdcWindow)
+		{
+			DeleteDC(_hdcWindow);
+			_hdcWindow = NULL;
+		}
+		if (_hTheme)
+		{
+			CloseThemeData(_hTheme);
+			_hTheme = NULL;
+		}
 		if (_shdi.hbmpDragImage)
 			DeleteObject(_shdi.hbmpDragImage);
-		ZeroMemory(&_Single, sizeof(_Single));
 		ZeroMemory(&_shdi, sizeof(_shdi));
-		_ptDebounce.x = 0;
-		_ptDebounce.y = 0;
+		if (_pdtobj)
+		{
+			BOOL fFlag = FALSE;
+			CLIPFORMAT cf = RegisterClipboardFormatW(L"IsShowingLayered");
+			DataObj_SetBlobWithIndex(_pdtobj, cf, &fFlag, sizeof(fFlag), -1);
+			cf = RegisterClipboardFormatW(L"IsShowingText");
+			DataObj_SetBlobWithIndex(_pdtobj, cf, &fFlag, sizeof(fFlag), -1);
+		}
 		_hwndTarget = _hwnd = NULL;
-		_fCursorDataInited = _fLayeredSupported = FALSE;
+		_flags = DIF_NONE;
+		_imgType = 0;
+		_rc.left = 0;
+		_rc.top = 0;
+		ZeroMemory(&_desc, sizeof(DROPDESCRIPTION));
 	}
 
 	void CMinimalDragImage::_InitDragData()
 	{
-		UINT uFlags = ILC_MASK | 0x100;
-		if (localeType == 1)
-			uFlags |= ILC_MIRROR;
-		HDC hdc = GetDC(NULL);
-		if (!(GetDeviceCaps(hdc, RASTERCAPS) & RC_PALETTE))
-			uFlags |= ILC_COLORDDB;
-		ReleaseDC(NULL, hdc);
-		_fCursorDataInited = TRUE;
+		_flags = _flags | DIF_CURDATAINITED;
+		_pt.x = _shdi.ptOffset.x;
+		_pt.y = _shdi.ptOffset.y;
 	}
 
 	HRESULT CMinimalDragImage::_LoadFromDataObject(IDataObject* pdtobj)
 	{
 		HRESULT hr;
-		if (_fCursorDataInited || !pdtobj)
+		if ((_flags & DIF_CURDATAINITED) || !pdtobj)
 			hr = S_OK;
 		else
 		{
@@ -803,7 +844,6 @@ namespace DirectDesktop
 						{
 							STGMEDIUM mediumBits;
 							FORMATETC fmte = { RegisterClipboardFormatW(L"DragImageBits"), NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-
 							hr = pdtobj->GetData(&fmte, &mediumBits);
 							if (SUCCEEDED(hr))
 							{
@@ -825,23 +865,19 @@ namespace DirectDesktop
 	HRESULT CMinimalDragImage::_SaveToDataObject(IDataObject* pdtobj)
 	{
 		HRESULT hr = E_FAIL;
-		if (_fCursorDataInited)
+		if (_flags & DIF_CURDATAINITED)
 		{
 			STGMEDIUM medium = { 0 };
 			medium.tymed = TYMED_ISTREAM;
-
 			if (SUCCEEDED(CreateStreamOnHGlobal(NULL, TRUE, &medium.pstm)))
 			{
 				DragContextHeader hdr = { 0 };
 				hdr.fLayered = TRUE;
-
 				ULONG ulWritten;
-				if (SUCCEEDED(medium.pstm->Write(&hdr, sizeof(hdr), &ulWritten)) &&
-					(ulWritten == sizeof(hdr)))
+				if (SUCCEEDED(medium.pstm->Write(&hdr, sizeof(hdr), &ulWritten)) &&	(ulWritten == sizeof(hdr)))
 				{
 					STGMEDIUM mediumBits = { 0 };
 					mediumBits.tymed = TYMED_HGLOBAL;
-
 					hr = _SaveLayeredBitmapBits(&mediumBits.hGlobal);
 					if (SUCCEEDED(hr))
 					{
@@ -850,7 +886,6 @@ namespace DirectDesktop
 						if (FAILED(hr))
 							ReleaseStgMedium(&mediumBits);
 					}
-
 					if (SUCCEEDED(hr))
 					{
 						medium.pstm->Seek(g_li0, STREAM_SEEK_SET, NULL);
@@ -858,9 +893,11 @@ namespace DirectDesktop
 						hr = pdtobj->SetData(&fmte, &medium, TRUE);
 					}
 				}
-
 				if (FAILED(hr))
 					ReleaseStgMedium(&medium);
+				UINT uFlag = 1;
+				CLIPFORMAT cf = RegisterClipboardFormatW(L"DragSourceHelperFlags");
+				hr = DataObj_SetBlobWithIndex(pdtobj, cf, &uFlag, sizeof(uFlag), -1);
 			}
 		}
 		return hr;
@@ -869,7 +906,7 @@ namespace DirectDesktop
 	HRESULT CMinimalDragImage::_LoadLayeredBitmapBits(HGLOBAL hGlobal)
 	{
 		HRESULT hr = E_FAIL;
-		if (!_fCursorDataInited)
+		if (!(_flags & DIF_CURDATAINITED))
 		{
 			HDC hdcScreen = GetDC(NULL);
 			if (hdcScreen)
@@ -877,27 +914,16 @@ namespace DirectDesktop
 				void* pvDragStuff = (void*)GlobalLock(hGlobal);
 				if (pvDragStuff)
 				{
-					CopyMemory(&_shdi, pvDragStuff, sizeof(SHDRAGIMAGE));
-					BITMAPINFO bmi = { 0 };
-					bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-					bmi.bmiHeader.biWidth = _shdi.sizeDragImage.cx;
-					bmi.bmiHeader.biHeight = _shdi.sizeDragImage.cy;
-					bmi.bmiHeader.biPlanes = 1;
-					bmi.bmiHeader.biBitCount = 32;
-					bmi.bmiHeader.biCompression = BI_RGB;
-					_hdcDragImage = CreateCompatibleDC(hdcScreen);
-					if (_hdcDragImage)
+					qmemcpy(&_shdi, pvDragStuff, sizeof(SHDRAGIMAGE) - 8);
+					void* pvBits;
+					_Create32BitHBITMAP(&_shdi.hbmpDragImage, &_shdi.sizeDragImage, &hdcScreen, &_hdcDragImage, &pvBits);
+					if (_shdi.hbmpDragImage)
 					{
-						void* pvBits;
-						_shdi.hbmpDragImage = CreateDIBSection(_hdcDragImage, &bmi, DIB_RGB_COLORS, &pvBits, NULL, NULL);
-						if (_shdi.hbmpDragImage)
-						{
-							_hbmpOld = (HBITMAP)SelectObject(_hdcDragImage, _shdi.hbmpDragImage);
-							RGBQUAD* pvStart = (RGBQUAD*)((BYTE*)pvDragStuff + sizeof(SHDRAGIMAGE) - 8);
-							DWORD dwCount = _shdi.sizeDragImage.cx * _shdi.sizeDragImage.cy * sizeof(RGBQUAD);
-							CopyMemory((RGBQUAD*)pvBits, (RGBQUAD*)pvStart, dwCount);
-							hr = S_OK;
-						}
+						_hbmpOld = (HBITMAP)SelectObject(_hdcDragImage, _shdi.hbmpDragImage);
+						RGBQUAD* pvStart = (RGBQUAD*)((BYTE*)pvDragStuff + sizeof(SHDRAGIMAGE) - 8);
+						DWORD dwCount = _shdi.sizeDragImage.cx * _shdi.sizeDragImage.cy * sizeof(RGBQUAD);
+						CopyMemory((RGBQUAD*)pvBits, (RGBQUAD*)pvStart, dwCount);
+						hr = S_OK;
 					}
 					GlobalUnlock(hGlobal);
 				}
@@ -910,24 +936,36 @@ namespace DirectDesktop
 	HRESULT CMinimalDragImage::_SaveLayeredBitmapBits(HGLOBAL* phGlobal)
 	{
 		HRESULT hr = E_FAIL;
-		if (_fCursorDataInited)
+		if (_flags & DIF_CURDATAINITED)
 		{
 			DWORD cbImageSize = _shdi.sizeDragImage.cx * _shdi.sizeDragImage.cy * sizeof(RGBQUAD);
-			*phGlobal = GlobalAlloc(GPTR, cbImageSize + sizeof(SHDRAGIMAGE));
+			*phGlobal = GlobalAlloc(GPTR, cbImageSize + sizeof(SHDRAGIMAGE) - 8);
 			if (*phGlobal)
 			{
 				void* pvDragStuff = GlobalLock(*phGlobal);
-				CopyMemory(pvDragStuff, &_shdi, sizeof(SHDRAGIMAGE));
+				CopyMemory(pvDragStuff, &_shdi, sizeof(SHDRAGIMAGE) - 8);
 
-				void* pvBits;
-				hr = _PreProcessDragBitmap(&pvBits) ? S_OK : E_FAIL;
-				if (SUCCEEDED(hr))
+				if (_shdi.hbmpDragImage)
 				{
-					RGBQUAD* pvStart = (RGBQUAD*)((BYTE*)pvDragStuff + sizeof(SHDRAGIMAGE) - 8);
-					DWORD dwCount = _shdi.sizeDragImage.cx * _shdi.sizeDragImage.cy * sizeof(RGBQUAD);
-					CopyMemory((RGBQUAD*)pvStart, (RGBQUAD*)pvBits, dwCount);
+					void* pvBits;
+					hr = _PreProcessDragBitmap(&pvBits) ? S_OK : E_FAIL;
+					if (SUCCEEDED(hr))
+					{
+						RGBQUAD* pvStart = (RGBQUAD*)((BYTE*)pvDragStuff + sizeof(SHDRAGIMAGE) - 8);
+						DWORD dwCount = _shdi.sizeDragImage.cx * _shdi.sizeDragImage.cy * sizeof(RGBQUAD);
+						CopyMemory((RGBQUAD*)pvStart, (RGBQUAD*)pvBits, dwCount);
+					}
+					else
+						hr = E_FAIL;
 				}
+				else
+					hr = S_OK;
 				GlobalUnlock(*phGlobal);
+				if (FAILED(hr))
+				{
+					GlobalFree(*phGlobal);
+					*phGlobal = NULL;
+				}
 			}
 		}
 		return hr;
@@ -937,28 +975,61 @@ namespace DirectDesktop
 	{
 		if (pshdi->hbmpDragImage == INVALID_HANDLE_VALUE)
 			return E_FAIL;
-		_shdi = *pshdi;
+		qmemcpy(&_shdi, pshdi, sizeof(SHDRAGIMAGE) - 8);
 		_InitDragData();
 		return S_OK;
 	}
 
+	struct WINDOWCOMPOSITIONATTRIBDATA
+	{
+		DWORD dwAttribute;
+		PVOID pvData;
+		SIZE_T cbData;
+	};
+	typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+
 	BOOL CMinimalDragImage::_CreateDragWindow()
 	{
-		if (_hwnd == NULL)
+		if (!_hwnd)
 		{
 			WNDCLASS wc = { 0 };
 			wc.hInstance = HINST_THISCOMPONENT;
-			wc.lpfnWndProc = DragWndProc;
+			wc.lpfnWndProc = s_DragWndProc;
 			wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
 			wc.lpszClassName = TEXT("SysDragImage");
 			wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1); // NULL;
 			RegisterClassW(&wc);
 
 			_hwnd = CreateWindowExW(WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW,
-				L"SysDragImage", L"Drag", WS_POPUPWINDOW, 0, 0, 50, 50, NULL, NULL, HINST_THISCOMPONENT, NULL);
+				L"SysDragImage", L"Drag", WS_POPUPWINDOW, 0, 0, 50, 50, NULL, NULL, HINST_THISCOMPONENT, this);
 
 			if (!_hwnd)
 				return FALSE;
+
+			HMODULE hUser = GetModuleHandleW(L"user32.dll");
+			if (hUser)
+			{
+				pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
+					(pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+
+				if (SetWindowCompositionAttribute)
+				{
+					int exclude = 1;
+					WINDOWCOMPOSITIONATTRIBDATA data = { 13, &exclude, sizeof(exclude) };
+					SetWindowCompositionAttribute(_hwnd, &data);
+				}
+			}
+			if (_pdtobj)
+			{
+				BOOL fLayered = TRUE;
+				CLIPFORMAT cf = RegisterClipboardFormatW(L"IsShowingLayered");
+				HRESULT hr = DataObj_SetBlobWithIndex(_pdtobj, cf, &fLayered, sizeof(fLayered), -1);
+				if (SUCCEEDED(hr))
+				{
+					cf = RegisterClipboardFormatW(L"DragWindow");
+					hr = DataObj_SetBlobWithIndex(_pdtobj, cf, &_hwnd, 4, -1);
+				}
+			}
 
 			DWORD dwStyle = GetWindowLongW(_hwnd, GWL_EXSTYLE);
 			DWORD dwNewStyle = (dwStyle & ~WS_EX_LAYOUTRTL);
@@ -978,52 +1049,518 @@ namespace DirectDesktop
 			HBITMAP hbmpResult = NULL;
 			HBITMAP hbmpOld;
 			HDC hdcSource = NULL;
-			BITMAPINFO bmi = { 0 };
 			HBITMAP hbmp = _shdi.hbmpDragImage;
-			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-			bmi.bmiHeader.biWidth = _shdi.sizeDragImage.cx;
-			bmi.bmiHeader.biHeight = _shdi.sizeDragImage.cy;
-			bmi.bmiHeader.biPlanes = 1;
-			bmi.bmiHeader.biBitCount = 32;
-			bmi.bmiHeader.biCompression = BI_RGB;
 
-			hdcSource = CreateCompatibleDC(_hdcDragImage);
-			if (hdcSource)
+			if (SUCCEEDED(_Create32BitHBITMAP(&hbmpResult, &_shdi.sizeDragImage, &_hdcDragImage, &hdcSource, ppvBits)))
 			{
-				hbmpResult = CreateDIBSection(_hdcDragImage, &bmi, DIB_RGB_COLORS, ppvBits, NULL, 0);
-				if (hbmpResult)
+				_hbmpOld = (HBITMAP)SelectObject(_hdcDragImage, hbmpResult);
+				hbmpOld = (HBITMAP)SelectObject(hdcSource, hbmp);
+				BitBlt(_hdcDragImage, 0, 0, _shdi.sizeDragImage.cx, _shdi.sizeDragImage.cy,	hdcSource, 0, 0, SRCCOPY);
+				pul = (ULONG*)*ppvBits;
+				for (int Y = 0; Y < _shdi.sizeDragImage.cy; Y++)
 				{
-					_hbmpOld = (HBITMAP)SelectObject(_hdcDragImage, hbmpResult);
-					hbmpOld = (HBITMAP)SelectObject(hdcSource, hbmp);
-					BitBlt(_hdcDragImage, 0, 0, _shdi.sizeDragImage.cx, _shdi.sizeDragImage.cy,
-						hdcSource, 0, 0, SRCCOPY);
-					pul = (ULONG*)*ppvBits;
-					for (int Y = 0; Y < _shdi.sizeDragImage.cy; Y++)
+					int y = _shdi.sizeDragImage.cy - Y;
+					for (int x = 0; x < _shdi.sizeDragImage.cx; x++)
 					{
-						int y = _shdi.sizeDragImage.cy - Y;
-						for (int x = 0; x < _shdi.sizeDragImage.cx; x++)
-						{
-							RGBQUAD* prgb = (RGBQUAD*)&pul[Y * _shdi.sizeDragImage.cx + x];
+						RGBQUAD* prgb = (RGBQUAD*)&pul[Y * _shdi.sizeDragImage.cx + x];
 
-							// Color key not supported for now
-							int Alpha = prgb->rgbReserved;
-							prgb->rgbRed = ((prgb->rgbRed * Alpha) + 128) / 255;
-							prgb->rgbGreen = ((prgb->rgbGreen * Alpha) + 128) / 255;
-							prgb->rgbBlue = ((prgb->rgbBlue * Alpha) + 128) / 255;
-						}
+						// Color key not supported for now
+						int Alpha = prgb->rgbReserved;
+						prgb->rgbRed = ((prgb->rgbRed * Alpha) + 128) / 255;
+						prgb->rgbGreen = ((prgb->rgbGreen * Alpha) + 128) / 255;
+						prgb->rgbBlue = ((prgb->rgbBlue * Alpha) + 128) / 255;
 					}
-
-					DeleteObject(hbmp);
-					_shdi.hbmpDragImage = hbmpResult;
-					fRet = TRUE;
-					if (hbmpOld)
-						SelectObject(hdcSource, hbmpOld);
 				}
-
+				DeleteObject(hbmp);
+				_shdi.hbmpDragImage = hbmpResult;
+				fRet = TRUE;
+				if (hbmpOld)
+					SelectObject(hdcSource, hbmpOld);
 				DeleteObject(hdcSource);
 			}
 		}
 		return fRet;
+	}
+
+	void CMinimalDragImage::_PreProcessGDIBitmap(RECT* prc)
+	{
+		int pIndex{};
+		for (LONG top = prc->top; top <= prc->bottom; top++)
+		{
+			for (LONG left = prc->left; left <= prc->right; left++)
+			{
+				pIndex = left + _rc.right * (_rc.bottom - top);
+				*((BYTE*)_pvBits + 4 * pIndex + 3) = 0xFF;
+			}
+		}
+	}
+
+	void CMinimalDragImage::_ExtractOneTimeData()
+	{
+		ComPtr<IShellItemArray> pItemArray = nullptr;
+		HRESULT hr = SHCreateShellItemArrayFromDataObject(_pdtobj, IID_PPV_ARGS(&pItemArray));
+		pItemArray->GetCount(&_dwCount);
+		UINT uData = 0;
+		CLIPFORMAT cf = RegisterClipboardFormatW(L"IsShowingText");
+		if ((SUCCEEDED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uData, sizeof(uData), -1)), uData))
+			_flags = _flags | DIF_SHOWTEXT;
+		cf = RegisterClipboardFormatW(L"UsingDefaultDragImage");
+		if ((SUCCEEDED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uData, sizeof(uData), -1)), uData))
+			_flags = _flags | DIF_DEFAULTIMAGE;
+		cf = RegisterClipboardFormatW(L"DragSourceHelperFlags");
+		if ((SUCCEEDED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uData, sizeof(uData), -1)), uData))
+			_flags = _flags | DIF_HELPERFLAG;
+		cf = RegisterClipboardFormatW(L"IsComputingImage");
+		if ((SUCCEEDED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uData, sizeof(uData), -1)), uData))
+			_flags = _flags | DIF_COMPUTINGIMG;
+		_ExtractContinualData();
+	}
+
+	void CMinimalDragImage::_ExtractContinualData()
+	{
+		UINT uOld = (_flags & DIF_DISABLETEXT) ? 1 : 0, uNew = 0;
+		if (_pdtobj)
+		{
+			CLIPFORMAT cf = RegisterClipboardFormatW(L"DisableDragText");
+			if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uNew, sizeof(uNew), -1)))
+				uNew = 0;
+		}
+		if (uNew)
+			_flags = _flags | DIF_DISABLETEXT;
+		else
+			_flags = _flags & static_cast<DragImageFlags>(0xFFFFFFFF - DIF_DISABLETEXT);
+		if (uOld != uNew)
+			_flags = _flags | DIF_CANADDINFO;
+		uNew = (_flags & DIF_COMPUTINGIMG) ? 1 : 0;
+		if (_pdtobj)
+		{
+			CLIPFORMAT cf = RegisterClipboardFormatW(L"IsComputingImage");
+			if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uOld, sizeof(uOld), -1)))
+				uOld = 0;
+		}
+		else
+			uOld = 0;
+		if (uNew)
+			_flags = _flags | DIF_COMPUTINGIMG;
+		else
+			_flags = _flags & static_cast<DragImageFlags>(0xFFFFFFFF - DIF_COMPUTINGIMG);
+
+		// 0.5.6.1: Faulty logic, will be dealt with later...
+
+		//if (uNew && !uOld && _pdtobj)
+		//{
+		//	if (_hdcDragImage)
+		//	{
+		//		DeleteDC(_hdcDragImage);
+		//		_hdcDragImage = 0;
+		//	}
+		//	CLIPFORMAT cf = RegisterClipboardFormatW(L"ComputedDragImage");
+		//	if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uOld, sizeof(uOld), -1)))
+		//		uOld = 0;
+		//	_shdi.hbmpDragImage = (HBITMAP)uOld;
+		//	if (uOld)
+		//	{
+		//		_SaveToDataObject(_pdtobj);
+		//		if (_hdcDragImage)
+		//		{
+		//			DeleteDC(_hdcDragImage);
+		//			_hdcDragImage = 0;
+		//		}
+		//		_LoadFromDataObject(_pdtobj);
+		//	}
+		//	_flags = _flags | DIF_CANADDINFO;
+
+		//	HWND hWnd = nullptr;
+		//	cf = RegisterClipboardFormatW(L"DragWindow");
+		//	if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &hWnd, 4, -1)))
+		//		hWnd = nullptr;
+		//	if (hWnd)
+		//		SendMessageW(hWnd, WM_USER + 3, NULL, NULL);
+		//}
+		FORMATETC fmtetc = { RegisterClipboardFormatW(CFSTR_DROPDESCRIPTION), 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+		STGMEDIUM medium = { 0 };
+		if (_pdtobj && SUCCEEDED(_pdtobj->GetData(&fmtetc, &medium)))
+		{
+			void* pv = GlobalLock(medium.hBitmap);
+			if (pv)
+			{
+				if (!RtlEqualMemory(pv, &_desc, sizeof(DROPDESCRIPTION)))
+				{
+					_flags = _flags | DIF_CANADDINFO;
+					qmemcpy(&_desc, pv, sizeof(DROPDESCRIPTION));
+				}
+				GlobalUnlock(medium.hBitmap);
+			}
+			ReleaseStgMedium(&medium);
+		}
+	}
+
+	HRESULT CMinimalDragImage::_AddInfoToWindow()
+	{
+		RECT rc, rcContent, rcExtent;
+		HRESULT hr;
+		if (!_hdcWindow)
+			_hdcWindow = CreateCompatibleDC(_hdcDragImage);
+		if (!_hTheme)
+			_hTheme = OpenThemeData(_hwnd, L"DragDrop");
+		if (_hdcWindow && _hTheme)
+		{
+			SIZE sz = {};
+			HDC hdcDragBackground;
+			if (_hbmpUnk || (_rc.right = _shdi.sizeDragImage.cx, _rc.bottom = _shdi.sizeDragImage.cy,
+				_ComputeFinalSize(), sz.cx = _rc.right, sz.cy = _rc.bottom,
+				_Create32BitHBITMAP(&_hbmpUnk, &sz, &_hdcWindow, &hdcDragBackground, &_pvBits), _hbmpUnk))
+			{
+				ZeroMemory(_pvBits, _rc.right * _rc.bottom * 4);
+				SelectObject(_hdcWindow, _hbmpUnk);
+				hr = S_OK;
+				SIZE sz = { _rc.left, _rc.top };
+				rcContent.left = sz.cx, rcContent.top = sz.cy;
+				rcContent.right = sz.cx + _shdi.sizeDragImage.cx;
+				rcContent.bottom = sz.cy + _shdi.sizeDragImage.cy;
+				if (_flags & DIF_DEFAULTIMAGE)
+				{
+					ZeroMemory(&rc, sizeof(rc));
+					if (SUCCEEDED(_GetImageBackgroundRect(&rc)))
+					{
+						OffsetRect(&rc, _rc.left, _rc.top);
+						DrawThemeBackground(_hTheme, _hdcWindow, 7, 0, &rc, nullptr);
+						GetThemeBackgroundContentRect(_hTheme, _hdcWindow, 7, 0, &rc, &rcContent);
+					}
+					sz.cx = rcContent.left;
+					sz.cy = rcContent.top;
+				}
+				BLENDFUNCTION blend = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
+				GdiAlphaBlend(_hdcWindow, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top,
+					_hdcDragImage, 0, 0, _shdi.sizeDragImage.cx, _shdi.sizeDragImage.cy, blend);
+				_pt.x = rcContent.right + _shdi.ptOffset.x - _rc.left;
+				_pt.y = rcContent.bottom + _shdi.ptOffset.y - _rc.top;
+				if ((_flags & DIF_DEFAULTIMAGE) && _dwCount > 1)
+				{
+					WCHAR pszCount[12];
+					StringCchPrintfW(pszCount, 12, L"%d", _dwCount);
+					if (SUCCEEDED(GetThemeTextExtent(_hTheme, _hdcWindow, 8, 0, pszCount, -1, 0, 0, &rcExtent)))
+					{
+						rc.left = (rcContent.right + rcContent.left - rcExtent.right + rcExtent.left) / 2;
+						rc.top = (rcContent.right + rcContent.left - rcExtent.bottom + rcExtent.top) / 2;
+						rc.right = rc.left + rcExtent.right - rcExtent.left;
+						rc.bottom = rc.top + rcExtent.bottom - rcExtent.top;
+						if (SUCCEEDED(GetThemeBackgroundExtent(_hTheme, _hdcWindow, 8, 0, &rc, &rcExtent)))
+						{
+							DrawThemeBackground(_hTheme, _hdcWindow, 8, 0, &rcExtent, nullptr);
+							DrawThemeText(_hTheme, _hdcWindow, 8, 0, pszCount, -1, NULL, NULL, &rc);
+							_PreProcessGDIBitmap(&rc);
+						}
+					}
+				}
+				if (wcslen(_desc.szMessage))
+				{
+					if (_pdtobj)
+					{
+						UINT uShowText = TRUE;
+						CLIPFORMAT cf = RegisterClipboardFormatW(L"IsShowingText");
+						DataObj_SetBlobWithIndex(_pdtobj, cf, &uShowText, sizeof(uShowText), -1);
+					}
+					_flags = _flags | DIF_SHOWTEXT;
+				}
+				if (!(_flags & DIF_DISABLETEXT) || _imgType != 0 || GetKeyState(VK_CONTROL) < 0 || GetKeyState(VK_SHIFT) < 0 || GetKeyState(VK_MENU) < 0)
+					_DrawImageAndDesc(_desc.szMessage, _desc.szInsert);
+			}
+			else
+				hr = E_FAIL;
+		}
+		else
+		{
+			hr = S_OK;
+			_pt.x = _shdi.ptOffset.x;
+			_pt.y = _shdi.ptOffset.y;
+		}
+		_flags = _flags & static_cast<DragImageFlags>(0xFFFFFFFF - DIF_CANADDINFO);
+		return hr;
+	}
+
+	void CMinimalDragImage::_ComputeFinalSize()
+	{
+		RECT rc, rc2, rc3, rcFinal = { 0, 0, _rc.right, _rc.bottom };
+		if (rcFinal.right < 1)
+			rcFinal.right = 1;
+		if (rcFinal.bottom < 1)
+			rcFinal.bottom = 1;
+		if (_flags & DIF_DEFAULTIMAGE)
+		{
+			ZeroMemory(&rc, sizeof(rc));
+			_GetImageBackgroundRect(&rc);
+			UnionRect(&rcFinal, &rcFinal, &rc);
+		}
+		ZeroMemory(&rc2, sizeof(rc2));
+		_GetEffectImageRect(&rc2);
+		UnionRect(&rcFinal, &rcFinal, &rc2);
+		if (_flags & (DIF_DEFAULTIMAGE | DIF_HELPERFLAG))
+		{
+			ZeroMemory(&rc, sizeof(rc));
+			_GetTextRect(&rc);
+			ZeroMemory(&rc3, sizeof(rc3));
+			_GetTooltipRect(&rc2, &rc, &rc3);
+			UnionRect(&rcFinal, &rcFinal, &rc3);
+		}
+		_rc.right = rcFinal.right - rcFinal.left;
+		_rc.bottom = rcFinal.bottom - rcFinal.top;
+	}
+
+	HRESULT CMinimalDragImage::_GetEffectImageRect(RECT* prc)
+	{
+		SIZE sz = {};
+		HRESULT hr = GetThemePartSize(_hTheme, _hdcWindow, 1, 0, 0, TS_DRAW, &sz);
+		if (SUCCEEDED(hr))
+		{
+			RECT rcBounds = { 0, 0, sz.cx, sz.cy }, rcContent;
+			hr = GetThemeBackgroundContentRect(_hTheme, _hdcWindow, 1, 0, &rcBounds, &rcContent);
+			if (SUCCEEDED(hr))
+			{
+				int x = ((_flags & DIF_DEFAULTIMAGE) ? 16 : 12) * g_flScaleFactor;
+				int y = ((_flags & DIF_DEFAULTIMAGE) ? 17 : 13) * g_flScaleFactor;
+				prc->left = x + _shdi.ptOffset.x;
+				prc->top = y + _shdi.ptOffset.y;
+				int iVal{};
+				hr = GetThemeMetric(_hTheme, NULL, 0, 0, 2417, &iVal);
+				if (SUCCEEDED(hr))
+				{
+					prc->right = prc->left + rcContent.right - rcContent.left;
+					if (iVal < sz.cy)
+						iVal = sz.cy;
+					prc->bottom = iVal + prc->top;
+				}
+			}
+		}
+		return hr;
+	}
+
+	HRESULT CMinimalDragImage::_GetImageBackgroundRect(RECT* prc)
+	{
+		SIZE sz = {};
+		HRESULT hr = GetThemePartSize(_hTheme, _hdcWindow, 7, 0, 0, TS_DRAW, &sz);
+		if (SUCCEEDED(hr))
+		{
+			prc->left = 0, prc->top = 0;
+			prc->right = sz.cx, prc->bottom = sz.cy;
+		}
+		return hr;
+	}
+
+	HRESULT CMinimalDragImage::_GetTextRect(RECT* prc)
+	{
+		RECT rcExtent;
+		HRESULT hr = GetThemeTextExtent(_hTheme, _hdcWindow, 0, 0, L"Mq", -1, 0, 0, &rcExtent);
+		if (SUCCEEDED(hr))
+		{
+			RECT rc;
+			hr = _GetEffectImageRect(&rc);
+			if (SUCCEEDED(hr))
+			{
+				prc->left = rc.right;
+				prc->top = rc.top;
+				prc->right = 300 * g_flScaleFactor + prc->left;
+				int iVal{};
+				hr = GetThemeMetric(_hTheme, NULL, 0, 0, 2417, &iVal);
+				if (SUCCEEDED(hr))
+				{
+					if (iVal < rcExtent.bottom - rcExtent.top)
+						iVal = rcExtent.bottom - rcExtent.top;
+					prc->bottom = iVal + prc->top;
+				}
+			}
+		}
+		return hr;
+	}
+
+	HRESULT CMinimalDragImage::_GetTooltipRect(RECT* prcSrc, RECT* prcSrc2, RECT* prcDst)
+	{
+		prcDst->left = prcSrc->left - g_flScaleFactor;
+		prcDst->top = prcSrc2->top;
+		prcDst->right = prcSrc2->right + 7 * g_flScaleFactor;
+		prcDst->bottom = prcSrc2->bottom;
+		return S_OK;
+	}
+
+	void CMinimalDragImage::_DrawImageAndDesc(LPWSTR szMessage, LPWSTR szInsert)
+	{
+		if (_desc.type != DROPIMAGE_NOIMAGE)
+		{
+			int iPartId;
+			int width;
+			RECT rc, rcBounds, rcExtent, rc1, rc2;
+			bool hasText;
+			switch (_desc.type)
+			{
+			case DROPIMAGE_NONE:
+				iPartId = 6;
+				break;
+			case DROPIMAGE_COPY:
+			case DROPIMAGE_MOVE:
+			case DROPIMAGE_LINK:
+				iPartId = _desc.type;
+				break;
+			case DROPIMAGE_LABEL:
+				iPartId = 3;
+				break;
+			case DROPIMAGE_WARNING:
+				iPartId = 5;
+				break;
+			case DROPIMAGE_INVALID:
+				switch (_imgType)
+				{
+				case 1:
+				case 2:
+					iPartId = _imgType;
+					break;
+				case 3:
+				case 4:
+					iPartId = _imgType + 1;
+					break;
+				default:
+					iPartId = 6;
+					break;
+				}
+				break;
+			}
+			ZeroMemory(&rc, sizeof(rc));
+			HRESULT hr = _GetEffectImageRect(&rc);
+			if ((_flags & (DIF_DEFAULTIMAGE | DIF_HELPERFLAG)) && (_flags & DIF_SHOWTEXT) && SUCCEEDED(_GetTextRect(&rcBounds)))
+			{
+				SHStripMneumonicW(szMessage);
+				SHStripMneumonicW(szInsert);
+
+				WCHAR* pszPrefix;
+				WCHAR* pszSuffix;
+				if (SUCCEEDED(GetStringsFromFormat(szMessage, &pszPrefix, &pszSuffix)))
+				{
+					hasText = true;
+					width = _SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rc1, &rc2, &rcExtent);
+				}
+				else
+				{
+					hasText = false;
+					ZeroMemory(&rcExtent, sizeof(rcExtent));
+					GetThemeTextExtent(_hTheme, _hdcWindow, iPartId, 2, szMessage, -1, 0, &rcBounds, &rcExtent);
+					width = rcExtent.right - rcExtent.left;
+				}
+				if (width <= rcBounds.right - rcBounds.left)
+					rcBounds.right = rcBounds.left + width;
+				_SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rc1, &rc2, &rcExtent);
+				_DrawTooltipBackground(&rc, &rcBounds, width);
+				if (hasText)
+					_DrawDescriptionLineComp(iPartId, pszPrefix, szInsert, pszSuffix, &rc1, &rc2, &rcExtent);
+				else
+					_DrawDescriptionLine(iPartId, 1, szMessage, &rcBounds);
+			}
+			if (SUCCEEDED(hr))
+				DrawThemeBackground(_hTheme, _hdcWindow, iPartId, 0, &rc, nullptr);
+		}
+	}
+
+	int CMinimalDragImage::_SizeDescriptionLine(int iPartId, LPCWSTR pszPrefix, LPCWSTR pszInsert, LPCWSTR pszSuffix, RECT* prcBounds, RECT* rc1, RECT* rc2, RECT* rc3)
+	{
+		RECT rcExtent = { 0 };
+		LONG leftBounds = prcBounds->left;
+		GetThemeTextExtent(_hTheme, _hdcWindow, iPartId, 1, pszPrefix, -1, 0, prcBounds, &rcExtent);
+		int acc1 = rcExtent.right - rcExtent.left;
+		*rc1 = *prcBounds;
+		rc1->right = prcBounds->left + rcExtent.right - rcExtent.left;
+		prcBounds->left = rc1->right;
+		GetThemeTextExtent(_hTheme, _hdcWindow, iPartId, 1, pszInsert, -1, 0, prcBounds, &rcExtent);
+		int acc2 = rcExtent.right - rcExtent.left + acc1;
+		*rc2 = *prcBounds;
+		rc2->right = prcBounds->left + rcExtent.right - rcExtent.left;
+		prcBounds->left += rcExtent.right - rcExtent.left;
+		if (rc2->right > prcBounds->right)
+		{
+			rc2->right = prcBounds->right;
+			prcBounds->left = prcBounds->right;
+		}
+		GetThemeTextExtent(_hTheme, _hdcWindow, iPartId, 1, pszSuffix, -1, 0, prcBounds, &rcExtent);
+		int acc3 = rcExtent.right - rcExtent.left + acc2;
+		*rc3 = *prcBounds;
+		rc3->right = prcBounds->left + rcExtent.right - rcExtent.left;
+		if (rc3->right > prcBounds->right)
+			rc3->right = prcBounds->right;
+		prcBounds->left = leftBounds;
+		return acc3;
+	}
+
+	void CMinimalDragImage::_DrawDescriptionLine(int iPartId, int iStateId, LPCWSTR pszText, RECT* prcBounds)
+	{
+		RECT rc;
+		POINT pt = {};
+		GetThemePosition(_hTheme, iPartId, iStateId, 3401, &pt);
+		rc = *prcBounds;
+		rc.top += pt.y;
+		DrawThemeTextEx(_hTheme, _hdcWindow, iPartId, iStateId, pszText, -1, 0, &rc, 0);
+		_PreProcessGDIBitmap(&rc);
+	}
+
+	void CMinimalDragImage::_DrawDescriptionLineComp(int iPartId, LPCWSTR pszPrefix, LPCWSTR pszInsert, LPCWSTR pszSuffix,
+		RECT* prcBounds1, RECT* prcBounds2, RECT* prcBounds3)
+	{
+		_DrawDescriptionLine(iPartId, 1, pszPrefix, prcBounds1);
+		_DrawDescriptionLine(iPartId, 2, pszInsert, prcBounds2);
+		_DrawDescriptionLine(iPartId, 1, pszSuffix, prcBounds3);
+	}
+
+	void CMinimalDragImage::_DrawTooltipBackground(RECT* prcSrc, RECT* prcBounds, int width)
+	{
+		RECT rc;
+		if (width <= prcBounds->right - prcBounds->left)
+			prcBounds->right = prcBounds->left + width;
+		_GetTooltipRect(prcSrc, prcBounds, &rc);
+		HTHEME hThemeTT = OpenThemeData(_hwnd, L"Tooltip");
+		if (hThemeTT)
+		{
+			DrawThemeBackground(hThemeTT, _hdcWindow, 1, 0, &rc, nullptr);
+			CloseThemeData(hThemeTT);
+		}
+	}
+
+	LRESULT CALLBACK CMinimalDragImage::_DragWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		if (uMsg != WM_NCDESTROY)
+		{
+				switch (uMsg)
+				{
+				case WM_USER + 1:
+					DestroyWindow(_hwnd);
+					return 0;
+				case WM_USER + 2:
+					if (wParam != _imgType)
+					{
+						_imgType = wParam;
+						_flags = _flags | DIF_CANADDINFO;
+					}
+				case WM_USER + 3:
+					break;
+				default:
+					return DefWindowProc(_hwnd, uMsg, wParam, lParam);
+				}
+				if (_flags & DIF_CANADDINFO)
+					_AddInfoToWindow();
+		}
+		return 0;
+	}
+
+
+	LRESULT CALLBACK CMinimalDragImage::s_DragWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		if (uMsg == WM_NCCREATE)
+		{
+			if (lParam)
+			{
+				SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCTW*)lParam)->lpCreateParams);
+			}
+		}
+		else if (GetWindowLongPtrW(hwnd, GWLP_USERDATA))
+		{
+			return ((CMinimalDragImage*)GetWindowLongPtrW(hwnd, GWLP_USERDATA))->_DragWndProc(uMsg, wParam, lParam);
+		}
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
 	void MyDragDropInit(HANDLE hHeap)
@@ -1102,107 +1639,169 @@ namespace DirectDesktop
 		return nullptr;
 	}
 
-	void PerformShellFileOp(HWND hWnd, LPCWSTR source, LPCWSTR destDir, DWORD effect)
+	void PrepDimensions(RECT* prcDimensions, POINTL* ppt, UINT* pPage)
 	{
+		short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
+		short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
+		short localeDirection = (localeType == 1) ? -1 : 1;
+		short desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
+		short desktoppadding_x = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
+		short desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
+		if (g_touchmode)
+		{
+			outerSizeX = g_touchSizeX + desktoppadding;
+			outerSizeY = g_touchSizeY + desktoppadding;
+		}
+		ppt->y += outerSizeY;
+		if (ppt->y > prcDimensions->bottom - outerSizeY - desktoppadding_y)
+		{
+			ppt->y = desktoppadding_y;
+			ppt->x += localeDirection * outerSizeX;
+		}
+		if ((localeType != 1 && ppt->x > prcDimensions->right - outerSizeX - desktoppadding_x) ||
+			(localeType == 1 && ppt->x < prcDimensions->left - outerSizeX - desktoppadding_x))
+		{
+			ppt->x = (localeType == 1) ? prcDimensions->right - desktoppadding_x - outerSizeX + desktoppadding : desktoppadding_x;
+			(*pPage)++;
+		}
+	}
+
+	void PerformShellFileOp(HWND hWnd, LPCWSTR destDir, IShellItemArray* pItemArray, DWORD effect, POINTL pt)
+	{
+		RECT dimensions;
+		GetClientRect(wnd->GetHWND(), &dimensions);
+		UINT page = g_currentPageID;
+		g_overridefilelistener = true;
+		HRESULT hr = S_OK;
 		if (effect == DROPEFFECT_LINK)
 		{
-			IShellLinkW* psl;
-			HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (LPVOID*)&psl);
-			if (SUCCEEDED(hr))
+			DWORD dwItemCount = 0;
+			pItemArray->GetCount(&dwItemCount);
 			{
-				IPersistFile* ppf;
-				psl->SetPath(source); 
-				hr = psl->QueryInterface(IID_IPersistFile, (LPVOID*)&ppf);
-				if (SUCCEEDED(hr))
+				for (UINT i = 0; i < dwItemCount; i++)
 				{
-					LPCWSTR fileName = PathFindFileNameW(source);
-					std::wstring linkPathIntermediate = destDir + (wstring)fileName;
-					std::wstring linkPathIntermediate2 = LoadStrFromRes(4154, L"shell32.dll");
-					size_t pos = linkPathIntermediate2.find(L" ()");
-					if (pos != std::wstring::npos)
-						linkPathIntermediate2.erase(pos, 3);
-					UINT fileDup = 1;
-					WCHAR linkPath[MAX_PATH];
-					StringCchPrintfW(linkPath, MAX_PATH, linkPathIntermediate2.c_str(), linkPathIntermediate.c_str());
-					while (PathFileExistsW(linkPath))
+					ComPtr<IShellItem> pItem;
+					hr = pItemArray->GetItemAt(i, &pItem);
+					if (SUCCEEDED(hr))
 					{
-						linkPathIntermediate2 = LoadStrFromRes(4154, L"shell32.dll");
-						size_t pos = linkPathIntermediate2.find(L"(") + 1;
-						linkPathIntermediate2.insert(pos, L"%d");
-						StringCchPrintfW(linkPath, MAX_PATH, linkPathIntermediate2.c_str(), linkPathIntermediate.c_str(), ++fileDup);
+						ComPtr<IShellLinkW> psl;
+						hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (LPVOID*)&psl);
+						if (SUCCEEDED(hr))
+						{
+							ComPtr<IPersistFile> ppf;
+							LPWSTR pszFilePath = nullptr;
+							hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+							if (SUCCEEDED(hr))
+							{
+								psl->SetPath(pszFilePath);
+								hr = psl->QueryInterface(IID_IPersistFile, (LPVOID*)&ppf);
+								if (SUCCEEDED(hr))
+								{
+									LPCWSTR fileName = PathFindFileNameW(pszFilePath);
+									std::wstring linkPathIntermediate = destDir + (wstring)fileName;
+									std::wstring linkPathIntermediate2 = LoadStrFromRes(4154, L"shell32.dll");
+									size_t pos = linkPathIntermediate2.find(L" ()");
+									if (pos != std::wstring::npos)
+										linkPathIntermediate2.erase(pos, 3);
+									UINT fileDup = 1;
+									WCHAR linkPath[MAX_PATH];
+									StringCchPrintfW(linkPath, MAX_PATH, linkPathIntermediate2.c_str(), linkPathIntermediate.c_str());
+									while (PathFileExistsW(linkPath))
+									{
+										linkPathIntermediate2 = LoadStrFromRes(4154, L"shell32.dll");
+										size_t pos = linkPathIntermediate2.find(L"(") + 1;
+										linkPathIntermediate2.insert(pos, L"%d");
+										StringCchPrintfW(linkPath, MAX_PATH, linkPathIntermediate2.c_str(), linkPathIntermediate.c_str(), ++fileDup);
+									}
+									hr = ppf->Save(linkPath, TRUE);
+									if (SUCCEEDED(hr))
+									{
+										std::wstring destDir2(destDir, wcslen(destDir) - 1);
+										std::wstring linkPath2(linkPath, wcslen(destDir), std::wstring::npos);
+										InitNewLVItem(destDir2, linkPath2, &pt, page);
+										PrepDimensions(&dimensions, &pt, &page);
+									}
+								}
+							}
+						}
 					}
-					hr = ppf->Save(linkPath, TRUE);
-					ppf->Release();
 				}
-				psl->Release();
 			}
+			g_overridefilelistener = false;
 			return;
 		}
 
-		std::wstring from = source + L'\0';
-		std::wstring to = destDir + L'\0';
-
-		SHFILEOPSTRUCTW sfos = { 0 };
-		sfos.hwnd = hWnd;
-		switch (effect)
+		ComPtr<IFileOperation> pfo;
+		hr = CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_INPROC_SERVER, IID_IFileOperation, (LPVOID*)&pfo);
+		if (SUCCEEDED(hr))
 		{
-		case DROPEFFECT_COPY:
-			sfos.wFunc = FO_COPY;
-			break;
-		case DROPEFFECT_MOVE:
-			sfos.wFunc = FO_MOVE;
-			break;
+			ComPtr<IShellItem> pItem;
+			hr = SHCreateItemFromParsingName(destDir, nullptr, IID_PPV_ARGS(&pItem));
+			if (SUCCEEDED(hr))
+			{
+				pfo->SetOperationFlags(FOF_ALLOWUNDO | FOF_NOCONFIRMMKDIR);
+				switch (effect)
+				{
+				case DROPEFFECT_COPY:
+					pfo->CopyItems(pItemArray, pItem.Get());
+					break;
+				case DROPEFFECT_MOVE:
+					pfo->MoveItems(pItemArray, pItem.Get());
+					break;
+				}
+				pfo->PerformOperations();
+			}
 		}
-		sfos.pFrom = from.c_str();
-		sfos.pTo = to.c_str();
-		sfos.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMMKDIR;
 
-		SHFileOperationW(&sfos);
+		DWORD dwItemCount = 0;
+		pItemArray->GetCount(&dwItemCount);
+		{
+			for (UINT i = 0; i < dwItemCount; i++)
+			{
+				ComPtr<IShellItem> pItem;
+				hr = pItemArray->GetItemAt(i, &pItem);
+				if (SUCCEEDED(hr))
+				{
+					LPWSTR pszFilePath = nullptr;
+					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+					if (SUCCEEDED(hr))
+					{
+						std::wstring destDir2(destDir, wcslen(destDir) - 1);
+						LPCWSTR fileName = PathFindFileNameW(pszFilePath);
+						InitNewLVItem(destDir2, fileName, &pt, page);
+						PrepDimensions(&dimensions, &pt, &page);
+					}
+				}
+			}
+		}
+
+		g_overridefilelistener = false;
 	}
 
 	DWORD TheDropProc(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hdata, HWND hwnd, DWORD key_state, POINTL pt, void* param)
 	{
 		if (cf == CF_HDROP)
 		{
-			//HDROP hDrop = (HDROP)hdata;
-			//UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
-			//DWORD effect = DROPEFFECT_COPY;
-			//LPWSTR pszDesktopPath{};
-			//std::wstring desktopPath;
-			//HRESULT hr = SHGetKnownFolderPath(FOLDERID_Desktop, 0, nullptr, &pszDesktopPath);
-			//if (SUCCEEDED(hr))
-			//{
-			//	desktopPath = pszDesktopPath;
-			//	CoTaskMemFree(pszDesktopPath);
-			//}
-			//if (!desktopPath.empty() && desktopPath.back() != L'\\')
-			//	desktopPath += L'\\';
-
-			//for (UINT i = 0; i < fileCount; i++)
-			//{
-			//	UINT cch = DragQueryFileW(hDrop, i, nullptr, 0);
-			//	if (cch > 0)
-			//	{
-			//		WCHAR szFilePath[MAX_PATH];
-			//		DragQueryFileW(hDrop, i, szFilePath, cch + 1);
-			//		if (szFilePath[0] == desktopPath[0]) effect = DROPEFFECT_MOVE;
-			//		if (key_state & MK_SHIFT) effect = DROPEFFECT_MOVE;
-			//		if (key_state & MK_CONTROL) effect = DROPEFFECT_COPY;
-			//		if ((key_state & MK_SHIFT && key_state & MK_CONTROL) || key_state & MK_ALT) effect = DROPEFFECT_LINK;
-
-			//		PerformShellFileOp(hwnd, szFilePath, desktopPath.c_str(), effect);
-			//	}
-			//}
-			DWORD effect = DROPEFFECT_COPY;
-			IShellItemArray* pItemArray = nullptr;
+			DWORD effect = DROPEFFECT_MOVE;
+			ComPtr<IShellItemArray> pItemArray = nullptr;
 			HRESULT hr = SHCreateShellItemArrayFromDataObject(pDataObject, IID_PPV_ARGS(&pItemArray));
 			if (SUCCEEDED(hr))
 			{
 				DWORD dwItemCount = 0;
 				pItemArray->GetCount(&dwItemCount);
+				LPWSTR pszDesktopPath{};
+				std::wstring desktopPath;
+				HRESULT hr = SHGetKnownFolderPath(FOLDERID_Desktop, 0, nullptr, &pszDesktopPath);
+				if (SUCCEEDED(hr))
+				{
+					desktopPath = pszDesktopPath;
+					CoTaskMemFree(pszDesktopPath);
+				}
+				if (!desktopPath.empty() && desktopPath.back() != L'\\')
+					desktopPath += L'\\';
 				for (UINT i = 0; i < dwItemCount; i++)
 				{
-					IShellItem* pItem = nullptr;
+					ComPtr<IShellItem> pItem;
 					if (SUCCEEDED(pItemArray->GetItemAt(i, &pItem)))
 					{
 						SFGAOF attributes;
@@ -1210,28 +1809,29 @@ namespace DirectDesktop
 						LPWSTR pszFilePath = nullptr;
 						if (SUCCEEDED(pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath)))
 						{
-							LPWSTR pszDesktopPath{};
-							std::wstring desktopPath;
-							HRESULT hr = SHGetKnownFolderPath(FOLDERID_Desktop, 0, nullptr, &pszDesktopPath);
-							if (SUCCEEDED(hr))
+							if (key_state & MK_SHIFT)
 							{
-								desktopPath = pszDesktopPath;
-								CoTaskMemFree(pszDesktopPath);
+								effect = DROPEFFECT_MOVE;
+								CoTaskMemFree(pszFilePath);
+								break;
 							}
-							if (!desktopPath.empty() && desktopPath.back() != L'\\')
-								desktopPath += L'\\';
-							if (pszFilePath[0] == desktopPath[0]) effect = DROPEFFECT_MOVE;
-							if (key_state & MK_SHIFT) effect = DROPEFFECT_MOVE;
-							if (key_state & MK_CONTROL) effect = DROPEFFECT_COPY;
+							if (key_state & MK_CONTROL || pszFilePath[0] != desktopPath[0])
+							{
+								effect = DROPEFFECT_COPY;
+								CoTaskMemFree(pszFilePath);
+								break;
+							}
 							if ((key_state & MK_SHIFT && key_state & MK_CONTROL) || key_state & MK_ALT || !(attributes & SFGAO_CANMOVE))
+							{
 								effect = DROPEFFECT_LINK;
-							PerformShellFileOp(hwnd, pszFilePath, desktopPath.c_str(), effect);
+								CoTaskMemFree(pszFilePath);
+								break;
+							}
 							CoTaskMemFree(pszFilePath);
 						}
 					}
-					pItem->Release();
 				}
-				pItemArray->Release();
+				PerformShellFileOp(hwnd, desktopPath.c_str(), pItemArray.Get(), effect, pt);
 			}
 			return effect;
 		}

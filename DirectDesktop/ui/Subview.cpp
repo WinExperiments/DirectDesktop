@@ -142,32 +142,38 @@ namespace DirectDesktop
                         peIcon->SetY((iconPaddingY * 0.575) - shadedY);
                     }
                 }
-                HBITMAP iconbmp = (*vdi)[num]->icon;
-                CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
-                DeleteObject(iconbmp);
-                if (spvBitmap && peIcon) peIcon->SetValue(Element::ContentProp, 1, spvBitmap);
-                HBITMAP iconshortcutbmp = (*vdi)[num]->iconshortcut;
-                CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
-                DeleteObject(iconshortcutbmp);
-                if (spvBitmapShortcut && peShortcutArrow && lviFlags & LVIF_SHORTCUT) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
-                HBITMAP textbmp = (*vdi)[num]->text;
-                CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
-                DeleteObject(textbmp);
-                if (spvBitmapText && peText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
+                if ((*vdi)[num])
+                {
+                    HBITMAP iconbmp = (*vdi)[num]->icon;
+                    CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
+                    DeleteObject(iconbmp);
+                    if (spvBitmap && peIcon) peIcon->SetValue(Element::ContentProp, 1, spvBitmap);
+                    HBITMAP iconshortcutbmp = (*vdi)[num]->iconshortcut;
+                    CValuePtr spvBitmapShortcut = DirectUI::Value::CreateGraphic(iconshortcutbmp, 2, 0xffffffff, false, false, false);
+                    DeleteObject(iconshortcutbmp);
+                    if (spvBitmapShortcut && peShortcutArrow && lviFlags & LVIF_SHORTCUT) peShortcutArrow->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
+                    HBITMAP textbmp = (*vdi)[num]->text;
+                    CValuePtr spvBitmapText = DirectUI::Value::CreateGraphic(textbmp, 2, 0xffffffff, false, false, false);
+                    DeleteObject(textbmp);
+                    if (spvBitmapText && peText) peText->SetValue(Element::ContentProp, 1, spvBitmapText);
+                }
                 if (g_touchmode)
                 {
-                    BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 64 : 255;
-                    (*l_pm)[num]->SetDDCPIntensity(intensity);
-                    (*l_pm)[num]->SetAssociatedColor((*vdi)[num]->crDominantTile);
-                    COLORREF glowcolor = CreateGlowColor((*vdi)[num]->crDominantTile);
-                    (*l_pm)[num]->GetInnerElement()->SetAssociatedColor(glowcolor);
-                    if (g_showfolderitemcount && (*l_pm)[num]->GetFlags() & LVIF_DIR)
+                    if ((*vdi)[num])
                     {
-                        DDScalableRichText* peItemCount = (*l_pm)[num]->GetItemCountElement();
-                        peItemCount->SetAssociatedColor(0xFF000000 | glowcolor);
-                        if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
-                            peItemCount->SetForegroundStdColor(7);
-                        else peItemCount->SetForegroundStdColor(136);
+                        BYTE intensity = (lviFlags & LVIF_HIDDEN) ? g_isGlass ? 16 : 192 : g_isGlass ? 64 : 255;
+                        (*l_pm)[num]->SetDDCPIntensity(intensity);
+                        (*l_pm)[num]->SetAssociatedColor((*vdi)[num]->crDominantTile);
+                        COLORREF glowcolor = CreateGlowColor((*vdi)[num]->crDominantTile);
+                        (*l_pm)[num]->GetInnerElement()->SetAssociatedColor(glowcolor);
+                        if (g_showfolderitemcount && (*l_pm)[num]->GetFlags() & LVIF_DIR)
+                        {
+                            DDScalableRichText* peItemCount = (*l_pm)[num]->GetItemCountElement();
+                            peItemCount->SetAssociatedColor(0xFF000000 | glowcolor);
+                            if (GetRValue(glowcolor) * 0.299 + GetGValue(glowcolor) * 0.587 + GetBValue(glowcolor) * 0.114 > 152)
+                                peItemCount->SetForegroundStdColor(7);
+                            else peItemCount->SetForegroundStdColor(136);
+                        }
                     }
                     if (lviFlags & LVIF_HIDDEN || g_isGlass)
                     {
@@ -395,6 +401,7 @@ namespace DirectDesktop
                     lvi = yV->peOptionalTarget1->GetParent()->GetParent();
                 else if (yV->peOptionalTarget2)
                     lvi = yV->peOptionalTarget2;
+                vdi.push_back(nullptr);
                 SendMessageW(subviewwnd->GetHWND(), WM_USER + 6, (WPARAM)((*l_pm)[num]), (LPARAM)lvi);
             }
         }
@@ -410,6 +417,7 @@ namespace DirectDesktop
         {
             SendMessageW(subviewwnd->GetHWND(), WM_USER + 1, NULL, (LPARAM)yV);
             SendMessageW(subviewwnd->GetHWND(), WM_USER + 4, NULL, (LPARAM)yV);
+            yV->num = vdi.size();
             SendMessageW(subviewwnd->GetHWND(), WM_USER + 3, (WPARAM)&vdi, (LPARAM)yV);
         }
         UnInitThread();

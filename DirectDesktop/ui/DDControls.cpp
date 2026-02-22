@@ -2970,8 +2970,8 @@ namespace DirectDesktop
                     SetLayeredWindowAttributes(cmb->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
                     KillTimer(hWnd, wParam - 1);
                     KillTimer(hWnd, wParam);
-                    if (wParam == 2 && cmb->_peSelections[0])
-                        cmb->_peSelections[0]->SetKeyFocus();
+                    if (wParam == 2 && cmb->_peSelections[cmb->_selID])
+                        cmb->_peSelections[cmb->_selID]->SetKeyFocus();
                     else if (wParam == 4)
                         cmb->_wndSelectionMenu->ShowWindow(SW_HIDE);
                 }
@@ -4224,8 +4224,11 @@ namespace DirectDesktop
     {
         for (int i = 0; i < vElem.size(); i++)
         {
-            if (vElem[i])
+            if (vElem[i] && !vElem[i]->IsDestroyed())
             {
+                if (_rgpeColorButtons[_currentColorID]->GetAssociatedColor() == vElem[i]->GetAssociatedColor())
+                    continue;
+                TriggerCrossfade(vElem[i], 0.0f, 0.133f);
                 vElem[i]->SetDDCPIntensity(this->GetColorIntensity());
                 if (_currentColorID == 0)
                     vElem[i]->SetDDCPIntensity(255);
@@ -4431,12 +4434,12 @@ namespace DirectDesktop
                 }
                 if (fAnimate)
                 {
-                    if ((localeType == 0 && index < _pageID) || (localeType == 1 && index > _pageID))
+                    if ((localeType != 1 && index < _pageID) || (localeType == 1 && index > _pageID))
                     {
                         TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false, true);
                         TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, false, true);
                     }
-                    else if ((localeType == 0 && index > _pageID) || (localeType == 1 && index < _pageID))
+                    else if ((localeType != 1 && index > _pageID) || (localeType == 1 && index < _pageID))
                     {
                         TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false, true);
                         TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, false, true);
@@ -4455,18 +4458,17 @@ namespace DirectDesktop
             _peSubUIContainer->Add(&peSettingsPage, 1);
             if (peSettingsPage)
             {
-                if ((localeType == 0 && index < _pageID) || (localeType == 1 && index > _pageID))
+                if ((localeType != 1 && index < _pageID) || (localeType == 1 && index > _pageID))
                 {
                     TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, (rcList.right - rcList.left) * -1, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
                 }
-                else if ((localeType == 0 && index > _pageID) || (localeType == 1 && index < _pageID))
+                else if ((localeType != 1 && index > _pageID) || (localeType == 1 && index < _pageID))
                 {
                     TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, rcList.right - rcList.left, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
                 }
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
                 _pfnTabs[index](peSettingsPage);
             }
         }
