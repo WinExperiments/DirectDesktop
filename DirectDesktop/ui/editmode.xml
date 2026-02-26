@@ -92,8 +92,9 @@
 	<Element resid="PV_IconShortcutTouchPreview" layoutpos="absolute" contentalign="bottomleft" background="argb(0,0,0,0)" direction="ltr"/>
 	<Element resid="overflow" id="atom(overflow)" background="argb(0,0,0,0)" layout="verticalflowlayout(0,2,2,2)" layoutpos="client">
 		<DDScalableElement class="popupwindow" layout="verticalflowlayout(0,2,2,2)">
-			<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true"/>
-			<DDScalableRichText background="argb(0,0,0,0)" content="resstr(4059)" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0"/>
+			<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3052" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" margin="rect(0,0,0,4rp)"/>
+			<DDScalableRichText background="argb(0,0,0,0)" content="resstr(4059)" font="iconfont;133%;semibold"/>
+			<DDScalableRichText id="atom(PV_EnterPageDesc)" background="argb(0,0,0,0)" font="iconfont;100%" foreground="rgb(160,160,160)"/>
 			<Element background="argb(0,0,0,0)" height="48rp" width="320rp" layout="filllayout()" margin="rect(0,16rp,0,0)">
 				<DDScalableTouchEdit id="atom(PV_EnterPage)" font="iconfont;133%" layoutpos="client"/>
 				<Element padding="rect(0,4rp,4rp,4rp)" layoutpos="right" layout="borderlayout()" height="48rp">

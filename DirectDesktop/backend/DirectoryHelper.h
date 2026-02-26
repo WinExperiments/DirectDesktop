@@ -18,7 +18,7 @@ namespace DirectDesktop
     extern void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen);
     extern void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page);
     extern void RemoveLVItem(const wstring& filepath, const wstring& filename);
-    extern void UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type); // types: 1: old, 2: new
+    extern HRESULT UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type); // types: 1: old, 2: new
 
     class ThumbIcons
     {
@@ -37,6 +37,54 @@ namespace DirectDesktop
         bool _isHidden = false;
         bool _colorLock = false;
         bool _hai = false;
+    };
+
+    class CFileOperationProgressSink : public IFileOperationProgressSink
+    {
+    public:
+        CFileOperationProgressSink() : _lRefCount(0), _destDir(nullptr), _prcDimensions(nullptr), _ppt(nullptr), _pPage(nullptr), _pszPending{} {}
+        ~CFileOperationProgressSink();
+
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+        ULONG STDMETHODCALLTYPE AddRef();
+        ULONG STDMETHODCALLTYPE Release();
+
+        HRESULT STDMETHODCALLTYPE StartOperations();
+        HRESULT STDMETHODCALLTYPE FinishOperations(HRESULT hrResult);
+        HRESULT STDMETHODCALLTYPE PreRenameItem(DWORD dwFlags, IShellItem* psiItem, LPCWSTR pszNewName) { return S_OK; }
+        HRESULT STDMETHODCALLTYPE PostRenameItem(DWORD dwFlags, IShellItem* psiItem, LPCWSTR pszNewName,
+            HRESULT hrRename, IShellItem* psiNewlyCreated) { return S_OK; }
+        HRESULT STDMETHODCALLTYPE PreMoveItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName);
+        HRESULT STDMETHODCALLTYPE PostMoveItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+            HRESULT hrMove, IShellItem* psiNewlyCreated);
+        HRESULT STDMETHODCALLTYPE PreCopyItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName);
+        HRESULT STDMETHODCALLTYPE PostCopyItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+            HRESULT hrCopy, IShellItem* psiNewlyCreated);
+        HRESULT STDMETHODCALLTYPE PreDeleteItem(DWORD dwFlags, IShellItem* psiItem) { return S_OK; }
+        HRESULT STDMETHODCALLTYPE PostDeleteItem(DWORD dwFlags, IShellItem* psiItem,
+            HRESULT hrDelete, IShellItem* psiNewlyCreated) { return S_OK; }
+        HRESULT STDMETHODCALLTYPE PreNewItem(DWORD dwFlags, IShellItem* psiDestinationFolder, LPCWSTR pszNewName) { return S_OK; }
+        HRESULT STDMETHODCALLTYPE PostNewItem(DWORD dwFlags, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+            LPCWSTR pszTemplateName, DWORD dwFileAttributes, HRESULT hrNew, IShellItem* psiNewItem) { return S_OK; }
+        HRESULT STDMETHODCALLTYPE UpdateProgress(UINT iWorkTotal, UINT iWorkSoFar) { return E_NOTIMPL; }
+        HRESULT STDMETHODCALLTYPE ResetTimer() { return S_OK; }
+        HRESULT STDMETHODCALLTYPE PauseTimer() { return S_OK; }
+        HRESULT STDMETHODCALLTYPE ResumeTimer() { return S_OK; }
+
+        void SetDestinationDirectory(LPCWSTR pszDest);
+        void InitDimensions(RECT* prcDimensions, POINTL* ppt, UINT* pPage);
+        void PrepDimensions();
+
+    private:
+        LONG _lRefCount;
+        LPWSTR _destDir;
+        RECT* _prcDimensions;
+        POINTL* _ppt;
+        UINT* _pPage;
+        vector<LPCWSTR> _pszPending;
+        void _PreProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName);
+        void _PostProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+                HRESULT hr, IShellItem* psiNewlyCreated);
     };
 
     extern vector<const wchar_t*> imageExts;

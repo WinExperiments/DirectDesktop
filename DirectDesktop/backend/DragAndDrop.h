@@ -141,7 +141,7 @@ namespace DirectDesktop
 		UINT _imgType;
 		DWORD _dwCount;
 		HRESULT _Create32BitHBITMAP(HBITMAP* phbm, SIZE* psz, HDC* phdc, HDC* phdc2, void** ppvBits);
-		void FreeDragData();
+		void _FreeDragData();
 		void _InitDragData();
 		HRESULT _LoadFromDataObject(IDataObject* pdtobj);
 		HRESULT _SaveToDataObject(IDataObject* pdtobj);
@@ -180,7 +180,6 @@ namespace DirectDesktop
 
 	extern HANDLE g_hHeap;
 	extern bool isIconPressed;
-	extern bool g_touchmode;
 	extern CMinimalDragImage* pMinimal;
 	extern vector<LVItem*> selectedLVItems;
 	extern DirectUI::TouchButton* prevpageMain, *nextpageMain;

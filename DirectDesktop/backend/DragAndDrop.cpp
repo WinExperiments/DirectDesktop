@@ -5,6 +5,7 @@
 #include "pch.h"
 #include <wrl.h>
 #include "DragAndDrop.h"
+#include "DirectoryHelper.h"
 #include "..\DirectDesktop.h"
 
 using namespace Microsoft::WRL;
@@ -608,7 +609,7 @@ namespace DirectDesktop
 
 	CMinimalDragImage::~CMinimalDragImage()
 	{
-		FreeDragData();
+		_FreeDragData();
 	}
 
 	HRESULT STDMETHODCALLTYPE CMinimalDragImage::QueryInterface(REFIID riid, LPVOID* ppvObject)
@@ -640,13 +641,13 @@ namespace DirectDesktop
 	{
 		if (!pshdi || !pdtobj)
 			return E_INVALIDARG;
-		FreeDragData();
+		_FreeDragData();
 		HRESULT hr = _SetLayeredDragging(pshdi);
 		if (SUCCEEDED(hr))
 		{
 			hr = _SaveToDataObject(pdtobj);
 			if (FAILED(hr))
-				FreeDragData();
+				_FreeDragData();
 		}
 		return hr;
 	}
@@ -665,9 +666,9 @@ namespace DirectDesktop
 		if (SUCCEEDED(hr))
 		{
 			_hwndTarget = hwndTarget ? hwndTarget : GetDesktopWindow();
+			hr = _AddInfoToWindow();
 			if (_shdi.hbmpDragImage)
 			{
-				hr = _AddInfoToWindow();
 				if (SUCCEEDED(hr))
 				{
 					if (_CreateDragWindow() && _hdcDragImage)
@@ -686,7 +687,7 @@ namespace DirectDesktop
 	HRESULT STDMETHODCALLTYPE CMinimalDragImage::DragLeave()
 	{
 		if (_flags & DIF_CURDATAINITED)
-			FreeDragData();
+			_FreeDragData();
 		return S_OK;
 	}
 
@@ -705,11 +706,6 @@ namespace DirectDesktop
 				POINT ptSrc = { 0, 0 };
 				SIZE sz = { _rc.right, _rc.bottom };
 				BLENDFUNCTION blend = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
-				if (_rc.left > 0 || _rc.top > 0)
-				{
-					SetWindowPos(_hwnd, NULL, pt.x, pt.y, NULL, NULL, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
-					_AddInfoToWindow();
-				}
 				HDC hdcComposite = _hdcDragImage;
 				if (_hbmpUnk)
 				{
@@ -764,7 +760,7 @@ namespace DirectDesktop
 		return E_OUTOFMEMORY;
 	}
 
-	void CMinimalDragImage::FreeDragData()
+	void CMinimalDragImage::_FreeDragData()
 	{
 		if (_hwnd)
 		{
@@ -1147,36 +1143,38 @@ namespace DirectDesktop
 
 		// 0.5.6.1: Faulty logic, will be dealt with later...
 
-		//if (uNew && !uOld && _pdtobj)
-		//{
-		//	if (_hdcDragImage)
-		//	{
-		//		DeleteDC(_hdcDragImage);
-		//		_hdcDragImage = 0;
-		//	}
-		//	CLIPFORMAT cf = RegisterClipboardFormatW(L"ComputedDragImage");
-		//	if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &uOld, sizeof(uOld), -1)))
-		//		uOld = 0;
-		//	_shdi.hbmpDragImage = (HBITMAP)uOld;
-		//	if (uOld)
-		//	{
-		//		_SaveToDataObject(_pdtobj);
-		//		if (_hdcDragImage)
-		//		{
-		//			DeleteDC(_hdcDragImage);
-		//			_hdcDragImage = 0;
-		//		}
-		//		_LoadFromDataObject(_pdtobj);
-		//	}
-		//	_flags = _flags | DIF_CANADDINFO;
+		HWND hWnd = nullptr;
+		CLIPFORMAT cf = RegisterClipboardFormatW(L"DragWindow");
+		if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &hWnd, 4, -1)))
+			hWnd = nullptr;
+		if (/*uNew && !uOld &&*/ _pdtobj && hWnd)
+		{
+			//if (_hdcDragImage)
+			//{
+			//	DeleteDC(_hdcDragImage);
+			//	_hdcDragImage = 0;
+			//}
+			//cf = RegisterClipboardFormatW(L"ComputedDragImage");
+			//HRESULT hr = DataObj_GetBlobWithIndex(_pdtobj, cf, &uOld, sizeof(uOld), -1);
+			//if (FAILED(hr))
+			//{
+			//	uOld = 0;
+			//}
+			//_shdi.hbmpDragImage = (HBITMAP)uOld;
+			//if (uOld)
+			//{
+			//	_SaveToDataObject(_pdtobj);
+			//	if (_hdcDragImage)
+			//	{
+			//		DeleteDC(_hdcDragImage);
+			//		_hdcDragImage = 0;
+			//	}
+			//	_LoadFromDataObject(_pdtobj);
+			//}
+			_flags = _flags | DIF_CANADDINFO;
 
-		//	HWND hWnd = nullptr;
-		//	cf = RegisterClipboardFormatW(L"DragWindow");
-		//	if (FAILED(DataObj_GetBlobWithIndex(_pdtobj, cf, &hWnd, 4, -1)))
-		//		hWnd = nullptr;
-		//	if (hWnd)
-		//		SendMessageW(hWnd, WM_USER + 3, NULL, NULL);
-		//}
+			SendMessageW(hWnd, WM_USER + 3, NULL, NULL);
+		}
 		FORMATETC fmtetc = { RegisterClipboardFormatW(CFSTR_DROPDESCRIPTION), 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 		STGMEDIUM medium = { 0 };
 		if (_pdtobj && SUCCEEDED(_pdtobj->GetData(&fmtetc, &medium)))
@@ -1388,7 +1386,7 @@ namespace DirectDesktop
 		{
 			int iPartId;
 			int width;
-			RECT rc, rcBounds, rcExtent, rc1, rc2;
+			RECT rc = { 0 }, rcBounds = { 0 }, rcExtent, rcSize1, rcSize2, rcEnsure1 = { 0 }, rcEnsure2 = { 0 };
 			bool hasText;
 			switch (_desc.type)
 			{
@@ -1423,7 +1421,6 @@ namespace DirectDesktop
 				}
 				break;
 			}
-			ZeroMemory(&rc, sizeof(rc));
 			HRESULT hr = _GetEffectImageRect(&rc);
 			if ((_flags & (DIF_DEFAULTIMAGE | DIF_HELPERFLAG)) && (_flags & DIF_SHOWTEXT) && SUCCEEDED(_GetTextRect(&rcBounds)))
 			{
@@ -1435,7 +1432,7 @@ namespace DirectDesktop
 				if (SUCCEEDED(GetStringsFromFormat(szMessage, &pszPrefix, &pszSuffix)))
 				{
 					hasText = true;
-					width = _SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rc1, &rc2, &rcExtent);
+					width = _SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rcSize1, &rcSize2, &rcExtent);
 				}
 				else
 				{
@@ -1446,10 +1443,108 @@ namespace DirectDesktop
 				}
 				if (width <= rcBounds.right - rcBounds.left)
 					rcBounds.right = rcBounds.left + width;
-				_SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rc1, &rc2, &rcExtent);
+				_GetTooltipRect(&rc, &rcBounds, &rcEnsure1);
+				LONG left = rcEnsure1.left;
+				LONG top = rcEnsure1.top;
+				int x = GetSystemMetrics(SM_XVIRTUALSCREEN);
+				int y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+				int cx = GetSystemMetrics(SM_CXVIRTUALSCREEN) + x;
+				int cy = GetSystemMetrics(SM_CYVIRTUALSCREEN) + y;
+				if (_hwnd)
+				{
+					GetWindowRect(_hwnd, &rcEnsure2);
+					if (_rc.left > 0)
+						OffsetRect(&rcEnsure1, -rcEnsure1.left, 0);
+					if (_rc.top > 0)
+						OffsetRect(&rcEnsure1, 0, -rcEnsure1.top);
+					OffsetRect(&rcEnsure1, rcEnsure2.left, rcEnsure2.top);
+					if (rcEnsure1.right > cx)
+						OffsetRect(&rcEnsure1, cx - rcEnsure1.right, 0);
+					if (rcEnsure1.bottom > cy)
+						OffsetRect(&rcEnsure1, 0, cy - rcEnsure1.bottom);
+					if (rcEnsure1.left < x)
+						OffsetRect(&rcEnsure1, x - rcEnsure1.left, 0);
+					if (rcEnsure1.top < y)
+						OffsetRect(&rcEnsure1, 0, y - rcEnsure1.top);
+					OffsetRect(&rcEnsure1, -rcEnsure2.left, -rcEnsure2.top);
+					if (rcEnsure1.left >= 0)
+					{
+						if (_rc.left > 0)
+						{
+							int boundX = cx - rcEnsure1.right - rcEnsure2.left;
+							if (boundX > 0)
+							{
+								if (boundX > _rc.left)
+								{
+									_rc.left = 0;
+									OffsetRect(&rcEnsure1, boundX, 0);
+								}
+								else
+								{
+									_rc.left -= boundX;
+									OffsetRect(&rcEnsure1, -rcEnsure1.left, 0);
+								}
+							}
+						}
+					}
+					else
+					{
+						_rc.left -= rcEnsure1.left;
+						OffsetRect(&rcEnsure1, -rcEnsure1.left, 0);
+					}
+					if (rcEnsure1.top >= 0)
+					{
+						if (_rc.top > 0)
+						{
+							int boundY = cy - rcEnsure1.bottom - rcEnsure2.top;
+							if (boundY > 0)
+							{
+								if (boundY > _rc.top)
+								{
+									_rc.top = 0;
+									OffsetRect(&rcEnsure1, 0, boundY);
+								}
+								else
+								{
+									_rc.top -= boundY;
+									OffsetRect(&rcEnsure1, 0, -rcEnsure1.top);
+								}
+							}
+						}
+					}
+					else
+					{
+						_rc.top -= rcEnsure1.top;
+						OffsetRect(&rcEnsure1, 0, -rcEnsure1.top);
+					}
+					OffsetRect(&rc, rcEnsure1.left - left, rcEnsure1.top - top);
+					OffsetRect(&rcBounds, rcEnsure1.left - left, rcEnsure1.top - top);
+				}
+				_SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rcSize1, &rcSize2, &rcExtent);
 				_DrawTooltipBackground(&rc, &rcBounds, width);
+				if (localeType == 1)
+				{
+					int cxNew = rc.right - rc.left;
+					int cxBoundsNew = rcBounds.right - rcBounds.left;
+					rcBounds.left = rc.left + 6 * g_flScaleFactor;
+					rcBounds.right = rcBounds.left + cxBoundsNew;
+					rc.left = rcBounds.right + 2 * g_flScaleFactor;
+					rc.right = rc.left + cxNew;
+					if (hasText)
+					{
+						int cxSize1New = rcSize1.right - rcSize1.left;
+						int cxSize2New = rcSize2.right - rcSize2.left;
+						int cxExtentNew = rcExtent.right - rcExtent.left;
+						rcExtent.left = rcBounds.left;
+						rcExtent.right = cxExtentNew + rcExtent.left;
+						rcSize2.left = cxExtentNew + rcExtent.left;
+						rcSize2.right = cxSize2New + rcSize2.left;
+						rcSize1.left = cxSize2New + rcSize2.left;
+						rcSize1.right = cxSize1New + rcSize1.left;
+					}
+				}
 				if (hasText)
-					_DrawDescriptionLineComp(iPartId, pszPrefix, szInsert, pszSuffix, &rc1, &rc2, &rcExtent);
+					_DrawDescriptionLineComp(iPartId, pszPrefix, szInsert, pszSuffix, &rcSize1, &rcSize2, &rcExtent);
 				else
 					_DrawDescriptionLine(iPartId, 1, szMessage, &rcBounds);
 			}
@@ -1535,6 +1630,7 @@ namespace DirectDesktop
 						_imgType = wParam;
 						_flags = _flags | DIF_CANADDINFO;
 					}
+					break;
 				case WM_USER + 3:
 					break;
 				default:
@@ -1639,33 +1735,6 @@ namespace DirectDesktop
 		return nullptr;
 	}
 
-	void PrepDimensions(RECT* prcDimensions, POINTL* ppt, UINT* pPage)
-	{
-		short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
-		short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
-		short localeDirection = (localeType == 1) ? -1 : 1;
-		short desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
-		short desktoppadding_x = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
-		short desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
-		if (g_touchmode)
-		{
-			outerSizeX = g_touchSizeX + desktoppadding;
-			outerSizeY = g_touchSizeY + desktoppadding;
-		}
-		ppt->y += outerSizeY;
-		if (ppt->y > prcDimensions->bottom - outerSizeY - desktoppadding_y)
-		{
-			ppt->y = desktoppadding_y;
-			ppt->x += localeDirection * outerSizeX;
-		}
-		if ((localeType != 1 && ppt->x > prcDimensions->right - outerSizeX - desktoppadding_x) ||
-			(localeType == 1 && ppt->x < prcDimensions->left - outerSizeX - desktoppadding_x))
-		{
-			ppt->x = (localeType == 1) ? prcDimensions->right - desktoppadding_x - outerSizeX + desktoppadding : desktoppadding_x;
-			(*pPage)++;
-		}
-	}
-
 	void PerformShellFileOp(HWND hWnd, LPCWSTR destDir, IShellItemArray* pItemArray, DWORD effect, POINTL pt)
 	{
 		RECT dimensions;
@@ -1673,6 +1742,8 @@ namespace DirectDesktop
 		UINT page = g_currentPageID;
 		g_overridefilelistener = true;
 		HRESULT hr = S_OK;
+		ComPtr<CFileOperationProgressSink> pfops = new CFileOperationProgressSink();
+		pfops->InitDimensions(&dimensions, &pt, &page);
 		if (effect == DROPEFFECT_LINK)
 		{
 			DWORD dwItemCount = 0;
@@ -1719,7 +1790,7 @@ namespace DirectDesktop
 										std::wstring destDir2(destDir, wcslen(destDir) - 1);
 										std::wstring linkPath2(linkPath, wcslen(destDir), std::wstring::npos);
 										InitNewLVItem(destDir2, linkPath2, &pt, page);
-										PrepDimensions(&dimensions, &pt, &page);
+										pfops->PrepDimensions();
 									}
 								}
 							}
@@ -1731,10 +1802,15 @@ namespace DirectDesktop
 			return;
 		}
 
+		DWORD dwItemCount = 0;
+		pItemArray->GetCount(&dwItemCount);
+
 		ComPtr<IFileOperation> pfo;
 		hr = CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_INPROC_SERVER, IID_IFileOperation, (LPVOID*)&pfo);
 		if (SUCCEEDED(hr))
 		{
+			std::wstring destDir2(destDir, wcslen(destDir) - 1);
+			pfops->SetDestinationDirectory(destDir2.c_str());
 			ComPtr<IShellItem> pItem;
 			hr = SHCreateItemFromParsingName(destDir, nullptr, IID_PPV_ARGS(&pItem));
 			if (SUCCEEDED(hr))
@@ -1743,35 +1819,23 @@ namespace DirectDesktop
 				switch (effect)
 				{
 				case DROPEFFECT_COPY:
-					pfo->CopyItems(pItemArray, pItem.Get());
+					for (UINT i = 0; i < dwItemCount; i++)
+					{
+						ComPtr<IShellItem> pCopied;
+						pItemArray->GetItemAt(i, &pCopied);
+						pfo->CopyItem(pCopied.Get(), pItem.Get(), nullptr, pfops.Get());
+					}
 					break;
 				case DROPEFFECT_MOVE:
-					pfo->MoveItems(pItemArray, pItem.Get());
+					for (UINT i = 0; i < dwItemCount; i++)
+					{
+						ComPtr<IShellItem> pMoved;
+						pItemArray->GetItemAt(i, &pMoved);
+						pfo->MoveItem(pMoved.Get(), pItem.Get(), nullptr, pfops.Get());
+					}
 					break;
 				}
 				pfo->PerformOperations();
-			}
-		}
-
-		DWORD dwItemCount = 0;
-		pItemArray->GetCount(&dwItemCount);
-		{
-			for (UINT i = 0; i < dwItemCount; i++)
-			{
-				ComPtr<IShellItem> pItem;
-				hr = pItemArray->GetItemAt(i, &pItem);
-				if (SUCCEEDED(hr))
-				{
-					LPWSTR pszFilePath = nullptr;
-					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-					if (SUCCEEDED(hr))
-					{
-						std::wstring destDir2(destDir, wcslen(destDir) - 1);
-						LPCWSTR fileName = PathFindFileNameW(pszFilePath);
-						InitNewLVItem(destDir2, fileName, &pt, page);
-						PrepDimensions(&dimensions, &pt, &page);
-					}
-				}
 			}
 		}
 
@@ -1811,6 +1875,8 @@ namespace DirectDesktop
 						{
 							if (key_state & MK_SHIFT)
 							{
+								if (key_state & MK_CONTROL)
+									goto LINKEFFECT;
 								effect = DROPEFFECT_MOVE;
 								CoTaskMemFree(pszFilePath);
 								break;
@@ -1821,8 +1887,9 @@ namespace DirectDesktop
 								CoTaskMemFree(pszFilePath);
 								break;
 							}
-							if ((key_state & MK_SHIFT && key_state & MK_CONTROL) || key_state & MK_ALT || !(attributes & SFGAO_CANMOVE))
+							if (key_state & MK_ALT || !(attributes & SFGAO_CANMOVE))
 							{
+							LINKEFFECT:
 								effect = DROPEFFECT_LINK;
 								CoTaskMemFree(pszFilePath);
 								break;

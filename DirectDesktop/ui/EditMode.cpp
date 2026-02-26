@@ -47,6 +47,7 @@ namespace DirectDesktop
     void RemoveSelectedPage(Element* elem, Event* iev);
     void SetSelectedPageHome(Element* elem, Event* iev);
     void CreatePagePreview();
+    void PV_SetEnterPageDesc();
     void _UpdateSimpleViewContent(bool animate, DWORD animFlags);
     bool ValidateStrDigits(const WCHAR* str);
     bool g_animatePVEnter = true;
@@ -141,15 +142,17 @@ namespace DirectDesktop
                             }
                             g_maxPageID--;
                             g_animatePVEnter = false;
+                            SetPos(isDefaultRes());
                             if (g_maxPageID <= 6)
                             {
-                                SetPos(isDefaultRes());
                                 PageViewer->DestroyAll(true);
                                 PageViewer->Destroy(true);
                                 Event* iev = new Event{ PageViewer, TouchButton::Click };
                                 ShowPageViewer(PageViewer, iev);
                             }
                         }
+                        if (g_maxPageID >= 7)
+                            PV_SetEnterPageDesc();
                         g_editingpages = false;
                         break;
                     case 2:
@@ -189,6 +192,7 @@ namespace DirectDesktop
                             }
                             g_homePageID = page;
                             g_animatePVEnter = false;
+                            SetPos(isDefaultRes());
                             if (g_maxPageID <= 6)
                             {
                                 SetPos(isDefaultRes());
@@ -206,14 +210,16 @@ namespace DirectDesktop
                     case 4:
                         g_animatePVEnter = false;
                         g_maxPageID++;
+                        SetPos(isDefaultRes());
                         if (g_maxPageID <= 7)
                         {
-                            SetPos(isDefaultRes());
                             PageViewer->DestroyAll(true);
                             PageViewer->Destroy(true);
                             Event* iev = new Event{ PageViewer, TouchButton::Click };
                             ShowPageViewer(PageViewer, iev);
                         }
+                        if (g_maxPageID >= 7)
+                            PV_SetEnterPageDesc();
                         g_editingpages = false;
                         break;
                     case 5:
@@ -361,6 +367,15 @@ namespace DirectDesktop
     float EM_GetRectAniWScale(Element* pe)
     {
         return (pe->GetWidth() + centeredE->GetWidth()) / static_cast<float>(pe->GetWidth());
+    }
+    void PV_SetEnterPageDesc()
+    {
+        CSafeElementPtr<DDScalableRichText> PV_EnterPageDesc;
+        PV_EnterPageDesc.Assign(regElem<DDScalableRichText*>(L"PV_EnterPageDesc", PageViewer));
+        WCHAR* desccontent = new WCHAR[256];
+        StringCchPrintfW(desccontent, 256, LoadStrFromRes(4061).c_str(), g_maxPageID);
+        PV_EnterPageDesc->SetContentString(desccontent);
+        delete[] desccontent;
     }
 
     DWORD WINAPI CreateDesktopPreview(LPVOID lpParam)
@@ -1014,6 +1029,7 @@ namespace DirectDesktop
                 CSafeElementPtr<LVItem> PV_ConfirmEnterPage;
                 PV_ConfirmEnterPage.Assign(regElem<LVItem*>(L"PV_ConfirmEnterPage", PageViewer));
                 assignFn(PV_ConfirmEnterPage, EnterSelectedPage);
+                PV_SetEnterPageDesc();
                 DDLVActionButton* PV_Remove = regElem<DDLVActionButton*>(L"PV_Remove", PageViewer);
                 if (PV_Remove)
                 {

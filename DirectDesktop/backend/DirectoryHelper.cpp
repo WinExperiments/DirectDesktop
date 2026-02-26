@@ -77,6 +77,150 @@ namespace DirectDesktop
         _hai = hai;
     }
 
+    CFileOperationProgressSink::~CFileOperationProgressSink()
+    {
+        for (int i = 0; i < _pszPending.size(); i++)
+            CoTaskMemFree((LPVOID)_pszPending[i]);
+        _pszPending.clear();
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::QueryInterface(REFIID riid, LPVOID* ppvObject)
+    {
+        if (riid == IID_IFileOperationProgressSink || riid == IID_IUnknown)
+        {
+            *ppvObject = static_cast<IFileOperationProgressSink*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE CFileOperationProgressSink::AddRef()
+    {
+        return InterlockedIncrement(&_lRefCount);
+    }
+
+    ULONG STDMETHODCALLTYPE CFileOperationProgressSink::Release()
+    {
+        LONG nCount;
+        if ((nCount = InterlockedDecrement(&_lRefCount)) == 0)
+            delete this;
+        return nCount;
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::StartOperations()
+    { 
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::FinishOperations(HRESULT hrResult)
+    {
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::PreMoveItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName)
+    {
+        _PreProcessItem(dwFlags, psiItem, psiDestinationFolder, pszNewName);
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::PostMoveItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+        HRESULT hrMove, IShellItem* psiNewlyCreated)
+    {
+        _PostProcessItem(dwFlags, psiItem, psiDestinationFolder, pszNewName, hrMove, psiNewlyCreated);
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::PreCopyItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName)
+    {
+        _PreProcessItem(dwFlags, psiItem, psiDestinationFolder, pszNewName);
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE CFileOperationProgressSink::PostCopyItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+        HRESULT hrCopy, IShellItem* psiNewlyCreated)
+    {
+        _PostProcessItem(dwFlags, psiItem, psiDestinationFolder, pszNewName, hrCopy, psiNewlyCreated);
+        return S_OK;
+    }
+
+    void CFileOperationProgressSink::SetDestinationDirectory(LPCWSTR pszDest)
+    {
+        _destDir = (LPWSTR)pszDest;
+    }
+
+    void CFileOperationProgressSink::InitDimensions(RECT* prcDimensions, POINTL* ppt, UINT* pPage)
+    {
+        _prcDimensions = prcDimensions;
+        _ppt = ppt;
+        _pPage = pPage;
+    }
+
+    void CFileOperationProgressSink::PrepDimensions()
+    {
+        short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
+        short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
+        short localeDirection = (localeType == 1) ? -1 : 1;
+        short desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
+        short desktoppadding_x = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
+        short desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
+        if (g_touchmode)
+        {
+            outerSizeX = g_touchSizeX + desktoppadding;
+            outerSizeY = g_touchSizeY + desktoppadding;
+        }
+        _ppt->y += outerSizeY;
+        if (_ppt->y > _prcDimensions->bottom - outerSizeY - desktoppadding_y)
+        {
+            _ppt->y = desktoppadding_y;
+            _ppt->x += localeDirection * outerSizeX;
+        }
+        if ((localeType != 1 && _ppt->x > _prcDimensions->right - outerSizeX - desktoppadding_x) ||
+            (localeType == 1 && _ppt->x < _prcDimensions->left - outerSizeX - desktoppadding_x))
+        {
+            _ppt->x = (localeType == 1) ? _prcDimensions->right - desktoppadding_x - outerSizeX + desktoppadding : desktoppadding_x;
+            (*_pPage)++;
+        }
+    }
+
+    void CFileOperationProgressSink::_PreProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName)
+    {
+        LPWSTR pszCheck{};
+        psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszCheck);
+        _pszPending.push_back(pszCheck);
+    }
+
+    void CFileOperationProgressSink::_PostProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
+        HRESULT hrCopy, IShellItem* psiNewlyCreated)
+    {
+        if (SUCCEEDED(hrCopy) && pszNewName)
+        {
+            LPWSTR pszOldName;
+            psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszOldName);
+            if (wcscmp(pszOldName, pszNewName) != 0)
+                InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
+            else
+            {
+                for (int i = 0; i < _pszPending.size(); i++)
+                {
+                    if (wcscmp(pszOldName, _pszPending[i]) == 0)
+                    {
+                        UpdateLVItem(_destDir, pszNewName, 1);
+                        HRESULT hr = UpdateLVItem(_destDir, pszNewName, 2);
+                        CoTaskMemFree((LPVOID)_pszPending[i]);
+                        _pszPending.erase(_pszPending.begin() + i);
+                        if (SUCCEEDED(hr))
+                            goto SKIPNEWITEM;
+                    }
+                }
+                InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
+            SKIPNEWITEM:
+                PrepDimensions();
+            }
+        }
+    }
+
     wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm)
     {
         if (isEnabled)

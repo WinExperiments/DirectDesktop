@@ -2225,8 +2225,14 @@ namespace DirectDesktop
     {
         if (iev->uidType == DDLVActionButton::Click || iev->uidType == DDLVActionButton::MultipleClick)
         {
-            wstring fileStr = RemoveQuotes(((DDLVActionButton*)elem)->GetAssociatedItem()->GetFilename());
-            LaunchItem(fileStr.c_str());
+            LVItem* lviTarget = ((DDLVActionButton*)elem)->GetAssociatedItem();
+            if (lviTarget)
+            {
+                if (lviTarget->GetOpenDirState() == LVIODS_FULLSCREEN);
+                    HidePopupCore(false, true);
+                wstring fileStr = RemoveQuotes(lviTarget->GetFilename());
+                LaunchItem(fileStr.c_str());
+            }
         }
     }
 
@@ -2271,7 +2277,7 @@ namespace DirectDesktop
     {
         static RECT dimensions;
         GetClientRect(wnd->GetHWND(), &dimensions);
-        if (iev->uidType == TouchButton::Click && !g_pageviewer)
+        if ((iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick) && !g_pageviewer)
         {
             g_currentPageID--;
             if (g_editmode)
@@ -2319,7 +2325,7 @@ namespace DirectDesktop
     {
         static RECT dimensions;
         GetClientRect(wnd->GetHWND(), &dimensions);
-        if (iev->uidType == TouchButton::Click && !g_pageviewer)
+        if ((iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick) && !g_pageviewer)
         {
             g_currentPageID++;
             if (g_editmode)
@@ -4054,8 +4060,11 @@ namespace DirectDesktop
         }
     }
 
-    void UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type)
+    // 0.5.6.2: Might want to make this relocate items soon
+    HRESULT UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type)
     {
+        HRESULT hr = E_FAIL;
+        static bool exists{};
         static int xpos{}, ypos{}, page;
         switch (type)
         {
@@ -4070,6 +4079,8 @@ namespace DirectDesktop
                         ypos = pm[i]->GetInternalYPos();
                         page = pm[i]->GetPage();
                         PostMessageW(wnd->GetHWND(), WM_USER + 22, (WPARAM)pm[i], i);
+                        exists = true;
+                        hr = S_OK;
                         break;
                     }
                 }
@@ -4077,12 +4088,18 @@ namespace DirectDesktop
             }
             case 2:
             {
-                yValue* yV = new yValue{ page, static_cast<float>(xpos), static_cast<float>(ypos) };
-                FileInfo* fi = new FileInfo{ filepath, filename };
-                PostMessageW(wnd->GetHWND(), WM_USER + 20, (WPARAM)yV, (LPARAM)fi);
+                if (exists)
+                {
+                    yValue* yV = new yValue{ page, static_cast<float>(xpos), static_cast<float>(ypos) };
+                    FileInfo* fi = new FileInfo{ filepath, filename };
+                    PostMessageW(wnd->GetHWND(), WM_USER + 20, (WPARAM)yV, (LPARAM)fi);
+                    hr = S_OK;
+                }
+                exists = false;
                 break;
             }
         }
+        return hr;
     }
 
     wstring GetExeVersion()
@@ -4147,7 +4164,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 89");
+            peTemp[1]->SetContentString(L"Build 90");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");

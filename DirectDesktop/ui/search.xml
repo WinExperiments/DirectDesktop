@@ -12,8 +12,9 @@
 				</Element>
 				<TouchScrollViewer id="atom(SearchResults)" background="argb(0,0,0,0)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
 					<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
-						<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3059" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr" margin="rect(0,0,0,8rp)"/>
-						<DDScalableRichText background="argb(0,0,0,0)" content="Search" font="iconfont;133%;semibold" compositedtext="true" textglowsize="0"/>
+						<DDScalableElement background="argb(0,0,0,0)" FirstScaledImage="3059" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr" margin="rect(0,0,0,12rp)"/>
+						<DDScalableRichText background="argb(0,0,0,0)" content="Search" font="iconfont;133%;semibold"/>
+						<DDScalableRichText background="argb(0,0,0,0)" content="Start typing to search for files and folders." font="iconfont;100%" foreground="rgb(160,160,160)"/>
 					</Element>
 				</TouchScrollViewer>
 			</Element>
