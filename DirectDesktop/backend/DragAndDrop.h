@@ -32,7 +32,7 @@ namespace DirectDesktop
 		POINT ptOffset;
 	} DragContextHeader;
 
-	typedef DWORD(*MYDDCALLBACK)(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hData, HWND hWnd, DWORD dwKeyState, POINTL pt, void* pUserData);
+	typedef DWORD(*MYDDCALLBACK)(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hData, HWND hWnd, DWORD dwKeyState, POINTL pt, wstring dest, void* pUserData);
 
 	class CDropSource : public IDropSource
 	{
@@ -88,9 +88,13 @@ namespace DirectDesktop
 		UINT nMsg;
 		void* pUserData;
 		MYDDCALLBACK pDropProc;
+		std::wstring _destDir;
+		std::wstring _destDirDispName;
+		LVItem* _lviLastTarget;
 		BOOL _QueryDataObject();
 		DWORD _DropEffect(DWORD dwKeyState, POINTL pt, DWORD dwAllowed);
 		void _SetDropDescription(DROPIMAGETYPE type, LPCWSTR pszMsg, LPCWSTR pszDest);
+		LVItem* _MapPointToItem(POINTL* ppt);
 	};
 
 	enum DragImageFlags : DWORD
@@ -176,7 +180,7 @@ namespace DirectDesktop
 	CDropTarget* MyRevokeDragDrop(IDropTarget* pTarget);
 	HRESULT DataObj_GetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, void* pvData, size_t cbData, LONG lindex);
 	HRESULT DataObj_SetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, const void* pvData, size_t cbData, LONG lindex);
-	extern DWORD TheDropProc(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hdata, HWND hwnd, DWORD key_state, POINTL pt, void* param);
+	extern DWORD TheDropProc(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hdata, HWND hwnd, DWORD key_state, POINTL pt, std::wstring dest, void* param);
 
 	extern HANDLE g_hHeap;
 	extern bool isIconPressed;

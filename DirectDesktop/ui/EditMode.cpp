@@ -479,6 +479,11 @@ namespace DirectDesktop
                 fullscreenAnimation4();
             }
             DUI_SetGadgetZOrder(UIContainer, -1);
+            for (int items = 0; items < pm.size(); items++)
+            {
+                if (pm[items]->GetPage() != g_currentPageID)
+                    pm[items]->SetSelected(false);
+            }
         }
     }
 

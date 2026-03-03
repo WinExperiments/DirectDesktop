@@ -371,7 +371,9 @@ namespace DirectDesktop
         LVIF_SFG = 0x00000100,
         LVIF_FLYING = 0x00000200,
         LVIF_MOVING = 0x00000400,
-        LVIF_ADVANCEDICON = 0x00000800
+        LVIF_ADVANCEDICON = 0x00000800,
+        LVIF_NOSELTRIGGER = 0x00001000,
+        LVIF_NOGROUPANIM = 0x00002000
     };
 
     class LVItemTouchGrid;
@@ -382,6 +384,7 @@ namespace DirectDesktop
         LVItem()
             : _filename{}
             , _simplefilename{}
+            , _ext{}
             , _flags(LVIF_NONE)
             , _xPos(65535)
             , _yPos(65535)
@@ -406,6 +409,7 @@ namespace DirectDesktop
             , _peItemCount(nullptr)
             , _childItemss(nullptr)
             , _pels{}
+            , _hDirEvent(nullptr)
         {
         }
 
@@ -425,8 +429,10 @@ namespace DirectDesktop
         void SetMemYPos(unsigned short iYPos);
         wstring GetFilename();
         wstring GetSimpleFilename();
+        wstring GetExt();
         void SetFilename(const wstring& wsFilename);
         void SetSimpleFilename(const wstring& wsSimpleFilename);
+        void SetExt(const wstring& wsExt);
         LVItemFlags GetFlags();
         void AddFlags(LVItemFlags lvif);
         void RemoveFlags(LVItemFlags lvif);
@@ -470,11 +476,15 @@ namespace DirectDesktop
         void SetChildItems(vector<LVItem*>* vpm);
         void SetListeners(vector<IElementListener*> pels);
         void ClearAllListeners();
+        HANDLE GetDirEvent();
+        void SetDirEvent(HANDLE hDirEvent);
+        void StopListening();
 
     private:
         static IClassInfo* s_pClassInfo;
         wstring _filename;
         wstring _simplefilename;
+        wstring _ext;
         LVItemFlags _flags;
         unsigned short _xPos;
         unsigned short _yPos;
@@ -499,6 +509,7 @@ namespace DirectDesktop
         DDScalableRichText* _peItemCount;
         vector<LVItem*>* _childItemss;
         vector<IElementListener*> _pels;
+        HANDLE _hDirEvent;
     };
 
     class LVItemTouchGrid final
@@ -1032,16 +1043,22 @@ namespace DirectDesktop
     class DDMenu
     {
         friend class DDMenuButton;
-#define DDM_ANIMATESUBMENUS 0x10000
+#define DDM_ANIMATESUBMENUS 0x20000
     public:
         DDMenu()
-            : _pICv1(nullptr)
+            : _lRefCount(1)
+            , _pICv1(nullptr)
             , _pICAlt(nullptr)
             , _hMenu(nullptr)
             , _hTimer(nullptr)
             , _interfaceLevel(0)
             , _uTrackFlags(0)
             , _uID(0)
+            , _idCmdFirst(0)
+            , _idCmdLast(0)
+            , _hKeys{}
+            , _pItemArray(nullptr)
+            , _pAssoc(nullptr)
             , _count(0)
             , _width(0)
             , _fUsingLegacy(false)
@@ -1065,8 +1082,8 @@ namespace DirectDesktop
         ~DDMenu()
         {
         }
-        HRESULT InitializeDesktopEntries(IShellView* psv);
-        HRESULT InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl);
+        HRESULT InitializeDesktopEntries(IShellFolder* psf, IShellView* psv);
+        HRESULT InitializeItemEntries(vector<LVItem*> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl);
         HRESULT CreatePopupMenu(bool fLegacy);
         void DestroyPopupMenu();
         bool GetMenuItemInfoW(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
@@ -1087,6 +1104,7 @@ namespace DirectDesktop
     private:
         enum { MAX_ITEMS = 1024 };
 
+        LONG _lRefCount;
         IContextMenu* _pICv1;
         IContextMenu* _pICAlt;
         HMENU _hMenu;
@@ -1096,6 +1114,9 @@ namespace DirectDesktop
         UINT _uID;
         UINT _idCmdFirst;
         UINT _idCmdLast;
+        HKEY _hKeys[4];
+        IShellItemArray* _pItemArray;
+        IQueryAssociations* _pAssoc;
         int _count;
         int _width;
         bool _fUsingLegacy;

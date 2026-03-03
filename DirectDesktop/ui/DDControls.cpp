@@ -1,3 +1,5 @@
+////////////////// 0.5.6.3: NEED HELP WITH CONTEXT MENUS!
+
 #include "pch.h"
 
 #include "DDControls.h"
@@ -2100,6 +2102,7 @@ namespace DirectDesktop
             _pels.clear();
         }
         if (_touchGrid) if (_touchGrid->GetItemCount() == 0) delete _touchGrid;
+        this->StopListening();
         this->DestroyAll(true);
     }
 
@@ -2178,6 +2181,11 @@ namespace DirectDesktop
         return _simplefilename;
     }
 
+    wstring LVItem::GetExt()
+    {
+        return _ext;
+    }
+
     void LVItem::SetFilename(const wstring& wsFilename)
     {
         _filename = wsFilename;
@@ -2186,6 +2194,11 @@ namespace DirectDesktop
     void LVItem::SetSimpleFilename(const wstring& wsSimpleFilename)
     {
         _simplefilename = wsSimpleFilename;
+    }
+
+    void LVItem::SetExt(const wstring& wsExt)
+    {
+        _ext = wsExt;
     }
 
     LVItemFlags LVItem::GetFlags()
@@ -2201,6 +2214,8 @@ namespace DirectDesktop
     void LVItem::RemoveFlags(LVItemFlags lvif)
     {
         _flags = _flags & static_cast<LVItemFlags>(0xFFFFFFFF - lvif);
+        if (lvif & LVIF_DIR)
+            this->StopListening();
     }
 
     void LVItem::SetFlags(LVItemFlags lvif)
@@ -2411,6 +2426,26 @@ namespace DirectDesktop
             if (_peCheckbox) _peCheckbox->RemoveListener(pel);
             this->RemoveListener(pel);
             delete pel;
+        }
+    }
+
+    HANDLE LVItem::GetDirEvent()
+    {
+        return _hDirEvent;
+    }
+
+    void LVItem::SetDirEvent(HANDLE hDirEvent)
+    {
+        _hDirEvent = hDirEvent;
+    }
+
+    void LVItem::StopListening()
+    {
+        if (_hDirEvent)
+        {
+            SetEvent(_hDirEvent);
+            CloseHandle(_hDirEvent);
+            _hDirEvent = nullptr;
         }
     }
 
@@ -4620,6 +4655,8 @@ namespace DirectDesktop
                     GetWindowRect(((DDMenu*)this->_peLinked)->_wndSelectionMenu->GetHWND(), &rcParentMenu);
                     ((DDMenu*)this->_peLinked)->_peSelections[0]->MapElementPoint(this, &ptZero, &ptSelection);
                     int x = (localeType == 1) ? rcParentMenu.left + round(g_flScaleFactor) : rcParentMenu.right - round(g_flScaleFactor);
+                    if (((DDMenu*)this->_peLinked)->_uTrackFlags & TPM_LAYOUTRTL)
+                        this->_submenu->_uTrackFlags |= TPM_LAYOUTRTL;
                     if (((DDMenu*)this->_peLinked)->_uTrackFlags & DDM_ANIMATESUBMENUS)
                         this->_submenu->_uTrackFlags |= TPM_HORPOSANIMATION | DDM_ANIMATESUBMENUS;
                     this->_submenu->_SetVisible(x, rcParentMenu.top + ptSelection.y, (DDMenu*)this->_peLinked);
@@ -4818,10 +4855,10 @@ namespace DirectDesktop
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
 
-    HRESULT DDMenu::InitializeDesktopEntries(IShellView* psv)
+    HRESULT DDMenu::InitializeDesktopEntries(IShellFolder* psf, IShellView* psv)
     {
         HRESULT hr = psv->GetItemObject(SVGIO_BACKGROUND, IID_IContextMenu, (void**)&_pICv1);
-        if (_pICv1)
+        if (SUCCEEDED(hr))
         {
             void** ppv = (void**)malloc(8);
             *ppv = nullptr;
@@ -4839,15 +4876,44 @@ namespace DirectDesktop
                 _pICv1 = (IContextMenu*)*ppv;
             }
             else _interfaceLevel = 1;
-            hr = S_OK;
         }
         return hr;
     }
 
-    HRESULT DDMenu::InitializeItemEntries(IShellFolder* psf, LPCITEMIDLIST* ppidl)
+    HRESULT DDMenu::InitializeItemEntries(vector<LVItem*> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl)
     {
-        HRESULT hr = psf->GetUIObjectOf(nullptr, 1, ppidl, IID_IContextMenu, nullptr, (void**)&_pICv1);
-        if (_pICv1)
+        wstring baseExt = L"None";
+        if (cidl > 0)
+        {
+            baseExt = vItems[0]->GetExt();
+            if (baseExt == L"Virtual_NotImpl")
+                return E_NOTIMPL;
+            for (int i = 1; i < cidl; i++)
+            {
+                if (vItems[i]->GetExt() != baseExt)
+                {
+                    if (vItems[i]->GetExt() == L"Virtual_NotImpl")
+                        return E_NOTIMPL;
+                    baseExt = L"None";
+                    break;
+                }
+            }
+        }
+
+        RegOpenKeyExW(HKEY_CLASSES_ROOT, L"*", 0, KEY_READ, &_hKeys[0]);
+        RegOpenKeyExW(HKEY_CLASSES_ROOT, L"AllFilesystemObjects", 0, KEY_READ, &_hKeys[1]);
+        RegOpenKeyExW(HKEY_CLASSES_ROOT, baseExt.c_str(), 0, KEY_READ, &_hKeys[2]);
+        if (baseExt == L"Folder")
+            RegOpenKeyExW(HKEY_CLASSES_ROOT, L"Directory", 0, KEY_READ, &_hKeys[3]);
+        else if (baseExt != L"None")
+        {
+            baseExt = baseExt.substr(1, wstring::npos) + L"file";
+            RegOpenKeyExW(HKEY_CLASSES_ROOT, baseExt.c_str(), 0, KEY_READ, &_hKeys[3]);
+        }
+
+        DEFCONTEXTMENU dcm = { nullptr, nullptr, NULL, psf, cidl, ppidl, nullptr, ARRAYSIZE(_hKeys), _hKeys };
+        HRESULT hr = SHCreateDefaultContextMenu(&dcm, IID_IContextMenu, (void**)&_pICv1);
+        if (SUCCEEDED(hr))
         {
             void** ppv = (void**)malloc(8);
             *ppv = nullptr;
@@ -4969,6 +5035,10 @@ namespace DirectDesktop
         {
             this->_DestroyUI(true);
             if (_hMenu) DestroyMenu(_hMenu);
+            if (_pItemArray) _pItemArray->Release();
+            if (_pAssoc) _pAssoc->Release();
+            for (int i = 0; i < ARRAYSIZE(_hKeys); i++)
+                RegCloseKey(_hKeys[i]);
         }
         else return;
     }
@@ -5503,7 +5573,7 @@ namespace DirectDesktop
                     x += rcParent.right + width;
                     if (menu->_uTrackFlags & DDM_ANIMATESUBMENUS)
                     {
-                        this->_uTrackFlags &= (0x1FFFF - TPM_HORPOSANIMATION);
+                        this->_uTrackFlags &= (0x2FFFF - TPM_HORPOSANIMATION);
                         this->_uTrackFlags |= TPM_HORNEGANIMATION;
                     }
                 }
@@ -5525,7 +5595,7 @@ namespace DirectDesktop
                     x -= rcParent.right + rcHost.right + 4 - 2 * round(g_flScaleFactor);
                     if (menu->_uTrackFlags & DDM_ANIMATESUBMENUS)
                     {
-                        this->_uTrackFlags &= (0x1FFFF - TPM_HORPOSANIMATION);
+                        this->_uTrackFlags &= (0x2FFFF - TPM_HORPOSANIMATION);
                         this->_uTrackFlags |= TPM_HORNEGANIMATION;
                     }
                 }

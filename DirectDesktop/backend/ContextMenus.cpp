@@ -49,6 +49,10 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::RightClick)
         {
+            POINT pt;
+            GetCursorPos(&pt);
+            if (!iev->peTarget)
+                pt.x = 0, pt.y = 0;
             DDMenu* ddm = new DDMenu();
             DDMenu* ddsm = new DDMenu();
             //DDMenu* ddsm2 = new DDMenu();
@@ -63,7 +67,7 @@ namespace DirectDesktop
                 hr = SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, g_hToken, IID_PPV_ARGS(&pShellItem));
                 if (SUCCEEDED(hr))
                 {
-                    hr = ddm->InitializeDesktopEntries(pShellView);
+                    hr = ddm->InitializeDesktopEntries(pShellFolder, pShellView);
                     if (SUCCEEDED(hr))
                     {
                         ddm->CreatePopupMenu(false);
@@ -135,10 +139,6 @@ namespace DirectDesktop
                         if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
 
                         SetForegroundWindow(wnd->GetHWND());
-                        POINT pt;
-                        GetCursorPos(&pt);
-                        if (!iev->peTarget)
-                            pt.x = 0, pt.y = 0;
                         int menuItemId = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
                         SendMessageW(wnd->GetHWND(), WM_NULL, NULL, NULL);
 
@@ -244,22 +244,30 @@ namespace DirectDesktop
         }
     }
 
-    void RightClickCore(LVItem* lvi)
+    void RightClickCore(std::vector<LVItem*> vItems)
     {
-        LPITEMIDLIST pidl = nullptr;
-        SHParseDisplayName(RemoveQuotes2(lvi->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr);
+        POINT pt;
+        GetCursorPos(&pt);
+
+        const UINT cidl = vItems.size();
+        vector<LPITEMIDLIST> rgpidl;
+        for (int i = 0; i < cidl; i++)
+        {
+            LPITEMIDLIST pidl = nullptr;
+            if (SUCCEEDED(SHParseDisplayName((LPWSTR)RemoveQuotes(vItems[i]->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr)))
+                rgpidl.push_back(pidl);
+        }
 
         IShellFolder* ppFolder = nullptr;
-        LPITEMIDLIST pidlChild = nullptr;
-        HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&ppFolder, (LPCITEMIDLIST*)&pidlChild);
+        HRESULT hr = SHGetDesktopFolder(&ppFolder);
 
         DDMenu* ddm = new DDMenu();
-        hr = ddm->InitializeItemEntries(ppFolder, (LPCITEMIDLIST*)&pidlChild);
+        hr = ddm->InitializeItemEntries(vItems, ppFolder, (LPCITEMIDLIST*)rgpidl.data(), cidl);
         if (SUCCEEDED(hr))
         {
             ddm->CreatePopupMenu(false);
             g_menu = ddm;
-            if (g_touchmode)
+            if (g_touchmode && cidl == 1)
             {
                 DDMenu* ddsm = new DDMenu();
                 ddsm->CreatePopupMenu(false);
@@ -275,26 +283,25 @@ namespace DirectDesktop
                     ddsm->SetMenuItemInfoW(menuitem, 0, &mii);
                 }
                 mii.fState = MFS_CHECKED;
-                if (lvi->GetTileSize() == LVITS_ICONONLY) ddsm->SetMenuItemInfoW(1001, 0, &mii);
-                else if (lvi->GetTileSize() == LVITS_NONE) ddsm->SetMenuItemInfoW(1002, 0, &mii);
+                if (vItems[0]->GetTileSize() == LVITS_ICONONLY) ddsm->SetMenuItemInfoW(1001, 0, &mii);
+                else if (vItems[0]->GetTileSize() == LVITS_NONE) ddsm->SetMenuItemInfoW(1002, 0, &mii);
                 else ddsm->SetMenuItemInfoW(1003, 0, &mii);
                 ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, LoadStrFromRes(4088).c_str());
                 ddm->InsertMenuW(1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
                 if (!isDefaultRes()) ddm->EnableMenuItem(0, MF_BYPOSITION | MF_DISABLED);
             }
-            UINT uQuery = CMF_EXPLORE | CMF_CANRENAME;
+            UINT uQuery = CMF_EXPLORE;
+            if (cidl < 2) uQuery |= CMF_CANRENAME;
             if (GetKeyState(VK_SHIFT) < 0) uQuery |= CMF_EXTENDEDVERBS;
-            ddm->QueryContextMenu(2, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE | uQuery);
+            ddm->QueryContextMenu(2, MIN_SHELL_ID, MAX_SHELL_ID, uQuery);
 
             UINT uFlags = TPM_RIGHTBUTTON | TPM_RETURNCMD | DDM_ANIMATESUBMENUS;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
 
-            POINT pt;
-            GetCursorPos(&pt);
             int menuItemId = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
 
             CSafeElementPtr<RichText> textElem;
-            LVItemTileSize lvits = lvi->GetTileSize();
+            LVItemTileSize lvits = vItems[0]->GetTileSize();
             int tilepadding = DESKPADDING_TOUCH * g_flScaleFactor;
             switch (menuItemId)
             {
@@ -303,21 +310,21 @@ namespace DirectDesktop
                 {
                     if (lvits == LVITS_NONE)
                     {
-                        lvi->SetMemXPos(lvi->GetMemXPos() + g_touchSizeX / 2 + tilepadding / 2);
-                        lvi->SetX(lvi->GetMemXPos());
+                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() + g_touchSizeX / 2 + tilepadding / 2);
+                        vItems[0]->SetX(vItems[0]->GetMemXPos());
                     }
                     if (lvits == LVITS_DETAILED)
                     {
-                        lvi->SetMemXPos(lvi->GetMemXPos() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
-                        lvi->SetX(lvi->GetMemXPos());
+                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
+                        vItems[0]->SetX(vItems[0]->GetMemXPos());
                     }
                 }
-                lvi->SetTileSize(LVITS_ICONONLY);
-                lvi->SetTouchGrid(new LVItemTouchGrid);
+                vItems[0]->SetTileSize(LVITS_ICONONLY);
+                vItems[0]->SetTouchGrid(new LVItemTouchGrid);
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                    textElem.Assign(regElem<RichText*>(L"textElem", vItems[0]));
                     textElem->SetVisible(false);
                 }
                 break;
@@ -326,22 +333,22 @@ namespace DirectDesktop
                 {
                     if (lvits == LVITS_ICONONLY)
                     {
-                        lvi->SetMemXPos(lvi->GetMemXPos() - g_touchSizeX / 2 - tilepadding / 2);
-                        lvi->SetX(lvi->GetMemXPos());
+                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() - g_touchSizeX / 2 - tilepadding / 2);
+                        vItems[0]->SetX(vItems[0]->GetMemXPos());
                     }
                     if (lvits == LVITS_DETAILED)
                     {
-                        lvi->SetMemXPos(lvi->GetMemXPos() + g_touchSizeX + tilepadding);
-                        lvi->SetX(lvi->GetMemXPos());
+                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() + g_touchSizeX + tilepadding);
+                        vItems[0]->SetX(vItems[0]->GetMemXPos());
                     }
                 }
-                lvi->SetTouchGrid(nullptr);
-                lvi->SetTileSize(LVITS_NONE);
-                lvi->SetSmallPos(1);
+                vItems[0]->SetTouchGrid(nullptr);
+                vItems[0]->SetTileSize(LVITS_NONE);
+                vItems[0]->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                    textElem.Assign(regElem<RichText*>(L"textElem", vItems[0]));
                     textElem->SetVisible(true);
                 }
                 break;
@@ -350,22 +357,22 @@ namespace DirectDesktop
                 {
                     if (lvits == LVITS_ICONONLY)
                     {
-                        lvi->SetMemXPos(lvi->GetMemXPos() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
-                        lvi->SetX(lvi->GetMemXPos());
+                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
+                        vItems[0]->SetX(vItems[0]->GetMemXPos());
                     }
                     if (lvits == LVITS_NONE)
                     {
-                        lvi->SetMemXPos(lvi->GetMemXPos() - g_touchSizeX - tilepadding);
-                        lvi->SetX(lvi->GetMemXPos());
+                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() - g_touchSizeX - tilepadding);
+                        vItems[0]->SetX(vItems[0]->GetMemXPos());
                     }
                 }
-                lvi->SetTouchGrid(nullptr);
-                lvi->SetTileSize(LVITS_DETAILED);
-                lvi->SetSmallPos(1);
+                vItems[0]->SetTouchGrid(nullptr);
+                vItems[0]->SetTileSize(LVITS_DETAILED);
+                vItems[0]->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", lvi));
+                    textElem.Assign(regElem<RichText*>(L"textElem", vItems[0]));
                     textElem->SetVisible(true);
                 }
                 break;
@@ -393,24 +400,44 @@ namespace DirectDesktop
                 ici.lpDirectoryW = pathW;
                 CHAR command[MAX_PATH];
                 ddm->GetCommandString(menuItemId - MIN_SHELL_ID, GCS_VERBA, nullptr, command, MAX_PATH);
-                if (strcmp(command, "open") == 0 && g_treatdirasgroup && lvi->GetFlags() & LVIF_GROUP)
+                if (strcmp(command, "open") == 0 && cidl == 1 && g_treatdirasgroup && vItems[0]->GetFlags() & LVIF_GROUP)
                 {
-                    if (lvi->GetGroupSize() == LVIGS_NORMAL)
+                    if (vItems[0]->GetGroupSize() == LVIGS_NORMAL)
                     {
-                        ShowDirAsGroup(lvi);
+                        ShowDirAsGroup(vItems[0]);
                         break;
                     }
                 }
+                if (strcmp(command, "cut") == 0)
+                {
+                    GTRANS_DESC* transDesc = new GTRANS_DESC[cidl];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    for (int i = 0; i < cidl; i++)
+                        TriggerFade(vItems[i], transDesc, i, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.6f, false, false, true);
+                    ScheduleGadgetTransitions_DWMCheck(0, cidl, transDesc, nullptr, &tsbInfo);
+                    for (int i = 0; i < cidl; i++)
+                        DUI_SetGadgetZOrder(vItems[i], -1);
+                    delete[] transDesc;
+                }
                 if (strcmp(command, "rename") == 0)
                 {
-                    ShowRename(lvi);
+                    ShowRename(nullptr);
                 }
                 hr = ddm->InvokeCommand((CMINVOKECOMMANDINFO*)&ici);
                 break;
             }
         }
+        else if (hr == E_NOTIMPL)
+        {
+            ddm->CreatePopupMenu(false);
+            g_menu = ddm;
+            ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING, 1, L"Not Implemented");
+            UINT uFlags = TPM_RIGHTBUTTON;
+            if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
+            ddm->SetMenuItemGlyph(0, TRUE, LoadStrFromRes(138).c_str());
+            ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
+        }
         ddm->DestroyPopupMenu();
-        CoTaskMemFree(pidl);
         ppFolder->Release();
         g_menu = nullptr;
     }
@@ -419,7 +446,14 @@ namespace DirectDesktop
     {
         if (iev->uidType == LVItem::RightClick)
         {
-           if (elem->GetMouseFocused()) RightClickCore((LVItem*)elem);
+            selectedLVItems.clear();
+            selectedLVItems.push_back((LVItem*)elem);
+            for (int items = 0; items < pm.size(); items++)
+            {
+                if (pm[items]->GetSelected() == true)
+                    if (pm[items] != elem) selectedLVItems.push_back(pm[items]);
+            }
+           if (elem->GetMouseFocused()) RightClickCore(selectedLVItems);
         }
     }
 }

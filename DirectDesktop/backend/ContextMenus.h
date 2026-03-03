@@ -1,5 +1,7 @@
 #pragma once
 
+#include "..\ui\DDControls.h"
+
 #define MIN_SHELL_ID 10000
 #define MAX_SHELL_ID 30000
 
@@ -13,6 +15,7 @@ namespace DirectDesktop
     extern bool g_touchmode;
     extern int localeType;
     extern NativeHWNDHost* wnd;
+    extern std::vector<LVItem*> selectedLVItems;
 
 
     void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);

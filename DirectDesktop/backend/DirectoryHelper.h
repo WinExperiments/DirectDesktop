@@ -16,6 +16,8 @@ namespace DirectDesktop
     extern int g_iconsz;
     extern vector<LVItem*> pm;
     extern void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen);
+    extern void IconThumbHelper(int id);
+    extern DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam);
     extern void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page);
     extern void RemoveLVItem(const wstring& filepath, const wstring& filename);
     extern HRESULT UpdateLVItem(const wstring& filepath, const wstring& filename, BYTE type); // types: 1: old, 2: new
@@ -74,6 +76,7 @@ namespace DirectDesktop
         void SetDestinationDirectory(LPCWSTR pszDest);
         void InitDimensions(RECT* prcDimensions, POINTL* ppt, UINT* pPage);
         void PrepDimensions();
+        void SetTargetLVItem(LVItem* lviTargetDir);
 
     private:
         LONG _lRefCount;
@@ -82,6 +85,7 @@ namespace DirectDesktop
         POINTL* _ppt;
         UINT* _pPage;
         vector<LPCWSTR> _pszPending;
+        LVItem* _lviTargetDir;
         void _PreProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName);
         void _PostProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
                 HRESULT hr, IShellItem* psiNewlyCreated);
@@ -93,6 +97,7 @@ namespace DirectDesktop
     void isSpecialProp(const wstring& filename, bool bReset, bool* result, vector<const wchar_t*>* exts);
     wstring GetExplorerTooltipText(const wstring& filePath);
     void StartMonitorFileChanges(const wstring& path);
+    void StartMonitorSubdirChanges(LVItem* lvi);
     unsigned short EnumerateFolder_Helper(LPWSTR path);
     void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, int* count2 = nullptr, unsigned short limit = 65535);
     void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit);

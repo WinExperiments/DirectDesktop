@@ -154,6 +154,8 @@ namespace DirectDesktop
     {
         _prcDimensions = prcDimensions;
         _ppt = ppt;
+        if (localeType == 1)
+            _ppt->x = prcDimensions->right - _ppt->x;
         _pPage = pPage;
     }
 
@@ -161,7 +163,6 @@ namespace DirectDesktop
     {
         short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
         short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
-        short localeDirection = (localeType == 1) ? -1 : 1;
         short desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
         short desktoppadding_x = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
         short desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
@@ -174,21 +175,29 @@ namespace DirectDesktop
         if (_ppt->y > _prcDimensions->bottom - outerSizeY - desktoppadding_y)
         {
             _ppt->y = desktoppadding_y;
-            _ppt->x += localeDirection * outerSizeX;
+            _ppt->x += outerSizeX;
         }
         if ((localeType != 1 && _ppt->x > _prcDimensions->right - outerSizeX - desktoppadding_x) ||
             (localeType == 1 && _ppt->x < _prcDimensions->left - outerSizeX - desktoppadding_x))
         {
-            _ppt->x = (localeType == 1) ? _prcDimensions->right - desktoppadding_x - outerSizeX + desktoppadding : desktoppadding_x;
+            _ppt->x = desktoppadding_x;
             (*_pPage)++;
         }
     }
 
+    void CFileOperationProgressSink::SetTargetLVItem(LVItem* lviTargetDir)
+    {
+        _lviTargetDir = lviTargetDir;
+    }
+
     void CFileOperationProgressSink::_PreProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName)
     {
-        LPWSTR pszCheck{};
-        psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszCheck);
-        _pszPending.push_back(pszCheck);
+        if (!_lviTargetDir)
+        {
+            LPWSTR pszCheck{};
+            psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszCheck);
+            _pszPending.push_back(pszCheck);
+        }
     }
 
     void CFileOperationProgressSink::_PostProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
@@ -196,40 +205,60 @@ namespace DirectDesktop
     {
         if (SUCCEEDED(hrCopy) && pszNewName)
         {
-            LPWSTR pszOldName;
-            psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszOldName);
-            if (wcscmp(pszOldName, pszNewName) != 0)
-                InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
+            if (_lviTargetDir)
+            {
+                ;
+            }
             else
             {
-                for (int i = 0; i < _pszPending.size(); i++)
+                LPWSTR pszOldName;
+                psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszOldName);
+                if (wcscmp(pszOldName, pszNewName) != 0)
+                    InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
+                else
                 {
-                    if (wcscmp(pszOldName, _pszPending[i]) == 0)
+                    for (int i = 0; i < _pszPending.size(); i++)
                     {
-                        UpdateLVItem(_destDir, pszNewName, 1);
-                        HRESULT hr = UpdateLVItem(_destDir, pszNewName, 2);
-                        CoTaskMemFree((LPVOID)_pszPending[i]);
-                        _pszPending.erase(_pszPending.begin() + i);
-                        if (SUCCEEDED(hr))
-                            goto SKIPNEWITEM;
+                        if (wcscmp(pszOldName, _pszPending[i]) == 0)
+                        {
+                            UpdateLVItem(_destDir, pszNewName, 1);
+                            HRESULT hr = UpdateLVItem(_destDir, pszNewName, 2);
+                            CoTaskMemFree((LPVOID)_pszPending[i]);
+                            _pszPending.erase(_pszPending.begin() + i);
+                            if (SUCCEEDED(hr))
+                                goto SKIPNEWITEM;
+                        }
                     }
+                    InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
+                SKIPNEWITEM:
+                    PrepDimensions();
                 }
-                InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
-            SKIPNEWITEM:
-                PrepDimensions();
             }
         }
     }
 
     wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm)
     {
+        size_t lastdot = filename.find_last_of(L".");
+        if (shortpm != nullptr)
+        {
+            if (lastdot == wstring::npos)
+            {
+                if (dir)
+                    shortpm->SetExt(L"Folder");
+                else
+                    shortpm->SetExt(L"None");
+            }
+            else
+                shortpm->SetExt(filename.substr(lastdot, wstring::npos));
+        }
         if (isEnabled)
         {
             if (dir)
             {
                 return filename;
             }
-            size_t lastdot = filename.rfind(L".lnk");
+            lastdot = filename.rfind(L".lnk");
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
             {
@@ -254,7 +283,7 @@ namespace DirectDesktop
         }
         if (!isEnabled)
         {
-            size_t lastdot = filename.rfind(L".lnk");
+            lastdot = filename.rfind(L".lnk");
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
             {
@@ -535,7 +564,7 @@ namespace DirectDesktop
             return 1;
         }
 
-        BYTE buffer[1024];
+        BYTE buffer[8192];
         DWORD bytesReturned;
         while (true)
         {
@@ -587,6 +616,82 @@ namespace DirectDesktop
         if (hThread) CloseHandle(hThread);
     }
 
+    DWORD WINAPI MonitorSubdirChanges(LPVOID lpParam)
+    {
+        LVItem* lvi = static_cast<LVItem*>(lpParam);
+        if (!lvi) return 1;
+        wstring path = RemoveQuotes(lvi->GetFilename());
+        size_t parent = path.find_last_of(L"\\");
+        wstring path2 = lvi->GetSimpleFilename();
+        HANDLE hDir = CreateFileW(path.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
+        if (hDir == INVALID_HANDLE_VALUE)
+        {
+            TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to open directory handle", path.c_str(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+            return 1;
+        }
+
+        OVERLAPPED over = { 0 };
+        over.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        HANDLE waitHandles[2] = { over.hEvent, lvi->GetDirEvent() };
+
+        BYTE buffer[8192];
+        while (true)
+        {
+            BOOL fRead = ReadDirectoryChangesW(hDir, &buffer, sizeof(buffer), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME, nullptr, &over, nullptr);
+            if (!fRead && GetLastError() != ERROR_IO_PENDING)
+            {
+                //TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to read directory changes", path.c_str(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                break;
+            }
+            DWORD dwWait = WaitForMultipleObjects(ARRAYSIZE(waitHandles), waitHandles, FALSE, INFINITE);
+            if (dwWait == 1)
+            {
+                CancelIo(hDir);
+                break;
+            }
+            if (dwWait == 0)
+            {
+                DWORD bytesReturned;
+                if ((GetOverlappedResult(hDir, &over, &bytesReturned, FALSE), bytesReturned))
+                {
+                    wstring path3 = path.substr(0, parent);
+                    FILE_NOTIFY_INFORMATION* pNotify = nullptr;
+                    size_t offset = 0;
+                    bool fUpdate = false;
+                    do
+                    {
+                        pNotify = (FILE_NOTIFY_INFORMATION*)((BYTE*)buffer + offset);
+                        switch (pNotify->Action)
+                        {
+                        case FILE_ACTION_ADDED:
+                        case FILE_ACTION_REMOVED:
+                            fUpdate = true;
+                            break;
+                        }
+                        offset += pNotify->NextEntryOffset;
+                    } while (pNotify->NextEntryOffset != 0);
+                    if (fUpdate)
+                    {
+                        UpdateLVItem(path3, path2, 3);
+                        break;
+                    }
+                }
+                ResetEvent(over.hEvent);
+            }
+        }
+        CloseHandle(over.hEvent);
+        CloseHandle(hDir);
+        return 0;
+    }
+
+    void StartMonitorSubdirChanges(LVItem* lvi)
+    {
+        if (!(PathFileExistsW(RemoveQuotes(lvi->GetFilename()).c_str()) && lvi->GetFlags() & LVIF_DIR)) return;
+        HANDLE hThread = CreateThread(nullptr, 0, MonitorSubdirChanges, (LPVOID)lvi, NULL, nullptr);
+        if (hThread) CloseHandle(hThread);
+    }
+
     static int checkSpotlight{};
 
     void FindShellIcon(vector<LVItem*>* pm, LPCWSTR clsid, LPCWSTR displayName, int* count2)
@@ -608,6 +713,7 @@ namespace DirectDesktop
                 (*pm)[(*count2)]->SetSimpleFilename(displayName);
                 (*pm)[(*count2)]->SetFilename(clsidEx);
                 (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
+                (*pm)[(*count2)]->SetExt(L"Virtual_NotImpl");
                 (*count2)++;
                 free(cRegValue);
                 return;
@@ -631,6 +737,7 @@ namespace DirectDesktop
                 (*pm)[(*count2)]->SetSimpleFilename(displayName);
                 (*pm)[(*count2)]->SetFilename(clsidEx);
                 if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
+                (*pm)[(*count2)]->SetExt(L"Virtual_NotImpl");
                 (*count2)++;
                 free(cRegValue);
             }
@@ -651,6 +758,7 @@ namespace DirectDesktop
             (*pm)[(*count2)]->SetSimpleFilename(displayName);
             (*pm)[(*count2)]->SetFilename(clsidEx);
             if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
+            (*pm)[(*count2)]->SetExt(L"Virtual_NotImpl");
             (*count2)++;
             free(cRegValue);
             return;
@@ -778,6 +886,7 @@ namespace DirectDesktop
                         unsigned short itemsInside = EnumerateFolder_Helper((LPWSTR)RemoveQuotes(foundfilename).c_str());
                         if (pmLVItem == &pm && itemsInside <= 192) lviFlags |= LVIF_GROUP;
                         (*pmLVItem)[*(count2)]->SetItemCount(itemsInside);
+                        if (pmLVItem == &pm) (*pmLVItem)[*(count2)]->SetDirEvent(CreateEventW(nullptr, TRUE, FALSE, nullptr));
                     }
                     if (fd.dwFileAttributes & 2) lviFlags |= LVIF_HIDDEN;
                     filestructs.push_back({ fd.cFileName, fd.dwFileAttributes });
@@ -795,6 +904,7 @@ namespace DirectDesktop
                     (*pmLVItem)[*(count2)]->SetSimpleFilename(foundsimplefilename);
                     (*pmLVItem)[*(count2)]->SetFilename(foundfilename);
                     (*pmLVItem)[*(count2)]->SetAccDesc(GetExplorerTooltipText(RemoveQuotes(foundfilename)).c_str());
+                    if (pmLVItem == &pm) StartMonitorSubdirChanges((*pmLVItem)[*(count2)]);
                 }
                 if (g_showHidden == 2 && fd.dwFileAttributes & 2)
                 {

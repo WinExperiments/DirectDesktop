@@ -82,6 +82,7 @@ namespace DirectDesktop
             vector<LVItem*>* l_pm = yV->vpm;
             for (int num = 0; num < yV->num; num++)
             {
+                if (num >= l_pm->size()) break;
                 (*l_pm)[num]->SetVisible(true);
             }
             break;
@@ -110,6 +111,7 @@ namespace DirectDesktop
                 lvi = yV->peOptionalTarget2;
             for (int num = 0; num < yV->num; num++)
             {
+                if (num >= l_pm->size()) break;
                 DWORD lviFlags = (*l_pm)[num]->GetFlags();
                 DDScalableElement* peIcon = (*l_pm)[num]->GetIcon();
                 Element* peShortcutArrow = (*l_pm)[num]->GetShortcutArrow();
@@ -189,20 +191,28 @@ namespace DirectDesktop
                 CSafeElementPtr<TouchScrollViewer> groupdirlist;
                 groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", lvi));
                 groupdirlist->SetVisible(true);
-
-                RECT rcList;
-                groupdirlist->GetVisibleRect(&rcList);
-                GTRANS_DESC transDesc[3];
-                TriggerTranslate(groupdirlist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false, false);
-                TriggerFade(groupdirlist, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-                TriggerClip(groupdirlist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
-                TransitionStoryboardInfo tsbInfo = {};
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, groupdirlist->GetDisplayNode(), &tsbInfo);
-
-                CSafeElementPtr<Element> dirtitle; dirtitle.Assign(regElem<Element*>(L"dirtitle", lvi));
+                CSafeElementPtr<Element> dirtitle;
+                dirtitle.Assign(regElem<Element*>(L"dirtitle", lvi));
                 dirtitle->SetVisible(true);
-                TriggerFade(dirtitle, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, dirtitle->GetDisplayNode(), &tsbInfo);
+
+                DWORD dwFlags = NULL;
+                if (lvi->GetClassInfoW() == LVItem::GetClassInfoPtr())
+                    dwFlags = ((LVItem*)lvi)->GetFlags();
+
+                if (!(dwFlags & LVIF_NOGROUPANIM))
+                {
+                    RECT rcList;
+                    groupdirlist->GetVisibleRect(&rcList);
+                    GTRANS_DESC transDesc[3];
+                    TriggerTranslate(groupdirlist, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false, false);
+                    TriggerFade(groupdirlist, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                    TriggerClip(groupdirlist, transDesc, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                    TransitionStoryboardInfo tsbInfo = {};
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, groupdirlist->GetDisplayNode(), &tsbInfo);
+
+                    TriggerFade(dirtitle, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, dirtitle->GetDisplayNode(), &tsbInfo);
+                }
 
                 CSafeElementPtr<Element> emptyview;
                 emptyview.Assign(regElem<Element*>(L"emptyview", lvi));
@@ -217,6 +227,7 @@ namespace DirectDesktop
                         if (((LVItem*)lvi)->GetIcon()->GetGroupColor() != 0)
                             ((LVItem*)lvi)->GetIcon()->SetAssociatedColor(((LVItem*)lvi)->GetAssociatedColor());
                     }
+                    ((LVItem*)lvi)->RemoveFlags(LVIF_NOGROUPANIM);
                 }
 
                 yV->peOptionalTarget1->DestroyAll(true);
@@ -235,6 +246,7 @@ namespace DirectDesktop
             vector<LVItem*>* l_pm = yV->vpm;
             for (int num = 0; num < yV->num; num++)
             {
+                if (num >= l_pm->size()) break;
                 if ((*l_pm)[num])
                 {
                     Element* peShortcutArrow = (*l_pm)[num]->GetShortcutArrow();
@@ -247,7 +259,10 @@ namespace DirectDesktop
                             WCHAR itemCount[64];
                             if ((*l_pm)[num]->GetItemCount() == 1) StringCchPrintfW(itemCount, 64, LoadStrFromRes(4031).c_str());
                             else StringCchPrintfW(itemCount, 64, LoadStrFromRes(4032).c_str(), (*l_pm)[num]->GetItemCount());
-                            peItemCount->SetContentString(itemCount);
+                            if ((*l_pm)[num]->GetTileSize() == LVITS_ICONONLY)
+                                peItemCount->SetContentString(to_wstring((*l_pm)[num]->GetItemCount()).c_str());
+                            else
+                                peItemCount->SetContentString(itemCount);
                         }
                     }
                     else
@@ -669,7 +684,7 @@ namespace DirectDesktop
             ddnb.Assign(new DDNotificationBanner);
             ddnb->CreateBanner(DDNT_SUCCESS, LoadStrFromRes(4042).c_str(), nullptr, 3);
         }
-        SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        //SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         if (fNoRefresh) fullscreenAnimation2(peAnimateTo);
         else
         {
