@@ -69,18 +69,21 @@ namespace DirectDesktop
 		void Initialize(LONG lRefCount, HWND hWnd, UINT nMsg, BOOL bAllowDrop, DWORD dwKeyState, ULONG lNumFormats, MYDDCALLBACK pDropProc, void* pUserData);
 		inline ULONG GetNumOfFormats();
 		inline HWND GetHWND();
+		void SetSubviewFlag();
 
 	private:
 		LONG lRefCount;
 		ULONG lNumFormats;
 		ULONGLONG dwTickCountL;
 		ULONGLONG dwTickCountR;
-		WORD ptLocFlags;
+		ULONGLONG dwTickCountS;
+		BYTE ptLocFlags;
 		HWND hWnd;
 		RECT rcDimensions;
 		BOOL bAllowDrop;
 		BOOL bSameDrive;
 		BOOL bVirtual;
+		BOOL _bSubview;
 		DWORD dwKeyState;
 		IDataObject* pDataObject;
 		IDropTargetHelper* pDropTargetHelper;
@@ -189,4 +192,6 @@ namespace DirectDesktop
 	extern DirectUI::TouchButton* prevpageMain, *nextpageMain;
 	extern void TriggerPageTransition(int direction, RECT& dimensions);
 	extern void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page);
+	extern void LaunchItem(LPCWSTR filename);
+	extern void HidePopupCore(bool WinDInvoked, bool fRefresh);
 }

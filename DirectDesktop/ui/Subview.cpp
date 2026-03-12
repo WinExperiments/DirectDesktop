@@ -4,6 +4,7 @@
 #include "EditMode.h"
 #include "..\backend\ContextMenus.h"
 #include "..\backend\DirectoryHelper.h"
+#include "..\backend\DragAndDrop.h"
 #include "..\backend\SettingsHelper.h"
 #include "..\coreui\BitmapHelper.h"
 #include "..\coreui\ColorHelper.h"
@@ -27,6 +28,7 @@ namespace DirectDesktop
     TouchButton* centered;
     Element* popupcontainer;
     void* g_tempElem;
+    CDropTarget* g_subviewtarget;
 
     bool g_checkifelemexists = false;
     bool g_issubviewopen = false;
@@ -106,7 +108,7 @@ namespace DirectDesktop
             vector<DesktopIcon*>* vdi = (vector<DesktopIcon*>*)wParam;
             Element* lvi{};
             if (yV->peOptionalTarget1)
-                lvi = yV->peOptionalTarget1->GetParent()->GetParent();
+                lvi = yV->peOptionalTarget1->GetParent()->GetParent()->GetParent();
             else if (yV->peOptionalTarget2)
                 lvi = yV->peOptionalTarget2;
             for (int num = 0; num < yV->num; num++)
@@ -413,7 +415,7 @@ namespace DirectDesktop
                 refreshable = false;
                 Element* lvi{};
                 if (yV->peOptionalTarget1)
-                    lvi = yV->peOptionalTarget1->GetParent()->GetParent();
+                    lvi = yV->peOptionalTarget1->GetParent()->GetParent()->GetParent();
                 else if (yV->peOptionalTarget2)
                     lvi = yV->peOptionalTarget2;
                 vdi.push_back(nullptr);
@@ -1299,6 +1301,11 @@ namespace DirectDesktop
         parserSubview->SetXMLFromResource(IDR_UIFILE3, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
         HWNDElement::Create(subviewwnd->GetHWND(), true, dwCreateFlags, nullptr, &key2, (Element**)&subviewparent);
         WndProcSubview = (WNDPROC)SetWindowLongPtrW(subviewwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)TopLevelWindowProc);
+
+        CLIPFORMAT cf_list[1] = { CF_HDROP };
+        HWND hwndInner = FindWindowExW(subviewwnd->GetHWND(), nullptr, L"DirectUIHWND", nullptr);
+        g_subviewtarget = MyRegisterDragDrop(hwndInner, cf_list, 1, WM_NULL, TheDropProc, NULL);
+        g_subviewtarget->SetSubviewFlag();
 
         parserSubview->CreateElement(L"fullscreenpopup", subviewparent, nullptr, nullptr, &pSubview);
         pSubview->SetVisible(true);

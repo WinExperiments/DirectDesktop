@@ -21,4 +21,6 @@ namespace DirectDesktop
     void SetView(int iconsz, int shiconsz, int gpiconsz, bool touch);
     void DesktopRightClick(Element* elem, Event* iev);
     void ItemRightClick(Element* elem, Event* iev);
+    void DesktopRightClickCore(Element* peTarget, LPCSTR cmdID);
+    void RightClickCore(std::vector<LVItem*> vItems, LPCSTR cmdID, bool fMouse);
 }

@@ -2,6 +2,7 @@
 #pragma warning(disable:6258)
 
 #include "..\backend\SettingsHelper.h"
+#include <map>
 
 using namespace std;
 using namespace DirectUI;
@@ -1010,6 +1011,7 @@ namespace DirectDesktop
             , _submenu(nullptr)
             , _lpmii(nullptr)
             , _fRadio(false)
+            , _fKeyFocusInit(false)
             , _uOrder(0)
         {
         }
@@ -1021,6 +1023,8 @@ namespace DirectDesktop
         static void SetClassInfoPtr(IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
         void OnEvent(Event* pEvent) override;
+        void OnInput(InputEvent* pInput) override;
+        void OnKeyFocusMoved(Element* peFrom, Element* peTo) override;
         bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
@@ -1036,8 +1040,16 @@ namespace DirectDesktop
         DDMenu* _submenu;
         LPMENUITEMINFOW _lpmii;
         bool _fRadio;
+        bool _fKeyFocusInit;
         UINT _uOrder;
         HRESULT _CreateMBVisual();
+    };
+
+    struct MenuImage
+    {
+        HBITMAP hbmp;
+        LPCWSTR glyph;
+        BYTE type;
     };
 
     class DDMenu
@@ -1048,7 +1060,6 @@ namespace DirectDesktop
         DDMenu()
             : _lRefCount(1)
             , _pICv1(nullptr)
-            , _pICAlt(nullptr)
             , _hMenu(nullptr)
             , _hTimer(nullptr)
             , _interfaceLevel(0)
@@ -1065,7 +1076,6 @@ namespace DirectDesktop
             , _fDone(false)
             , _fAnimating(true) // Needed for initial displaying
             , _fDynamicInit(false)
-            , _fUniqueCM(false)
             , _subLevel(0)
             , _selectedCommand(0)
             , _tick(0)
@@ -1076,6 +1086,8 @@ namespace DirectDesktop
             , _tsvSelectionMenu(nullptr)
             , _peHostInner(nullptr)
             , _peSelections{}
+            , _rgMenuImg{}
+            , _hmChildren{}
         {
         }
 
@@ -1100,13 +1112,13 @@ namespace DirectDesktop
         HRESULT GetCommandString(UINT_PTR idCmd, UINT uType, UINT* pReserved, CHAR* pszName, UINT cchMax);
         int GetItemCount();
         HRESULT GetMenuRect(LPRECT lprc);
+        void ForceEnablePaste();
 
     private:
         enum { MAX_ITEMS = 1024 };
 
         LONG _lRefCount;
         IContextMenu* _pICv1;
-        IContextMenu* _pICAlt;
         HMENU _hMenu;
         HWND _hTimer;
         BYTE _interfaceLevel;
@@ -1123,7 +1135,6 @@ namespace DirectDesktop
         bool _fDone;
         bool _fAnimating;
         bool _fDynamicInit;
-        bool _fUniqueCM;
         BYTE _subLevel;
         int _selectedCommand;
         LONGLONG _tick;
@@ -1134,16 +1145,20 @@ namespace DirectDesktop
         TouchScrollViewer* _tsvSelectionMenu;
         Element* _peHostInner;
         DDMenuButton* _peSelections[MAX_ITEMS];
+        MenuImage* _rgMenuImg[MAX_ITEMS];
+        vector<HMENU> _hmChildren;
+        
         void _AppendItem(LPCMENUITEMINFOW lpmii, LPCWSTR lpNewItem, bool fInternal);
-        void _ApplyMII(DDMenuButton* pmb, bool fInternal);
+        void _ApplyMII(DDMenuButton* pmb, bool fInternal, unsigned short count);
         void _DestroyUI(bool fSource);
-        void _OnButtonClick(DDMenuButton* button);
-        //void _OptimizeForNewSubmenu();
+        void _HideMenu();
+        void _OnButtonClick(DDMenuButton* button, bool fInstant);
         void _PopulateFromQuery(UINT uCount, bool fCheckID);
         void _RegisterAsSubmenu(DDMenuButton* pmb, DDMenu* parent);
-        void _SetVisible(int x, int y, DDMenu* menu);
+        void _SetVisible(int x, int y, DDMenu* menu, bool fInstant);
         static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         static LRESULT CALLBACK s_MenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+        static LRESULT CALLBACK s_HookMenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     };
 
     enum DDNotificationType

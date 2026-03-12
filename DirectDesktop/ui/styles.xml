@@ -464,7 +464,7 @@
 				<Element padding="rect(4rp,4rp,4rp,4rp)" minsize="size(120rp,36rp)"/>
 			</if>
 			<if class="menusel">
-				<DDMenuButton layoutpos="top" FirstScaledImage="1120" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" NeedsFontResize="true" height="28rp" borderthickness="rect(4rp,4rp,4rp,4rp)"
+				<DDMenuButton layoutpos="top" FirstScaledImage="1120" ScaledImageIntervals="7" DrawType="1" ImageCount="6" ImageIndex="1" NeedsFontResize="true" height="28rp" borderthickness="rect(4rp,4rp,4rp,4rp)"
 							  padding="rect(0,-4rp,0,-4rp)" margin="rect(0,4rp,0,0)" contentalign="middleleft" accessible="true" shortcut="auto" foreground="rgb(0,0,0)" font="menufont;115%" handleenter="true"/>
 				<if mousefocused="true">
 					<DDMenuButton ImageIndex="2"/>
@@ -474,6 +474,12 @@
 				</if>
 				<if Enabled="false">
 					<DDMenuButton ImageIndex="4" foreground="rgb(160,160,160)"/>
+				</if>
+				<if showkeyfocus="true">
+					<DDMenuButton ImageIndex="5"/>
+					<if mousefocused="true">
+						<DDMenuButton ImageIndex="6"/>
+					</if>
 				</if>
 			</if>
 			<if id="atom(DDMB_Icon)">
@@ -979,7 +985,7 @@
 				<Element padding="rect(4rp,4rp,4rp,4rp)" minsize="size(120rp,36rp)"/>
 			</if>
 			<if class="menusel">
-				<DDMenuButton layoutpos="top" FirstScaledImage="2120" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" NeedsFontResize="true" height="28rp" borderthickness="rect(4rp,4rp,4rp,4rp)"
+				<DDMenuButton layoutpos="top" FirstScaledImage="2120" ScaledImageIntervals="7" DrawType="1" ImageCount="6" ImageIndex="1" NeedsFontResize="true" height="28rp" borderthickness="rect(4rp,4rp,4rp,4rp)"
 							  padding="rect(0,-4rp,0,-4rp)" margin="rect(0,4rp,0,0)" contentalign="middleleft" accessible="true" shortcut="auto" foreground="rgb(255,255,255)" font="menufont;115%" handleenter="true"/>
 				<if mousefocused="true">
 					<DDMenuButton ImageIndex="2"/>
@@ -989,6 +995,12 @@
 				</if>
 				<if Enabled="false">
 					<DDMenuButton ImageIndex="4" foreground="rgb(128,128,128)"/>
+				</if>
+				<if showkeyfocus="true">
+					<DDMenuButton ImageIndex="5"/>
+					<if mousefocused="true">
+						<DDMenuButton ImageIndex="6"/>
+					</if>
 				</if>
 			</if>
 			<if id="atom(DDMB_Icon)">

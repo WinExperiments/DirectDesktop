@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include <wrl.h>
+#include <propkey.h>
 #include "DragAndDrop.h"
 #include "DirectoryHelper.h"
 #include "..\DirectDesktop.h"
@@ -276,7 +277,7 @@ namespace DirectDesktop
 		return DRAGDROP_S_USEDEFAULTCURSORS;
 	}
 
-	CDropTarget::CDropTarget() : pFormat(nullptr), lRefCount(1), dwLastEffect(DROPEFFECT_NONE), _lviLastTarget((LVItem*)-1)
+	CDropTarget::CDropTarget() : pFormat(nullptr), lRefCount(1), dwLastEffect(DROPEFFECT_NONE), _lviLastTarget((LVItem*)-1), _bSubview(FALSE)
 	{
 		if (pMinimal)
 			pMinimal->QueryInterface(IID_IDropTargetHelper, (void**)&pDropTargetHelper);
@@ -324,7 +325,7 @@ namespace DirectDesktop
 		else if (bAllowDrop = this->_QueryDataObject())
 		{
 			// Determine copy/move/link from item type and drive letter
-			IShellItemArray* pItemArray = nullptr;
+			ComPtr<IShellItemArray> pItemArray = nullptr;
 			HRESULT hr = SHCreateShellItemArrayFromDataObject(pDataObject, IID_PPV_ARGS(&pItemArray));
 			if (SUCCEEDED(hr))
 			{
@@ -332,7 +333,7 @@ namespace DirectDesktop
 				pItemArray->GetCount(&dwItemCount);
 				if (dwItemCount > 0)
 				{
-					IShellItem* pItem = nullptr;
+					ComPtr<IShellItem> pItem = nullptr;
 					if (SUCCEEDED(pItemArray->GetItemAt(0, &pItem)))
 					{
 						SFGAOF attributes;
@@ -382,53 +383,99 @@ namespace DirectDesktop
 		{
 			this->dwKeyState = dwKeyState;
 			LVItem* lviTarget = _MapPointToItem(&pt);
+			*pdwEffect = this->_DropEffect(dwKeyState, pt, *pdwEffect);
 			static const wstring desktopStr = LoadStrFromRes(21769, L"shell32.dll");
-			if (lviTarget != _lviLastTarget)
+			if (!_bSubview)
 			{
-				if (lviTarget)
+				if (lviTarget != _lviLastTarget)
 				{
-					_destDirDispName = lviTarget->GetSimpleFilename();
-					_destDir = RemoveQuotes(lviTarget->GetFilename());
-				}
-				else
-				{
-					_destDirDispName = desktopStr;
-					LPWSTR pszDesktopPath{};
-					HRESULT hr = SHGetKnownFolderPath(FOLDERID_Desktop, 0, nullptr, &pszDesktopPath);
-					if (SUCCEEDED(hr))
+					if (lviTarget)
 					{
-						_destDir = pszDesktopPath;
-						CoTaskMemFree(pszDesktopPath);
+						_destDir = RemoveQuotes(lviTarget->GetFilename());
+						HRESULT hr = E_FAIL;
+						if (lviTarget->GetFlags() & LVIF_SHORTCUT)
+						{
+							ComPtr<IShellLinkW> psl;
+							hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (LPVOID*)&psl);
+							if (SUCCEEDED(hr))
+							{
+								ComPtr<IPersistFile> ppf;
+								hr = psl->QueryInterface(IID_PPV_ARGS(&ppf));
+								if (SUCCEEDED(hr))
+								{
+									hr = ppf->Load(_destDir.c_str(), STGM_READ);
+									if (SUCCEEDED(hr))
+									{
+										WCHAR pValue[MAX_PATH];
+										hr = psl->GetPath(pValue, MAX_PATH, 0, SLGP_RELATIVEPRIORITY);
+										if (SUCCEEDED(hr))
+											_destDirDispName = pValue;
+									}
+								}
+							}
+						}
+						hr = E_FAIL;
+						size_t lastdot = _destDirDispName.find_last_of(L".");
+						bool fromLnk = (lastdot != std::wstring::npos && _destDirDispName.substr(lastdot, std::wstring::npos) == L".exe");
+						if (lviTarget->GetExt() == L".exe" || fromLnk)
+						{
+							ComPtr<IShellItem2> pShellItem{};
+							hr = SHCreateItemFromParsingName((fromLnk ? _destDirDispName : _destDir).c_str(), nullptr, IID_PPV_ARGS(&pShellItem));
+							if (SUCCEEDED(hr))
+							{
+								WCHAR* pValue;
+								hr = pShellItem->GetString(PKEY_FileDescription, &pValue);
+								if (SUCCEEDED(hr))
+								{
+									_destDirDispName = pValue;
+									CoTaskMemFree(pValue);
+								}
+							}
+						}
+						if (FAILED(hr))
+							_destDirDispName = lviTarget->GetSimpleFilename();
+					}
+					else
+					{
+						_destDirDispName = desktopStr;
+						LPWSTR pszDesktopPath{};
+						HRESULT hr = SHGetKnownFolderPath(FOLDERID_Desktop, 0, nullptr, &pszDesktopPath);
+						if (SUCCEEDED(hr))
+						{
+							_destDir = pszDesktopPath;
+							CoTaskMemFree(pszDesktopPath);
+						}
 					}
 				}
-			}
-			*pdwEffect = this->_DropEffect(dwKeyState, pt, *pdwEffect);
-			if (*pdwEffect != dwLastEffect || lviTarget != _lviLastTarget)
-			{
-				dwLastEffect = *pdwEffect;
-				switch (*pdwEffect)
+				if (*pdwEffect != dwLastEffect || lviTarget != _lviLastTarget)
 				{
-				case DROPEFFECT_COPY:
-					this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49872, L"shell32.dll").c_str(), _destDirDispName.c_str());
-					break;
-				case DROPEFFECT_MOVE:
-					if (isIconPressed)
-						this->_SetDropDescription(g_lockiconpos ? DROPIMAGE_NONE : DROPIMAGE_NOIMAGE, LoadStrFromRes(4044).c_str(), nullptr);
-					else
-						this->_SetDropDescription(DROPIMAGE_MOVE, LoadStrFromRes(49873, L"shell32.dll").c_str(), _destDirDispName.c_str());
-					break;
-				case DROPEFFECT_LINK:
-					this->_SetDropDescription(DROPIMAGE_LINK, LoadStrFromRes(49874, L"shell32.dll").c_str(), _destDirDispName.c_str());
-					break;
-				default:
-					this->_SetDropDescription(DROPIMAGE_NONE, LoadStrFromRes(49879, L"shell32.dll").c_str(), _destDirDispName.c_str());
-					break;
+					dwLastEffect = *pdwEffect;
+					switch (*pdwEffect)
+					{
+					case DROPEFFECT_COPY:
+						this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49872, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						break;
+					case DROPEFFECT_MOVE:
+						if (isIconPressed && !lviTarget)
+							this->_SetDropDescription(g_lockiconpos ? DROPIMAGE_NONE : DROPIMAGE_NOIMAGE, LoadStrFromRes(4044).c_str(), nullptr);
+						else
+							this->_SetDropDescription(DROPIMAGE_MOVE, LoadStrFromRes(49873, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						break;
+					case DROPEFFECT_LINK:
+						this->_SetDropDescription(DROPIMAGE_LINK, LoadStrFromRes(49874, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						break;
+					default:
+						this->_SetDropDescription(DROPIMAGE_NONE, LoadStrFromRes(49879, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						break;
+					}
+					if (lviTarget && (lviTarget->GetFlags() & LVIF_SHORTCUT || lviTarget->GetExt() == L".exe"))
+						this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49875, L"shell32.dll").c_str(), _destDirDispName.c_str());
 				}
-			}
-			if (lviTarget != _lviLastTarget)
-			{
-				_lviLastTarget = lviTarget;
-				pUserData = lviTarget;
+				if (lviTarget != _lviLastTarget)
+				{
+					_lviLastTarget = lviTarget;
+					pUserData = lviTarget;
+				}
 			}
 		}
 		else
@@ -436,39 +483,53 @@ namespace DirectDesktop
 		if (pDropTargetHelper)
 			pDropTargetHelper->DragOver((POINT*)&pt, *pdwEffect);
 
-		if (pt.x <= 16 * g_flScaleFactor)
+		if (_bSubview)
 		{
-			if (!(HIBYTE(ptLocFlags)))
-				dwTickCountL = GetTickCount64();
-			ptLocFlags = 256;
-		}
-		else if (pt.x > rcDimensions.right - 16 * g_flScaleFactor)
-		{
-			if (!(LOBYTE(ptLocFlags)))
-				dwTickCountR = GetTickCount64();
-			ptLocFlags = 1;
+			if (!(ptLocFlags & 4))
+				dwTickCountS = GetTickCount64();
+			ptLocFlags = 4;
+			if (GetTickCount64() > dwTickCountS + 1000 && ptLocFlags == 4)
+			{
+				HidePopupCore(false, true);
+				dwTickCountS = GetTickCount64();
+			}
 		}
 		else
-			ptLocFlags = 0;
-		if (GetTickCount64() > dwTickCountL + 500 && ptLocFlags == 256 && g_currentPageID > 1)
 		{
-			g_currentPageID--;
-			for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
-				selectedLVItems[i]->SetPage(g_currentPageID);
-			TriggerPageTransition(-1, rcDimensions);
-			nextpageMain->SetVisible(true);
-			if (g_currentPageID == 1) prevpageMain->SetVisible(false);
-			dwTickCountL += 680;
-		}
-		if (GetTickCount64() > dwTickCountR + 500 && ptLocFlags == 1 && g_currentPageID < g_maxPageID)
-		{
-			g_currentPageID++;
-			for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
-				selectedLVItems[i]->SetPage(g_currentPageID);
-			TriggerPageTransition(1, rcDimensions);
-			prevpageMain->SetVisible(true);
-			if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
-			dwTickCountR += 680;
+			if (pt.x <= 16 * g_flScaleFactor)
+			{
+				if (!(ptLocFlags & 1))
+					dwTickCountL = GetTickCount64();
+				ptLocFlags = 1;
+			}
+			else if (pt.x > rcDimensions.right - 16 * g_flScaleFactor)
+			{
+				if (!(ptLocFlags & 2))
+					dwTickCountR = GetTickCount64();
+				ptLocFlags = 2;
+			}
+			else
+				ptLocFlags = 0;
+			if (GetTickCount64() > dwTickCountL + 500 && ptLocFlags == 1 && g_currentPageID > 1)
+			{
+				g_currentPageID--;
+				for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
+					selectedLVItems[i]->SetPage(g_currentPageID);
+				TriggerPageTransition(-1, rcDimensions);
+				nextpageMain->SetVisible(true);
+				if (g_currentPageID == 1) prevpageMain->SetVisible(false);
+				dwTickCountL += 680;
+			}
+			if (GetTickCount64() > dwTickCountR + 500 && ptLocFlags == 2 && g_currentPageID < g_maxPageID)
+			{
+				g_currentPageID++;
+				for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
+					selectedLVItems[i]->SetPage(g_currentPageID);
+				TriggerPageTransition(1, rcDimensions);
+				prevpageMain->SetVisible(true);
+				if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
+				dwTickCountR += 680;
+			}
 		}
 
 		return S_OK;
@@ -484,6 +545,9 @@ namespace DirectDesktop
 		dwLastEffect = DROPEFFECT_NONE;
 		if (pDropTargetHelper)
 			pDropTargetHelper->DragLeave();
+		ptLocFlags = 0;
+		bSameDrive = FALSE;
+		bVirtual = FALSE;
 		return S_OK;
 	}
 
@@ -492,20 +556,30 @@ namespace DirectDesktop
 		if (pDropTargetHelper)
 			pDropTargetHelper->Drop(pDataObject, (POINT*)&pt, *pdwEffect);
 
-		if (isIconPressed)
+		DWORD pdwEffect2 = _DropEffect(dwKeyState, pt, *pdwEffect);
+		if (isIconPressed && pdwEffect2 == DROPEFFECT_MOVE && (UINT_PTR)_lviLastTarget < 1)
 		{
-			DWORD pdwEffect2 = _DropEffect(dwKeyState, pt, *pdwEffect);
-			if (pdwEffect2 == DROPEFFECT_MOVE)
+			SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)&selectedLVItems, 0);
+			if (pDataObject)
 			{
-				SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)&selectedLVItems, 0);
-				if (pDataObject)
-				{
-					pDataObject->Release();
-					pDataObject = nullptr;
-				}
-				dwLastEffect = DROPEFFECT_NONE;
-				return S_OK;
+				pDataObject->Release();
+				pDataObject = nullptr;
 			}
+			dwLastEffect = DROPEFFECT_NONE;
+			_lviLastTarget = (LVItem*)-1;
+			return S_OK;
+		}
+		else if (_lviLastTarget && (UINT_PTR)_lviLastTarget != -1 && (_lviLastTarget->GetFlags() & LVIF_SHORTCUT || _lviLastTarget->GetExt() == L".exe"))
+		{
+			LaunchItem(RemoveQuotes(_lviLastTarget->GetFilename()).c_str());
+			if (pDataObject)
+			{
+				pDataObject->Release();
+				pDataObject = nullptr;
+			}
+			dwLastEffect = DROPEFFECT_NONE;
+			_lviLastTarget = (LVItem*)-1;
+			return S_OK;
 		}
 
 		FORMATETC fmtetc = { CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL | TYMED_ISTREAM | TYMED_ISTORAGE };
@@ -579,6 +653,11 @@ namespace DirectDesktop
 		return this->hWnd;
 	}
 
+	void CDropTarget::SetSubviewFlag()
+	{
+		_bSubview = TRUE;
+	}
+
 	BOOL CDropTarget::_QueryDataObject()
 	{
 		for (ULONG i = 0; i < lNumFormats; i++)
@@ -627,7 +706,18 @@ namespace DirectDesktop
 		const UINT cItems = pm.size();
 		for (int i = 0; i < cItems; i++)
 		{
-			if (pm[i]->GetPage() != g_currentPageID || !(pm[i]->GetFlags() & LVIF_DIR))
+			bool forceContinue = false;
+			if (pm[i]->GetPage() != g_currentPageID || (!(pm[i]->GetFlags() & (LVIF_DIR | LVIF_SHORTCUT)) && pm[i]->GetExt() != L".exe"))
+				continue;
+			for (int j = 0; j < selectedLVItems.size(); j++)
+			{
+				if (pm[i] == selectedLVItems[j])
+				{
+					forceContinue = true;
+					break;
+				}
+			}
+			if (forceContinue)
 				continue;
 			RECT rc;
 			GetGadgetRect(pm[i]->GetDisplayNode(), &rc, 0x8);
@@ -1824,7 +1914,7 @@ namespace DirectDesktop
 									while (PathFileExistsW(linkPath))
 										StringCchPrintfW(linkPath, MAX_PATH, L"%s - %s (%d).lnk", linkPathIntermediate.c_str(), LoadStrFromRes(4153, L"shell32.dll").c_str(), ++fileDup);
 									hr = ppf->Save(linkPath, TRUE);
-									if (SUCCEEDED(hr) && lviDir)
+									if (SUCCEEDED(hr) && !lviDir)
 									{
 										std::wstring destDir2(destDir, wcslen(destDir) - 1);
 										std::wstring linkPath2(linkPath, wcslen(destDir), std::wstring::npos);
@@ -1913,7 +2003,7 @@ namespace DirectDesktop
 								CoTaskMemFree(pszFilePath);
 								break;
 							}
-							if (key_state & MK_CONTROL || pszFilePath[0] != dest[0])
+							if (key_state & MK_CONTROL || (pszFilePath[0] != dest[0] && !(key_state & MK_ALT)))
 							{
 								effect = DROPEFFECT_COPY;
 								CoTaskMemFree(pszFilePath);
