@@ -2,7 +2,6 @@
 #pragma warning(disable:6258)
 
 #include "..\backend\SettingsHelper.h"
-#include <map>
 
 using namespace std;
 using namespace DirectUI;

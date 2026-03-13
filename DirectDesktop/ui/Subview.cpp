@@ -4,7 +4,6 @@
 #include "EditMode.h"
 #include "..\backend\ContextMenus.h"
 #include "..\backend\DirectoryHelper.h"
-#include "..\backend\DragAndDrop.h"
 #include "..\backend\SettingsHelper.h"
 #include "..\coreui\BitmapHelper.h"
 #include "..\coreui\ColorHelper.h"

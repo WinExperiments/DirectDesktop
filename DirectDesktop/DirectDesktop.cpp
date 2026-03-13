@@ -346,6 +346,7 @@ namespace DirectDesktop
     void ClearGroupDirectoryElement(unsigned short index);
     void SelectItem(Element* elem, Event* iev);
     void DragItem(vector<LVItem*> vItems);
+    void CreateNewFolder();
     void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
@@ -781,7 +782,7 @@ namespace DirectDesktop
             case WM_CLOSE:
             {
                 MyRevokeDragDrop(g_droptarget);
-                //MyRevokeDragDrop(g_subviewtarget);
+                MyRevokeDragDrop(g_subviewtarget);
                 SetPos(isDefaultRes());
                 subviewwnd->ShowWindow(SW_HIDE);
                 if (lParam == 420)
@@ -982,7 +983,11 @@ namespace DirectDesktop
                             DesktopRightClickCore(nullptr, command);
                         else
                             RightClickCore(selectedLVItems, command, true);
+                        break;
                     }
+                    case 24:
+                        CreateNewFolder();
+                        break;
                 }
                 delete iev;
                 break;
@@ -1930,7 +1935,6 @@ namespace DirectDesktop
                     }
                 }
             }
-            ILFree(pidlChild);
         }
         ILFree(pidl);
     }
@@ -1985,6 +1989,54 @@ namespace DirectDesktop
                 isIconPressed = 0;
                 pds->Release();
                 DeleteObject(hbmPreview);
+            }
+        }
+    }
+
+    void CreateNewFolder()
+    {
+        DDMenu* ddm = new DDMenu();
+        ComPtr<IShellView> pShellView = nullptr;
+        ComPtr<IShellFolder> pShellFolder = nullptr;
+
+        HRESULT hr = SHGetDesktopFolder(&pShellFolder);
+        if (SUCCEEDED(hr))
+        {
+            hr = pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
+            if (SUCCEEDED(hr))
+            {
+                hr = ddm->InitializeDesktopEntries(pShellFolder.Get(), pShellView.Get());
+                if (SUCCEEDED(hr))
+                {
+                    ddm->CreatePopupMenu(true);
+                    ddm->QueryContextMenu(0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
+                    int itemCount = ddm->GetItemCount();
+                    for (int i = 0; i < itemCount; i++)
+                    {
+                        MENUITEMINFOW mii;
+                        mii.cbSize = sizeof(MENUITEMINFOW);
+                        mii.fMask = MIIM_ID | MIIM_SUBMENU;
+                        if (ddm->GetMenuItemInfoW(i, TRUE, &mii))
+                        {
+                            if (mii.wID == -1 || mii.wID < MIN_SHELL_ID)
+                                continue;
+                            CHAR commandW[MAX_PATH];
+                            ddm->GetCommandString(mii.wID - MIN_SHELL_ID, GCS_VERBW, nullptr, commandW, MAX_PATH);
+                            if (wcscmp((LPWSTR)commandW, L"New") == 0)
+                            {
+                                LRESULT lresDummy = 0;
+                                ddm->HandleMenuMsg(WM_INITMENUPOPUP, (WPARAM)mii.hSubMenu, mii.wID, &lresDummy);
+                                CMINVOKECOMMANDINFO ici;
+                                ZeroMemory(&ici, sizeof(ici));
+                                ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
+                                ici.lpVerb = "NewFolder";
+                                ici.nShow = SW_SHOWNORMAL;
+                                ddm->InvokeCommand(&ici);
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -4323,7 +4375,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 92");
+            peTemp[1]->SetContentString(L"Build 92a");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
@@ -4543,50 +4595,7 @@ namespace DirectDesktop
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
-                        DDMenu* ddm = new DDMenu();
-                        ComPtr<IShellView> pShellView = nullptr;
-                        ComPtr<IShellFolder> pShellFolder = nullptr;
-
-                        HRESULT hr = SHGetDesktopFolder(&pShellFolder);
-                        if (SUCCEEDED(hr))
-                        {
-                            hr = pShellFolder->CreateViewObject(GetShellWindow(), IID_PPV_ARGS(&pShellView));
-                            if (SUCCEEDED(hr))
-                            {
-                                hr = ddm->InitializeDesktopEntries(pShellFolder.Get(), pShellView.Get());
-                                if (SUCCEEDED(hr))
-                                {
-                                    ddm->CreatePopupMenu(true);
-                                    ddm->QueryContextMenu(0, MIN_SHELL_ID, MAX_SHELL_ID, CMF_EXPLORE);
-                                    int itemCount = ddm->GetItemCount();
-                                    for (int i = 0; i < itemCount; i++)
-                                    {
-                                        MENUITEMINFOW mii;
-                                        mii.cbSize = sizeof(MENUITEMINFOW);
-                                        mii.fMask = MIIM_ID | MIIM_SUBMENU;
-                                        if (ddm->GetMenuItemInfoW(i, TRUE, &mii))
-                                        {
-                                            if (mii.wID == -1 || mii.wID < MIN_SHELL_ID)
-                                                continue;
-                                            CHAR commandW[MAX_PATH];
-                                            ddm->GetCommandString(mii.wID - MIN_SHELL_ID, GCS_VERBW, nullptr, commandW, MAX_PATH);
-                                            if (wcscmp((LPWSTR)commandW, L"New") == 0)
-                                            {
-                                                LRESULT lresDummy = 0;
-                                                ddm->HandleMenuMsg(WM_INITMENUPOPUP, (WPARAM)mii.hSubMenu, mii.wID, &lresDummy);
-                                                CMINVOKECOMMANDINFO ici;
-                                                ZeroMemory(&ici, sizeof(ici));
-                                                ici.cbSize = sizeof(CMINVOKECOMMANDINFO);
-                                                ici.lpVerb = "NewFolder";
-                                                ici.nShow = SW_SHOWNORMAL;
-                                                ddm->InvokeCommand(&ici);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        SetTimer(wnd->GetHWND(), 24, 60, nullptr);
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }

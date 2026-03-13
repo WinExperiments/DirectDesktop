@@ -1,6 +1,7 @@
 #pragma once
 
 #include "..\DirectDesktop.h"
+#include "..\backend\DragAndDrop.h"
 
 using namespace DirectUI;
 
@@ -41,6 +42,7 @@ namespace DirectDesktop
 	extern Element* pSubview;
 
 	extern HMODULE g_hModTWinUI;
+	extern CDropTarget* g_subviewtarget;
 
 	void ShowPopupCore(Element* peAnimateFrom);
 	void HidePopupCore(bool WinDInvoked, bool fNoRefresh);
