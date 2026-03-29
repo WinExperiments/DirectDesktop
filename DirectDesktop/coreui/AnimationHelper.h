@@ -27,4 +27,22 @@ namespace DirectDesktop
 		float rX0, float rY0, float rX1, float rY1, float initialEulerAngleX, float initialEulerAngleY, float initialEulerAngleZ,
 		float targetEulerAngleX, float targetEulerAngleY, float targetEulerAngleZ, float targetOriginAxisX, float targetOriginAxisY, float targetOriginAxisZ, bool fHide, bool fDestroy);
 	void TriggerCrossfade(Element* pe, float flDelay, float flDuration);
+
+	class SimpleCubicBezierInterpolator
+	{
+	public:
+		SimpleCubicBezierInterpolator();
+		SimpleCubicBezierInterpolator(double rX0, double rY0, double rX1, double rY1);
+		double GetProgression(double x);
+		void SetCurve(double rX0, double rY0, double rX1, double rY1);
+
+	private:
+		double _rX0, _rY0, _rX1, _rY1;
+		double _presetProgression[11];
+		inline double _SimplePower2(double value);
+		inline double _SimplePower3(double value);
+		inline double _CalculateCoordRelativeToT(double t, double param1, double param2);
+		inline double _DifferentiateCoordRelativeToT(double t, double param1, double param2);
+		inline double _SolveForT(double x, double estimate);
+	};
 }

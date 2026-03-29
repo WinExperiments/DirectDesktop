@@ -22,7 +22,6 @@ namespace DirectDesktop
     extern Element* PageViewer;
     extern int localeType;
     extern int g_currentPageID, g_maxPageID;
-    extern void SetPopupSize(Element* elem, int width, int height);
     extern void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
     extern void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
     extern TouchButton *nextpageMain, *prevpageMain;

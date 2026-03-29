@@ -322,12 +322,14 @@ namespace DirectDesktop
     }
 
     vector<const wchar_t*> imageExts = {
-        L".3gp", L".3gpp", L".accountpicture-ms", L".ai", L".avi", L".avif", L".bmp", L".flv", L".gif", L".heic", L".heif", L".ico",
-        L".jfif", L".jpe", L".jpeg", L".jpg", L".mov", L".mp4", L".pdn", L".png", L".psd", L".svg", L".theme", L".tif", L".tiff", L".webm", L".webp", L".wma", L".wmv", L".xcf"
+        L".3gp", L".3gpp", L".accountpicture-ms", L".ai", L".avi", L".avif", L".bmp", L".flv",
+        L".gif", L".heic", L".heif", L".ico", L".jfif", L".jpe", L".jpeg", L".jpg", L".mov", L".mp4",
+        L".pdn", L".png", L".pps", L".ppsx", L".ppt", L".pptx", L".psd", L".svg", L".theme", L".tif", L".tiff",
+        L".webm", L".webp", L".wma", L".wmv", L".xcf"
     };
 
     vector<const wchar_t*> advancedIconExts = {
-        L".msc", L".url"
+        L".msc", L".url", L".sln", L".bin"
     };
 
     void isSpecialProp(const wstring& filename, bool bReset, bool* result, vector<const wchar_t*>* exts)
@@ -876,7 +878,7 @@ namespace DirectDesktop
             {
                 WIN32_FIND_DATAW fd;
                 hr = SHGetDataFromIDListW(psfFolder, pidl, SHGDFIL_FINDDATA, &fd, sizeof(WIN32_FIND_DATAW));
-                if (count2 != nullptr)
+                if (count2 && (*pmLVItem)[*count2])
                 {
                     DWORD lviFlags{};
                     foundfilename = (wstring)L"\"" + path + (wstring)L"\\" + wstring(fd.cFileName) + (wstring)L"\"";
@@ -923,7 +925,7 @@ namespace DirectDesktop
             }
             else break;
             runs++;
-            if (count2 != nullptr)
+            if (count2)
             {
                 (*count2)++;
                 if (logging == IDYES)
@@ -1341,6 +1343,7 @@ namespace DirectDesktop
                 if (tempYPos > 200) break;
             }
             pm[index] = pmBuf2[index];
+            pm[index]->SetItemIndex(index);
         }
         pmBuf.clear();
         pmBuf2.clear();
@@ -1414,6 +1417,8 @@ namespace DirectDesktop
                 if (!match) offsetSizeKey += g_touchmode ? 14 : 10;
             }
         }
+        for (int i = 0; i < pm.size(); i++)
+            pm[i]->SetItemIndex(i);
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable"))
         {
             free(valueSizeKey);
@@ -1469,7 +1474,7 @@ namespace DirectDesktop
                             peIcon->SetGroupColor(colorID);
                             if (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)
                             {
-                                pm[j]->GetIcon()->SetAssociatedColor(colorPickerPalette[colorID]);
+                                peIcon->SetAssociatedColor(colorPickerPalette[colorID]);
                                 DDScalableRichText* peItemCount = pm[j]->GetItemCountElement();
                                 if (g_isGlass || g_touchmode);
                                 else if (peIcon->GetGroupColor() == 0)

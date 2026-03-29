@@ -14,6 +14,13 @@ namespace DirectDesktop
     extern BYTE g_hideFileExt;
     extern BYTE g_iconunderline;
     extern BYTE g_fontsmoothing;
+    extern BOOL g_windowAnim;
+    extern BOOL g_clientAnim;
+    extern BOOL g_comboAnim;
+    extern BOOL g_menuAnim;
+    extern BOOL g_tooltipAnim;
+    extern bool g_labelshadow;
+    extern bool g_selectionrect;
     extern bool g_treatdirasgroup;
     extern bool g_showfolderitemcount;
     extern bool g_tripleclickandhide;

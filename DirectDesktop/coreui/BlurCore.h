@@ -195,8 +195,11 @@ namespace DirectDesktop
 
     void ToggleAcrylicBlur(HWND hwnd, bool blur, bool fullscreen, BYTE alpha, Element* peOptional)
     {
+        SYSTEM_POWER_STATUS sps;
+        GetSystemPowerStatus(&sps);
         if (peOptional) peOptional->SetClass(L"TransparentDisabled");
-        if ((GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1 || !fullscreen) && DWMActive)
+        if (((GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1 &&
+            !sps.SystemStatusFlag) || !fullscreen) && DWMActive)
         {
             HMODULE hUser = GetModuleHandleW(L"user32.dll");
             if (hUser)

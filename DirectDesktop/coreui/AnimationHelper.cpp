@@ -36,6 +36,11 @@ namespace DirectDesktop
         return 0;
     }
 
+    void CubicBezier()
+    {
+
+    }
+
     // Original author: AllieTheFox, modified by WinExperiments
     void EulerRotationToAxisRotation(GTRANS_VALUE* pvEulerRotation1, GTRANS_VALUE* pvEulerRotation2)
     {
@@ -122,7 +127,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vInitial.flY = initialPosY + ptLoc.y;
         rgTrans[transIndex].vEnd.flX = targetPosX + ptLoc.x;
         rgTrans[transIndex].vEnd.flY = targetPosY + ptLoc.y;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -131,7 +136,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -156,7 +161,7 @@ namespace DirectDesktop
         rgTrans[transIndex].Curve.ptfl2.y = rY1;
         rgTrans[transIndex].vInitial.flScalar = initialOpacity;
         rgTrans[transIndex].vEnd.flScalar = targetOpacity;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -165,7 +170,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -197,7 +202,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetScaleY;
         rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
         rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -206,7 +211,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -233,7 +238,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetScaleY;
         rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
         rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -242,7 +247,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -269,7 +274,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flScalar = targetAngle;
         rgTrans[transIndex].vEnd.flOriginX = targetOriginX;
         rgTrans[transIndex].vEnd.flOriginY = targetOriginY;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -278,7 +283,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -309,7 +314,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetAngleY;
         rgTrans[transIndex].vEnd.flOriginX = 0.5f;
         rgTrans[transIndex].vEnd.flOriginY = 0.5f;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -318,7 +323,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -350,7 +355,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flY = targetBottom;
         rgTrans[transIndex].vEnd.flOriginX = targetLeft;
         rgTrans[transIndex].vEnd.flOriginY = targetTop;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -359,7 +364,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -393,7 +398,7 @@ namespace DirectDesktop
         rgTrans[transIndex].vEnd.flOriginX = targetOriginAxisX;
         rgTrans[transIndex].vEnd.flOriginY = targetOriginAxisY;
         rgTrans[transIndex].vEnd.flOriginZ = targetOriginAxisZ;
-        float flDEA = DWMActive ? flDuration * 1000 : 0.0f;
+        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
@@ -402,7 +407,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -439,5 +444,80 @@ namespace DirectDesktop
             TriggerScaleOut(peClone, rgTrans, 2, 0.0f, flDuration + 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, false, true); // Give the element some time to get destroyed
             ScheduleGadgetTransitions_DWMCheck(0, 3, rgTrans, nullptr, &tsbInfo);
         }
+    }
+
+
+    SimpleCubicBezierInterpolator::SimpleCubicBezierInterpolator() : _rX0(0), _rY0(0), _rX1(1), _rY1(1)
+    {
+        for (int i = 0; i < 11; i++)
+            _presetProgression[i] = 0.1 * i;
+    }
+
+    SimpleCubicBezierInterpolator::SimpleCubicBezierInterpolator(double rX0, double rY0, double rX1, double rY1)
+    {
+        this->SetCurve(rX0, rX1, rY0, rY1);
+    }
+
+    double SimpleCubicBezierInterpolator::GetProgression(double x)
+    {
+        if (x <= 0.0) return 0.0;
+        if (x >= 1.0) return 1.0;
+
+        double intervalStart = 0.0;
+        int currentSample = 1;
+        while (currentSample < 11 && _presetProgression[currentSample] <= x)
+        {
+            intervalStart += 0.1;
+            currentSample++;
+        }
+        currentSample--;
+
+        double dist = (x - _presetProgression[currentSample]) / (_presetProgression[currentSample + 1] - _presetProgression[currentSample]);
+        double estimate = intervalStart + dist * 0.1;
+
+        double t = _SolveForT(x, estimate);
+        return _CalculateCoordRelativeToT(t, _rY0, _rY1);
+    }
+
+    void SimpleCubicBezierInterpolator::SetCurve(double rX0, double rY0, double rX1, double rY1)
+    {
+        _rX0 = rX0;
+        _rY0 = rY0;
+        _rX1 = rX1;
+        _rY1 = rY1;
+        for (int i = 0; i < 11; i++)
+            _presetProgression[i] = _CalculateCoordRelativeToT(0.1 * i, rX0, rX1);
+    }
+
+    double SimpleCubicBezierInterpolator::_SimplePower2(double value)
+    {
+        return value * value;
+    }
+
+    double SimpleCubicBezierInterpolator::_SimplePower3(double value)
+    {
+        return value * value * value;
+    }
+
+    double SimpleCubicBezierInterpolator::_CalculateCoordRelativeToT(double t, double param1, double param2)
+    {
+        return 3.0 * t * _SimplePower2(1 - t) * param1 + 3.0 * _SimplePower2(t) * (1 - t) * param2 + _SimplePower3(t);
+    }
+
+    double SimpleCubicBezierInterpolator::_DifferentiateCoordRelativeToT(double t, double param1, double param2)
+    {
+        return 3.0 * _SimplePower2(1 - t) * param1 + 6.0 * t * (1 - t) * (param2 - param1) + 3.0 * _SimplePower2(t) * (1 - param2);
+    }
+
+    double SimpleCubicBezierInterpolator::_SolveForT(double x, double estimate)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            double derv = _DifferentiateCoordRelativeToT(estimate, _rX0, _rX1);
+            if (derv == 0.0) return estimate;
+            double currentX = _CalculateCoordRelativeToT(estimate, _rX0, _rX1) - x;
+            estimate -= currentX / derv;
+        }
+        return estimate;
     }
 } 

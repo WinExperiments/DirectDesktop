@@ -434,7 +434,8 @@ namespace DirectDesktop
     {
         parserEdit->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninnerE);
         centeredE->Add((Element**)&fullscreeninnerE, 1);
-        SetPopupSize(centeredE, width, height);
+        centeredE->SetWidth(width);
+        centeredE->SetHeight(height);
         //SetPopupSize(fullscreeninnerE, width, height);
         fullscreenpopupbaseE->SetVisible(true);
         fullscreeninnerE->SetVisible(true);
@@ -1199,9 +1200,12 @@ namespace DirectDesktop
             TogglePage(prevpage, xLoc, 0.25, 0.5, 0.5);
         }
 
-        SetPopupSize(centeredE, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
-        SetPopupSize(fullscreeninnerE, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
-        SetPopupSize(simpleviewoverlay, ceil(dimensions.right * 0.7), ceil(dimensions.bottom * 0.7));
+        centeredE->SetWidth(ceil(dimensions.right * 0.7));
+        centeredE->SetHeight(ceil(dimensions.bottom * 0.7));
+        fullscreeninnerE->SetWidth(ceil(dimensions.right * 0.7));
+        fullscreeninnerE->SetHeight(ceil(dimensions.bottom * 0.7));
+        simpleviewoverlay->SetWidth(ceil(dimensions.right * 0.7));
+        simpleviewoverlay->SetHeight(ceil(dimensions.bottom * 0.7));
         SimpleViewTop->SetHeight(floor(dimensions.bottom * 0.15));
         SimpleViewTopInner->SetHeight(floor(dimensions.bottom * 0.15));
         SimpleViewBottom->SetHeight(dimensions.bottom - SimpleViewTop->GetHeight() - fullscreeninnerE->GetHeight());
@@ -1257,113 +1261,116 @@ namespace DirectDesktop
             rightXSmall = (localeType == 1) ? dimensions.right * 0.1 : rightX;
             rightWidthSmall = (localeType == 1) ? rightWidth : dimensions.right * 0.9 - rightXSmall;
         }
-        if (animate)
+        if (DWMActive)
         {
-            GTRANS_DESC transDesc[8];
-            TransitionStoryboardInfo tsbInfo = {};
-            TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, false, false);
-            TriggerFade(fullscreenpopupbaseE, transDesc, 2, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(fullscreenpopupbaseE, transDesc, 3, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-            TriggerFade(SimpleViewTop, transDesc, 4, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(SimpleViewTop, transDesc, 5, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 3.33f, 1.0f, 1.0f, 0.5f, 3.33f, false, false);
-            TriggerFade(SimpleViewBottom, transDesc, 6, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(SimpleViewBottom, transDesc, 7, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, -3.33f, 1.0f, 1.0f, 0.5f, -3.33f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
-            DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
-            DUI_SetGadgetZOrder(SimpleViewTop, 0);
-            DUI_SetGadgetZOrder(SimpleViewBottom, 0);
-        }
-        else
-        {
-            // 0.5.6: bg_extras are never destroyed, which is problematic as long as the edit mode isn't closed
-            Element* bg_main[7]{};
-            Element* bg_extras[4]{};
-            short localeDirection = (localeType == 1) ? -1 : 1;
-            short animDirection = 1;
-            float flOrig = 0.5f * (1 - localeDirection), flOrig2 = 0.5f * (1 + localeDirection);
-            BYTE fullLeftCoef = (prevpage->GetWidth() > 0) ? 1 : 3, fullRightCoef = (nextpage->GetWidth() > 0) ? 1 : 3;
-            float flMiddleAnim = -1 * localeDirection * centeredE->GetWidth() / static_cast<float>(bg_right_middle->GetWidth()) * fullRightCoef + (1 - localeDirection) / 2.0f;
-            float flMiddleSmAnim = localeDirection * (centeredE->GetWidth() + bg_left_middle->GetWidth() / (7.0f * fullLeftCoef)) / (bg_left_middle->GetWidth() / 1.4f) * fullLeftCoef + (1 + localeDirection) / 2.0f;
-            float flMiddleSmAnim2 = -1 * localeDirection * nextpage->GetWidth() / static_cast<float>(bg_right_middle->GetWidth()) + (1 - localeDirection) / 2.0f;
-            bool invert{};
-            UIContainer->SetVisible(false);
-            GTRANS_DESC transDesc[1], transDesc2[1], transDesc3[1];
-            TransitionStoryboardInfo tsbInfo = {};
-            if (animFlags & 1)
+            if (animate)
             {
-                EM_CreateDimRect(bg_extras[0], EM_Dim, nextpage->GetX() + nextpage->GetWidth() * localeDirection, nextpage->GetY(), nextpage->GetWidth(), nextpage->GetHeight());
-                EM_CreateDimRect(bg_extras[1], EM_Dim, leftX, SimpleViewTopInner->GetHeight(), leftWidth, prevpage->GetY() - SimpleViewTopInner->GetHeight());
-                EM_CreateDimRect(bg_extras[2], EM_Dim, leftXSmall + leftWidthSmall / 3.5f, bg_extras[1]->GetY() + bg_extras[1]->GetHeight(), leftWidthSmall / 1.4f, prevpage->GetHeight());
-                EM_CreateDimRect(bg_extras[3], EM_Dim, leftX, bg_extras[2]->GetY() + bg_extras[2]->GetHeight(), leftWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_extras[2]->GetY() - bg_extras[2]->GetHeight());
-                bg_main[0] = bg_left_middle, bg_main[1] = bg_right_top, bg_main[2] = bg_right_middle, bg_main[3] = bg_right_bottom;
-                TriggerScaleIn(centeredE, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f - 3.18f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.18f * localeDirection, 0.5f, false, false);
-                TriggerScaleIn(nextpage, transDesc3, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 3.25f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.25f * localeDirection, 0.5f, false, false);
-            }
-            if (animFlags & 2)
-            {
-                bg_main[4] = bg_left_top, bg_main[5] = bg_left_middle, bg_main[6] = bg_left_bottom;
-                TriggerScaleIn(prevpage, transDesc2, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f - 3.0f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.0f * localeDirection, 0.5f, false, false);
-            }
-            if (animFlags & 4)
-            {
-                invert = true;
-                EM_CreateDimRect(bg_extras[0], EM_Dim, prevpage->GetX() - prevpage->GetWidth() * localeDirection, prevpage->GetY(), prevpage->GetWidth(), prevpage->GetHeight());
-                EM_CreateDimRect(bg_extras[1], EM_Dim, rightX, SimpleViewTopInner->GetHeight(), rightWidth, nextpage->GetY() - SimpleViewTopInner->GetHeight());
-                EM_CreateDimRect(bg_extras[2], EM_Dim, rightXSmall, bg_extras[1]->GetY() + bg_extras[1]->GetHeight(), rightWidthSmall / 1.4f, nextpage->GetHeight());
-                EM_CreateDimRect(bg_extras[3], EM_Dim, rightX, bg_extras[2]->GetY() + bg_extras[2]->GetHeight(), rightWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_extras[2]->GetY() - bg_extras[2]->GetHeight());
-                bg_main[0] = bg_right_middle, bg_main[1] = bg_left_top, bg_main[2] = bg_left_middle, bg_main[3] = bg_left_bottom;
-                TriggerScaleIn(centeredE, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f + 3.18f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.18f * localeDirection, 0.5f, false, false);
-                TriggerScaleIn(prevpage, transDesc2, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f - 3.25f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.25f * localeDirection, 0.5f, false, false);
-            }
-            if (animFlags & 5)
-            {
-                if (invert)
-                {
-                    animDirection = -1;
-                    flOrig = 0.5f * (1 + localeDirection);
-                    flOrig2 = 0.5f * (1 - localeDirection);
-                    flMiddleAnim = localeDirection * centeredE->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) * fullLeftCoef + (1 + localeDirection) / 2.0f;
-                    flMiddleSmAnim = -1 * localeDirection * (centeredE->GetWidth() + bg_left_middle->GetWidth() / 7.0f) / (bg_right_middle->GetWidth() / 1.4f) * fullRightCoef + (1 - localeDirection) / 2.0f;
-                    flMiddleSmAnim2 = localeDirection * prevpage->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) + (1 + localeDirection) / 2.0f;
-                }
                 GTRANS_DESC transDesc[8];
-                TriggerScaleIn(bg_extras[0], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, false, false);
-                TriggerScaleOut(bg_extras[1], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[1]), 0.0f, flOrig, 0.0f, false, false);
-                TriggerScaleOut(bg_extras[2], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 0.0f, (centeredE->GetHeight() / static_cast<float>(bg_extras[2]->GetHeight())), flMiddleSmAnim, 0.5f, false, false);
-                TriggerScaleOut(bg_extras[3], transDesc, 3, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[3]), 0.0f, flOrig, 1.0f, false, false);
-                TriggerScaleIn(bg_main[0], transDesc, 4, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, false, false);
-                TriggerScaleIn(bg_main[1], transDesc, 5, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    EM_GetRectAniWScale(bg_main[1]), 0.0f, flOrig2, 0.0f, 1.0f, 1.0f, flOrig2, 0.0f, false, false);
-                TriggerScaleIn(bg_main[2], transDesc, 6, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    0.0f, (centeredE->GetHeight() / static_cast<float>(bg_main[2]->GetHeight())),
-                    flMiddleAnim, 0.5f, 1.0f, 1.0f, flMiddleAnim, 0.5f, false, false);
-                TriggerScaleIn(bg_main[3], transDesc, 7, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    EM_GetRectAniWScale(bg_main[3]), 0.0f, flOrig2, 1.0f, 1.0f, 1.0f, flOrig2, 1.0f, false, false);
+                TransitionStoryboardInfo tsbInfo = {};
+                TriggerFade(UIContainer, transDesc, 0, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TriggerScaleOut(UIContainer, transDesc, 1, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, false, false);
+                TriggerFade(fullscreenpopupbaseE, transDesc, 2, 0.0f, 0.167f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleIn(fullscreenpopupbaseE, transDesc, 3, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                TriggerFade(SimpleViewTop, transDesc, 4, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleIn(SimpleViewTop, transDesc, 5, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, 3.33f, 1.0f, 1.0f, 0.5f, 3.33f, false, false);
+                TriggerFade(SimpleViewBottom, transDesc, 6, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleIn(SimpleViewBottom, transDesc, 7, 0.0f, 0.33f, 0.1f, 0.9f, 0.2f, 1.0f, 1.4285f, 1.4285f, 0.5f, -3.33f, 1.0f, 1.0f, 0.5f, -3.33f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                DUI_SetGadgetZOrder(fullscreenpopupbaseE, -1);
+                DUI_SetGadgetZOrder(SimpleViewTop, 0);
+                DUI_SetGadgetZOrder(SimpleViewBottom, 0);
             }
-            if (animFlags & 6) ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, prevpage->GetDisplayNode(), &tsbInfo);
-            if (animFlags & 8)
+            else
             {
-                bg_main[4] = bg_right_top, bg_main[5] = bg_right_middle, bg_main[6] = bg_right_bottom;
-                TriggerScaleIn(nextpage, transDesc3, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f + 3.0f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.0f * localeDirection, 0.5f, false, false);
-            }
-            if (animFlags & 9) ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc3), transDesc3, nextpage->GetDisplayNode(), &tsbInfo);
-            if (animFlags & 0xA)
-            {
-                GTRANS_DESC transDesc[3];
-                TriggerScaleIn(bg_main[4], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 3.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 3.5f, false, false);
-                TriggerScaleIn(bg_main[5], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    0.0f, 1 / 1.4f, flMiddleSmAnim2, 0.5f, 1.0f, 1.0f, flMiddleSmAnim2, 0.5f, false, false);
-                TriggerScaleIn(bg_main[6], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
-                    1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, -2.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, -2.5f, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
-            }
-            if (animFlags & 0xF)
-            {
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, centeredE->GetDisplayNode(), &tsbInfo);
+                // 0.5.6: bg_extras are never destroyed, which is problematic as long as the edit mode isn't closed
+                Element* bg_main[7]{};
+                Element* bg_extras[4]{};
+                short localeDirection = (localeType == 1) ? -1 : 1;
+                short animDirection = 1;
+                float flOrig = 0.5f * (1 - localeDirection), flOrig2 = 0.5f * (1 + localeDirection);
+                BYTE fullLeftCoef = (prevpage->GetWidth() > 0) ? 1 : 3, fullRightCoef = (nextpage->GetWidth() > 0) ? 1 : 3;
+                float flMiddleAnim = -1 * localeDirection * centeredE->GetWidth() / static_cast<float>(bg_right_middle->GetWidth()) * fullRightCoef + (1 - localeDirection) / 2.0f;
+                float flMiddleSmAnim = localeDirection * (centeredE->GetWidth() + bg_left_middle->GetWidth() / (7.0f * fullLeftCoef)) / (bg_left_middle->GetWidth() / 1.4f) * fullLeftCoef + (1 + localeDirection) / 2.0f;
+                float flMiddleSmAnim2 = -1 * localeDirection * nextpage->GetWidth() / static_cast<float>(bg_right_middle->GetWidth()) + (1 - localeDirection) / 2.0f;
+                bool invert{};
+                UIContainer->SetVisible(false);
+                GTRANS_DESC transDesc[1], transDesc2[1], transDesc3[1];
+                TransitionStoryboardInfo tsbInfo = {};
+                if (animFlags & 1)
+                {
+                    EM_CreateDimRect(bg_extras[0], EM_Dim, nextpage->GetX() + nextpage->GetWidth() * localeDirection, nextpage->GetY(), nextpage->GetWidth(), nextpage->GetHeight());
+                    EM_CreateDimRect(bg_extras[1], EM_Dim, leftX, SimpleViewTopInner->GetHeight(), leftWidth, prevpage->GetY() - SimpleViewTopInner->GetHeight());
+                    EM_CreateDimRect(bg_extras[2], EM_Dim, leftXSmall + leftWidthSmall / 3.5f, bg_extras[1]->GetY() + bg_extras[1]->GetHeight(), leftWidthSmall / 1.4f, prevpage->GetHeight());
+                    EM_CreateDimRect(bg_extras[3], EM_Dim, leftX, bg_extras[2]->GetY() + bg_extras[2]->GetHeight(), leftWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_extras[2]->GetY() - bg_extras[2]->GetHeight());
+                    bg_main[0] = bg_left_middle, bg_main[1] = bg_right_top, bg_main[2] = bg_right_middle, bg_main[3] = bg_right_bottom;
+                    TriggerScaleIn(centeredE, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f - 3.18f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.18f * localeDirection, 0.5f, false, false);
+                    TriggerScaleIn(nextpage, transDesc3, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 3.25f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.25f * localeDirection, 0.5f, false, false);
+                }
+                if (animFlags & 2)
+                {
+                    bg_main[4] = bg_left_top, bg_main[5] = bg_left_middle, bg_main[6] = bg_left_bottom;
+                    TriggerScaleIn(prevpage, transDesc2, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f - 3.0f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.0f * localeDirection, 0.5f, false, false);
+                }
+                if (animFlags & 4)
+                {
+                    invert = true;
+                    EM_CreateDimRect(bg_extras[0], EM_Dim, prevpage->GetX() - prevpage->GetWidth() * localeDirection, prevpage->GetY(), prevpage->GetWidth(), prevpage->GetHeight());
+                    EM_CreateDimRect(bg_extras[1], EM_Dim, rightX, SimpleViewTopInner->GetHeight(), rightWidth, nextpage->GetY() - SimpleViewTopInner->GetHeight());
+                    EM_CreateDimRect(bg_extras[2], EM_Dim, rightXSmall, bg_extras[1]->GetY() + bg_extras[1]->GetHeight(), rightWidthSmall / 1.4f, nextpage->GetHeight());
+                    EM_CreateDimRect(bg_extras[3], EM_Dim, rightX, bg_extras[2]->GetY() + bg_extras[2]->GetHeight(), rightWidth, dimensions.bottom - SimpleViewBottomInner->GetHeight() - bg_extras[2]->GetY() - bg_extras[2]->GetHeight());
+                    bg_main[0] = bg_right_middle, bg_main[1] = bg_left_top, bg_main[2] = bg_left_middle, bg_main[3] = bg_left_bottom;
+                    TriggerScaleIn(centeredE, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f + 3.18f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.18f * localeDirection, 0.5f, false, false);
+                    TriggerScaleIn(prevpage, transDesc2, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f - 3.25f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f - 3.25f * localeDirection, 0.5f, false, false);
+                }
+                if (animFlags & 5)
+                {
+                    if (invert)
+                    {
+                        animDirection = -1;
+                        flOrig = 0.5f * (1 + localeDirection);
+                        flOrig2 = 0.5f * (1 - localeDirection);
+                        flMiddleAnim = localeDirection * centeredE->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) * fullLeftCoef + (1 + localeDirection) / 2.0f;
+                        flMiddleSmAnim = -1 * localeDirection * (centeredE->GetWidth() + bg_left_middle->GetWidth() / 7.0f) / (bg_right_middle->GetWidth() / 1.4f) * fullRightCoef + (1 - localeDirection) / 2.0f;
+                        flMiddleSmAnim2 = localeDirection * prevpage->GetWidth() / static_cast<float>(bg_left_middle->GetWidth()) + (1 + localeDirection) / 2.0f;
+                    }
+                    GTRANS_DESC transDesc[8];
+                    TriggerScaleIn(bg_extras[0], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1.4f, 1.4f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f + 2.25f * localeDirection * animDirection, 0.5f, false, false);
+                    TriggerScaleOut(bg_extras[1], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[1]), 0.0f, flOrig, 0.0f, false, false);
+                    TriggerScaleOut(bg_extras[2], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 0.0f, (centeredE->GetHeight() / static_cast<float>(bg_extras[2]->GetHeight())), flMiddleSmAnim, 0.5f, false, false);
+                    TriggerScaleOut(bg_extras[3], transDesc, 3, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, EM_GetRectAniWScale(bg_extras[3]), 0.0f, flOrig, 1.0f, false, false);
+                    TriggerScaleIn(bg_main[0], transDesc, 4, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 0.5f, false, false);
+                    TriggerScaleIn(bg_main[1], transDesc, 5, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        EM_GetRectAniWScale(bg_main[1]), 0.0f, flOrig2, 0.0f, 1.0f, 1.0f, flOrig2, 0.0f, false, false);
+                    TriggerScaleIn(bg_main[2], transDesc, 6, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        0.0f, (centeredE->GetHeight() / static_cast<float>(bg_main[2]->GetHeight())),
+                        flMiddleAnim, 0.5f, 1.0f, 1.0f, flMiddleAnim, 0.5f, false, false);
+                    TriggerScaleIn(bg_main[3], transDesc, 7, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        EM_GetRectAniWScale(bg_main[3]), 0.0f, flOrig2, 1.0f, 1.0f, 1.0f, flOrig2, 1.0f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                }
+                if (animFlags & 6) ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, prevpage->GetDisplayNode(), &tsbInfo);
+                if (animFlags & 8)
+                {
+                    bg_main[4] = bg_right_top, bg_main[5] = bg_right_middle, bg_main[6] = bg_right_bottom;
+                    TriggerScaleIn(nextpage, transDesc3, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / 1.4f, 1 / 1.4f, 0.5f + 3.0f * localeDirection, 0.5f, 1.0f, 1.0f, 0.5f + 3.0f * localeDirection, 0.5f, false, false);
+                }
+                if (animFlags & 9) ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc3), transDesc3, nextpage->GetDisplayNode(), &tsbInfo);
+                if (animFlags & 0xA)
+                {
+                    GTRANS_DESC transDesc[3];
+                    TriggerScaleIn(bg_main[4], transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, 3.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, 3.5f, false, false);
+                    TriggerScaleIn(bg_main[5], transDesc, 1, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        0.0f, 1 / 1.4f, flMiddleSmAnim2, 0.5f, 1.0f, 1.0f, flMiddleSmAnim2, 0.5f, false, false);
+                    TriggerScaleIn(bg_main[6], transDesc, 2, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f,
+                        1 / 1.4f, 1 / 1.4f, 0.5f - 12.0f * localeDirection * animDirection, -2.5f, 1.0f, 1.0f, 0.5f - 12.0f * localeDirection * animDirection, -2.5f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                }
+                if (animFlags & 0xF)
+                {
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, centeredE->GetDisplayNode(), &tsbInfo);
+                }
             }
         }
         g_invokedpagechange = false;

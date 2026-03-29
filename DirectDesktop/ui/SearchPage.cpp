@@ -53,7 +53,10 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        AnimateWindow(searchwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+        if (g_windowAnim)
+            AnimateWindow(searchwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+        else
+            searchwnd->ShowWindow(SW_SHOW);
         SendMessageW(searchwnd->GetHWND(), WM_USER + 1, NULL, NULL);
         return 0;
     }
@@ -62,8 +65,12 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        if (!g_windowAnim) animCoef = 0;
         Sleep(175 * (animCoef / 100.0f));
-        AnimateWindow(searchwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
+        if (g_windowAnim)
+            AnimateWindow(searchwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
+        else
+            searchwnd->ShowWindow(SW_HIDE);
         searchwnd->DestroyWindow();
         SetForegroundWindow(wnd->GetHWND());
         g_searchopen = false;

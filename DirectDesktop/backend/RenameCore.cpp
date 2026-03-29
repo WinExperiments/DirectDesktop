@@ -4,7 +4,9 @@
 #include "..\coreui\StyleModifier.h"
 #include "..\DirectDesktop.h"
 #include <Richedit.h>
+#include <Richole.h>
 #include <textserv.h>
+#include <TOM.h>
 
 using namespace std;
 using namespace DirectUI;
@@ -23,24 +25,27 @@ namespace DirectDesktop
 
     wstring RenameHelper(LVItem* lvi)
     {
+        wstring fileNameNoQuote = RemoveQuotes(lvi->GetFilename());
         wstring result;
-        result.reserve(lvi->GetFilename().length());
+        result.reserve(fileNameNoQuote.length());
 
         size_t pos = 0;
         size_t found = wstring::npos;
-        if (lvi->GetFlags() & LVIF_SHORTCUT) found = lvi->GetFilename().rfind(L".");
-        size_t found2 = lvi->GetFilename().rfind(lvi->GetSimpleFilename(), found);
+        if (lvi->GetFlags() & LVIF_SHORTCUT) found = fileNameNoQuote.rfind(L".");
+        size_t found2 = fileNameNoQuote.rfind(lvi->GetSimpleFilename(), found);
 
-        while (found2 != wstring::npos)
+        if (found2 != wstring::npos)
         {
-            result.append(lvi->GetFilename(), pos, found2 - pos);
+            result.append(fileNameNoQuote, pos, found2 - pos);
             result += L"%s";
             pos = found2 + lvi->GetSimpleFilename().length();
-            found2 = lvi->GetFilename().find(lvi->GetSimpleFilename(), pos);
-            break;
+            found2 = fileNameNoQuote.find(lvi->GetSimpleFilename(), pos);
         }
 
-        result.append(lvi->GetFilename(), pos, lvi->GetFilename().length() - pos);
+        result.append(fileNameNoQuote, pos, fileNameNoQuote.length() - pos);
+        size_t found3 = result.find_last_of(L"\\") + 1;
+        if (found3 != wstring::npos)
+            result = result.substr(found3, wstring::npos);
         return result;
     }
 
@@ -48,10 +53,10 @@ namespace DirectDesktop
     {
         HRESULT hr{};
         HWND hRichEdit = FindWindowExW(wnd->GetHWND(), nullptr, MSFTEDIT_CLASS, nullptr);
-        WCHAR* buffer = new WCHAR[256];
+        WCHAR* buffer = new WCHAR[MAX_PATH];
         wstring newText{};
-        GetWindowTextW(hRichEdit, buffer, 256);
-        if (wcscmp(buffer, selectedElement->GetSimpleFilename().c_str()) == 0)
+        GetWindowTextW(hRichEdit, buffer, MAX_PATH);
+        if (wcscmp(buffer, selectedElement->GetSimpleFilename().c_str()) == 0 || wcslen(buffer) == 0)
         {
             delete[] buffer;
             return;
@@ -59,57 +64,81 @@ namespace DirectDesktop
         if (!buffer) hr = E_FAIL;
         else newText = RemoveEndingSpaces(buffer);
         wstring newFilenameBuffer = RenameHelper(selectedElement);
-        WCHAR* newFilename = new WCHAR[256];
-        StringCchPrintfW(newFilename, 256, newFilenameBuffer.c_str(), newText.c_str());
-        if (hr != E_FAIL && MoveFileW(RemoveQuotes(selectedElement->GetFilename()).c_str(), RemoveQuotes(newFilename).c_str()))
+        WCHAR* newFilename = new WCHAR[MAX_PATH];
+        StringCchPrintfW(newFilename, MAX_PATH, newFilenameBuffer.c_str(), newText.c_str());
+        if (SUCCEEDED(hr))
         {
-            SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
-            SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 300, nullptr);
+            IShellItem2* pShellItem{};
+            hr = SHCreateItemFromParsingName(RemoveQuotes(selectedElement->GetFilename()).c_str(), nullptr, IID_PPV_ARGS(&pShellItem));
+            if (SUCCEEDED(hr))
+            {
+                IFileOperation* pfo;
+                hr = CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_INPROC_SERVER, IID_IFileOperation, (LPVOID*)&pfo);
+                if (SUCCEEDED(hr))
+                {
+                    pfo->SetOperationFlags(FOF_SILENT | FOF_ALLOWUNDO | FOF_NOCONFIRMMKDIR);
+                    pfo->RenameItem(pShellItem, newFilename, nullptr);
+                    pfo->PerformOperations();
+                    pfo->Release();
+                }
+                pShellItem->Release();
+            }
         }
         delete[] newFilename;
         delete[] buffer;
     }
 
-    int GetContentHeight(HWND hRichEdit)
+    void GetContentRect(HWND hRichEdit, RECT* prcEdit)
     {
-        int lineCount = (int)SendMessageW(hRichEdit, EM_GETLINECOUNT, 0, 0);
-        HDC hdc = GetDC(hRichEdit);
-        TEXTMETRICW tm{};
-        LOGFONTW lf{};
-        RECT rc = { 0, 0, 100, 100 };
-        HDC hdcBuffer = CreateCompatibleDC(nullptr);
-        SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
-        HFONT hFont = CreateFontIndirectW(&lf);
-        HFONT hOldFont = (HFONT)SelectObject(hdcBuffer, hFont);
-        DrawTextW(hdcBuffer, L" ", -1, &rc, g_touchmode ? DT_LEFT : DT_CENTER);
-        GetTextMetricsW(hdcBuffer, &tm);
-        SelectObject(hdcBuffer, hOldFont);
-        DeleteObject(hFont);
-        DeleteDC(hdcBuffer);
-        int lineHeight = (tm.tmHeight + tm.tmExternalLeading);
-        ReleaseDC(hRichEdit, hdc);
-        if (g_touchmode) lineHeight *= 1.25;
-        return (lineCount * lineHeight);
+        IRichEditOle* pEditOle{};
+        ITextDocument2* ptxtd{};
+        ITextRange2* ptxtr{};
+        HRESULT hr = SendMessageW(hRichEdit, EM_GETOLEINTERFACE, NULL, (LPARAM)&pEditOle);
+        if (hr != NOERROR)
+        {
+            hr = pEditOle->QueryInterface(IID_PPV_ARGS(&ptxtd));
+            if (SUCCEEDED(hr))
+            {
+                hr = ptxtd->Range2(0, tomForward, &ptxtr);
+                if (SUCCEEDED(hr))
+                {
+                    ptxtr->GetPoint(tomStart | tomAllowOffClient, (long*)prcEdit, (long*)prcEdit + 1);
+                    ptxtr->GetPoint(tomEnd | TA_BOTTOM | tomAllowOffClient, (long*)prcEdit + 2, (long*)prcEdit + 3);
+                    ptxtr->Release();
+                }
+                ptxtd->Release();
+            }
+            pEditOle->Release();
+        }
     }
 
-    void ResizeToContent(HWND hRichEdit)
+    void ResizeToContent(HWND hRichEdit, LVItem* lvi)
     {
         CValuePtr v;
         CSafeElementPtr<Element> DUIElem; DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
-        RECT rc, rcPadding;
+        RECT rc, rcWindow, rcPadding;
+        GetContentRect(hRichEdit, &rc);
+        GetWindowRect(hRichEdit, &rcWindow);
         DUIElem->GetRenderPadding(&rcPadding);
-        GetWindowRect(hRichEdit, &rc);
-        int currentWidth = rc.right - rc.left;
-        int newHeight = GetContentHeight(hRichEdit);
-        SetWindowPos(hRichEdit, nullptr, 0, 0, currentWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
-        DUIElem->SetHeight(newHeight + rcPadding.top + rcPadding.bottom + 1);
+        if (lvi->GetGroupSize() == LVIGS_NORMAL)
+        {
+            int currentWidth = rcWindow.right - rcWindow.left;
+            SetWindowPos(hRichEdit, nullptr, 0, 0, currentWidth, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER);
+            DUIElem->SetHeight(rc.bottom - rc.top + rcPadding.top + rcPadding.bottom + 1);
+        }
+        else
+        {
+            int currentHeight = rcWindow.bottom - rcWindow.top;
+            SetWindowPos(hRichEdit, nullptr, 0, 0, max(rc.right - rcWindow.left, 16), currentHeight, SWP_NOMOVE | SWP_NOZORDER);
+            DUIElem->SetWidth(max(rc.right - rcWindow.left, 16) + rcPadding.left + rcPadding.right + 1);
+        }
     }
 
     LRESULT CALLBACK RichEditWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
         CSafeElementPtr<Element> DUIElem{}, innerElement{};
         CSafeElementPtr<RichText> textElement{};
-        static bool dontkill{};
+        CSafeElementPtr<DDScalableRichText> dirname{};
         if (g_renameactive)
         {
             switch (uMsg)
@@ -117,8 +146,8 @@ namespace DirectDesktop
                 case WM_KEYDOWN:
                     if (wParam == VK_RETURN)
                     {
-                        RenameCore((LVItem*)dwRefData);
                         SendMessageW(hWnd, WM_USER + 1, NULL, NULL);
+                        SendMessageW(hWnd, WM_KILLFOCUS, (WPARAM)GetShellWindow(), NULL);
                         return 0;
                     }
                     if (wParam == VK_ESCAPE)
@@ -128,9 +157,12 @@ namespace DirectDesktop
                         DestroyWindow(hWnd);
                         textElement.Assign(((LVItem*)dwRefData)->GetText());
                         innerElement.Assign(((LVItem*)dwRefData)->GetInnerElement());
+                        dirname.Assign(regElem<DDScalableRichText*>(L"dirname", (LVItem*)dwRefData));
                         textElement->SetVisible(true);
                         if (!g_touchmode)
                             innerElement->SetVisible(true);
+                        if (dirname)
+                            dirname->SetVisible(true);
                         if (DUIElem)
                         {
                             DUIElem->DestroyAll(true);
@@ -145,14 +177,14 @@ namespace DirectDesktop
                         SetTimer(hWnd, 2, 50, nullptr);
                         return 0;
                     }
-                    SetTimer(hWnd, 1, 150, nullptr);
+                    SetTimer(hWnd, 1, 10, nullptr);
                     break;
                 case WM_TIMER:
                     KillTimer(hWnd, wParam);
                     switch (wParam)
                     {
                         case 1:
-                            ResizeToContent(hWnd);
+                            ResizeToContent(hWnd, (LVItem*)dwRefData);
                             break;
                         case 2:
                             MessageBeep(MB_OK);
@@ -180,9 +212,12 @@ namespace DirectDesktop
                     DestroyWindow(hWnd);
                     textElement.Assign(((LVItem*)dwRefData)->GetText());
                     innerElement.Assign(((LVItem*)dwRefData)->GetInnerElement());
+                    dirname.Assign(regElem<DDScalableRichText*>(L"dirname", (LVItem*)dwRefData));
                     textElement->SetVisible(true);
                     if (!g_touchmode)
                         innerElement->SetVisible(true);
+                    if (dirname)
+                        dirname->SetVisible(true);
                     else if (((LVItem*)dwRefData)->GetTileSize() == LVITS_ICONONLY)
                     {
                         textElement->SetVisible(false);
@@ -201,7 +236,6 @@ namespace DirectDesktop
 
     void ShowRename(LVItem* lviOpt)
     {
-        int itemWidth{}, itemHeight{}, itemX{}, itemY{}, textWidth{}, textHeight{}, textX{}, textY{};
         int found{};
         int itemID{};
         if (lviOpt)
@@ -229,28 +263,21 @@ namespace DirectDesktop
             static RichText* textElement{};
             static Element* innerElement{};
             static Element* RenameBoxTexture{};
+            static DDScalableRichText* dirname{};
             if (lviOpt->GetPage() == g_currentPageID)
             {
                 RECT dimensions{};
                 GetClientRect(wnd->GetHWND(), &dimensions);
-                int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
                 g_renameactive = true;
                 textElement = lviOpt->GetText();
                 innerElement = lviOpt->GetInnerElement();
+                dirname = regElem<DDScalableRichText*>(L"dirname", lviOpt);
                 textElement->SetVisible(false);
                 if (!g_touchmode)
                     innerElement->SetVisible(false);
+                if (dirname)
+                    dirname->SetVisible(false);
                 LoadLibraryW(L"Msftedit.dll");
-                itemWidth = lviOpt->GetWidth();
-                itemHeight = lviOpt->GetHeight();
-                itemX = (localeType == 1) ? dimensions.right - lviOpt->GetMemXPos() - itemWidth : lviOpt->GetMemXPos();
-                itemY = lviOpt->GetMemYPos();
-                // 0.4.9: width, x, and y are hardcoded due to changing layoutpos of text from absolute to top in touchmode
-                textWidth = g_touchmode ? textElement->GetWidth() - 6 * g_flScaleFactor : textElement->GetWidth();
-                // 0.5.2: Text element now contains the shadow, so the height increased. As a result, 4 is now 2
-                textHeight = textElement->GetHeight() + 2 * g_flScaleFactor;
-                textX = g_touchmode ? 11 * g_flScaleFactor : 0;
-                textY = g_touchmode ? 10 * g_flScaleFactor : 0;
                 unsigned long keyR{};
                 CValuePtr v;
                 parser->CreateElement(L"RenameBoxTexture", nullptr, nullptr, nullptr, &RenameBoxTexture);
@@ -261,48 +288,79 @@ namespace DirectDesktop
                     SetGadgetFlags(RenameBoxTexture->GetDisplayNode(), NULL, NULL);
                 }
                 RECT ebsz{}, rcPadding{};
-                ebsz.left = itemX, ebsz.top = itemY + itemHeight - textHeight, ebsz.right = itemWidth, ebsz.bottom = textHeight;
                 RenameBoxTexture->GetRenderPadding(&rcPadding);
+                if (lviOpt->GetGroupSize() == LVIGS_NORMAL)
+                    GetGadgetRect(textElement->GetDisplayNode(), &ebsz, 0xC);
+                else if (dirname)
+                    GetGadgetRect(dirname->GetDisplayNode(), &ebsz, 0xC);
+                ebsz.top -= round(2 * g_flScaleFactor);
+                ebsz.bottom += round(g_flScaleFactor) - 1;
                 if (g_touchmode)
-                    ebsz.left = itemX + textX - rcPadding.left, ebsz.top = itemY + textY - rcPadding.top, ebsz.right = textWidth + rcPadding.left, ebsz.bottom = textHeight;
-                int xRender = (localeType == 1) ? dimensions.right - ebsz.left - ebsz.right : ebsz.left;
-                RenameBoxTexture->SetX(xRender), RenameBoxTexture->SetY(ebsz.top);
-                RenameBoxTexture->SetWidth(ebsz.right), RenameBoxTexture->SetHeight(ebsz.bottom);
+                {
+                    ebsz.left -= round(2 * g_flScaleFactor);
+                    ebsz.top -= round(1 * g_flScaleFactor);
+                    ebsz.right += round(3 * g_flScaleFactor);
+                }
+                RenameBoxTexture->SetX(ebsz.left), RenameBoxTexture->SetY(ebsz.top);
+                RenameBoxTexture->SetWidth(ebsz.right - ebsz.left), RenameBoxTexture->SetHeight(ebsz.bottom - ebsz.top);
                 LPWSTR sheetName = g_theme ? (LPWSTR)L"renamestyle" : (LPWSTR)L"renamestyledark";
                 StyleSheet* sheet = pMain->GetSheet();
                 CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
                 parser->GetSheet(sheetName, &sheetStorage);
                 RenameBoxTexture->SetValue(Element::SheetProp, 1, sheetStorage);
-                DWORD alignment = g_touchmode ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
-                HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, lviOpt->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
-                    ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - rcPadding.left - rcPadding.right, ebsz.bottom - rcPadding.top - rcPadding.bottom, wnd->GetHWND(), (HMENU)2050, HINST_THISCOMPONENT, nullptr);
+                DWORD alignment = (g_touchmode || lviOpt->GetGroupSize() != LVIGS_NORMAL) ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
+                if (lviOpt->GetGroupSize() == LVIGS_NORMAL) alignment |= ES_MULTILINE;
+                HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, lviOpt->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
+                    ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - ebsz.left - rcPadding.left - rcPadding.right, ebsz.bottom - ebsz.top - rcPadding.top - rcPadding.bottom,
+                    wnd->GetHWND(), nullptr, HINST_THISCOMPONENT, nullptr);
                 LOGFONTW lf{};
                 int dpiAdjusted = (g_dpiLaunch * 96.0) * (g_dpiLaunch / 96.0) / g_dpi;
-                SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+                if (lviOpt->GetGroupSize() == LVIGS_NORMAL)
+                    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+                else
+                {
+                    int fontsize = dirname->GetFontSize();
+                    if (fontsize < 0) fontsize *= -1.5;
+                    lf.lfHeight = fontsize;
+                    lf.lfWeight = dirname->GetFontWeight();
+                    lf.lfItalic = dirname->GetFontStyle() & 1;
+                    lf.lfUnderline = dirname->GetFontStyle() & 2;
+                    lf.lfStrikeOut = dirname->GetFontStyle() & 4;
+                    lf.lfCharSet = DEFAULT_CHARSET;
+                    lf.lfOutPrecision = OUT_DEFAULT_PRECIS;
+                    lf.lfClipPrecision = CLIP_DEFAULT_PRECIS;
+                    lf.lfQuality = DEFAULT_QUALITY;
+                    lf.lfPitchAndFamily = FF_DONTCARE;
+                    wcscpy_s(lf.lfFaceName, dirname->GetFontFace(&v));
+                }
                 CHARFORMAT2W cf{};
                 cf.cbSize = sizeof(CHARFORMAT2W);
-                cf.dwMask = CFM_FACE | CFM_SIZE | CFM_COLOR | CFM_BOLD | CFM_ITALIC;
-                cf.yHeight = (lf.lfHeight * -15 * 96.0) / dpiAdjusted;
-                if (g_touchmode) cf.yHeight *= 1.25;
+                cf.dwMask = CFM_FACE | CFM_SIZE | CFM_COLOR | CFM_WEIGHT | CFM_ITALIC;
+                if (lviOpt->GetGroupSize() == LVIGS_NORMAL)
+                {
+                    cf.yHeight = (lf.lfHeight * -15 * 96.0) / dpiAdjusted;
+                    if (g_touchmode) cf.yHeight *= 1.25;
+                }
+                else
+                    cf.yHeight = (lf.lfHeight * 10) / (g_dpiLaunch / 96.0f);
+                cf.wWeight = lf.lfWeight;
                 cf.crTextColor = g_theme ? GetSysColor(COLOR_WINDOWTEXT) : RGB(255, 255, 255);
                 wcscpy_s(cf.szFaceName, lf.lfFaceName);
-                if (lf.lfWeight == FW_BOLD) cf.dwEffects |= CFE_BOLD;
                 if (lf.lfItalic) cf.dwEffects |= CFE_ITALIC;
 
                 COLORREF editbg = g_theme ? GetSysColor(COLOR_WINDOW) : RGB(32, 32, 32);
                 SendMessageW(hRichEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
+                SendMessageW(hRichEdit, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
                 SendMessageW(hRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)editbg);
                 SetWindowLongPtrW(hRichEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
                 SetLayeredWindowAttributes(hRichEdit, 0, 255, LWA_ALPHA);
-                if (g_touchmode)
-                    SetWindowPos(hRichEdit, HWND_TOP, itemX + textX, itemY + textY, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
-                else
-                    SetWindowPos(hRichEdit, HWND_TOP, itemX + rcPadding.left, itemY + itemHeight - textHeight + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
+                SetWindowPos(hRichEdit, HWND_TOP, ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
                 SetFocus(hRichEdit);
                 int textLen = lviOpt->GetSimpleFilename().find_last_of(L".");
                 if (textLen == wstring::npos) textLen = lviOpt->GetSimpleFilename().length();
                 SendMessageW(hRichEdit, EM_SETSEL, 0, textLen);
                 SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)lviOpt);
+                SetTimer(hRichEdit, 1, 50, nullptr);
             }
         }
     }

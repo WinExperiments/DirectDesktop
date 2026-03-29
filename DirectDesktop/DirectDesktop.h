@@ -24,6 +24,7 @@ namespace DirectDesktop
     extern bool DWMActive;
     extern bool g_treatdirasgroup, g_canRefreshMain;
     extern bool g_overridefilelistener;
+    extern bool g_newfolder;
     extern DUIXmlParser* g_parser;
     extern DDMenu* g_menu;
     extern HANDLE g_hToken;

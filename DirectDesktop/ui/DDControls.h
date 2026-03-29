@@ -2,6 +2,7 @@
 #pragma warning(disable:6258)
 
 #include "..\backend\SettingsHelper.h"
+#include "..\coreui\AnimationHelper.h"
 
 using namespace std;
 using namespace DirectUI;
@@ -373,7 +374,8 @@ namespace DirectDesktop
         LVIF_MOVING = 0x00000400,
         LVIF_ADVANCEDICON = 0x00000800,
         LVIF_NOSELTRIGGER = 0x00001000,
-        LVIF_NOGROUPANIM = 0x00002000
+        LVIF_NOGROUPANIM = 0x00002000,
+        LVIF_NEWITEM = 0x00004000
     };
 
     class LVItemTouchGrid;
@@ -996,8 +998,6 @@ namespace DirectDesktop
         static DWORD WINAPI s_RemoveFromVec(LPVOID lpParam);
     };
 
-    ////////////////// DDMenuButton and DDMenu are largely unfinished classes.
-
     class DDMenuButton final : public DDNumberedButton
     {
         friend class DDMenu;
@@ -1138,6 +1138,7 @@ namespace DirectDesktop
         int _selectedCommand;
         LONGLONG _tick;
         RECT _rcMenu;
+        SimpleCubicBezierInterpolator* _scbi;
         DDMenu* _parent;
         NativeHWNDHost* _wndSelectionMenu;
         HWNDElement* _peSelectionMenu;

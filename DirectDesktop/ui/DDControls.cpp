@@ -2513,10 +2513,12 @@ namespace DirectDesktop
         short localeDirection = (localeType == 1) ? -1 : 1;
         for (int i = index; i < _itemCount; i++)
         {
-            _items[i]->SetMemXPos(_xFirstTile + ((i & 1) * (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection));
-            _items[i]->SetX(_items[i]->GetMemXPos());
-            _items[i]->SetMemYPos(_yFirstTile + (i / 2) * (g_touchSizeY + DESKPADDING_TOUCH) / 2);
-            _items[i]->SetY(_items[i]->GetMemYPos());
+            int finaldestX = _xFirstTile + ((i & 1) * (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection);
+            int finaldestY = _yFirstTile + (i / 2) * (g_touchSizeY + DESKPADDING_TOUCH) / 2; 
+            _items[i]->SetMemXPos(finaldestX);
+            _items[i]->SetX(finaldestX);
+            _items[i]->SetMemYPos(finaldestY);
+            _items[i]->SetY(finaldestY);
         }
     }
 
@@ -2998,11 +3000,15 @@ namespace DirectDesktop
                 {
                     dwAlphaDiff = dwTickDiff * 2.5f;
                     dwAlphaThreshold = 255;
+                    if (!g_comboAnim)
+                        dwAlphaDiff = 256;
                 }
                 else
                 {
                     dwAlphaDiff = 255 - dwTickDiff * 3.3f;
                     dwAlphaThreshold = 0;
+                    if (!g_comboAnim)
+                        dwAlphaDiff = -1;
                 }
                 if (dwAlphaDiff <= dwAlphaThreshold && wParam == 2)
                     SetLayeredWindowAttributes(cmb->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
@@ -4631,13 +4637,25 @@ namespace DirectDesktop
 
     void DDMenuButton::OnKeyFocusMoved(Element* peFrom, Element* peTo)
     {
-            if (peFrom && this == peTo && _submenu)
-                ((DDMenu*)_peLinked)->_OnButtonClick(this, true);
-            if (peTo && this == peFrom && _submenu)
+        if (this == peTo)
+        {
+            WORD itemID = (WORD)GetMenuItemID(((DDMenu*)this->_peLinked)->_hMenu, _uOrder);
+            if (itemID == 0xFFFF)
+                itemID = 0;
+            WPARAM wParam = MAKEWPARAM(itemID, MF_MOUSESELECT | MF_HILITE);
+            PostMessageW(wnd->GetHWND(), WM_MENUSELECT, wParam, (LPARAM)((DDMenu*)this->_peLinked)->_hMenu);
+            if (peFrom && _submenu)
             {
-                _submenu->_HideMenu();
-                _fKeyFocusInit = false;
+                _fKeyFocusInit = true;
+                SetWindowLongPtrW(((DDMenu*)_peLinked)->_hTimer, GWLP_USERDATA, (LONG_PTR)this);
+                SetTimer(((DDMenu*)_peLinked)->_hTimer, 8, 800, nullptr);
             }
+        }
+        if (peTo && this == peFrom && _submenu)
+        {
+            _submenu->_HideMenu();
+            _fKeyFocusInit = false;
+        }
         DDNumberedButton::OnKeyFocusMoved(peFrom, peTo);
     }
 
@@ -4750,6 +4768,7 @@ namespace DirectDesktop
     LRESULT CALLBACK DDMenu::s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         DDMenu* menu = (DDMenu*)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+        DDMenuButton* menubutton = (DDMenuButton*)menu; // only for wParam 8
         switch (uMsg)
         {
         case WM_TIMER:
@@ -4762,6 +4781,11 @@ namespace DirectDesktop
                 if (menu->_subLevel == 0)
                     if (menu->_pICv1) menu->_pICv1->Release();
                 delete menu;
+                break;
+            case 8:
+                KillTimer(hWnd, wParam);
+                if (menubutton->_fKeyFocusInit && !IsWindowVisible(menubutton->_submenu->_wndSelectionMenu->GetHWND()))
+                    ((DDMenu*)menubutton->_peLinked)->_OnButtonClick(menubutton, true);
                 break;
             case 1:
             case 3:
@@ -4782,7 +4806,6 @@ namespace DirectDesktop
                 MENUANIM:
                     if (wParam == 1) menu->_wndSelectionMenu->ShowWindow(SW_SHOW);
                     menu->_tick = GetTickCount64();
-                    GetWindowRect(menu->_wndSelectionMenu->GetHWND(), &(menu->_rcMenu));
                     SetTimer(hWnd, wParam + 1, 10, nullptr);
                 }
                 menu->_fAnimating = false;
@@ -4793,35 +4816,41 @@ namespace DirectDesktop
                 LONGLONG dwTickDiff = GetTickCount64() - menu->_tick;
                 LONGLONG dwAlphaDiff{}, dwAlphaThreshold;
                 RECT rcAnim = { menu->_rcMenu.left, menu->_rcMenu.top };
-                short localeDirection = (localeType == 1) ? -1 : 1;
+                short localeDirection = (menu->_uTrackFlags & TPM_LAYOUTRTL) ? -1 : 1;
                 if (wParam == 2)
                 {
-                    dwAlphaDiff = dwTickDiff * 2.5f;
-                    if (menu->_uTrackFlags & 0x3C00) dwAlphaDiff /= 1.5f;
+                    dwAlphaDiff = dwTickDiff * 2.25f;
                     dwAlphaThreshold = 255;
+                    if (menu->_uTrackFlags & 0x3C00) dwAlphaDiff /= 3.0f;
+                    if (!g_menuAnim)
+                        dwAlphaDiff = 256;
                 }
                 else
                 {
-                    dwAlphaDiff = 255 - dwTickDiff * 3.3f;
-                    if (menu->_uTrackFlags & 0x3C00) dwAlphaDiff /= 1.25f;
+                    dwAlphaDiff = 255 - dwTickDiff * 3.0f;
                     dwAlphaThreshold = 0;
+                    if (menu->_uTrackFlags & 0x3C00 && wParam != 6) dwAlphaDiff /= 2.0f;
+                    if (!g_menuAnim)
+                        dwAlphaDiff = -1;
                 }
                 if (((dwAlphaDiff <= dwAlphaThreshold && wParam == 2) || (dwAlphaDiff >= dwAlphaThreshold && wParam != 2))
                     && IsWindowVisible(menu->_wndSelectionMenu->GetHWND()))
                 {
                     if (wParam != 2)
                         menu->_fAnimating = true;
-                    SetLayeredWindowAttributes(menu->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
+                    DWORD dwAlphaDiff2 = (wParam == 2 && menu->_uTrackFlags & 0x3C00) ? dwAlphaDiff * 4 : dwAlphaDiff;
+                    if (dwAlphaDiff2 > dwAlphaThreshold && wParam == 2) dwAlphaDiff2 = dwAlphaThreshold;
+                    SetLayeredWindowAttributes(menu->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff2, LWA_ALPHA);
                     if (wParam != 6 || menu->_subLevel == 0)
                     {
                         if (menu->_uTrackFlags & TPM_HORPOSANIMATION)
-                            rcAnim.left -= (255 - dwAlphaDiff) * g_flScaleFactor / 16 * localeDirection;
+                            rcAnim.left += ceil((menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32 * localeDirection);
                         else if (menu->_uTrackFlags & TPM_HORNEGANIMATION)
-                            rcAnim.left += (255 - dwAlphaDiff) * g_flScaleFactor / 16 * localeDirection;
+                            rcAnim.left -= (menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32 * localeDirection;
                         if (menu->_uTrackFlags & TPM_VERPOSANIMATION)
-                            rcAnim.top -= (255 - dwAlphaDiff) * g_flScaleFactor / 16;
+                            rcAnim.top += ceil((menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32);
                         else if (menu->_uTrackFlags & TPM_VERNEGANIMATION)
-                            rcAnim.top += (255 - dwAlphaDiff) * g_flScaleFactor / 16;
+                            rcAnim.top -= (menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32;
                         if (menu->_uTrackFlags & 0x3C00)
                             SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, rcAnim.left, rcAnim.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
                     }
@@ -4836,9 +4865,7 @@ namespace DirectDesktop
                     SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, menu->_rcMenu.left, menu->_rcMenu.top, NULL, NULL, dwFlags);
                     KillTimer(hWnd, wParam - 1);
                     KillTimer(hWnd, wParam);
-                    if (wParam == 2 && menu->_peSelections[0])
-                        menu->_peSelections[0]->SetKeyFocus();
-                    else if (wParam == 4)
+                    if (wParam == 4)
                     {
                         menu->_wndSelectionMenu->ShowWindow(SW_HIDE);
                         PostMessageW(wnd->GetHWND(), WM_UNINITMENUPOPUP, (WPARAM)menu->_hMenu, NULL);
@@ -4988,12 +5015,18 @@ namespace DirectDesktop
 
     HRESULT DDMenu::InitializeItemEntries(vector<LVItem*> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl)
     {
+        bool fVirtual = false;
+        HRESULT hr;
         wstring baseExt = L"None";
+        DEFCONTEXTMENU dcm = { nullptr, nullptr, NULL, psf, cidl, ppidl, nullptr, ARRAYSIZE(_hKeys), _hKeys };
         if (cidl > 0)
         {
             baseExt = vItems[0]->GetExt();
             if (baseExt == L"Virtual_NotImpl")
-                return E_NOTIMPL;
+            {
+                fVirtual = true;
+                goto VIRTUALITEMMENU;
+            }
             for (int i = 1; i < cidl; i++)
             {
                 if (vItems[i]->GetExt() != baseExt)
@@ -5017,8 +5050,16 @@ namespace DirectDesktop
             RegOpenKeyExW(HKEY_CLASSES_ROOT, baseExt.c_str(), 0, KEY_READ, &_hKeys[3]);
         }
 
-        DEFCONTEXTMENU dcm = { nullptr, nullptr, NULL, psf, cidl, ppidl, nullptr, ARRAYSIZE(_hKeys), _hKeys };
-        HRESULT hr = SHCreateDefaultContextMenu(&dcm, IID_IContextMenu, (void**)&_pICv1);
+        hr = SHCreateDefaultContextMenu(&dcm, IID_IContextMenu, (void**)&_pICv1);
+
+    VIRTUALITEMMENU:
+        if (fVirtual)
+        {
+            hr = psf->GetUIObjectOf(nullptr, 1, ppidl, IID_IContextMenu, nullptr, (void**)&_pICv1);
+            for (int i = 1; i < cidl; i++)
+                vItems[i]->SetSelected(false);
+        }
+        
         if (SUCCEEDED(hr))
         {
             void** ppv = (void**)malloc(8);
@@ -5049,6 +5090,7 @@ namespace DirectDesktop
         HRESULT hr = S_OK;
         if (!fLegacy)
         {
+            _scbi = new SimpleCubicBezierInterpolator();
             DWORD keyM{};
             CValuePtr spvLayout;
             DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
@@ -5119,13 +5161,13 @@ namespace DirectDesktop
                                 SetGadgetFlags(_tsvSelectionMenu->GetDisplayNode(), NULL, NULL);
                                 MARGINS margins = { -1, -1, -1, -1 };
                                 DwmExtendFrameIntoClientArea(_wndSelectionMenu->GetHWND(), &margins);
-                                HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
-                                if (hShlwapi)
-                                {
-                                    pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
-                                        (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
-                                    _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
-                                }
+                            }
+                            HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+                            if (hShlwapi)
+                            {
+                                pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                                    (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+                                _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
                             }
                         }
                     }
@@ -5581,15 +5623,10 @@ namespace DirectDesktop
                 }
                 if (!_fUsingLegacy)
                 {
-                    if (DWMActive)
-                    {
-                        SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
-                        KillTimer(_hTimer, 1);
-                        KillTimer(_hTimer, 2);
-                        SetTimer(_hTimer, 5, 0, nullptr);
-                    }
-                    else
-                        if (_wndSelectionMenu) _wndSelectionMenu->DestroyWindow();
+                    SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
+                    KillTimer(_hTimer, 1);
+                    KillTimer(_hTimer, 2);
+                    SetTimer(_hTimer, 5, 0, nullptr);
                     for (int i = 0; i < DDMenu::MAX_ITEMS; i++)
                     {
                         if (_rgMenuImg[i] != nullptr)
@@ -5609,18 +5646,14 @@ namespace DirectDesktop
     {
         if (_subLevel > 0 && _wndSelectionMenu->GetHWND())
         {
-            if (DWMActive)
+            if (!_fAnimating)
             {
-                if (!_fAnimating)
-                {
-                    SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
-                    KillTimer(_hTimer, 1);
-                    KillTimer(_hTimer, 2);
-                    SetTimer(_hTimer, 3, 0, nullptr);
-                }
+                _scbi->SetCurve(0.11, 0.5, 0.24, 0.96);
+                SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
+                KillTimer(_hTimer, 1);
+                KillTimer(_hTimer, 2);
+                SetTimer(_hTimer, 3, 0, nullptr);
             }
-            else
-                _wndSelectionMenu->ShowWindow(SW_HIDE);
         }
     }
 
@@ -5631,12 +5664,15 @@ namespace DirectDesktop
         {
             button->_fKeyFocusInit = true;
             RECT rcParentMenu{};
-            POINT ptZero{}, ptSelection{};
+            POINT ptZero{}, ptSelection{}, ptVisible{};
             GetWindowRect(_wndSelectionMenu->GetHWND(), &rcParentMenu);
-            _peSelections[0]->MapElementPoint(button, &ptZero, &ptSelection);
-            int x = (localeType == 1) ? rcParentMenu.left + round(g_flScaleFactor) : rcParentMenu.right - round(g_flScaleFactor);
+            _peSelections[0]->MapElementPoint(_peHostInner, &ptZero, &ptVisible);
+            _peSelectionMenu->MapElementPoint(button, &ptVisible, &ptSelection);
+            int x = (_uTrackFlags & TPM_LAYOUTRTL) ? rcParentMenu.left + round(g_flScaleFactor) : rcParentMenu.right - round(g_flScaleFactor);
+            if (_uTrackFlags & TPM_RIGHTBUTTON)
+                button->_submenu->_uTrackFlags |= TPM_RIGHTBUTTON;
             if (_uTrackFlags & TPM_LAYOUTRTL)
-                _uTrackFlags |= TPM_LAYOUTRTL;
+                button->_submenu->_uTrackFlags |= TPM_LAYOUTRTL;
             if (_uTrackFlags & DDM_ANIMATESUBMENUS)
                 button->_submenu->_uTrackFlags |= TPM_HORPOSANIMATION | DDM_ANIMATESUBMENUS;
             if (_interfaceLevel > 1)
@@ -5696,8 +5732,8 @@ namespace DirectDesktop
         width = rcHost.right + 2;
         height = rcHost.bottom + 2;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        short localeDirection = (localeType == 1) ? -1 : 1;
-        if (localeType == 1) x -= width;
+        short localeDirection = (_uTrackFlags & TPM_LAYOUTRTL) ? -1 : 1;
+        if (_uTrackFlags & TPM_LAYOUTRTL) x -= width;
         if (_uTrackFlags & TPM_RIGHTALIGN)
             x -= width * localeDirection;
         else if (_uTrackFlags & TPM_CENTERALIGN)
@@ -5707,7 +5743,7 @@ namespace DirectDesktop
         else if (_uTrackFlags & TPM_VCENTERALIGN)
             y -= height / 2;
         _peSelectionMenu->SetDirection((_uTrackFlags & TPM_LAYOUTRTL) ? 1 : 0);
-        if (localeType == 1)
+        if (_uTrackFlags & TPM_LAYOUTRTL)
         {
             if (x < dimensions.left)
             {
@@ -5767,9 +5803,34 @@ namespace DirectDesktop
         }
         SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, x, y, width, height, NULL);
         _wndSelectionMenu->Host(_peSelectionMenu);
+        Element* YScrollbar;
+        _tsvSelectionMenu->GetVScrollbar(&YScrollbar);
+        RECT rcScroll;
+        GetGadgetRect(YScrollbar->GetDisplayNode(), &rcScroll, 0x4);
+        width += rcScroll.right;
+        SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, x, y, width, height, NULL);
+        GetWindowRect(_wndSelectionMenu->GetHWND(), &_rcMenu);
+
+        if (_uTrackFlags & 0x3C00 && _fAnimating)
+        {
+            _scbi->SetCurve(0.1, 0.9, 0.2, 1.0);
+            if (_uTrackFlags & TPM_HORPOSANIMATION)
+                x -= 32 * g_flScaleFactor * localeDirection;
+            else if (_uTrackFlags & TPM_HORNEGANIMATION)
+                x += 32 * g_flScaleFactor * localeDirection;
+            if (_uTrackFlags & TPM_VERPOSANIMATION)
+                y -= 32 * g_flScaleFactor;
+            else if (_uTrackFlags & TPM_VERNEGANIMATION)
+                y += 32 * g_flScaleFactor;
+            SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, x, y, width, height, NULL);
+        }
+
         if (!(IsWindowVisible(_wndSelectionMenu->GetHWND())))
         {
-            SetLayeredWindowAttributes(_wndSelectionMenu->GetHWND(), NULL, 0, LWA_ALPHA);
+            if (_peSelections[0])
+                _peSelections[0]->SetKeyFocus();
+            if (DWMActive)
+                SetLayeredWindowAttributes(_wndSelectionMenu->GetHWND(), NULL, 0, LWA_ALPHA);
             SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
             SetTimer(_hTimer, 1, menu && !fInstant ? 300 : 0, nullptr);
         }
@@ -5805,7 +5866,10 @@ namespace DirectDesktop
         {
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            AnimateWindow(nd->nb->GetWindowHost()->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+            if (g_windowAnim)
+                AnimateWindow(nd->nb->GetWindowHost()->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
+            else
+                nd->nb->GetWindowHost()->ShowWindow(SW_SHOW);
             nd->nb->GetWindowHost()->ShowWindow(SW_SHOWNOACTIVATE);
         }
         delete nd;
@@ -5993,7 +6057,10 @@ namespace DirectDesktop
             DDNotificationBanner::s_RepositionBanners();
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            AnimateWindow(_wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
+            if (g_windowAnim)
+                AnimateWindow(_wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
+            else
+                _wnd->ShowWindow(SW_HIDE);
             _wnd->GetElement()->DestroyAll(true);
             _wnd->GetElement()->Destroy(true);
             if (manual) SetWindowLongPtrW(_wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)nullptr);

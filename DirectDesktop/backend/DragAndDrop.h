@@ -84,6 +84,8 @@ namespace DirectDesktop
 		BOOL bSameDrive;
 		BOOL bVirtual;
 		BOOL _bSubview;
+		BOOL _bShiftPressed;
+		CLIPFORMAT _cf;
 		DWORD dwKeyState;
 		IDataObject* pDataObject;
 		IDropTargetHelper* pDropTargetHelper;

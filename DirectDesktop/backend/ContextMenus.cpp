@@ -66,8 +66,8 @@ namespace DirectDesktop
                 hr = ddm->InitializeDesktopEntries(pShellFolder, pShellView);
                 if (SUCCEEDED(hr))
                 {
-                    ddm->CreatePopupMenu(cmdID ? true : false);
-                    ddsm->CreatePopupMenu(cmdID ? true : false);
+                    ddm->CreatePopupMenu(cmdID);
+                    ddsm->CreatePopupMenu(cmdID);
                     //ddsm2->CreatePopupMenu(false);
                     MENUITEMINFOW mii{};
                     mii.cbSize = sizeof(MENUITEMINFOW);
@@ -261,6 +261,8 @@ namespace DirectDesktop
                             SendMessageW(g_hSHELLDLL_DefView, WM_COMMAND, id, NULL);
                             break;
                         }
+                        if (wcscmp((LPWSTR)commandW, L"NewFolder") == 0 || ((LPWSTR)commandW)[0] == L'.')
+                            g_newfolder = true;
                         hr = ddm->InvokeCommand((CMINVOKECOMMANDINFO*)&ici);
                         break;
                     }
@@ -307,11 +309,11 @@ namespace DirectDesktop
         hr = ddm->InitializeItemEntries(vItems, ppFolder, (LPCITEMIDLIST*)rgpidl.data(), cidl);
         if (SUCCEEDED(hr))
         {
-            ddm->CreatePopupMenu(cmdID ? true : false);
+            ddm->CreatePopupMenu(cmdID);
             if (!cmdID && g_touchmode && cidl == 1)
             {
                 DDMenu* ddsm = new DDMenu();
-                ddsm->CreatePopupMenu(cmdID ? true : false);
+                ddsm->CreatePopupMenu(cmdID);
                 MENUITEMINFOW mii{};
                 mii.cbSize = sizeof(MENUITEMINFOW);
                 mii.fMask = MIIM_STATE;
@@ -475,7 +477,7 @@ namespace DirectDesktop
                 }
                 if (strcmp(command, "rename") == 0)
                 {
-                    ShowRename(nullptr);
+                    ShowRename(vItems[0]);
                     break;
                 }
                 hr = ddm->InvokeCommand((CMINVOKECOMMANDINFO*)&ici);
@@ -499,9 +501,16 @@ namespace DirectDesktop
     {
         if (iev->uidType == LVItem::RightClick)
         {
+            bool checkselections = true;
+            if (!elem->GetSelected())
+            {
+                checkselections = false;
+                for (int items = 0; items < pm.size(); items++)
+                    pm[items]->SetSelected(false);
+            }
             selectedLVItems.clear();
             selectedLVItems.push_back((LVItem*)elem);
-            if (!g_issubviewopen) // 0.5.6.4: temporary hack until selected lvitems is extended to subview
+            if (!g_issubviewopen && checkselections) // 0.5.6.4: temporary hack until selected lvitems is extended to subview
             {
                 for (int items = 0; items < pm.size(); items++)
                 {

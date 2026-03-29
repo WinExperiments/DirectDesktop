@@ -295,7 +295,7 @@ namespace DirectDesktop
 
     COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold)
     {
-        COLORREF outDominantColor = g_isColorized ? IconColorizationColor : g_isDarkIconsEnabled ? RGB(72, 76, 80) : RGB(128, 136, 144);
+        COLORREF outDominantColor = g_isColorized ? IconColorizationColor : g_isDarkIconsEnabled ? RGB(80, 84, 88) : RGB(128, 136, 144);
 
         HDC hMemDC = CreateCompatibleDC(nullptr);
         HDC hMemDC2 = CreateCompatibleDC(nullptr);
@@ -525,6 +525,9 @@ namespace DirectDesktop
             flLightCoef = sqrt(cos(glowCoef / 180.0f * 3.1415926f));
         glowHSL.l += (255 - glowHSL.l) * (glowHSL.l / 192.0f) * flLightCoef;
         glow = hsl2rgb(glowHSL);
+        if (glow.r > 254) glow.r = 254;
+        if (glow.g > 254) glow.g = 254;
+        if (glow.b > 254) glow.b = 254;
         return RGB(glow.r, glow.g, glow.b);
     }
 }
