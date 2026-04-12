@@ -2108,8 +2108,7 @@ namespace DirectDesktop
 		}
 		if (cf == RegisterClipboardFormatW(CFSTR_FILEDESCRIPTOR) || cf == RegisterClipboardFormatW(CFSTR_FILECONTENTS))
 		{
-			CSafeElementPtr<DDNotificationBanner> ddnb;
-			ddnb.Assign(new DDNotificationBanner);
+			DDNotificationBanner* ddnb = new DDNotificationBanner();
 			ddnb->CreateBanner(DDNT_ERROR, L"Not Implemented", nullptr, 3);
 		}
 		/* Default reaction is to do nothing: */

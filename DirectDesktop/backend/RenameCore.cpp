@@ -3,10 +3,6 @@
 #include "RenameCore.h"
 #include "..\coreui\StyleModifier.h"
 #include "..\DirectDesktop.h"
-#include <Richedit.h>
-#include <Richole.h>
-#include <textserv.h>
-#include <TOM.h>
 
 using namespace std;
 using namespace DirectUI;
@@ -52,10 +48,10 @@ namespace DirectDesktop
     void RenameCore(LVItem* selectedElement)
     {
         HRESULT hr{};
-        HWND hRichEdit = FindWindowExW(wnd->GetHWND(), nullptr, MSFTEDIT_CLASS, nullptr);
+        HWND hEdit = FindWindowExW(wnd->GetHWND(), nullptr, L"Edit", nullptr);
         WCHAR* buffer = new WCHAR[MAX_PATH];
         wstring newText{};
-        GetWindowTextW(hRichEdit, buffer, MAX_PATH);
+        GetWindowTextW(hEdit, buffer, MAX_PATH);
         if (wcscmp(buffer, selectedElement->GetSimpleFilename().c_str()) == 0 || wcslen(buffer) == 0)
         {
             delete[] buffer;
@@ -88,49 +84,80 @@ namespace DirectDesktop
         delete[] buffer;
     }
 
-    void GetContentRect(HWND hRichEdit, RECT* prcEdit)
+    void GetContentRect(HWND hEdit, RECT* prcEdit, UINT uBound, UINT* puLines)
     {
-        IRichEditOle* pEditOle{};
-        ITextDocument2* ptxtd{};
-        ITextRange2* ptxtr{};
-        HRESULT hr = SendMessageW(hRichEdit, EM_GETOLEINTERFACE, NULL, (LPARAM)&pEditOle);
-        if (hr != NOERROR)
+        HDC hdcEdit = GetDC(hEdit);
+        HFONT hFont = (HFONT)SendMessageW(hEdit, WM_GETFONT, NULL, NULL);
+        HFONT hOldFont = (HFONT)SelectObject(hdcEdit, hFont);
+        int len = GetWindowTextLengthW(hEdit);
+        wchar_t* buffer = new wchar_t[len + 1];
+        GetWindowTextW(hEdit, buffer, len + 1);
+        DWORD dwFlags = DT_CALCRECT | DT_WORDBREAK;
+        int lines = SendMessageW(hEdit, EM_GETLINECOUNT, NULL, NULL);
+        if (!lines) lines = 1;
+        if (puLines) *puLines = lines;
+        if (prcEdit->right < uBound && lines < 2) dwFlags |= DT_SINGLELINE;
+        else
         {
-            hr = pEditOle->QueryInterface(IID_PPV_ARGS(&ptxtd));
-            if (SUCCEEDED(hr))
-            {
-                hr = ptxtd->Range2(0, tomForward, &ptxtr);
-                if (SUCCEEDED(hr))
-                {
-                    ptxtr->GetPoint(tomStart | tomAllowOffClient, (long*)prcEdit, (long*)prcEdit + 1);
-                    ptxtr->GetPoint(tomEnd | TA_BOTTOM | tomAllowOffClient, (long*)prcEdit + 2, (long*)prcEdit + 3);
-                    ptxtr->Release();
-                }
-                ptxtd->Release();
-            }
-            pEditOle->Release();
+            prcEdit->right = uBound;
+            dwFlags |= DT_EDITCONTROL;
         }
+        DrawTextW(hdcEdit, buffer, -1, prcEdit, dwFlags);
+
+        TEXTMETRICW tm;
+        GetTextMetricsW(hdcEdit, &tm);
+        int lineHeight = tm.tmHeight + tm.tmExternalLeading;
+        prcEdit->bottom = prcEdit->top + lines * lineHeight;
+
+        if (prcEdit->right < uBound)
+        {
+            prcEdit->left -= round(3 * g_flScaleFactor);
+            prcEdit->right += round(3 * g_flScaleFactor);
+        }
+        delete[] buffer;
+        SelectObject(hdcEdit, hOldFont);
+        ReleaseDC(hEdit, hdcEdit);
     }
 
-    void ResizeToContent(HWND hRichEdit, LVItem* lvi)
+    void ResizeToContent(HWND hEdit, LVItem* lvi)
     {
         CValuePtr v;
         CSafeElementPtr<Element> DUIElem; DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
-        RECT rc, rcWindow, rcPadding;
-        GetContentRect(hRichEdit, &rc);
-        GetWindowRect(hRichEdit, &rcWindow);
+        RECT rc{}, rcWindow, rcPadding, rcGadget;
+        GetWindowRect(hEdit, &rcWindow);
+        GetGadgetRect(lvi->GetDisplayNode(), &rcGadget, 0xC);
         DUIElem->GetRenderPadding(&rcPadding);
         if (lvi->GetGroupSize() == LVIGS_NORMAL)
         {
             int currentWidth = rcWindow.right - rcWindow.left;
-            SetWindowPos(hRichEdit, nullptr, 0, 0, currentWidth, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER);
+            rc.right = rcWindow.right - rcWindow.left;
+            UINT lines;
+            GetContentRect(hEdit, &rc, g_touchmode ? 0 : rcGadget.right - rcGadget.left - rcPadding.left - rcPadding.right, &lines);
+            if (g_touchmode)
+                SetWindowPos(hEdit, nullptr, NULL, NULL, currentWidth, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER);
+            else
+            {
+                SetWindowPos(hEdit, nullptr, rcGadget.left + (rcGadget.right - rcGadget.left - max(rc.right - rc.left, 16)) / 2,
+                    rcWindow.top, max(rc.right - rc.left, 16), rc.bottom - rc.top, SWP_NOZORDER);
+                DUIElem->SetX(rcGadget.left + (rcGadget.right - rcGadget.left - max(rc.right - rc.left, 16) - (rcPadding.left + rcPadding.right + 1)) / 2);
+                DUIElem->SetWidth(max(rc.right - rc.left, 16) + rcPadding.left + rcPadding.right + 1);
+            }
             DUIElem->SetHeight(rc.bottom - rc.top + rcPadding.top + rcPadding.bottom + 1);
+            GetClientRect(hEdit, &rcWindow);
+            rcWindow.left += round(g_flScaleFactor);
+            rcWindow.right -= round(g_flScaleFactor);
+            SendMessageW(hEdit, EM_SETRECT, NULL, (LPARAM)&rcWindow);
+            int linesEdit = SendMessageW(hEdit, EM_GETLINECOUNT, NULL, NULL);
+            if (lines != linesEdit && linesEdit != 0)
+                ResizeToContent(hEdit, lvi);
         }
         else
         {
             int currentHeight = rcWindow.bottom - rcWindow.top;
-            SetWindowPos(hRichEdit, nullptr, 0, 0, max(rc.right - rcWindow.left, 16), currentHeight, SWP_NOMOVE | SWP_NOZORDER);
-            DUIElem->SetWidth(max(rc.right - rcWindow.left, 16) + rcPadding.left + rcPadding.right + 1);
+            rc.right = 16;
+            GetContentRect(hEdit, &rc, -1, nullptr);
+            SetWindowPos(hEdit, nullptr, 0, 0, max(rc.right - rc.left, 16), currentHeight, SWP_NOMOVE | SWP_NOZORDER);
+            DUIElem->SetWidth(max(rc.right - rc.left, 16) + rcPadding.left + rcPadding.right + 1);
         }
     }
 
@@ -170,12 +197,39 @@ namespace DirectDesktop
                         }
                         return 0;
                     }
-                case WM_PASTE:
                 case WM_CHAR:
                     if (wcschr(L"\\/:*?\"<>|", (WCHAR)wParam) != nullptr)
                     {
                         SetTimer(hWnd, 2, 50, nullptr);
                         return 0;
+                    }
+                    SetTimer(hWnd, 1, 10, nullptr);
+                    break;
+                case WM_PASTE:
+                    if (OpenClipboard(hWnd))
+                    {
+                        HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+                        if (hData)
+                        {
+                            WCHAR* pszText = (WCHAR*)GlobalLock(hData);
+                            if (pszText)
+                            {
+                                int len = wcslen(pszText);
+                                for (int i = 0; i < len; i++)
+                                {
+                                    if (wcschr(L"\\/:*?\"<>|", *pszText) != nullptr)
+                                    {
+                                        SetTimer(hWnd, 2, 50, nullptr);
+                                        GlobalUnlock(hData);
+                                        CloseClipboard();
+                                        return 0;
+                                    }
+                                    pszText++;
+                                }
+                                GlobalUnlock(hData);
+                            }
+                        }
+                        CloseClipboard();
                     }
                     SetTimer(hWnd, 1, 10, nullptr);
                     break;
@@ -187,10 +241,16 @@ namespace DirectDesktop
                             ResizeToContent(hWnd, (LVItem*)dwRefData);
                             break;
                         case 2:
+                        {
                             MessageBeep(MB_OK);
-                            CSafeElementPtr<DDNotificationBanner> ddnb;
-                            ddnb.Assign(new DDNotificationBanner);
+                            DDNotificationBanner* ddnb = new DDNotificationBanner();
                             ddnb->CreateBanner(DDNT_WARNING, nullptr, LoadStrFromRes(4109, L"shell32.dll").c_str(), 5);
+                            break;
+                        }
+                        case 3:
+                            DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
+                            DUIElem->SetVisible(true);
+                            SetLayeredWindowAttributes(hWnd, 0, 255, LWA_ALPHA);
                             break;
                     }
                     break;
@@ -248,8 +308,7 @@ namespace DirectDesktop
                 if (found > 1)
                 {
                     MessageBeep(MB_OK);
-                    CSafeElementPtr<DDNotificationBanner> ddnb;
-                    ddnb.Assign(new DDNotificationBanner);
+                    DDNotificationBanner* ddnb = new DDNotificationBanner();
                     ddnb->CreateBanner(DDNT_ERROR, nullptr, LoadStrFromRes(4041).c_str(), 3);
                     break;
                 }
@@ -281,6 +340,7 @@ namespace DirectDesktop
                 unsigned long keyR{};
                 CValuePtr v;
                 parser->CreateElement(L"RenameBoxTexture", nullptr, nullptr, nullptr, &RenameBoxTexture);
+                RenameBoxTexture->SetVisible(false);
                 UIContainer->Add(&RenameBoxTexture, 1);
                 if (DWMActive)
                 {
@@ -309,19 +369,21 @@ namespace DirectDesktop
                 parser->GetSheet(sheetName, &sheetStorage);
                 RenameBoxTexture->SetValue(Element::SheetProp, 1, sheetStorage);
                 DWORD alignment = (g_touchmode || lviOpt->GetGroupSize() != LVIGS_NORMAL) ? (localeType == 1) ? ES_RIGHT : ES_LEFT : ES_CENTER;
-                if (lviOpt->GetGroupSize() == LVIGS_NORMAL) alignment |= ES_MULTILINE;
-                HWND hRichEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, lviOpt->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL | alignment,
+                if (lviOpt->GetGroupSize() == LVIGS_NORMAL) alignment |= ES_MULTILINE | ES_AUTOVSCROLL;
+                else alignment |= ES_AUTOHSCROLL;
+                HWND hEdit = CreateWindowExW(NULL, L"Edit", lviOpt->GetSimpleFilename().c_str(), WS_CHILD | WS_VISIBLE | ES_WANTRETURN | ES_NOHIDESEL | alignment,
                     ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, ebsz.right - ebsz.left - rcPadding.left - rcPadding.right, ebsz.bottom - ebsz.top - rcPadding.top - rcPadding.bottom,
                     wnd->GetHWND(), nullptr, HINST_THISCOMPONENT, nullptr);
                 LOGFONTW lf{};
                 int dpiAdjusted = (g_dpiLaunch * 96.0) * (g_dpiLaunch / 96.0) / g_dpi;
                 if (lviOpt->GetGroupSize() == LVIGS_NORMAL)
-                    SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL);
+                {
+                    SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
+                    if (g_touchmode) lf.lfHeight *= 1.25;
+                }
                 else
                 {
-                    int fontsize = dirname->GetFontSize();
-                    if (fontsize < 0) fontsize *= -1.5;
-                    lf.lfHeight = fontsize;
+                    lf.lfHeight = dirname->GetFontSize();
                     lf.lfWeight = dirname->GetFontWeight();
                     lf.lfItalic = dirname->GetFontStyle() & 1;
                     lf.lfUnderline = dirname->GetFontStyle() & 2;
@@ -333,34 +395,21 @@ namespace DirectDesktop
                     lf.lfPitchAndFamily = FF_DONTCARE;
                     wcscpy_s(lf.lfFaceName, dirname->GetFontFace(&v));
                 }
-                CHARFORMAT2W cf{};
-                cf.cbSize = sizeof(CHARFORMAT2W);
-                cf.dwMask = CFM_FACE | CFM_SIZE | CFM_COLOR | CFM_WEIGHT | CFM_ITALIC;
-                if (lviOpt->GetGroupSize() == LVIGS_NORMAL)
-                {
-                    cf.yHeight = (lf.lfHeight * -15 * 96.0) / dpiAdjusted;
-                    if (g_touchmode) cf.yHeight *= 1.25;
-                }
-                else
-                    cf.yHeight = (lf.lfHeight * 10) / (g_dpiLaunch / 96.0f);
-                cf.wWeight = lf.lfWeight;
-                cf.crTextColor = g_theme ? GetSysColor(COLOR_WINDOWTEXT) : RGB(255, 255, 255);
-                wcscpy_s(cf.szFaceName, lf.lfFaceName);
-                if (lf.lfItalic) cf.dwEffects |= CFE_ITALIC;
+                if (lf.lfHeight < 0) lf.lfHeight = round(lf.lfHeight * -1.33);
+                HFONT hFont = CreateFontIndirectW(&lf);
 
                 COLORREF editbg = g_theme ? GetSysColor(COLOR_WINDOW) : RGB(32, 32, 32);
-                SendMessageW(hRichEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
-                SendMessageW(hRichEdit, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
-                SendMessageW(hRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)editbg);
-                SetWindowLongPtrW(hRichEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
-                SetLayeredWindowAttributes(hRichEdit, 0, 255, LWA_ALPHA);
-                SetWindowPos(hRichEdit, HWND_TOP, ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
-                SetFocus(hRichEdit);
+                SendMessageW(hEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
+                SetWindowLongPtrW(hEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
+                SetLayeredWindowAttributes(hEdit, 0, 1, LWA_ALPHA);
+                SetWindowPos(hEdit, HWND_TOP, ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
+                SetFocus(hEdit);
                 int textLen = lviOpt->GetSimpleFilename().find_last_of(L".");
                 if (textLen == wstring::npos) textLen = lviOpt->GetSimpleFilename().length();
-                SendMessageW(hRichEdit, EM_SETSEL, 0, textLen);
-                SetWindowSubclass(hRichEdit, RichEditWindowProc, 0, (DWORD_PTR)lviOpt);
-                SetTimer(hRichEdit, 1, 50, nullptr);
+                SendMessageW(hEdit, EM_SETSEL, 0, textLen);
+                SetWindowSubclass(hEdit, RichEditWindowProc, 0, (DWORD_PTR)lviOpt);
+                SetTimer(hEdit, 1, 25, nullptr);
+                SetTimer(hEdit, 3, 50, nullptr);
             }
         }
     }

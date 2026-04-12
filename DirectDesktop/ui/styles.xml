@@ -39,10 +39,10 @@
 					<DDScalableTouchButton foreground="rgb(248,248,248)" ImageIndex="8"/>
 					<DDIconButton foreground="rgb(248,248,248)" ImageIndex="8"/>
 				</if>
-				<if keyfocused="true">
+				<if keyfocused="true" Pressed="false">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
@@ -71,10 +71,10 @@
 					<DDScalableTouchButton foreground="rgb(128,128,128)" ImageIndex="4"/>
 					<DDIconButton foreground="rgb(128,128,128)" ImageIndex="4"/>
 				</if>
-				<if keyfocused="true">
+				<if keyfocused="true" Pressed="false">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
@@ -98,7 +98,7 @@
 				<if Enabled="false">
 					<DDScalableTouchButton ImageIndex="4" foreground="rgb(96,96,96)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 				</if>
 			</if>
@@ -114,7 +114,7 @@
 				<if Enabled="false">
 					<DDLVActionButton foreground="rgb(128,128,128)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(0,0,0)"/>
 				</if>
 			</if>
@@ -295,6 +295,9 @@
 			</if>
 			<if id="atom(DDNB_Content)">
 				<DDScalableElement layoutpos="top" foreground="black" font="messagefont;115%" compositedtext="true" textglowsize="0" padding="rect(0,3rp,0,0)" contentalign="wrapleft|endellipsis" NeedsFontResize="true"/>
+			</if>
+			<if id="atom(DDNB_StackIndicator)">
+				<DDScalableElement layoutpos="bottom" foreground="black" alpha="96" font="messagefont;115%" compositedtext="true" textglowsize="0" padding="rect(0,3rp,0,0)" contentalign="wrapleft|endellipsis" NeedsFontResize="true"/>
 			</if>
 			<if id="atom(DDNB_Buttons)">
 				<Element height="44rp" padding="rect(12rp,0,12rp,12rp)" layoutpos="bottom"/>
@@ -560,10 +563,10 @@
 					<DDScalableTouchButton foreground="rgb(160,160,160)" ImageIndex="8"/>
 					<DDIconButton foreground="rgb(160,160,160)" ImageIndex="8"/>
 				</if>
-				<if keyfocused="true">
+				<if keyfocused="true" Pressed="false">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
@@ -592,10 +595,10 @@
 					<DDScalableTouchButton foreground="rgb(96,96,96)" ImageIndex="4"/>
 					<DDIconButton foreground="rgb(96,96,96)" ImageIndex="4"/>
 				</if>
-				<if keyfocused="true">
+				<if keyfocused="true" Pressed="false">
 					<DDScalableButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 					<DDIconButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
@@ -619,7 +622,7 @@
 				<if Enabled="false">
 					<DDScalableTouchButton ImageIndex="4" foreground="rgb(96,96,96)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDScalableTouchButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 				</if>
 			</if>
@@ -635,7 +638,7 @@
 				<if Enabled="false">
 					<DDLVActionButton foreground="rgb(192,192,192)"/>
 				</if>
-				<if showkeyfocus="true">
+				<if showkeyfocus="true" Pressed="false">
 					<DDLVActionButton edgehighlightthickness="rect(2rp,2rp,2rp,2rp)" edgehighlightcolor="rgb(255,255,255)"/>
 				</if>
 			</if>
@@ -816,6 +819,9 @@
 			</if>
 			<if id="atom(DDNB_Content)">
 				<DDScalableElement layoutpos="top" foreground="white" font="messagefont;115%" compositedtext="true" textglowsize="0" padding="rect(0,3rp,0,0)" contentalign="wrapleft|endellipsis" NeedsFontResize="true"/>
+			</if>
+			<if id="atom(DDNB_StackIndicator)">
+				<DDScalableElement layoutpos="bottom" foreground="white" alpha="128" font="messagefont;115%" compositedtext="true" textglowsize="0" padding="rect(0,3rp,0,0)" contentalign="wrapleft|endellipsis" NeedsFontResize="true"/>
 			</if>
 			<if id="atom(DDNB_Buttons)">
 				<Element height="44rp" padding="rect(12rp,0,12rp,12rp)" layoutpos="bottom"/>

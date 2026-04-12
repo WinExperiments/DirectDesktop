@@ -570,6 +570,8 @@ namespace DirectDesktop
 
     void TriggerPageTransition(int direction, RECT& dimensions)
     {
+        GTRANS_DESC transDesc[5];
+        TransitionStoryboardInfo tsbInfo = {};
         for (int items = 0; items < pm.size(); items++)
         {
             if (pm[items]->GetMemPage() == g_currentPageID || pm[items]->GetMemPage() == g_currentPageID - direction)
@@ -578,11 +580,9 @@ namespace DirectDesktop
                     pm[items]->SetVisible(!g_hiddenIcons);
                 if (pm[items]->GetMemPage() == g_currentPageID)
                 {
-                    GTRANS_DESC transDesc[2];
-                    TransitionStoryboardInfo tsbInfo = {};
                     TriggerTranslate(pm[items], transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 9999, pm[items]->GetY(), 9999, pm[items]->GetY(), false, false, false);
                     TriggerTranslate(pm[items], transDesc, 1, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX(), pm[items]->GetY(), false, false, false);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 3, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
                     DUI_SetGadgetZOrder(pm[items], -1);
                 }
                 else
@@ -595,18 +595,19 @@ namespace DirectDesktop
         }
         short animSrc = (localeType == 1) ? direction * -1 : direction;
         animSrc *= dimensions.right;
-        GTRANS_DESC transDesc[5];
-        TransitionStoryboardInfo tsbInfo = {};
-        for (int items = 0; items < pm.size(); items++)
+        if (!g_hiddenIcons)
         {
-            if (pm[items]->GetMemPage() == g_currentPageID - direction)
+            for (int items = 0; items < pm.size(); items++)
             {
-                float offset = animSrc * -1.14f;
-                TriggerTranslate(pm[items], transDesc, 0, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX() + offset, pm[items]->GetY(), pm[items]->GetX() + offset, pm[items]->GetY(), false, false, false);
-                TriggerFade(pm[items], transDesc, 1, 0.083f, 0.183f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-                TriggerFade(pm[items], transDesc, 2, 0.33f, 0.33f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, true);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
-                DUI_SetGadgetZOrder(pm[items], -1);
+                if (pm[items]->GetMemPage() == g_currentPageID - direction)
+                {
+                    float offset = animSrc * -1.14f;
+                    TriggerTranslate(pm[items], transDesc, 0, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX() + offset, pm[items]->GetY(), pm[items]->GetX() + offset, pm[items]->GetY(), false, false, false);
+                    TriggerFade(pm[items], transDesc, 1, 0.083f, 0.183f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                    TriggerFade(pm[items], transDesc, 2, 0.33f, 0.33f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, true);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                    DUI_SetGadgetZOrder(pm[items], -1);
+                }
             }
         }
         TriggerScaleIn(UIContainer, transDesc, 0, 0.0f, 0.25f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, 0.88f, 0.88f, 0.5f, 0.5f, false, false);
@@ -734,13 +735,12 @@ namespace DirectDesktop
                 StringCchPrintfW(notice, 256, L"%s", LoadStrFromRes(4098).c_str());
             else
                 StringCchPrintfW(notice, 256, L"%s", LoadStrFromRes(4097).c_str());
-            CSafeElementPtr<DDNotificationBanner> ddnb;
-            ddnb.Assign(new DDNotificationBanner);
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
             ddnb->CreateBanner(DDNT_INFO, LoadStrFromRes(4096).c_str(), notice, 10);
             ddnb->AppendButton(LoadStrFromRes(4240, L"comctl32.dll").c_str(), SetDefaultRes, true);
             ddnb->AppendButton(LoadStrFromRes(4241, L"comctl32.dll").c_str(), nullptr, true);
         }
-        else DDNotificationBanner::s_RepositionBanners();
+        else DDNotificationBanner::s_RepositionBanners(false, NULL, NULL);
     }
 
     LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -900,6 +900,16 @@ namespace DirectDesktop
                     SetTimer(wnd->GetHWND(), 13, 600, nullptr);
                 }
                 break;
+            }
+            case WM_CTLCOLOREDIT:
+            {
+                HDC hdcEdit = (HDC)wParam;
+                COLORREF crBgColor = g_theme ? GetSysColor(COLOR_WINDOW) : RGB(32, 32, 32);
+                COLORREF crTextColor = g_theme ? GetSysColor(COLOR_WINDOWTEXT) : RGB(255, 255, 255);
+                HBRUSH bgBrush = CreateSolidBrush(crBgColor);
+                SetTextColor(hdcEdit, crTextColor);
+                SetBkColor(hdcEdit, crBgColor);
+                return (LRESULT)bgBrush;
             }
             case WM_CLOSE:
             {
@@ -1170,7 +1180,7 @@ namespace DirectDesktop
                         }
                         DUI_SetGadgetZOrder(lvi, -1);
                     }
-                    lvi->SetVisible(lvi->GetPage() == g_currentPageID && (!g_touchmode || lvi->GetOpenDirState() != LVIODS_FULLSCREEN) && !g_hiddenIcons);
+                    lvi->SetVisible(lvi->GetPage() == g_currentPageID && !g_hiddenIcons);
                     lvi->SetMemIconSize(g_iconsz);
                 }
                 if (g_launch) g_launch = false;
@@ -1753,8 +1763,7 @@ namespace DirectDesktop
                         LVItem* item = internalselectedLVItems[0];
                         internalselectedLVItems.clear();
                         MessageBeep(MB_OK);
-                        CSafeElementPtr<DDNotificationBanner> ddnb;
-                        ddnb.Assign(new DDNotificationBanner);
+                        DDNotificationBanner* ddnb = new DDNotificationBanner();
                         ddnb->CreateBanner(DDNT_INFO, LoadStrFromRes(4044).c_str(), LoadStrFromRes(4045).c_str(), 5);
                         ddnb->AppendButton(LoadStrFromRes(4010).c_str(), ShowSettings, true);
                         break;
@@ -2492,6 +2501,7 @@ namespace DirectDesktop
                 lviTarget->SetOpenDirState(LVIODS_FULLSCREEN);
                 HidePopupCore(false, true);
             }
+            else lviTarget->SetOpenDirState(LVIODS_NONE);
         }
     }
 
@@ -2505,6 +2515,10 @@ namespace DirectDesktop
             iconElement.Assign(regElem<DDScalableElement*>(L"iconElem", lviTarget));
             CSafeElementPtr<TouchScrollViewer> groupdirlist;
             groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", lviTarget));
+            CSafeElementPtr<Element> dirtitle;
+            dirtitle.Assign(regElem<Element*>(L"dirtitle", lviTarget));
+            Element* dirtitleclone;
+            TriggerCrossfade(dirtitle, 0.0f, 0.133f, &dirtitleclone);
             float scaleX{}, scaleY{}, scaleX2{}, scaleY2{}, clipX{}, clipX2{};
             int widthOld = iconElement->GetWidth();
             int heightOld = iconElement->GetHeight();
@@ -2554,6 +2568,8 @@ namespace DirectDesktop
             TriggerScaleIn(lviTarget, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, scaleX, scaleY, originX, 0.0f, 1.0f, 1.0f, originX, 0.0f, false, false);
             TransitionStoryboardInfo tsbInfo = {};
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lviTarget->GetDisplayNode(), &tsbInfo);
+            TriggerScaleIn(dirtitleclone, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1.0f, 1.0f, originX, 0.0f, 1 / scaleX, 1 / scaleY, originX, 0.0f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, dirtitleclone->GetDisplayNode(), &tsbInfo);
 
             ShowDirAsGroupDesktop(lviTarget, false);
 
@@ -3113,7 +3129,6 @@ namespace DirectDesktop
                 else
                 {
                     iconcontainer->SetPadding(0, 0, 0, 0);
-                    itemcountcontainer->SetPadding(groupspace, groupspace, 0, groupspace);
                     peIcon->SetPadding(0, 0, 0, 0);
                 }
             }
@@ -3180,7 +3195,7 @@ namespace DirectDesktop
                     Element* peListParent{};
                     if (pm[icon2]->GetOpenDirState() == LVIODS_FULLSCREEN)
                     {
-                        TriggerCrossfade(fullscreeninner, 0.0f, 0.133f);
+                        TriggerCrossfade(fullscreeninner, 0.0f, 0.133f, nullptr);
                         CSafeElementPtr<DDColorPicker> ddcp;
                         ddcp.Assign(regElem<DDColorPicker*>(L"DDCP_Group", fullscreeninner));
                         fullscreeninner->SetDDCPIntensity(ddcp->GetColorIntensity());
@@ -4037,7 +4052,7 @@ namespace DirectDesktop
                 else pm[j]->RemoveFlags(LVIF_REFRESH);
                 if (animation && pm[j]->GetPage() == g_currentPageID) pm[j]->AddFlags(LVIF_MOVING);
                 else pm[j]->RemoveFlags(LVIF_MOVING);
-                if (pm[j]->GetPage() != g_currentPageID && bAlreadyOpen) pm[j]->RemoveFlags(LVIF_FLYING);
+                if (pm[j]->GetPage() != g_currentPageID /*&& bAlreadyOpen*/) pm[j]->RemoveFlags(LVIF_FLYING);
                 if (g_touchmode && !(g_treatdirasgroup && pm[j]->GetGroupSize() != LVIGS_NORMAL))
                 {
                     switch (pm[j]->GetTileSize())
@@ -4615,7 +4630,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 93");
+            peTemp[1]->SetContentString(L"Build 94");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
@@ -4788,7 +4803,7 @@ namespace DirectDesktop
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
-                if (pKeyInfo->vkCode == VK_DELETE)
+                if (pKeyInfo->vkCode == VK_DELETE && !g_renameactive)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
@@ -5047,7 +5062,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDColorPickerButton::Register();
     DDTabbedPages::Register();
     DDMenuButton::Register();
-    DDNotificationBanner::Register();
     MyDragDropInit(nullptr);
 
     WCHAR localeName[256]{};
@@ -5139,8 +5153,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     LVItem* outerElemTouch;
     parser->CreateElement(L"outerElemTouch", nullptr, nullptr, nullptr, (Element**)&outerElemTouch);
-    g_touchSizeX = outerElemTouch->GetWidth();
-    g_touchSizeY = outerElemTouch->GetHeight();
+    g_touchSizeX = outerElemTouch->GetWidth() * g_flScaleFactor;
+    g_touchSizeY = outerElemTouch->GetHeight() * g_flScaleFactor;
 
     UpdateModeInfo();
     g_themeOld = g_theme;
@@ -5334,8 +5348,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     if (logging == IDYES)
     {
-        CSafeElementPtr<DDNotificationBanner> ddnb;
-        ddnb.Assign(new DDNotificationBanner);
+        DDNotificationBanner* ddnb = new DDNotificationBanner();
         ddnb->CreateBanner(DDNT_SUCCESS, LoadStrFromRes(4019).c_str(), LoadStrFromRes(4020).c_str(), NULL);
         ddnb->AppendButton(LoadStrFromRes(4160, L"comctl32.dll").c_str(), ExitThenOpenLog, true);
         ddnb->AppendButton(LoadStrFromRes(4240, L"comctl32.dll").c_str(), nullptr, true);

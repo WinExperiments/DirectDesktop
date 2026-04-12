@@ -719,6 +719,7 @@ namespace DirectDesktop
             , _tsvSelectionMenu(nullptr)
             , _peHostInner(nullptr)
             , _peSelections{}
+            , _rcDest{}
         {
         }
 
@@ -754,6 +755,7 @@ namespace DirectDesktop
         TouchScrollViewer* _tsvSelectionMenu;
         Element* _peHostInner;
         DDNumberedButton* _peSelections[MAX_SELECTIONS];
+        RECT _rcDest;
         HRESULT _CreateCMBVisual();
         static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         static LRESULT CALLBACK s_ComboboxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
@@ -1079,6 +1081,7 @@ namespace DirectDesktop
             , _selectedCommand(0)
             , _tick(0)
             , _rcMenu{}
+            , _scbi(nullptr)
             , _parent(nullptr)
             , _wndSelectionMenu(nullptr)
             , _peSelectionMenu(nullptr)
@@ -1169,45 +1172,57 @@ namespace DirectDesktop
         DDNT_ERROR = 3
     };
 
-    class DDNotificationBanner final : public HWNDElement
+    class DDNotificationBanner
     {
     public:
         DDNotificationBanner()
-            : _wnd(nullptr)
+            : _hTimer(nullptr)
+            , _wnd(nullptr)
             , _notificationType(DDNT_INFO)
             , _titleStr{}
             , _pDDNB(nullptr)
             , _icon(nullptr)
             , _title(nullptr)
             , _content(nullptr)
+            , _stackIndicator(nullptr)
+            , _stackCount(0)
             , _peButtonSection(nullptr)
             , _btnCount(0)
+            , _tick(0)
+            , _rcWindow{}
+            , _iDeltaY(0)
+            , _fStartedAnim(false)
+            , _scbi(nullptr)
         {
         }
 
         ~DDNotificationBanner();
-        static IClassInfo* GetClassInfoPtr();
-        static void SetClassInfoPtr(IClassInfo* pClass);
-        IClassInfo* GetClassInfoW() override;
-        static HRESULT Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
-        static HRESULT Register();
-        NativeHWNDHost* GetWindowHost();
         void CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout);
-        static void s_RepositionBanners();
-        void DestroyBanner(bool* notificationopen, bool manual);
+        static void s_RepositionBanners(bool fReverse, int iDeltaY, int iBoundY);
+        void DestroyBanner();
         static void s_DestroyBannerByButton(Element* elem, Event* iev);
         void AppendButton(LPCWSTR szButtonText, void(*pListener)(Element* elem, Event* iev), bool fClose);
 
     private:
         static IClassInfo* s_pClassInfo;
+        HWND _hTimer;
         NativeHWNDHost* _wnd;
         DDNotificationType _notificationType;
         WCHAR _titleStr[64];
-        DDNotificationBanner* _pDDNB;
+        HWNDElement* _pDDNB;
         DDScalableElement* _icon;
         DDScalableElement* _title;
         DDScalableElement* _content;
+        DDScalableElement* _stackIndicator;
+        BYTE _stackCount;
         Element* _peButtonSection;
         BYTE _btnCount;
+        LONGLONG _tick;
+        RECT _rcWindow;
+        int _iDeltaY;
+        bool _fStartedAnim;
+        SimpleCubicBezierInterpolator* _scbi;
+        static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+        static LRESULT CALLBACK s_NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
     };
 }

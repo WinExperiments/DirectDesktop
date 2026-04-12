@@ -414,7 +414,7 @@ namespace DirectDesktop
         }
     }
 
-    void TriggerCrossfade(Element* pe, float flDelay, float flDuration)
+    void TriggerCrossfade(Element* pe, float flDelay, float flDuration, Element** ppeCloneOut)
     {
         if (pe->GetVisible())
         {
@@ -443,6 +443,8 @@ namespace DirectDesktop
             TriggerFade(peClone, rgTrans, 1, flDelay + flDuration * 0.1f, flDuration, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, false);
             TriggerScaleOut(peClone, rgTrans, 2, 0.0f, flDuration + 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, false, true); // Give the element some time to get destroyed
             ScheduleGadgetTransitions_DWMCheck(0, 3, rgTrans, nullptr, &tsbInfo);
+            if (ppeCloneOut)
+                *ppeCloneOut = peClone;
         }
     }
 

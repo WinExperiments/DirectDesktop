@@ -126,8 +126,7 @@ namespace DirectDesktop
             //WCHAR* resultc = new WCHAR[64];
             //StringCchPrintfW(resultc, 64, L"%d items", Everything_GetNumResults());
             MessageBeep(MB_OK);
-            CSafeElementPtr<DDNotificationBanner> ddnb;
-            ddnb.Assign(new DDNotificationBanner);
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
             ddnb->CreateBanner(DDNT_INFO, nullptr, L"Search will be available by version 0.6", 5);
             //rescontainer->SetHeight(Everything_GetNumResults() * SearchResultPlaceholder->GetHeight() + 40);
             //for (int i = 0; i < Everything_GetNumResults(); i++) {

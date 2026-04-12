@@ -90,8 +90,7 @@ namespace DirectDesktop
                                         MessageBeep(MB_OK);
                                         WCHAR* errorcontent = new WCHAR[256];
                                         StringCchPrintfW(errorcontent, 256, LoadStrFromRes(4061).c_str(), g_maxPageID);
-                                        CSafeElementPtr<DDNotificationBanner> ddnb;
-                                        ddnb.Assign(new DDNotificationBanner);
+                                        DDNotificationBanner* ddnb = new DDNotificationBanner();
                                         ddnb->CreateBanner(DDNT_ERROR, LoadStrFromRes(4060).c_str(), errorcontent, 5);
                                         delete[] errorcontent;
                                         return 0;
@@ -107,8 +106,7 @@ namespace DirectDesktop
                                         if (items != 0 && i == removedPage)
                                         {
                                             MessageBeep(MB_OK);
-                                            CSafeElementPtr<DDNotificationBanner> ddnb;
-                                            ddnb.Assign(new DDNotificationBanner);
+                                            DDNotificationBanner* ddnb = new DDNotificationBanner();
                                             ddnb->CreateBanner(DDNT_INFO, LoadStrFromRes(4062).c_str(), LoadStrFromRes(4063).c_str(), 5);
                                             return 0;
                                         }
@@ -117,8 +115,7 @@ namespace DirectDesktop
                                 else
                                 {
                                     MessageBeep(MB_OK);
-                                    CSafeElementPtr<DDNotificationBanner> ddnb;
-                                    ddnb.Assign(new DDNotificationBanner);
+                                    DDNotificationBanner* ddnb = new DDNotificationBanner();
                                     ddnb->CreateBanner(DDNT_ERROR, nullptr, nullptr, 3);
                                     return 0;
                                 }
@@ -174,8 +171,7 @@ namespace DirectDesktop
                                         MessageBeep(MB_OK);
                                         WCHAR* errorcontent = new WCHAR[256];
                                         StringCchPrintfW(errorcontent, 256, LoadStrFromRes(4061).c_str(), g_maxPageID);
-                                        CSafeElementPtr<DDNotificationBanner> ddnb;
-                                        ddnb.Assign(new DDNotificationBanner);
+                                        DDNotificationBanner* ddnb = new DDNotificationBanner();
                                         ddnb->CreateBanner(DDNT_ERROR, LoadStrFromRes(4060).c_str(), errorcontent, 5);
                                         delete[] errorcontent;
                                         return 0;
@@ -184,8 +180,7 @@ namespace DirectDesktop
                                 else
                                 {
                                     MessageBeep(MB_OK);
-                                    CSafeElementPtr<DDNotificationBanner> ddnb;
-                                    ddnb.Assign(new DDNotificationBanner);
+                                    DDNotificationBanner* ddnb = new DDNotificationBanner();
                                     ddnb->CreateBanner(DDNT_ERROR, nullptr, nullptr, 3);
                                     return 0;
                                 }
@@ -480,10 +475,18 @@ namespace DirectDesktop
                 fullscreenAnimation4();
             }
             DUI_SetGadgetZOrder(UIContainer, -1);
+            GTRANS_DESC transDesc2[1];
+            TransitionStoryboardInfo tsbInfo = {};
             for (int items = 0; items < pm.size(); items++)
             {
                 if (pm[items]->GetPage() != g_currentPageID)
                     pm[items]->SetSelected(false);
+                else
+                {
+                    TriggerTranslate(pm[items], transDesc2, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX(), pm[items]->GetY(), false, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, pm[items]->GetDisplayNode(), &tsbInfo);
+                    DUI_SetGadgetZOrder(pm[items], -1);
+                }
             }
         }
     }
@@ -846,8 +849,7 @@ namespace DirectDesktop
                 MessageBeep(MB_OK);
                 WCHAR* errorcontent = new WCHAR[256];
                 StringCchPrintfW(errorcontent, 256, LoadStrFromRes(4061).c_str(), g_maxPageID);
-                CSafeElementPtr<DDNotificationBanner> ddnb;
-                ddnb.Assign(new DDNotificationBanner);
+                DDNotificationBanner* ddnb = new DDNotificationBanner();
                 ddnb->CreateBanner(DDNT_ERROR, LoadStrFromRes(4060).c_str(), errorcontent, 5);
                 delete[] errorcontent;
                 return;

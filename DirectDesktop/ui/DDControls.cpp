@@ -33,14 +33,6 @@ namespace DirectDesktop
     IClassInfo* DDColorPickerButton::s_pClassInfo;
     IClassInfo* DDTabbedPages::s_pClassInfo;
     IClassInfo* DDMenuButton::s_pClassInfo;
-    IClassInfo* DDNotificationBanner::s_pClassInfo;
-
-    struct NotificationData
-    {
-        DDNotificationBanner* nb;
-        Element* pe;
-        int val;
-    };
 
     struct MenuData
     {
@@ -52,7 +44,7 @@ namespace DirectDesktop
 
     typedef HWND(WINAPI* pfnSHCreateWorkerWindowW)(WNDPROC, HWND, DWORD, DWORD, LPVOID);
 
-    vector<HWND> g_nwnds{};
+    vector<DDNotificationBanner*> g_nwnds{};
 
     WNDPROC WndProcNotification;
     WNDPROC g_oldMainProc;
@@ -3212,7 +3204,7 @@ namespace DirectDesktop
         else
         {
             POINT ptRoot{}, ptDest;
-            RECT rcRoot, rcDest, rcElement{}, rcList{}, rcSelected{}, dimensions;
+            RECT rcRoot, rcPreExpand{}, rcElement{}, rcList{}, rcSelected{}, dimensions;
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
             GetWindowRect(((HWNDElement*)this->GetRoot())->GetHWND(), &rcRoot);
             this->GetRoot()->MapElementPoint(this, &ptRoot, &ptDest);
@@ -3222,13 +3214,13 @@ namespace DirectDesktop
             Element* peSelected = _peSelections[_selID] ? _peSelections[_selID] : _peHostInner;
             GetGadgetRect(peSelected->GetDisplayNode(), &rcSelected, 0xC);
             LONG halfHeight = (this->GetListMaxHeight() - rcElement.bottom + rcElement.top) / 2;
-            rcDest.left = rcRoot.left + ptDest.x;
-            rcDest.top = rcRoot.top + ptDest.y - halfHeight;
-            rcDest.right = rcElement.right - rcElement.left;
-            rcDest.bottom = min(rcList.bottom - rcList.top, this->GetListMaxHeight());
-            if (rcDest.bottom < this->GetListMaxHeight())
+            _rcDest.left = rcRoot.left + ptDest.x;
+            _rcDest.top = rcRoot.top + ptDest.y - halfHeight;
+            _rcDest.right = rcElement.right - rcElement.left;
+            _rcDest.bottom = min(rcList.bottom - rcList.top, this->GetListMaxHeight());
+            if (_rcDest.bottom < this->GetListMaxHeight())
             {
-                rcDest.top += halfHeight - rcSelected.top - 1;
+                _rcDest.top += halfHeight - rcSelected.top - 1;
             }
             else
             {
@@ -3236,17 +3228,17 @@ namespace DirectDesktop
                 if (halfHeight > rcSelected.top - rcList.top)
                 {
                     _tsvSelectionMenu->SetYOffset(0);
-                    rcDest.top += halfHeight - rcSelected.top + rcList.top + _tsvSelectionMenu->GetYOffset();
+                    _rcDest.top += halfHeight - rcSelected.top + rcList.top;
                 }
                 if (halfHeight > rcList.bottom - rcSelected.bottom)
                 {
-                    _tsvSelectionMenu->SetYOffset(rcList.bottom - rcList.top - rcDest.bottom);
-                    rcDest.top += halfHeight - rcSelected.top + rcList.top + _tsvSelectionMenu->GetYOffset();
+                    _tsvSelectionMenu->SetYOffset(rcList.bottom - rcList.top - _rcDest.bottom);
+                    _rcDest.top += halfHeight - rcSelected.top + rcList.top + _tsvSelectionMenu->GetYOffset();
                 }
-                if (rcDest.top < 0) rcDest.top = 0;
-                if (rcDest.bottom > dimensions.bottom) rcDest.bottom = dimensions.bottom;
+                if (_rcDest.top < 0) _rcDest.top = 0;
+                if (_rcDest.bottom > dimensions.bottom) _rcDest.bottom = dimensions.bottom;
             }
-            SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, rcDest.left, rcDest.top, rcDest.right, rcDest.bottom, NULL);
+            SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, _rcDest.left, _rcDest.top, _rcDest.right, _rcDest.bottom, NULL);
             _wndSelectionMenu->ShowWindow(SW_SHOW);
             if (DWMActive)
             {
@@ -3352,13 +3344,13 @@ namespace DirectDesktop
                                 SetGadgetFlags(_tsvSelectionMenu->GetDisplayNode(), NULL, NULL);
                                 MARGINS margins = { -1, -1, -1, -1 };
                                 DwmExtendFrameIntoClientArea(_wndSelectionMenu->GetHWND(), &margins);
-                                HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
-                                if (hShlwapi)
-                                {
-                                    pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
-                                        (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
-                                    _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
-                                }
+                            }
+                            HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+                            if (hShlwapi)
+                            {
+                                pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                                    (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+                                _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
                             }
                         }
                     }
@@ -4278,7 +4270,7 @@ namespace DirectDesktop
             {
                 if (_rgpeColorButtons[_currentColorID]->GetAssociatedColor() == vElem[i]->GetAssociatedColor())
                     continue;
-                TriggerCrossfade(vElem[i], 0.0f, 0.133f);
+                TriggerCrossfade(vElem[i], 0.0f, 0.133f, nullptr);
                 vElem[i]->SetDDCPIntensity(this->GetColorIntensity());
                 if (_currentColorID == 0)
                     vElem[i]->SetDDCPIntensity(255);
@@ -4827,9 +4819,10 @@ namespace DirectDesktop
                 }
                 else
                 {
-                    dwAlphaDiff = 255 - dwTickDiff * 3.0f;
+                    dwAlphaDiff = dwTickDiff * 3.0f;
                     dwAlphaThreshold = 0;
-                    if (menu->_uTrackFlags & 0x3C00 && wParam != 6) dwAlphaDiff /= 2.0f;
+                    if (menu->_uTrackFlags & 0x3C00 && wParam != 6) dwAlphaDiff /= 1.25f;
+                    dwAlphaDiff = 255 - dwAlphaDiff;
                     if (!g_menuAnim)
                         dwAlphaDiff = -1;
                 }
@@ -4843,14 +4836,19 @@ namespace DirectDesktop
                     SetLayeredWindowAttributes(menu->_wndSelectionMenu->GetHWND(), 0, dwAlphaDiff2, LWA_ALPHA);
                     if (wParam != 6 || menu->_subLevel == 0)
                     {
+                        float progression;
+                        if (wParam == 2)
+                            progression = menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1;
+                        else
+                            progression = -menu->_scbi->GetProgression((255 - dwAlphaDiff) / 255.0);
                         if (menu->_uTrackFlags & TPM_HORPOSANIMATION)
-                            rcAnim.left += ceil((menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32 * localeDirection);
+                            rcAnim.left += ceil(progression * g_flScaleFactor * 32) * localeDirection;
                         else if (menu->_uTrackFlags & TPM_HORNEGANIMATION)
-                            rcAnim.left -= (menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32 * localeDirection;
+                            rcAnim.left -= progression * g_flScaleFactor * 32 * localeDirection;
                         if (menu->_uTrackFlags & TPM_VERPOSANIMATION)
-                            rcAnim.top += ceil((menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32);
+                            rcAnim.top += ceil(progression * g_flScaleFactor * 32);
                         else if (menu->_uTrackFlags & TPM_VERNEGANIMATION)
-                            rcAnim.top -= (menu->_scbi->GetProgression(dwAlphaDiff / 255.0) - 1) * g_flScaleFactor * 32;
+                            rcAnim.top -= progression * g_flScaleFactor * 32;
                         if (menu->_uTrackFlags & 0x3C00)
                             SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, rcAnim.left, rcAnim.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
                     }
@@ -4872,6 +4870,7 @@ namespace DirectDesktop
                     }
                     else if (wParam == 6)
                     {
+                        delete menu->_scbi;
                         if (menu->_subLevel == 0)
                         {
                             SetTimer(hWnd, 7, 2000, nullptr);
@@ -5612,6 +5611,7 @@ namespace DirectDesktop
             }
             else
             {
+                _scbi->SetCurve(1.0, 0.0, 1.0, 1.0);
                 _fDone = true;
                 for (int i = 0; i < _count; i++)
                 {
@@ -5648,7 +5648,7 @@ namespace DirectDesktop
         {
             if (!_fAnimating)
             {
-                _scbi->SetCurve(0.11, 0.5, 0.24, 0.96);
+                _scbi->SetCurve(1.0, 0.0, 1.0, 1.0);
                 SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
                 KillTimer(_hTimer, 1);
                 KillTimer(_hTimer, 2);
@@ -5836,7 +5836,103 @@ namespace DirectDesktop
         }
     }
 
-    LRESULT CALLBACK NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+    LRESULT CALLBACK DDNotificationBanner::s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        DDNotificationBanner* nb = (DDNotificationBanner*)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+        switch (uMsg)
+        {
+        case WM_TIMER:
+            static DWORD animCoef;
+            switch (wParam)
+            {
+            case 7:
+                KillTimer(hWnd, wParam);
+                DestroyWindow(hWnd);
+                delete nb;
+                nb = nullptr;
+                break;
+            case 1:
+                nb->_fStartedAnim = true;
+            case 3:
+            case 5:
+            {
+                KillTimer(hWnd, wParam);
+                KillTimer(hWnd, wParam + 1);
+                animCoef = g_animCoef;
+                if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                nb->_tick = GetTickCount64();
+                if (wParam == 1)
+                    nb->_wnd->ShowWindow(SW_SHOWNOACTIVATE);
+                SetTimer(hWnd, wParam + 1, 10, nullptr);
+                break;
+            }
+            case 2:
+            case 4:
+            {
+                LONGLONG dwTickDiff = GetTickCount64() - nb->_tick;
+                LONGLONG dwDistDiff{}, dwDistThreshold;
+                double progression;
+                int cy = nb->_iDeltaY;
+                if (wParam == 2)
+                {
+                    progression = nb->_scbi->GetProgression(dwTickDiff / (3.0 * animCoef));
+                    dwDistThreshold = 0;
+                    dwDistDiff = cy - cy * progression;
+                }
+                else
+                {
+                    progression = nb->_scbi->GetProgression(dwTickDiff / (2.0 * animCoef));
+                    dwDistThreshold = cy;
+                    dwDistDiff = cy * progression;
+                }
+                if (g_windowAnim && progression < 1)
+                {
+                    SetWindowPos(nb->_wnd->GetHWND(), NULL, nb->_rcWindow.left, nb->_rcWindow.top - dwDistDiff, NULL, NULL,
+                        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
+                }
+                else
+                {
+                    dwDistDiff = dwDistThreshold;
+                    SetWindowPos(nb->_wnd->GetHWND(), NULL, nb->_rcWindow.left, nb->_rcWindow.top - dwDistDiff, NULL, NULL,
+                        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
+                    KillTimer(hWnd, wParam - 1);
+                    KillTimer(hWnd, wParam);
+                    if (wParam == 4)
+                    {
+                        nb->_wnd->ShowWindow(SW_HIDE);
+                        SetTimer(hWnd, 7, 500, nullptr);
+                    }
+                }
+                break;
+            }
+            case 6:
+            {
+                LONGLONG dwTickDiff = GetTickCount64() - nb->_tick;
+                LONGLONG dwAlphaDiff{}, dwAlphaThreshold;
+                dwAlphaDiff = 255 - dwTickDiff * 2.5f;
+                dwAlphaThreshold = 0;
+                if (!g_windowAnim)
+                    dwAlphaDiff = -1;
+                if (dwAlphaDiff >= dwAlphaThreshold)
+                    SetLayeredWindowAttributes(nb->_wnd->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
+                else
+                {
+                    dwAlphaDiff = dwAlphaThreshold;
+                    SetLayeredWindowAttributes(nb->_wnd->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
+                    KillTimer(hWnd, wParam - 1);
+                    KillTimer(hWnd, wParam);
+                    nb->_wnd->ShowWindow(SW_HIDE);
+                    SetTimer(hWnd, 7, 500, nullptr);
+                }
+                break;
+            }
+            }
+            return 0;
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    LRESULT CALLBACK DDNotificationBanner::s_NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
     {
         DDNotificationBanner* nb = (DDNotificationBanner*)dwRefData;
         switch (uMsg)
@@ -5849,8 +5945,30 @@ namespace DirectDesktop
                 KillTimer(hWnd, wParam);
                 switch (wParam)
                 {
-                case 1:
-                    if (nb) nb->DestroyBanner(nullptr, false);
+                default:
+                    if (nb)
+                    {
+                        if (nb->_stackCount == 0)
+                            nb->DestroyBanner();
+                        else
+                        {
+                            WCHAR stackStr[64];
+                            StringCchPrintfW(stackStr, 64, L"+%d more", --nb->_stackCount);
+                            nb->_stackIndicator->SetContentString(stackStr);
+                            if (nb->_stackCount == 0)
+                            {
+                                nb->_stackIndicator->SetLayoutPos(-3);
+                                int cy{};
+                                SIZE szText{};
+                                RECT windowRect{};
+                                GetWindowRect(nb->_wnd->GetHWND(), &windowRect);
+                                GetTextDimensions(nb->_stackIndicator, stackStr, &szText, &cy);
+                                cy = windowRect.bottom - windowRect.top - cy;
+                                SetWindowPos(nb->_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right - windowRect.left, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+                                DDNotificationBanner::s_RepositionBanners(true, -cy - windowRect.top + windowRect.bottom, windowRect.bottom);
+                            }
+                        }
+                    }
                     break;
                 }
                 break;
@@ -5858,73 +5976,63 @@ namespace DirectDesktop
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
 
-    DWORD WINAPI AnimateWindowWrapper(LPVOID lpParam)
-    {
-        NotificationData* nd = (NotificationData*)lpParam;
-        Sleep(10);
-        if (nd->nb->GetWindowHost())
-        {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            if (g_windowAnim)
-                AnimateWindow(nd->nb->GetWindowHost()->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
-            else
-                nd->nb->GetWindowHost()->ShowWindow(SW_SHOW);
-            nd->nb->GetWindowHost()->ShowWindow(SW_SHOWNOACTIVATE);
-        }
-        delete nd;
-        return 0;
-    }
-
+    
     DDNotificationBanner::~DDNotificationBanner()
     {
-        DestroyAll(true);
-    }
-
-    IClassInfo* DDNotificationBanner::GetClassInfoPtr()
-    {
-        return s_pClassInfo;
-    }
-
-    void DDNotificationBanner::SetClassInfoPtr(IClassInfo* pClass)
-    {
-        s_pClassInfo = pClass;
-    }
-
-    IClassInfo* DDNotificationBanner::GetClassInfoW()
-    {
-        return s_pClassInfo;
-    }
-
-    HRESULT DDNotificationBanner::Create(HWND hParent, bool fDblBuffer, UINT nCreate, Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
-    {
-        return CreateAndInit<DDNotificationBanner, HWND, bool, UINT>(hParent, fDblBuffer, nCreate, pParent, pdwDeferCookie, ppElement);
-    }
-
-    HRESULT DDNotificationBanner::Register()
-    {
-        return ClassInfo<DDNotificationBanner, HWNDElement, EmptyCreator<DDNotificationBanner>>::RegisterGlobal(HINST_THISCOMPONENT, L"DDNotificationBanner", nullptr, 0);
-    }
-
-    NativeHWNDHost* DDNotificationBanner::GetWindowHost()
-    {
-        return _wnd;
+        _wnd->GetElement()->DestroyAll(true);
+        _wnd->GetElement()->Destroy(true);
+        _wnd->DestroyWindow();
+        _wnd = nullptr;
     }
 
     void DDNotificationBanner::CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout)
     {
-        static bool notificationopen{};
-        //if (notificationopen) DestroyBanner(&notificationopen);
+        if (g_nwnds.size())
+        {
+            Element* peTitle = g_nwnds.back()->_title;
+            Element* peContent = g_nwnds.back()->_content;
+            CValuePtr v;
+            if ((!title || (peTitle && wcscmp(peTitle->GetContentString(&v), title) == 0)) &&
+                (!content || (peContent && wcscmp(peContent->GetContentString(&v), content) == 0))
+                && type == g_nwnds.back()->_notificationType && g_nwnds.back()->_stackCount < 255)
+            {
+                WCHAR stackStr[64];
+                StringCchPrintfW(stackStr, 64, L"+%d more", ++g_nwnds.back()->_stackCount);
+                g_nwnds.back()->_stackIndicator->SetContentString(stackStr);
+                if (g_nwnds.back()->_stackCount == 1)
+                {
+                    g_nwnds.back()->_stackIndicator->SetLayoutPos(3);
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    TriggerFade(g_nwnds.back()->_stackIndicator, transDesc, 0, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f,
+                        0.0f, g_nwnds.back()->_stackIndicator->GetAlpha() / 255.0f, false, false, true);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, g_nwnds.back()->_stackIndicator->GetDisplayNode(), &tsbInfo);
+                    int cy{};
+                    SIZE szText{};
+                    RECT windowRect{};
+                    GetWindowRect(g_nwnds.back()->_wnd->GetHWND(), &windowRect);
+                    GetTextDimensions(g_nwnds.back()->_stackIndicator, stackStr, &szText, &cy);
+                    cy += windowRect.bottom - windowRect.top;
+                    SetWindowPos(g_nwnds.back()->_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right - windowRect.left, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+                    DDNotificationBanner::s_RepositionBanners(false, cy - windowRect.bottom + windowRect.top, windowRect.bottom);
+                }
+                SetTimer(g_nwnds.back()->_wnd->GetHWND(), (UINT_PTR)this, timeout * 1000, nullptr);
+                return;
+            }
+        }
         unsigned long keyN{};
         Element* pHostElement;
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        DDNotificationBanner* pDDNB = this;
-        DDNotificationBanner** ppDDNB = &pDDNB;
-        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, WS_EX_TOOLWINDOW, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &_wnd);
-        HWNDElement::Create(_wnd->GetHWND(), true, NULL, nullptr, &keyN, (Element**)ppDDNB);
-        _pDDNB = pDDNB;
-        Element::Create(0, pDDNB, nullptr, &pHostElement);
+        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
+        if (DWMActive)
+        {
+            dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
+            dwCreateFlags |= 0x28;
+        }
+        NativeHWNDHost::Create(L"DD_NotificationHost", L"DirectDesktop In-App Notification", nullptr, nullptr, 0, 0, 0, 0, dwExStyle, WS_POPUP | WS_BORDER, HINST_THISCOMPONENT, 0, &_wnd);
+        HWNDElement::Create(_wnd->GetHWND(), true, dwCreateFlags, nullptr, &keyN, (Element**)&_pDDNB);
+        Element::Create(0, _pDDNB, nullptr, &pHostElement);
         _pDDNB->Add(&pHostElement, 1);
 
         LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
@@ -5935,7 +6043,7 @@ namespace DirectDesktop
         free(sheet);
 
         pHostElement->SetID(L"DDNB_Host");
-        SetWindowSubclass(_wnd->GetHWND(), NotificationProc, 1, (DWORD_PTR)this);
+        SetWindowSubclass(_wnd->GetHWND(), s_NotificationProc, 1, (DWORD_PTR)this);
         _pDDNB->SetVisible(true);
         _pDDNB->EndDefer(keyN);
         _wnd->Host(_pDDNB);
@@ -5946,6 +6054,8 @@ namespace DirectDesktop
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
         if (DWMActive)
         {
+            AddLayeredRef(_pDDNB->GetDisplayNode());
+            SetGadgetFlags(_pDDNB->GetDisplayNode(), NULL, NULL);
             MARGINS margins = { -1, -1, -1, -1 };
             DwmExtendFrameIntoClientArea(_wnd->GetHWND(), &margins);
             if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
@@ -5955,7 +6065,7 @@ namespace DirectDesktop
             }
         }
         BlurBackground(_wnd->GetHWND(), true, false, -1, nullptr);
-        _pDDNB->SetBackgroundStdColor(7);
+        _pDDNB->SetBackgroundColor(0);
         CValuePtr v;
         CreateAndSetLayout(_pDDNB, BorderLayout::Create, 0, nullptr);
         CreateAndSetLayout(pHostElement, BorderLayout::Create, 0, nullptr);
@@ -5963,6 +6073,7 @@ namespace DirectDesktop
         DDScalableElement::Create(pHostElement, nullptr, (Element**)&_icon);
         _icon->SetID(L"DDNB_Icon");
         pHostElement->Add((Element**)&_icon, 1);
+        _notificationType = type;
         switch (type)
         {
             case DDNT_SUCCESS:
@@ -5997,6 +6108,10 @@ namespace DirectDesktop
             _content->SetContentString(content);
         }
 
+        DDScalableElement::Create(pHostElement, nullptr, (Element**)&_stackIndicator);
+        _stackIndicator->SetID(L"DDNB_StackIndicator");
+        pHostElement->Add((Element**)&_stackIndicator, 1);
+
         int cx{}, cy{};
         RECT hostpadding = *(pHostElement->GetPadding(&v));
         RECT titlepadding = *(_title->GetPadding(&v));
@@ -6021,99 +6136,136 @@ namespace DirectDesktop
 
         if (_wnd)
         {
-            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED | SWP_NOACTIVATE);
-            notificationopen = true;
-            NotificationData* nd = new NotificationData{ this, nullptr, timeout };
-            HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper, nd, NULL, nullptr);
-            if (AnimHandle) CloseHandle(AnimHandle);
-            g_nwnds.push_back(_wnd->GetHWND());
-            DDNotificationBanner::s_RepositionBanners();
+            HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+            if (hShlwapi)
+            {
+                pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                    (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+                _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
+            }
+            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED |SWP_NOACTIVATE);
+            SetLayeredWindowAttributes(_wnd->GetHWND(), 0, 255, LWA_ALPHA);
+            g_nwnds.push_back(this);
+            DDNotificationBanner::s_RepositionBanners(false, dimensions.top + 16 * g_flScaleFactor + cy, 0);
+            _scbi = new SimpleCubicBezierInterpolator();
+            _scbi->SetCurve(0.0, 0.0, 0.0, 1.0);
             if (timeout > 0)
-                SetTimer(_wnd->GetHWND(), 1, timeout * 1000, nullptr);
-            _pDDNB->_wnd = (NativeHWNDHost*)this; // Unsafe hack
+            {
+                SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
+                SetTimer(_wnd->GetHWND(), (UINT_PTR)this, timeout * 1000, nullptr);
+            }
+            SetTimer(_hTimer, 1, 50, nullptr);
         }
     }
 
-    void DDNotificationBanner::s_RepositionBanners()
+    void DDNotificationBanner::s_RepositionBanners(bool fReverse, int iDeltaY, int iBoundY)
     {
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        int offset{};
-        offset += dimensions.top + 40 * g_flScaleFactor;
-        for (int i = g_nwnds.size() - 1; i >= 0; i--) {
+        int offset = dimensions.top + 40 * g_flScaleFactor;
+        for (int i = g_nwnds.size() - 1; i >= 0; i--)
+        {
             RECT windowRect{};
-            GetClientRect(g_nwnds[i], &windowRect);
-            SetWindowPos(g_nwnds[i], HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right - 2 * g_flScaleFactor) / 2, offset, NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
-            offset += windowRect.bottom + 18 * g_flScaleFactor;
+            GetClientRect(g_nwnds[i]->_wnd->GetHWND(), &windowRect);
+            g_nwnds[i]->_iDeltaY = fReverse ? iDeltaY * -1 : iDeltaY;
+            if (g_windowAnim && iDeltaY && g_nwnds[i]->_rcWindow.top >= iBoundY)
+            {
+                GetWindowRect(g_nwnds[i]->_wnd->GetHWND(), &g_nwnds[i]->_rcWindow);
+                g_nwnds[i]->_rcWindow.left = (dimensions.left + dimensions.right - windowRect.right) / 2;
+                g_nwnds[i]->_rcWindow.bottom += offset - g_nwnds[i]->_rcWindow.top;
+                g_nwnds[i]->_rcWindow.top = offset;
+                KillTimer(g_nwnds[i]->_hTimer, 1);
+                KillTimer(g_nwnds[i]->_hTimer, 2);
+                SetTimer(g_nwnds[i]->_hTimer, 1, fReverse ? 100 : 0, nullptr);
+            }
+            else
+            {
+                SetWindowPos(g_nwnds[i]->_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - windowRect.right) / 2, offset,
+                    NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+                GetWindowRect(g_nwnds[i]->_wnd->GetHWND(), &g_nwnds[i]->_rcWindow);
+            }
+            offset += windowRect.bottom + 16 * g_flScaleFactor;
         }
     }
 
-    void DDNotificationBanner::DestroyBanner(bool* notificationopen, bool manual)
+    void DDNotificationBanner::DestroyBanner()
     {
         if (_wnd != nullptr)
         {
-            auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), _wnd->GetHWND());
+            bool topmost = (this == g_nwnds.back());
+            auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), this);
             g_nwnds.erase(toRemove);
-            DDNotificationBanner::s_RepositionBanners();
+            DDNotificationBanner::s_RepositionBanners(true, this->_rcWindow.bottom - this->_rcWindow.top, this->_rcWindow.bottom);
             DWORD animCoef = g_animCoef;
             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-            if (g_windowAnim)
-                AnimateWindow(_wnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
-            else
-                _wnd->ShowWindow(SW_HIDE);
-            _wnd->GetElement()->DestroyAll(true);
-            _wnd->GetElement()->Destroy(true);
-            if (manual) SetWindowLongPtrW(_wnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)nullptr);
-            _wnd->DestroyWindow();
-            _wnd = nullptr;
+            _scbi->SetCurve(1.0, 0.0, 1.0, 1.0);
+            this->_iDeltaY = this->_rcWindow.bottom - this->_rcWindow.top;
+            SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
+            KillTimer(_hTimer, 1);
+            KillTimer(_hTimer, 2);
+            if (topmost)
+                SetTimer(_hTimer, 3, 0, nullptr);
+            else SetTimer(_hTimer, 5, 0, nullptr);
         }
-        if (notificationopen != nullptr) *notificationopen = false;
-        delete this;
     }
 
     void DDNotificationBanner::s_DestroyBannerByButton(Element* elem, Event* iev)
     {
         if (iev->uidType == Button::Click)
         {
-            DDNotificationBanner* pDestroy = (DDNotificationBanner*)((DDNotificationBanner*)elem->GetParent()->GetParent())->_wnd;
-            pDestroy->DestroyBanner(nullptr, true);
+            Element* pDestroyElement = elem->GetParent()->GetParent();
+            DDNotificationBanner* pDestroy{};
+            int i;
+            for (i = 0; i < g_nwnds.size(); i++)
+            {
+                if (g_nwnds[i]->_pDDNB == pDestroyElement)
+                {
+                    pDestroy = g_nwnds[i];
+                    break;
+                }
+            }
+            if (pDestroy)
+                SetTimer(pDestroy->_wnd->GetHWND(), (UINT_PTR)pDestroy, 0, nullptr);
         }
     }
 
     void DDNotificationBanner::AppendButton(LPCWSTR szButtonText, void(*pListener)(Element* elem, Event* iev), bool fClose)
     {
-        if (_btnCount == 0)
+        if (_pDDNB)
         {
-            Element::Create(0, _pDDNB, nullptr, &_peButtonSection);
-            _pDDNB->Add(&_peButtonSection, 1);
+            if (_btnCount == 0)
+            {
+                Element::Create(0, _pDDNB, nullptr, &_peButtonSection);
+                _pDDNB->Add(&_peButtonSection, 1);
 
-            LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
-            StyleSheet* sheet = _peButtonSection->GetSheet();
-            CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
-            g_parser->GetSheet(sheetName, &sheetStorage);
-            _peButtonSection->SetValue(Element::SheetProp, 1, sheetStorage);
-            free(sheet);
+                LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
+                StyleSheet* sheet = _peButtonSection->GetSheet();
+                CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+                g_parser->GetSheet(sheetName, &sheetStorage);
+                _peButtonSection->SetValue(Element::SheetProp, 1, sheetStorage);
+                free(sheet);
 
-            _peButtonSection->SetID(L"DDNB_Buttons");
-            int cy{};
-            RECT windowRect{};
-            GetClientRect(_wnd->GetHWND(), &windowRect);
-            cy = (_peButtonSection->GetHeight() + windowRect.bottom);
-            SetWindowPos(_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
-            DDNotificationBanner::s_RepositionBanners();
+                _peButtonSection->SetID(L"DDNB_Buttons");
+                int cy{};
+                RECT windowRect{};
+                GetWindowRect(_wnd->GetHWND(), &windowRect);
+                cy = (_peButtonSection->GetHeight() + windowRect.bottom - windowRect.top);
+                SetWindowPos(_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right - windowRect.left, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+                DDNotificationBanner::s_RepositionBanners(false, _fStartedAnim ? cy - windowRect.bottom + windowRect.top : cy, windowRect.bottom);
+            }
+            _btnCount++;
+            int flowlayoutParams[2] = { 1, _btnCount };
+            CreateAndSetLayout(_peButtonSection, GridLayout::Create, ARRAYSIZE(flowlayoutParams), flowlayoutParams);
+            DDScalableButton* pBtn{};
+            DDScalableButton::Create(_peButtonSection, nullptr, (Element**)&pBtn);
+            pBtn->SetNeedsFontResize(false);
+            pBtn->SetClass(L"pushbuttonsecondary");
+            pBtn->SetHeight(32 * g_flScaleFactor);
+            pBtn->SetMargin(8 * g_flScaleFactor, 0, 0, 0);
+            pBtn->SetContentString(szButtonText);
+            _peButtonSection->Add((Element**)&pBtn, 1);
+            if (pListener) assignFn(pBtn, pListener);
+            if (fClose) assignFn(pBtn, DDNotificationBanner::s_DestroyBannerByButton);
         }
-        _btnCount++;
-        int flowlayoutParams[2] = { 1, _btnCount };
-        CreateAndSetLayout(_peButtonSection, GridLayout::Create, ARRAYSIZE(flowlayoutParams), flowlayoutParams);
-        DDScalableButton* pBtn{};
-        DDScalableButton::Create(_peButtonSection, nullptr, (Element**)&pBtn);
-        pBtn->SetNeedsFontResize(false);
-        pBtn->SetClass(L"pushbuttonsecondary");
-        pBtn->SetHeight(32 * g_flScaleFactor);
-        pBtn->SetMargin(8 * g_flScaleFactor, 0, 0, 0);
-        pBtn->SetContentString(szButtonText);
-        _peButtonSection->Add((Element**)&pBtn, 1);
-        if (pListener) assignFn(pBtn, pListener);
-        if (fClose) assignFn(pBtn, DDNotificationBanner::s_DestroyBannerByButton);
     }
 }

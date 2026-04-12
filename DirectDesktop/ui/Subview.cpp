@@ -753,8 +753,7 @@ namespace DirectDesktop
         }
         if (g_issettingsopen && g_atleastonesetting)
         {
-            CSafeElementPtr<DDNotificationBanner> ddnb;
-            ddnb.Assign(new DDNotificationBanner);
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
             ddnb->CreateBanner(DDNT_SUCCESS, LoadStrFromRes(4042).c_str(), nullptr, 3);
         }
         //SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -1045,8 +1044,7 @@ namespace DirectDesktop
                 WCHAR clearMsg[64];
                 if (!g_touchmode) StringCchPrintfW(clearMsg, 64, LoadStrFromRes(4094).c_str(), g_iconsz);
                 else StringCchPrintfW(clearMsg, 64, LoadStrFromRes(4095).c_str());
-                CSafeElementPtr<DDNotificationBanner> ddnb;
-                ddnb.Assign(new DDNotificationBanner);
+                DDNotificationBanner* ddnb = new DDNotificationBanner();
                 ddnb->CreateBanner(DDNT_SUCCESS, nullptr, clearMsg, 3);
             }
         }

@@ -21,24 +21,26 @@
 			</DDScalableButton>
 		</Element>
 		<Element class="separator" layoutpos="bottom" height="1rp"/>
-		<Element id="atom(ShutdownActions)" class="section" layoutpos="top" height="211rp" layout="gridlayout(2,3)" padding="rect(12rp,12rp,12rp,12rp)">
-			<DDIconButton id="atom(SwitchUser)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3052, library(shutdownux.dll))" iconcontent="resstr(201)" accdesc="resstr(3053, library(shutdownux.dll))"/>
-			<DDIconButton id="atom(SignOut)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3034, library(shutdownux.dll))" iconcontent="resstr(202)" accdesc="resstr(3035, library(shutdownux.dll))"/>
-			<DDIconButton id="atom(SleepButton)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3019, library(shutdownux.dll))" iconcontent="resstr(203)" accdesc="resstr(3021, library(shutdownux.dll))"/>
-			<DDIconButton id="atom(Hibernate)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3022, library(shutdownux.dll))" iconcontent="resstr(204)" accdesc="resstr(3025, library(shutdownux.dll))"/>
-			<DDIconButton id="atom(Shutdown)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3013, library(shutdownux.dll))" iconcontent="resstr(205)" accdesc="resstr(3015, library(shutdownux.dll))"/>
-			<DDIconButton id="atom(Restart)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3016, library(shutdownux.dll))" iconcontent="resstr(206)" accdesc="resstr(3018, library(shutdownux.dll))"/>
-		</Element>
-		<Element id="atom(AdvancedOptions)" class="section" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)">
-			<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
-				<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,2rp,0,2rp)" content="resstr(4035)"/>
-				<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="messagefont;115%" NeedsFontResize="true"/>
-				<DDScalableElement content="resstr(4036)" layoutpos="left" padding="rect(0,2rp,0,2rp)" height="32rp" background="argb(0,0,0,0)" font="messagefont;115%" NeedsFontResize="true"
-								   compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+		<Element layoutpos="client" layout="borderlayout()" class="section">
+			<Element id="atom(ShutdownActions)" background="argb(0,0,0,0)" layoutpos="top" height="211rp" layout="gridlayout(2,3)" padding="rect(12rp,12rp,12rp,12rp)">
+				<DDIconButton id="atom(SwitchUser)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3052, library(shutdownux.dll))" iconcontent="resstr(201)" accdesc="resstr(3053, library(shutdownux.dll))"/>
+				<DDIconButton id="atom(SignOut)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3034, library(shutdownux.dll))" iconcontent="resstr(202)" accdesc="resstr(3035, library(shutdownux.dll))"/>
+				<DDIconButton id="atom(SleepButton)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3019, library(shutdownux.dll))" iconcontent="resstr(203)" accdesc="resstr(3021, library(shutdownux.dll))"/>
+				<DDIconButton id="atom(Hibernate)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3022, library(shutdownux.dll))" iconcontent="resstr(204)" accdesc="resstr(3025, library(shutdownux.dll))"/>
+				<DDIconButton id="atom(Shutdown)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3013, library(shutdownux.dll))" iconcontent="resstr(205)" accdesc="resstr(3015, library(shutdownux.dll))"/>
+				<DDIconButton id="atom(Restart)" class="dialogbutton" layout="verticalflowlayout(0,2,2,2)" content="resstr(3016, library(shutdownux.dll))" iconcontent="resstr(206)" accdesc="resstr(3018, library(shutdownux.dll))"/>
 			</Element>
-			<Element layout="verticalflowlayout(0,0,0,2)" layoutpos="client" background="argb(0,0,0,0)">
-				<DDScalableButton id="atom(RestartWinRE)" margin="rect(0,0,0,4rp)" content="resstr(1810, library(bootux.dll))" class="hyperlink"/>
-				<DDScalableButton id="atom(RestartBIOS)" layoutpos="none" content="resstr(1618, library(bootux.dll))" class="hyperlink"/>
+			<Element id="atom(AdvancedOptions)" background="argb(0,0,0,0)" layoutpos="none" layout="borderlayout()" padding="rect(12rp,0rp,12rp,12rp)">
+				<Element id="atom(DelayBar)" padding="rect(0,0,0,4rp)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
+					<DDCheckBox id="atom(delaytoggle)" layoutpos="left" padding="rect(0,2rp,0,2rp)" content="resstr(4035)"/>
+					<DDScalableTouchEdit id="atom(delayseconds)" layoutpos="left" width="80rp" height="32rp" Enabled="false" font="messagefont;115%" NeedsFontResize="true"/>
+					<DDScalableElement content="resstr(4036)" layoutpos="left" padding="rect(0,2rp,0,2rp)" height="32rp" background="argb(0,0,0,0)" font="messagefont;115%" NeedsFontResize="true"
+									   compositedtext="true" textglowsize="0" contentalign="middlecenter"/>
+				</Element>
+				<Element layout="verticalflowlayout(0,0,0,2)" layoutpos="client" background="argb(0,0,0,0)">
+					<DDScalableButton id="atom(RestartWinRE)" margin="rect(0,0,0,4rp)" content="resstr(1810, library(bootux.dll))" class="hyperlink"/>
+					<DDScalableButton id="atom(RestartBIOS)" layoutpos="none" content="resstr(1618, library(bootux.dll))" class="hyperlink"/>
+				</Element>
 			</Element>
 		</Element>
 	</HWNDElement>

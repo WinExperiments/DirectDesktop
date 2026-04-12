@@ -32,7 +32,7 @@ namespace DirectDesktop
     int savedremaining; // Display remaining time immediately when the dialog is invoked
     wstring reasonStr = LoadStrFromRes(8261, L"user32.dll");
     bool g_dialogAnimation = false;
-    static SimpleCubicBezierInterpolator* g_scbi = new SimpleCubicBezierInterpolator(0.75, 0.45, 0.0, 1.0);
+    static SimpleCubicBezierInterpolator* g_scbi = new SimpleCubicBezierInterpolator(0.8, 0.0, 0.0, 1.0);
 
     typedef HWND(WINAPI* pfnSHCreateWorkerWindowW)(WNDPROC, HWND, DWORD, DWORD, LPVOID);
 
@@ -128,6 +128,7 @@ namespace DirectDesktop
         switch (uMsg)
         {
         case WM_TIMER:
+            static DWORD animCoef;
             switch (wParam)
             {
             case 1:
@@ -136,9 +137,9 @@ namespace DirectDesktop
                 KillTimer(hWnd, wParam + 1);
                 windowDirection = (wParam == 1) ? -1 : 1;
                 s_tick = GetTickCount64();
-                GetClientRect(shutdownwnd->GetHWND(), &rcWindow);
-                rcWindow.right += 2;
-                rcWindow.bottom += 2;
+                animCoef = g_animCoef;
+                if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                GetWindowRect(shutdownwnd->GetHWND(), &rcWindow);
                 ShutdownActions.Assign(regElem<Element*>(L"ShutdownActions", pShutdown));
                 ShutdownActions->SetLayoutPos(-3);
                 GetGadgetRect(AdvancedOptions->GetDisplayNode(), &rcGadget, 0xC);
@@ -150,19 +151,17 @@ namespace DirectDesktop
                 LONGLONG dwTickDiff = GetTickCount64() - s_tick;
                 LONGLONG dwDistDiff{}, dwDistThreshold;
                 dwDistThreshold = (rcGadget.bottom - rcGadget.top) * windowDirection;
-                DWORD animCoef = g_animCoef;
-                if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
                 dwDistDiff = (dwDistThreshold + windowDirection) * g_scbi->GetProgression(dwTickDiff / (3.3 * animCoef));
-                if (!g_windowAnim)
-                    dwDistDiff = dwDistThreshold + windowDirection;
-                if (abs(dwDistDiff) <= abs(dwDistThreshold))
+                if (g_windowAnim && dwTickDiff / (3.3 * animCoef) <= 1)
                 {
-                    SetWindowPos(shutdownwnd->GetHWND(), NULL, NULL, NULL, rcWindow.right, rcWindow.bottom + dwDistDiff, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
+                    SetWindowPos(shutdownwnd->GetHWND(), NULL, NULL, NULL, rcWindow.right - rcWindow.left, rcWindow.bottom - rcWindow.top + dwDistDiff,
+                        SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
                 }
                 else
                 {
                     dwDistDiff = dwDistThreshold;
-                    SetWindowPos(shutdownwnd->GetHWND(), NULL, NULL, NULL, rcWindow.right, rcWindow.bottom + dwDistDiff, SWP_NOMOVE | SWP_NOZORDER);
+                    SetWindowPos(shutdownwnd->GetHWND(), NULL, NULL, NULL, rcWindow.right - rcWindow.left, rcWindow.bottom - rcWindow.top + dwDistDiff,
+                        SWP_NOMOVE | SWP_NOZORDER);
                     KillTimer(hWnd, wParam - 1);
                     KillTimer(hWnd, wParam);
                     if (windowDirection == -1)
@@ -558,18 +557,22 @@ namespace DirectDesktop
 
     void DestroyShutdownDialog()
     {
-        CSafeElementPtr<DDScalableElement> delaysecondsbackground;
-        delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
-        if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
-        DWORD animCoef = g_animCoef;
-        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (g_windowAnim)
-            AnimateWindow(shutdownwnd->GetHWND(), (120 * animCoef / 100), AW_BLEND | AW_HIDE);
-        else
-            shutdownwnd->ShowWindow(SW_HIDE);
-        pShutdown->DestroyAll(true);
-        shutdownwnd->DestroyWindow();
-        DestroyWindow(hShutdownTimer);
-        g_dialogopen = false;
+        if (shutdownwnd)
+        {
+            CSafeElementPtr<DDScalableElement> delaysecondsbackground;
+            delaysecondsbackground.Assign(regElem<DDScalableElement*>(L"delaysecondsbackground", pShutdown));
+            if (delaysecondsbackground) delaysecondsbackground->Destroy(true);
+            DWORD animCoef = g_animCoef;
+            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            if (g_windowAnim)
+                AnimateWindow(shutdownwnd->GetHWND(), (120 * animCoef / 100), AW_BLEND | AW_HIDE);
+            else
+                shutdownwnd->ShowWindow(SW_HIDE);
+            pShutdown->DestroyAll(true);
+            shutdownwnd->DestroyWindow();
+            DestroyWindow(hShutdownTimer);
+            g_dialogAnimation = false;
+            g_dialogopen = false;
+        }
     }
 }
