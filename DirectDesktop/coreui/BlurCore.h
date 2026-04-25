@@ -209,8 +209,9 @@ namespace DirectDesktop
 
                 if (SetWindowCompositionAttribute)
                 {
-                    WCHAR* WindowsBuildStr;
+                    WCHAR* WindowsBuildStr = nullptr;
                     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+
                     int WindowsBuild = _wtoi(WindowsBuildStr);
                     free(WindowsBuildStr);
                     int blurcolor = fullscreen ? (g_theme ? 0xD3D3D3 : 0x202020) + (alpha << 24) : WindowsBuild < 22523 ? g_theme ? 0xDCE4E4E4 : 0xCA1F1F1F : g_theme ? 0x00F8F8F8 : 0x00303030;

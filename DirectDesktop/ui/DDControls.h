@@ -33,6 +33,7 @@ namespace DirectDesktop
         static IClassInfo* GetClassInfoPtr();
         static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         IClassInfo* GetClassInfoW() override;
+        void Paint(HDC hdc, const RECT* prcBounds, const RECT* prcInvalid, RECT* prcNext, RECT* prcRegion) override;
         bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);

@@ -28,6 +28,7 @@ namespace DirectDesktop
     DDScalableTouchEdit* delayseconds;
 
     HANDLE ActionThread, TimerThread;
+    bool stopThreads = false;
     HWND hShutdownTimer;
     int savedremaining; // Display remaining time immediately when the dialog is invoked
     wstring reasonStr = LoadStrFromRes(8261, L"user32.dll");
@@ -180,7 +181,7 @@ namespace DirectDesktop
         DialogValues* dv = (DialogValues*)lpParam;
         int id = dv->buttonID;
         int remaining = dv->delay;
-        while (remaining >= 0)
+        while (remaining >= 0 && !stopThreads)
         {
             if (IsWindowVisible(shutdownwnd->GetHWND())) SendMessageW(shutdownwnd->GetHWND(), WM_USER + 1, id, remaining);
             Sleep(1000);
@@ -197,8 +198,13 @@ namespace DirectDesktop
         int seconds = dv->delay;
         int id = dv->buttonID;
         if (seconds > 0) TimerThread = CreateThread(nullptr, 0, ShowTimerStatus, dv, NULL, nullptr);
-        Sleep(seconds * 1000);
-        SendMessageW(wnd->GetHWND(), WM_USER + 19, NULL, id);
+        
+        // Sleep in increments to allow for clean interruption
+        for (int i = 0; i < seconds && !stopThreads; i++) {
+            Sleep(1000);
+        }
+
+        if (!stopThreads) SendMessageW(wnd->GetHWND(), WM_USER + 19, NULL, id);
         return 0;
     }
 
@@ -215,9 +221,19 @@ namespace DirectDesktop
                 if (delayseconds->GetContentString(&v) == nullptr) delayseconds->SetContentString(L"0");
                 StatusText = nullptr;
 
-                // TODO: Find a better way to stop older threads or make the bool array not global
-                if (ActionThread) TerminateThread(ActionThread, 1);
-                if (TimerThread) TerminateThread(TimerThread, 1);
+                // Safely signal threads to stop
+                stopThreads = true;
+                if (ActionThread) {
+                    WaitForSingleObject(ActionThread, 1000);
+                    CloseHandle(ActionThread);
+                    ActionThread = nullptr;
+                }
+                if (TimerThread) {
+                    WaitForSingleObject(TimerThread, 1000);
+                    CloseHandle(TimerThread);
+                    TimerThread = nullptr;
+                }
+                stopThreads = false; // Reset for the next action
 
                 for (int i = 0; i < 6; i++)
                 {
@@ -487,8 +503,9 @@ namespace DirectDesktop
         stars->SetFont(cBuffer);
         delete[] cBuffer;
         TitlebarText->SetContentString(caption.c_str());
-        WCHAR* WindowsBuildStr;
+        WCHAR* WindowsBuildStr = nullptr;
         GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+
         int WindowsBuild = _wtoi(WindowsBuildStr);
         free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");

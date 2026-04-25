@@ -1,0 +1,54 @@
+<Window x:Class="DirectDesktopSettings.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DirectDesktop Control Panel" Height="450" Width="650"
+        WindowStartupLocation="CenterScreen" Background="#F8F9FA">
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.ColumnSpan="2" Background="#0078D7" CornerRadius="5" Margin="0,0,0,15" Padding="10">
+            <TextBlock Text="DirectDesktop Control Panel" FontSize="24" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- Left Column: Settings -->
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
+            <TextBlock Text="Appearance &amp; Behavior" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,0,0,10"/>
+            <CheckBox x:Name="ChkTouchView" Content="Touch View Mode (Large UI)" Margin="0,6" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            <CheckBox x:Name="ChkTreatDirAsGroup" Content="Treat Directories as Groups" Margin="0,6" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            <CheckBox x:Name="ChkFolderItemCount" Content="Show Folder Item Count" Margin="0,6" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            
+            <TextBlock Text="Personalization" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,20,0,10"/>
+            <CheckBox x:Name="ChkDarkIcons" Content="Force Dark Icons" Margin="0,6" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            <CheckBox x:Name="ChkAutoDarkIcons" Content="Auto Dark Icons (Follow System Theme)" Margin="0,6" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            <CheckBox x:Name="ChkGlassIcons" Content="Enable Glass Effect on Icons" Margin="0,6" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+        </StackPanel>
+
+        <!-- Right Column: System & Modes -->
+        <StackPanel Grid.Row="1" Grid.Column="1" Margin="15,0,0,0">
+            <TextBlock Text="UI Engine (Restart Required)" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,0,0,10"/>
+            <RadioButton x:Name="RadDirectUI" Content="DirectUI Engine (Classic C++)" IsChecked="True" Margin="0,6" Checked="Mode_Changed"/>
+            <RadioButton x:Name="RadQt6" Content="Qt6 Engine (Next-Gen Preview)" Margin="0,6" Checked="Mode_Changed"/>
+            <TextBlock Text="Qt6 mode is currently in development. By selecting it, the bootstrapper will attempt to launch the new Qt6 rewrite." TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="20,5,0,20"/>
+
+            <TextBlock Text="Process Control" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,10,0,10"/>
+            <Button Content="🛑 Kill DirectDesktop (Panic Button)" Background="#FFE8E8" Foreground="#D00000" FontWeight="Bold" Padding="12" Margin="0,5" Click="BtnKill_Click" BorderBrush="#FFCCCC"/>
+            <Button Content="▶ Start / Restart DirectDesktop" Background="#E8FFE8" Foreground="#008000" FontWeight="Bold" Padding="12" Margin="0,10,0,0" Click="BtnStart_Click" BorderBrush="#CCFFCC"/>
+            <TextBlock Text="Kills the process safely and allows standard Windows Explorer to take over the background." TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <StatusBar Grid.Row="2" Grid.ColumnSpan="2" Margin="-20,15,-20,-20" Background="#EEE">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="Ready" Foreground="#555" FontWeight="Medium"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>
