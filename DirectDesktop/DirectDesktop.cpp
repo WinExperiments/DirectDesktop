@@ -2,6 +2,10 @@
 
 #include "DirectDesktop.h"
 
+#ifdef ENABLE_QT
+#include "QtEngine.h"
+#endif
+
 #include <cmath>
 #include <list>
 #include <powrprof.h>
@@ -778,7 +782,7 @@ namespace DirectDesktop
                 }
                 if (wParam == SPI_SETFONTSMOOTHING)
                 {
-                    WCHAR* fontsmoothingStr;
+                    WCHAR* fontsmoothingStr = nullptr;
                     GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
                     g_fontsmoothing = _wtoi(fontsmoothingStr);
                     free(fontsmoothingStr);
@@ -1406,9 +1410,10 @@ namespace DirectDesktop
             }
             case WM_USER + 5:
             {
-                WCHAR *cxDragStr{}, *cyDragStr{};
+                WCHAR *cxDragStr = nullptr, *cyDragStr = nullptr;
                 GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
                 GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
+
                 static const int dragWidth = _wtoi(cxDragStr);
                 static const int dragHeight = _wtoi(cyDragStr);
                 free(cxDragStr), free(cyDragStr);
@@ -1531,9 +1536,10 @@ namespace DirectDesktop
                 POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(wnd->GetHWND(), &ppt);
-                WCHAR *cxDragStr{}, *cyDragStr{};
+                WCHAR *cxDragStr = nullptr, *cyDragStr = nullptr;
                 GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
                 GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
+
                 static const int dragWidth = _wtoi(cxDragStr);
                 static const int dragHeight = _wtoi(cyDragStr);
                 free(cxDragStr), free(cyDragStr);
@@ -2635,8 +2641,9 @@ namespace DirectDesktop
     DWORD WINAPI MultiClickHandler(LPVOID lpParam)
     {
         int clicks = *(int*)lpParam;
-        wchar_t* dcms{};
+        wchar_t* dcms = nullptr;
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed", &dcms);
+
         Sleep(_wtoi(dcms));
         free(dcms);
         if (clicks == *(int*)lpParam)
@@ -3636,9 +3643,10 @@ namespace DirectDesktop
         POINT ppt, ppt2;
         GetCursorPos(&ppt);
         ScreenToClient(wnd->GetHWND(), &ppt);
-        WCHAR *cxDragStr{}, *cyDragStr{};
+        WCHAR *cxDragStr = nullptr, *cyDragStr = nullptr;
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
+
         static const int dragWidth = _wtoi(cxDragStr);
         static const int dragHeight = _wtoi(cyDragStr);
         free(cxDragStr), free(cyDragStr);
@@ -4377,12 +4385,13 @@ namespace DirectDesktop
         pm.clear();
         GetFontHeight();
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 6 complete: Prepared DirectDesktop to receive desktop data.");
-        WCHAR* path{};
+        WCHAR* path = nullptr;
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
         WCHAR* secondaryPath = new WCHAR[260];
         WCHAR* cBuffer = new WCHAR[260];
 
-        BYTE* value{};
+        BYTE* value = nullptr;
+
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconLayouts", &value);
         size_t offset = 0x10;
         vector<uint16_t> head;
@@ -4811,6 +4820,8 @@ namespace DirectDesktop
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
+                if (pKeyInfo->vkCode == VK_BACK && g_renameactive) return CallNextHookEx(KeyHook, nCode, wParam, lParam);
+
                 if (pKeyInfo->vkCode == 'N' && GetAsyncKeyState(VK_SHIFT) & 0x8000 && GetAsyncKeyState(VK_CONTROL) & 0x8000)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
@@ -5005,8 +5016,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                       _In_ LPWSTR lpCmdLine,
                       _In_ int nCmdShow)
 {
-    WCHAR* WindowsBuildStr;
+    // Check if the user has selected the Qt6 engine in the Control Panel
+    int uiMode = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"UIMode");
+    if (uiMode == 1)
+    {
+#ifdef ENABLE_QT
+        return RunQtEngine(__argc, __argv);
+#else
+        MessageBoxW(nullptr, L"DirectDesktop was not built with Qt support.", L"Error", MB_OK | MB_ICONERROR);
+        return 0; // Exit DirectUI process
+#endif
+    }
+
+    WCHAR* WindowsBuildStr = nullptr;
     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+
     int WindowsBuild = _wtoi(WindowsBuildStr);
     free(WindowsBuildStr);
     if (WindowsBuild < 18362)
@@ -5236,8 +5260,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SystemParametersInfoW(SPI_GETCOMBOBOXANIMATION, NULL, &g_comboAnim, NULL);
     SystemParametersInfoW(SPI_GETMENUANIMATION, NULL, &g_menuAnim, NULL);
     SystemParametersInfoW(SPI_GETTOOLTIPANIMATION, NULL, &g_tooltipAnim, NULL);
-    WCHAR* fontsmoothingStr;
-    GetRegistryStrValues(DDKey.GetHKeyName(), L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
+    WCHAR* fontsmoothingStr = nullptr;    GetRegistryStrValues(DDKey.GetHKeyName(), L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
     g_fontsmoothing = _wtoi(fontsmoothingStr);
     free(fontsmoothingStr);
     g_hiddenIcons = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideIcons");
@@ -5319,7 +5342,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
     if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
     {
-        BYTE* value2;
+        BYTE* value2 = nullptr;
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &value2);
         g_currentPageID = *reinterpret_cast<unsigned short*>(&value2[2]);
         free(value2);

@@ -1,6 +1,9 @@
 ////////////////// 0.5.6.3: NEED HELP WITH CONTEXT MENUS!
 
 #include "pch.h"
+#include <gdiplus.h>
+
+#pragma comment(lib, "gdiplus.lib")
 
 #include "DDControls.h"
 #include "..\DirectDesktop.h"
@@ -624,6 +627,58 @@ namespace DirectDesktop
     HRESULT DDScalableElement::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
     {
         return CreateAndInit<DDScalableElement, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    void DDScalableElement::Paint(HDC hdc, const RECT* prcBounds, const RECT* prcInvalid, RECT* prcNext, RECT* prcRegion)
+    {
+        // SURPRISE REVERT: Modern "Juicy" V2 Acrylic/Glass Engine
+        Value* pvClass = nullptr;
+        const WCHAR* pszClass = GetClass(&pvClass);
+        if (pszClass && wstring(pszClass) == L"juicy_acrylic")
+        {
+            if (pvClass) pvClass->Release();
+            Gdiplus::Graphics g(hdc);
+            g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+            float x = (float)prcBounds->left;
+            float y = (float)prcBounds->top;
+            float w = (float)(prcBounds->right - prcBounds->left);
+            float h = (float)(prcBounds->bottom - prcBounds->top);
+
+            // Create rounded corner path
+            float radius = 12.0f; 
+            Gdiplus::GraphicsPath path;
+            path.AddArc(x, y, radius, radius, 180, 90);
+            path.AddArc(x + w - radius, y, radius, radius, 270, 90);
+            path.AddArc(x + w - radius, y + h - radius, radius, radius, 0, 90);
+            path.AddArc(x, y + h - radius, radius, radius, 90, 90);
+            path.CloseFigure();
+
+            // 1. Draw heavy soft drop shadow
+            Gdiplus::PathGradientBrush shadowBrush(&path);
+            Gdiplus::Color shadowColors[] = { Gdiplus::Color(120, 0, 0, 0) };
+            int count = 1;
+            shadowBrush.SetCenterColor(Gdiplus::Color(80, 0, 0, 0));
+            shadowBrush.SetSurroundColors(shadowColors, &count);
+            g.FillPath(&shadowBrush, &path);
+
+            // 2. Draw Deep Acrylic-like backdrop
+            Gdiplus::SolidBrush acrylicBrush(Gdiplus::Color(180, 20, 20, 25));
+            g.FillPath(&acrylicBrush, &path);
+
+            // 3. Draw "Neon" glowing border
+            Gdiplus::RectF rect(x, y, w, h);
+            Gdiplus::LinearGradientBrush penBrush(rect, 
+                Gdiplus::Color(255, 0, 255, 255), // Bright Cyan
+                Gdiplus::Color(150, 255, 0, 255), // Purple Fade
+                Gdiplus::LinearGradientModeVertical);
+            Gdiplus::Pen pen(&penBrush, 2.0f);
+            g.DrawPath(&pen, &path);
+            
+            return; 
+        }
+        if (pvClass) pvClass->Release();
+        Element::Paint(hdc, prcBounds, prcInvalid, prcNext, prcRegion);
     }
 
     HRESULT DDScalableElement::Register()
@@ -3294,7 +3349,7 @@ namespace DirectDesktop
 
                 if (DWMActive)
                 {
-                    WCHAR* WindowsBuildStr;
+                    WCHAR* WindowsBuildStr = nullptr;
                     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
                     int WindowsBuild = _wtoi(WindowsBuildStr);
                     free(WindowsBuildStr);
@@ -5110,7 +5165,7 @@ namespace DirectDesktop
 
                 if (DWMActive)
                 {
-                    WCHAR* WindowsBuildStr;
+                    WCHAR* WindowsBuildStr = nullptr;
                     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
                     int WindowsBuild = _wtoi(WindowsBuildStr);
                     free(WindowsBuildStr);
@@ -6047,8 +6102,9 @@ namespace DirectDesktop
         _pDDNB->SetVisible(true);
         _pDDNB->EndDefer(keyN);
         _wnd->Host(_pDDNB);
-        WCHAR* WindowsBuildStr;
+        WCHAR* WindowsBuildStr = nullptr;
         GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+
         int WindowsBuild = _wtoi(WindowsBuildStr);
         free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");

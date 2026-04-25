@@ -1090,7 +1090,7 @@ namespace DirectDesktop
 				if (pvDragStuff)
 				{
 					qmemcpy(&_shdi, pvDragStuff, sizeof(SHDRAGIMAGE) - 8);
-					void* pvBits;
+					void* pvBits = nullptr;
 					_Create32BitHBITMAP(&_shdi.hbmpDragImage, &_shdi.sizeDragImage, &hdcScreen, &_hdcDragImage, &pvBits);
 					if (_shdi.hbmpDragImage)
 					{
@@ -1122,7 +1122,7 @@ namespace DirectDesktop
 
 				if (_shdi.hbmpDragImage)
 				{
-					void* pvBits;
+					void* pvBits = nullptr;
 					hr = _PreProcessDragBitmap(&pvBits) ? S_OK : E_FAIL;
 					if (SUCCEEDED(hr))
 					{

@@ -1048,6 +1048,9 @@
 			<if class="LoneSection">
 				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="4" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
+			<if class="juicy_acrylic">
+				<DDScalableElement background="argb(0,0,0,0)" padding="rect(20rp, 20rp, 20rp, 20rp)" borderthickness="rect(1rp, 1rp, 1rp, 1rp)"/>
+			</if>
 		</style>
 	</stylesheets>
 </duixml>

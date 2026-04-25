@@ -1494,8 +1494,9 @@ namespace DirectDesktop
         //editbgwnd->ShowWindow(SW_SHOW);
         //editbgwnd->ShowWindow(SW_HIDE);
 
-        WCHAR* WindowsBuildStr;
+        WCHAR* WindowsBuildStr = nullptr;
         GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+
         int WindowsBuild = _wtoi(WindowsBuildStr);
         free(WindowsBuildStr);
         if (WindowsBuild >= 26002)

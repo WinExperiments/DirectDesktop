@@ -38,6 +38,8 @@ namespace DirectDesktop
         GlobalUnlock(hgblResourceData);
 
         if (SUCCEEDED(CreateStreamOnHGlobal(hgblResourceData, TRUE, &ipStream))) return ipStream;
+
+        return ipStream;
     }
 
     IWICBitmapSource* LoadBitmapFromStream(IStream* ipImageStream)
@@ -263,6 +265,7 @@ namespace DirectDesktop
         delete bmp;
         DeleteObject(hbmOld);
         Gdiplus::GdiplusShutdown(gdiplusToken);
+        return true;
     }
 
     bool IterateBitmap(HBITMAP hbm, BitmapPixelHandler handler, int type, unsigned int blurradius, float alphaValue, COLORREF crOpt) // type: 0 = original, 1 = color, 2 = blur, 3 = solid color

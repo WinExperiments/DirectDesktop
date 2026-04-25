@@ -307,6 +307,7 @@ namespace DirectDesktop
                 return filename.substr(0, lastdot);
             }
         }
+        return filename;
     }
 
     wstring hideExtFromGetPos(const wstring& filename, bool isEnabled)
