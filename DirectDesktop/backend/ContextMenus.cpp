@@ -39,9 +39,13 @@ namespace DirectDesktop
                 // DO NOT REMOVE THIS TIMER OTHERWISE CRASHING HAPPENS MORE OFTEN
                 SetTimer(wnd->GetHWND(), 16, 200, nullptr);
                 SetTimer(wnd->GetHWND(), 13, 600, nullptr);
-                return;
             }
-            RearrangeIcons(true, true, false);
+            else
+            {
+                RearrangeIcons(true, true, false);
+                g_canRefreshMain = false;
+                SetTimer(wnd->GetHWND(), 13, 500, nullptr);
+            }
         }
     }
 
@@ -183,7 +187,7 @@ namespace DirectDesktop
                                 case 0:
                                     TriggerTranslate(pm[items], transReset, 0, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, false, false, false);
                                     TriggerFade(pm[items], transReset, 1, delay + 0.11f, delay + 0.22f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-                                    TriggerScaleOut(pm[items], transReset, 2, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, true, false);
+                                    TriggerScaleOut_Ref((Element**)&pm[items], transReset, 2, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, true, false);
                                     break;
                                 case 1:
                                     delay *= 2;
@@ -193,7 +197,7 @@ namespace DirectDesktop
                                     break;
                                 }
                                 TransitionStoryboardInfo tsbInfo = {};
-                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transReset), transReset, pm[items]->GetDisplayNode(), &tsbInfo);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transReset), transReset, nullptr, &tsbInfo);
                                 DUI_SetGadgetZOrder(pm[items], -1);
                             }
                         }
@@ -251,7 +255,7 @@ namespace DirectDesktop
                         }
                         if (wcscmp((LPWSTR)commandW, L"paste") == 0)
                         {
-                            vector<LVItem*> dummy;
+                            vector<LVItem**> dummy;
                             RightClickCore(dummy, "paste", true);
                             break;
                         }
@@ -276,11 +280,11 @@ namespace DirectDesktop
 
     void DesktopRightClick(Element* elem, Event* iev)
     {
-        if (iev->uidType == TouchButton::RightClick)
+        if (iev->uidType == TouchButton::RightClick && elem->GetMouseFocused())
             DesktopRightClickCore(iev->peTarget, nullptr);
     }
 
-    void RightClickCore(std::vector<LVItem*> vItems, LPCSTR cmdID, bool fMouse)
+    void RightClickCore(std::vector<LVItem**> vItems, LPCSTR cmdID, bool fMouse)
     {
         POINT pt;
         if (fMouse)
@@ -288,7 +292,7 @@ namespace DirectDesktop
         else
         {
             RECT rc;
-            GetGadgetRect(vItems[0]->GetDisplayNode(), &rc, 0x8);
+            GetGadgetRect((*vItems[0])->GetDisplayNode(), &rc, 0x8);
             pt.x = (rc.left + rc.right) / 2;
             pt.y = (rc.top + rc.bottom) / 2;
         }
@@ -298,7 +302,7 @@ namespace DirectDesktop
         for (int i = 0; i < cidl; i++)
         {
             LPITEMIDLIST pidl = nullptr;
-            if (SUCCEEDED(SHParseDisplayName((LPWSTR)RemoveQuotes(vItems[i]->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr)))
+            if (SUCCEEDED(SHParseDisplayName((LPWSTR)RemoveQuotes((*vItems[i])->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr)))
                 rgpidl.push_back(pidl);
         }
 
@@ -326,8 +330,8 @@ namespace DirectDesktop
                     ddsm->SetMenuItemInfoW(menuitem, 0, &mii);
                 }
                 mii.fState = MFS_CHECKED;
-                if (vItems[0]->GetTileSize() == LVITS_ICONONLY) ddsm->SetMenuItemInfoW(1001, 0, &mii);
-                else if (vItems[0]->GetTileSize() == LVITS_NONE) ddsm->SetMenuItemInfoW(1002, 0, &mii);
+                if ((*vItems[0])->GetTileSize() == LVITS_ICONONLY) ddsm->SetMenuItemInfoW(1001, 0, &mii);
+                else if ((*vItems[0])->GetTileSize() == LVITS_NONE) ddsm->SetMenuItemInfoW(1002, 0, &mii);
                 else ddsm->SetMenuItemInfoW(1003, 0, &mii);
                 ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, LoadStrFromRes(4088).c_str());
                 ddm->InsertMenuW(1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
@@ -349,7 +353,7 @@ namespace DirectDesktop
             CSafeElementPtr<RichText> textElem;
             LVItemTileSize lvits;
             if (cmdID) lvits = LVITS_NONE;
-            else lvits = vItems[0]->GetTileSize();
+            else lvits = (*vItems[0])->GetTileSize();
             int tilepadding = DESKPADDING_TOUCH * g_flScaleFactor;
             switch (menuItemId)
             {
@@ -358,21 +362,21 @@ namespace DirectDesktop
                 {
                     if (lvits == LVITS_NONE)
                     {
-                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() + g_touchSizeX / 2 + tilepadding / 2);
-                        vItems[0]->SetX(vItems[0]->GetMemXPos());
+                        (*vItems[0])->SetMemXPos((*vItems[0])->GetMemXPos() + g_touchSizeX / 2 + tilepadding / 2);
+                        (*vItems[0])->SetX((*vItems[0])->GetMemXPos());
                     }
                     if (lvits == LVITS_DETAILED)
                     {
-                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
-                        vItems[0]->SetX(vItems[0]->GetMemXPos());
+                        (*vItems[0])->SetMemXPos((*vItems[0])->GetMemXPos() + g_touchSizeX * 1.5f + tilepadding * 1.5f);
+                        (*vItems[0])->SetX((*vItems[0])->GetMemXPos());
                     }
                 }
-                vItems[0]->SetTileSize(LVITS_ICONONLY);
-                vItems[0]->SetTouchGrid(new LVItemTouchGrid);
+                (*vItems[0])->SetTileSize(LVITS_ICONONLY);
+                (*vItems[0])->SetTouchGrid(new LVItemTouchGrid);
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", vItems[0]));
+                    textElem.Assign(regElem<RichText*>(L"textElem", (*vItems[0])));
                     textElem->SetVisible(false);
                 }
                 break;
@@ -381,22 +385,22 @@ namespace DirectDesktop
                 {
                     if (lvits == LVITS_ICONONLY)
                     {
-                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() - g_touchSizeX / 2 - tilepadding / 2);
-                        vItems[0]->SetX(vItems[0]->GetMemXPos());
+                        (*vItems[0])->SetMemXPos((*vItems[0])->GetMemXPos() - g_touchSizeX / 2 - tilepadding / 2);
+                        (*vItems[0])->SetX((*vItems[0])->GetMemXPos());
                     }
                     if (lvits == LVITS_DETAILED)
                     {
-                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() + g_touchSizeX + tilepadding);
-                        vItems[0]->SetX(vItems[0]->GetMemXPos());
+                        (*vItems[0])->SetMemXPos((*vItems[0])->GetMemXPos() + g_touchSizeX + tilepadding);
+                        (*vItems[0])->SetX((*vItems[0])->GetMemXPos());
                     }
                 }
-                vItems[0]->SetTouchGrid(nullptr);
-                vItems[0]->SetTileSize(LVITS_NONE);
-                vItems[0]->SetSmallPos(1);
+                (*vItems[0])->SetTouchGrid(nullptr);
+                (*vItems[0])->SetTileSize(LVITS_NONE);
+                (*vItems[0])->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", vItems[0]));
+                    textElem.Assign(regElem<RichText*>(L"textElem", (*vItems[0])));
                     textElem->SetVisible(true);
                 }
                 break;
@@ -405,22 +409,22 @@ namespace DirectDesktop
                 {
                     if (lvits == LVITS_ICONONLY)
                     {
-                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
-                        vItems[0]->SetX(vItems[0]->GetMemXPos());
+                        (*vItems[0])->SetMemXPos((*vItems[0])->GetMemXPos() - g_touchSizeX * 1.5f - tilepadding * 1.5f);
+                        (*vItems[0])->SetX((*vItems[0])->GetMemXPos());
                     }
                     if (lvits == LVITS_NONE)
                     {
-                        vItems[0]->SetMemXPos(vItems[0]->GetMemXPos() - g_touchSizeX - tilepadding);
-                        vItems[0]->SetX(vItems[0]->GetMemXPos());
+                        (*vItems[0])->SetMemXPos((*vItems[0])->GetMemXPos() - g_touchSizeX - tilepadding);
+                        (*vItems[0])->SetX((*vItems[0])->GetMemXPos());
                     }
                 }
-                vItems[0]->SetTouchGrid(nullptr);
-                vItems[0]->SetTileSize(LVITS_DETAILED);
-                vItems[0]->SetSmallPos(1);
+                (*vItems[0])->SetTouchGrid(nullptr);
+                (*vItems[0])->SetTileSize(LVITS_DETAILED);
+                (*vItems[0])->SetSmallPos(1);
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", vItems[0]));
+                    textElem.Assign(regElem<RichText*>(L"textElem", (*vItems[0])));
                     textElem->SetVisible(true);
                 }
                 break;
@@ -456,11 +460,11 @@ namespace DirectDesktop
                     ici.lpVerbW = MAKEINTRESOURCEW(menuItemId - MIN_SHELL_ID);
                     ddm->GetCommandString(menuItemId - MIN_SHELL_ID, GCS_VERBA, nullptr, command, MAX_PATH);
                 }
-                if (strcmp(command, "open") == 0 && cidl == 1 && g_treatdirasgroup && vItems[0]->GetFlags() & LVIF_GROUP)
+                if (strcmp(command, "open") == 0 && cidl == 1 && g_treatdirasgroup && (*vItems[0])->GetFlags() & LVIF_GROUP)
                 {
-                    if (vItems[0]->GetGroupSize() == LVIGS_NORMAL)
+                    if ((*vItems[0])->GetGroupSize() == LVIGS_NORMAL)
                     {
-                        ShowDirAsGroup(vItems[0]);
+                        ShowDirAsGroup((*vItems[0]));
                         break;
                     }
                 }
@@ -469,15 +473,15 @@ namespace DirectDesktop
                     GTRANS_DESC* transDesc = new GTRANS_DESC[cidl];
                     TransitionStoryboardInfo tsbInfo = {};
                     for (int i = 0; i < cidl; i++)
-                        TriggerFade(vItems[i], transDesc, i, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.6f, false, false, true);
+                        TriggerFade((*vItems[i]), transDesc, i, 0.0f, 0.133f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.6f, false, false, true);
                     ScheduleGadgetTransitions_DWMCheck(0, cidl, transDesc, nullptr, &tsbInfo);
                     for (int i = 0; i < cidl; i++)
-                        DUI_SetGadgetZOrder(vItems[i], -1);
+                        DUI_SetGadgetZOrder((*vItems[i]), -1);
                     delete[] transDesc;
                 }
                 if (strcmp(command, "rename") == 0)
                 {
-                    ShowRename(vItems[0]);
+                    ShowRename((*vItems[0]));
                     break;
                 }
                 hr = ddm->InvokeCommand((CMINVOKECOMMANDINFO*)&ici);
@@ -497,6 +501,7 @@ namespace DirectDesktop
         ppFolder->Release();
     }
 
+    // 0.5.8: may need revision in the future
     void ItemRightClick(Element* elem, Event* iev)
     {
         if (iev->uidType == LVItem::RightClick)
@@ -509,13 +514,13 @@ namespace DirectDesktop
                     pm[items]->SetSelected(false);
             }
             selectedLVItems.clear();
-            selectedLVItems.push_back((LVItem*)elem);
+            selectedLVItems.push_back((LVItem**)&elem);
             if (!g_issubviewopen && checkselections) // 0.5.6.4: temporary hack until selected lvitems is extended to subview
             {
                 for (int items = 0; items < pm.size(); items++)
                 {
                     if (pm[items]->GetSelected() == true)
-                        if (pm[items] != elem) selectedLVItems.push_back(pm[items]);
+                        if (pm[items] != elem) selectedLVItems.push_back(&pm[items]);
                 }
             }
             if (elem->GetMouseFocused()) RightClickCore(selectedLVItems, nullptr, true);

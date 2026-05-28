@@ -253,7 +253,17 @@
 				<DDScalableElement class="warningtext" content="resstr(4086)"/>
 			</Element>
 		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableRichText layoutpos="top" class="popuptext" font="messagefont;133%" content="LVTiles test"/>
+		<Element class="separator" height="6rp"/>
+		<Element layout="flowlayout(0,3,0,0)" height="32rp" layoutpos="top">
+			<DDScalableTouchButton id="atom(addlast)" class="pushbuttonprimary" content="Add to last index" NeedsFontResize="false"/>
+			<DDScalableTouchButton id="atom(inserttwo)" class="pushbuttonprimary" content="Insert index 2" NeedsFontResize="false" margin="rect(8rp,0,0,0)"/>
+			<DDScalableTouchButton id="atom(removethree)" class="pushbuttonprimary" content="Remove index 3" NeedsFontResize="false" margin="rect(8rp,0,0,0)"/>
+		</Element>
+		<LVTiles layoutpos="top" id="atom(lvc1)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="silver" padding="rect(16rp,16rp,16rp,16rp)" itemminwidth="120rp" itemheight="40rp"/>
 	</Element>
+	<LVItem resid="lvcItem" class="lvitest" layoutpos="top"/>
 	<stylesheets>
 		<style resid="popup" base="ressheet(31, DDBase)">
 			<if id="atom(fullscreenpopupbg)">
@@ -294,6 +304,16 @@
 			<if class="separator">
 				<Element height="16rp" layoutpos="top"/>
 			</if>
+			<LVTiles background="white"/>
+			<if class="lvitest">
+				<LVItem height="24rp" content="Test" contentalign="middleleft" padding="rect(4rp,0,0,0)" margin="rect(0,0,6rp,6rp)" background="argb(0,0,0,0)"/>
+				<if selected="true">
+					<LVItem background="20002"/>
+				</if>
+				<if showkeyfocus="true">
+					<LVItem edgehighlightthickness="rect(1rp,1rp,1rp,1rp)" edgehighlightcolor="20007"/>
+				</if>
+			</if>
 		</style>
 		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
 			<if id="atom(fullscreenpopupbg)">
@@ -333,6 +353,16 @@
 			</if>
 			<if class="separator">
 				<Element height="16rp" layoutpos="top"/>
+			</if>
+			<LVTiles background="rgb(32,32,32)"/>
+			<if class="lvitest">
+				<LVItem height="24rp" content="Test" contentalign="middleleft" padding="rect(4rp,0,0,0)" margin="rect(0,0,6rp,6rp)" background="argb(0,0,0,0)"/>
+				<if selected="true">
+					<LVItem background="20007"/>
+				</if>
+				<if showkeyfocus="true">
+					<LVItem edgehighlightthickness="rect(1rp,1rp,1rp,1rp)" edgehighlightcolor="20002"/>
+				</if>
 			</if>
 		</style>
 	</stylesheets>

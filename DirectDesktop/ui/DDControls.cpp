@@ -1,5 +1,3 @@
-////////////////// 0.5.6.3: NEED HELP WITH CONTEXT MENUS!
-
 #include "pch.h"
 
 #include "DDControls.h"
@@ -20,6 +18,9 @@ namespace DirectDesktop
     IClassInfo* DDScalableRichText::s_pClassInfo;
     IClassInfo* DDScalableTouchButton::s_pClassInfo;
     IClassInfo* DDScalableTouchEdit::s_pClassInfo;
+    IClassInfo* LVCommon::s_pClassInfo;
+    IClassInfo* LVGrid::s_pClassInfo;
+    IClassInfo* LVTiles::s_pClassInfo;
     IClassInfo* LVItem::s_pClassInfo;
     IClassInfo* DDLVActionButton::s_pClassInfo;
     IClassInfo* DDIconButton::s_pClassInfo;
@@ -281,7 +282,7 @@ namespace DirectDesktop
         DelayedElementActions* dea = (DelayedElementActions*)lpParam;
         Sleep(dea->dwMillis);
         dea = (DelayedElementActions*)lpParam;
-        if (dea->pe)
+        if (*(dea->ppe))
         {
             SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 5);
         }
@@ -517,6 +518,30 @@ namespace DirectDesktop
         Value::GetRectZero,
         &dataimpBorderRadiusProp
     };
+    static const int vvimpItemMinWidthProp[] = { 1, -1 };
+    static PropertyInfoData dataimpItemMinWidthProp;
+    static const PropertyInfo impItemMinWidthProp =
+    {
+        L"ItemMinWidth",
+        0x2 | 0x4,
+        0x1,
+        vvimpItemMinWidthProp,
+        nullptr,
+        Value::GetIntZero,
+        &dataimpItemMinWidthProp
+    };
+    static const int vvimpItemHeightProp[] = { 1, -1 };
+    static PropertyInfoData dataimpItemHeightProp;
+    static const PropertyInfo impItemHeightProp =
+    {
+        L"ItemHeight",
+        0x2 | 0x4,
+        0x1,
+        vvimpItemHeightProp,
+        nullptr,
+        Value::GetIntZero,
+        &dataimpItemHeightProp
+    };
 
     void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
@@ -611,7 +636,8 @@ namespace DirectDesktop
                 RedrawBorderCore<DDScalableElement>(this);
             else
             {
-                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                DDScalableElement* ptr = this;
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), nullptr, (Element**)&ptr };
                 HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
                 if (hRedraw) CloseHandle(hRedraw);
             }
@@ -921,7 +947,8 @@ namespace DirectDesktop
                 RedrawBorderCore<DDScalableButton>(this);
             else
             {
-                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                DDScalableButton* ptr = this;
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), nullptr, (Element**)&ptr };
                 HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
                 if (hRedraw) CloseHandle(hRedraw);
             }
@@ -1278,7 +1305,8 @@ namespace DirectDesktop
                 RedrawBorderCore<DDScalableRichText>(this);
             else
             {
-                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                DDScalableRichText* ptr = this;
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), nullptr, (Element**)&ptr };
                 HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
                 if (hRedraw) CloseHandle(hRedraw);
             }
@@ -1584,7 +1612,8 @@ namespace DirectDesktop
                 RedrawBorderCore<DDScalableTouchButton>(this);
             else
             {
-                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), this };
+                DDScalableTouchButton* ptr = this;
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), nullptr, (Element**)&ptr };
                 HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
                 if (hRedraw) CloseHandle(hRedraw);
             }
@@ -2079,6 +2108,16 @@ namespace DirectDesktop
         return hr;
     }
 
+    LVCommonFlags operator&(LVCommonFlags lhs, LVCommonFlags rhs)
+    {
+        return static_cast<LVCommonFlags>(static_cast<DWORD>(lhs) & static_cast<DWORD>(rhs));
+    }
+
+    LVCommonFlags operator|(LVCommonFlags lhs, LVCommonFlags rhs)
+    {
+        return static_cast<LVCommonFlags>(static_cast<DWORD>(lhs) | static_cast<DWORD>(rhs));
+    }
+
     LVItemFlags operator&(LVItemFlags lhs, LVItemFlags rhs)
     {
         return static_cast<LVItemFlags>(static_cast<DWORD>(lhs) & static_cast<DWORD>(rhs));
@@ -2087,6 +2126,1855 @@ namespace DirectDesktop
     LVItemFlags operator|(LVItemFlags lhs, LVItemFlags rhs)
     {
         return static_cast<LVItemFlags>(static_cast<DWORD>(lhs) | static_cast<DWORD>(rhs));
+    }
+
+    LVCommon::~LVCommon()
+    {
+        free(_pelMarqueeSelector);
+    }
+
+    IClassInfo* LVCommon::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void LVCommon::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* LVCommon::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void LVCommon::OnInput(InputEvent* pInput)
+    {
+        if (pInput->nCode == GMOUSE_MOVE && pInput->nDevice == GINPUT_KEYBOARD)
+        {
+            static BYTE sCtrl, sAKey;
+            sCtrl = GetKeyState(VK_CONTROL);
+            sAKey = GetKeyState('A');
+            if ((sCtrl & 0x80) && (sAKey & 0x80))
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList)
+                {
+                    for (int items = 0; items < rgList->GetSize(); items++)
+                        if (rgList->GetItem(items)->GetVisible())
+                            rgList->GetItem(items)->SetSelected(true);
+                }
+            }
+        }
+        Element::OnInput(pInput);
+    }
+
+    void LVCommon::OnKeyFocusMoved(Element* peFrom, Element* peTo)
+    {
+        CValuePtr v;
+        DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+        short ctrlKey = GetAsyncKeyState(VK_CONTROL);
+        short shiftKey = GetAsyncKeyState(VK_SHIFT);
+        bool fKeyboardOrShift = (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000 || GetAsyncKeyState(VK_RBUTTON) & 0x8000) || shiftKey & 0x8000);
+        if (peTo == _peWhitespace && rgList && peFrom && peFrom->GetParent() != _peWhitespace)
+        {
+            if (!_peFocused)
+                _peFocused = rgList->GetItem(0);
+            if (!_peSelected)
+            {
+                _peSelected = rgList->GetItem(0);
+                _idSelectedPivot = 0;
+            }
+            _peFocused->SetKeyFocus();
+            if (fKeyboardOrShift)
+                _peSelected->SetSelected(true);
+        }
+        if (peTo && peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo->GetParent() == _peWhitespace)
+        {
+            if ((!(ctrlKey & 0x8000) || (peFrom && peFrom->GetParent() != _peWhitespace)))
+            {
+                if (rgList)
+                {
+                    UINT idCurrentItem{}, idFirstItem{}, idLastItem{};
+                    for (int items = 0; items < rgList->GetSize(); items++)
+                    {
+                        if (rgList->GetItem(items) == peTo)
+                        {
+                            idCurrentItem = items;
+                            if (!(shiftKey & 0x8000)) _idSelectedPivot = idCurrentItem;
+                        }
+                        idFirstItem = _idSelectedPivot;
+                        idLastItem = idCurrentItem;
+                        if (idCurrentItem < _idSelectedPivot)
+                        {
+                            idFirstItem = idCurrentItem;
+                            idLastItem = _idSelectedPivot;
+                        }
+                    }
+                    if (fKeyboardOrShift)
+                    {
+                        for (int items = 0; items < rgList->GetSize(); items++)
+                        {
+                            bool withinShiftRange = ((shiftKey & 0x8000) && items >= idFirstItem && items <= idLastItem);
+                            if (rgList->GetItem(items) != peTo && !withinShiftRange && !(ctrlKey & 0x8000))
+                                rgList->GetItem(items)->SetSelected(false);
+                            if (withinShiftRange)
+                                rgList->GetItem(items)->SetSelected(true);
+                        }
+                    }
+                }
+                if (fKeyboardOrShift)
+                {
+                    _peSelected = peTo;
+                    _peSelected->SetSelected(true);
+                }
+            }
+            _peFocused = peTo;
+        }
+        Element::OnKeyFocusMoved(peFrom, peTo);
+    }
+
+    bool LVCommon::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::HeightProp))
+            result = false; 
+        if (PropNotify::IsEqual(ppi, iIndex, Element::PaddingProp))
+        {
+            result = false;
+            ElementSetValue(_peWhitespace, ppi, pvNew, this);
+        }
+        return result;
+    }
+
+    HRESULT LVCommon::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<LVCommon, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT LVCommon::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateLVVisual();
+        HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+        if (hShlwapi)
+        {
+            pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+            _hWorker = SHCreateWorkerWindowW(s_ListViewProc, HWND_MESSAGE, 0, 0, nullptr);
+        }
+        return hr;
+    }
+
+    HRESULT LVCommon::Register()
+    {
+        return ClassInfo<LVCommon, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"LVCommon", nullptr, 0);
+    }
+
+    Element* LVCommon::GetSelectionElement()
+    {
+        return _peSelector;
+    }
+
+    TouchButton* LVCommon::GetWhitespaceElement()
+    {
+        return _peWhitespace;
+    }
+
+    LVCommonFlags LVCommon::GetFlags()
+    {
+        return _flags;
+    }
+
+    void LVCommon::AddFlags(LVCommonFlags lvcf)
+    {
+        _flags = _flags | lvcf;
+    }
+
+    void LVCommon::RemoveFlags(LVCommonFlags lvcf)
+    {
+        _flags = _flags & static_cast<LVCommonFlags>(0xFFFFFFFF - lvcf);
+    }
+
+    void LVCommon::SetFlags(LVCommonFlags lvcf)
+    {
+        _flags = lvcf;
+    }
+
+    POINT LVCommon::GetDragOriginPoint()
+    {
+        return _ptOrigin;
+    }
+
+    SIZE LVCommon::GetDragSize()
+    {
+        return _szDrag;
+    }
+
+    void LVCommon::SelectItemBase(Element* elem, Event* iev)
+    {
+        static int validation = 0;
+        if (iev->uidType == LVItem::Click())
+        {
+            short ctrlKey = GetAsyncKeyState(VK_CONTROL);
+            short shiftKey = GetAsyncKeyState(VK_SHIFT);
+            validation++;
+            TouchButton* checkbox = ((LVItem*)elem)->GetCheckbox();
+            bool fInCheckbox = (checkbox && checkbox->GetMouseWithin());
+            if (!(ctrlKey & 0x8000) && !fInCheckbox)
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = elem->GetParent()->GetChildren(&v);
+                if (rgList)
+                {
+                    for (int items = 0; items < rgList->GetSize(); items++)
+                    {
+                        if (rgList->GetItem(items) != elem && !(shiftKey & 0x8000))
+                            rgList->GetItem(items)->SetSelected(false);
+                    }
+                }
+            }
+            if (!fInCheckbox) elem->SetSelected(ctrlKey ? !elem->GetSelected() : true);
+            else if (validation & 1) elem->SetSelected(!elem->GetSelected());
+        }
+    }
+
+    void LVCommon::RefineSelections(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        if (pProp == Element::MouseWithinProp() || pProp == Element::SelectedProp())
+        {
+            TouchButton* checkboxElem = ((LVItem*)elem)->GetCheckbox();
+            bool fKeyboard = (GetAsyncKeyState(VK_LEFT) & 0x8000 || GetAsyncKeyState(VK_UP) & 0x8000 ||
+                GetAsyncKeyState(VK_RIGHT) & 0x8000 || GetAsyncKeyState(VK_DOWN) & 0x8000 ||
+                (GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState('A') & 0x8000) ||
+                GetAsyncKeyState(VK_SHIFT) & 0x8000);
+            if (!g_touchmode && g_labelshadow && ((!elem->GetMouseWithin() && pProp == Element::SelectedProp()) ||
+                (!elem->GetSelected() && pProp == Element::MouseWithinProp())))
+            {
+                CSafeElementPtr<Element> innerElem;
+                innerElem.Assign(((LVItem*)elem)->GetInnerElement());
+                GTRANS_DESC transDesc[1];
+                TransitionStoryboardInfo tsbInfo = {};
+                if (innerElem)
+                {
+                    float initialFade = elem->GetSelected() ? 1.0f : elem->GetMouseWithin() ? 0.0f : 1.0f;
+                    float finalFade = elem->GetMouseWithin() || elem->GetSelected() ? 1.0f : 0.0f;
+                    innerElem->SetVisible(!fKeyboard || finalFade == 1.0f);
+                    if (!fKeyboard)
+                    {
+                        TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, (finalFade == 0.0f), false, false);
+                        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                    }
+                }
+                // Apparently this needs to be done otherwise there will be ugly overlays...
+                ////////////////////////////////////
+                CValuePtr v;
+                DynamicArray<Element*>* pel = elem->GetChildren(&v);
+                if (pel && !fKeyboard)
+                {
+                    for (int id = 0; id < pel->GetSize(); id++)
+                    {
+                        Element* child = pel->GetItem(id);
+                        if (child == innerElem) continue;
+                        TriggerFade(child, transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
+                        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                    }
+                }
+                ////////////////////////////////////
+            }
+            if (g_showcheckboxes == 1 && checkboxElem)
+                checkboxElem->SetVisible(elem->GetMouseWithin() || elem->GetSelected());
+        }
+        if (pProp == LVItem::CapturedProp())
+        {
+            if (((LVItem*)elem)->GetCaptured() && elem->GetMouseWithin() && !elem->GetSelected() && !(GetAsyncKeyState(VK_CONTROL) & 0x8000))
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = elem->GetParent()->GetChildren(&v);
+                if (rgList)
+                {
+                    for (int items = 0; items < rgList->GetSize(); items++)
+                        rgList->GetItem(items)->SetSelected(false);
+                }
+                elem->SetSelected(true);
+            }
+        }
+    }
+
+    void LVCommon::CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        if (pProp == Element::MouseFocusedProp())
+        {
+            UpdateCache* uc{};
+            LVItem* parent = (LVItem*)elem->GetParent()->GetParent();
+            CValuePtr v = elem->GetValue(Element::MouseFocusedProp, 1, uc);
+            if (parent->GetInnerElement())
+                parent->GetInnerElement()->SetValue(Element::MouseFocusedProp(), 1, v);
+            if (uc) free(uc);
+        }
+    }
+
+    HRESULT LVCommon::Add(Element* pe)
+    {
+        HRESULT hr = _peWhitespace->Add(pe);
+        RECT rcAdd{};
+        GetGadgetRect(pe->GetDisplayNode(), &rcAdd, 0xC);
+        if (pe->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnAddOrInsert(&pe, &rcAdd, nullptr);
+        return hr;
+    }
+
+    HRESULT LVCommon::Add(Element** ppe, UINT cCount)
+    {
+        HRESULT hr = _peWhitespace->Add(ppe, cCount);
+        RECT rcAdd{};
+        GetGadgetRect((*ppe)->GetDisplayNode(), &rcAdd, 0xC);
+        if ((*ppe)->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnAddOrInsert(ppe, &rcAdd, nullptr);
+        return hr;
+    }
+
+    HRESULT LVCommon::Add(Element* pe, CompareCallback lpfnCompare)
+    {
+        HRESULT hr = _peWhitespace->Add(pe, lpfnCompare);
+        RECT rcAdd{};
+        GetGadgetRect(pe->GetDisplayNode(), &rcAdd, 0xC);
+        if (pe->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnAddOrInsert(&pe, &rcAdd, nullptr);
+        return hr;
+    }
+
+    HRESULT LVCommon::Insert(Element* pe, UINT iInsertIdx)
+    {
+        HRESULT hr = _peWhitespace->Insert(pe, iInsertIdx);
+        RECT rcInsert{}, rcNext{};
+        GetGadgetRect(pe->GetDisplayNode(), &rcInsert, 0xC);
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() - 1 > iInsertIdx)
+                    GetGadgetRect(rgList->GetItem(iInsertIdx + 1)->GetDisplayNode(), &rcNext, 0xC);
+            }
+        }
+        if (pe->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnAddOrInsert(&pe, &rcInsert, &rcNext);
+        return hr;
+    }
+
+    HRESULT LVCommon::Insert(Element** ppe, UINT cCount, UINT iInsertIdx)
+    {
+        HRESULT hr = _peWhitespace->Insert(ppe, cCount, iInsertIdx);
+        RECT rcInsert{}, rcNext{};
+        GetGadgetRect((*ppe)->GetDisplayNode(), &rcInsert, 0xC);
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() - 1 > iInsertIdx)
+                    GetGadgetRect(rgList->GetItem(iInsertIdx + 1)->GetDisplayNode(), &rcNext, 0xC);
+            }
+        }
+        if ((*ppe)->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnAddOrInsert(ppe, &rcInsert, &rcNext);
+        return hr;
+    }
+
+    HRESULT LVCommon::Remove(Element* pe)
+    {
+        RECT rcRemove{}, rcNext{}, rcParent{};
+        Element* peClone{};
+        HRESULT hr = S_OK;
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GetGadgetRect(pe->GetDisplayNode(), &rcRemove, 0xC);
+            if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+            {
+                GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    if (this->GetClassInfoW() == LVTiles::GetClassInfoPtr())
+                        GetGadgetRect(rgList->GetItem(rgList->GetSize() - 1)->GetDisplayNode(), &rcNext, 0xC);
+                    else
+                    {
+                        for (int i = 0; i < rgList->GetSize(); i++)
+                        {
+                            if (i < rgList->GetSize() - 1 && pe == rgList->GetItem(i))
+                                GetGadgetRect(rgList->GetItem(i + 1)->GetDisplayNode(), &rcNext, 0xC);
+                        }
+                    }
+                }
+            }
+            hr = _CreateAnimatingClone(pe, &rcRemove, &peClone);
+        }
+        if (pe == _peSelected)
+            _peSelected = nullptr;
+        if (pe == _peFocused)
+            _peFocused = nullptr;
+        hr = _peWhitespace->Remove(pe);
+        if (!(_flags & LVCF_NOANIMATE) && this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+        {
+            RECT rcParentOld{};
+            GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParentOld, 0xC);
+            rcRemove.top += (rcParentOld.top - rcParent.top);
+            rcRemove.bottom += (rcParentOld.top - rcParent.top);
+            rcNext.top += (rcParentOld.top - rcParent.top);
+            rcNext.bottom += (rcParentOld.top - rcParent.top);
+        }
+        if (pe->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnRemove(&pe, &peClone, &rcRemove, &rcNext);
+        return hr;
+    }
+
+    HRESULT LVCommon::Remove(Element** ppe, UINT cCount)
+    {
+        RECT rcRemove{}, rcNext{}, rcParent{};
+        Element* peClone{};
+        HRESULT hr = S_OK;
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GetGadgetRect((*ppe)->GetDisplayNode(), &rcRemove, 0xC);
+            if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+            {
+                GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    if (this->GetClassInfoW() == LVTiles::GetClassInfoPtr())
+                        GetGadgetRect(rgList->GetItem(rgList->GetSize() - 1)->GetDisplayNode(), &rcNext, 0xC);
+                    else
+                    {
+                        for (int i = 0; i < rgList->GetSize(); i++)
+                        {
+                            if (i < rgList->GetSize() - 1 && *ppe == rgList->GetItem(i))
+                                GetGadgetRect(rgList->GetItem(i + 1)->GetDisplayNode(), &rcNext, 0xC);
+                        }
+                    }
+                }
+            }
+            hr = _CreateAnimatingClone(*ppe, &rcRemove, &peClone);
+        }
+        if (*ppe == _peSelected)
+            _peSelected = nullptr;
+        if (*ppe == _peFocused)
+            _peFocused = nullptr;
+        hr = _peWhitespace->Remove(ppe, cCount);
+        if (!(_flags & LVCF_NOANIMATE) && this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+        {
+            RECT rcParentOld{};
+            GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParentOld, 0xC);
+            rcRemove.top += (rcParentOld.top - rcParent.top);
+            rcRemove.bottom += (rcParentOld.top - rcParent.top);
+            rcNext.top += (rcParentOld.top - rcParent.top);
+            rcNext.bottom += (rcParentOld.top - rcParent.top);
+        }
+        if ((*ppe)->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnRemove(ppe, &peClone, &rcRemove, &rcNext);
+        return hr;
+    }
+
+    HRESULT LVCommon::RemoveAll()
+    {
+        this->_OnRemoveAll();
+        return _peWhitespace->RemoveAll();
+    }
+
+    HRESULT LVCommon::RemoveAndDestroy(Element* pe)
+    {
+        RECT rcRemove{}, rcNext{}, rcParent{};
+        Element* peClone = pe;
+        HRESULT hr = S_OK;
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GetGadgetRect(pe->GetDisplayNode(), &rcRemove, 0xC);
+            if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+            {
+                GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    if (this->GetClassInfoW() == LVTiles::GetClassInfoPtr())
+                        GetGadgetRect(rgList->GetItem(rgList->GetSize() - 1)->GetDisplayNode(), &rcNext, 0xC);
+                    else
+                    {
+                        for (int i = 0; i < rgList->GetSize(); i++)
+                        {
+                            if (i < rgList->GetSize() - 1 && pe == rgList->GetItem(i))
+                                GetGadgetRect(rgList->GetItem(i + 1)->GetDisplayNode(), &rcNext, 0xC);
+                        }
+                    }
+                }
+            }
+            hr = _CreateAnimatingClone(pe, &rcRemove, &peClone);
+        }
+        if (pe == _peSelected)
+            _peSelected = nullptr;
+        if (pe == _peFocused)
+            _peFocused = nullptr;
+        hr = pe->Destroy(true);
+        if (!(_flags & LVCF_NOANIMATE) && this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
+        {
+            RECT rcParentOld{};
+            GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParentOld, 0xC);
+            rcRemove.top += (rcParentOld.top - rcParent.top);
+            rcRemove.bottom += (rcParentOld.top - rcParent.top);
+            rcNext.top += (rcParentOld.top - rcParent.top);
+            rcNext.bottom += (rcParentOld.top - rcParent.top);
+        }
+        if (pe->GetClassInfoW() == LVItem::GetClassInfoPtr())
+            this->_OnRemove(&pe, &peClone, &rcRemove, &rcNext);
+        return hr;
+    }
+
+    HRESULT LVCommon::Destroy(bool fDelayed)
+    {
+        return Element::Destroy(fDelayed);
+    }
+
+    HRESULT LVCommon::DestroyAll(bool fDelayed)
+    {
+        this->_OnRemoveAll();
+        return _peWhitespace->DestroyAll(fDelayed);
+    }
+
+    HRESULT LVCommon::_CreateLVVisual()
+    {
+        HRESULT hr = S_OK;
+
+        CValuePtr spvLayout;
+        FillLayout::Create(0, nullptr, &spvLayout);
+        hr = this->_SetValue(Element::LayoutProp, 1, spvLayout, true);
+        if (SUCCEEDED(hr))
+        {
+            hr = TouchButton::Create(this, nullptr, (Element**)&_peWhitespace);
+            if (SUCCEEDED(hr))
+            {
+                Element::Insert((Element**)&_peWhitespace, 1, 0);
+                _peWhitespace->SetID(L"whitespace");
+                _pelMarqueeSelector = assignExtendedFn(_peWhitespace, _MarqueeSelector, true);
+                if (SUCCEEDED(hr))
+                {
+                    if (this->GetClassInfoW() == LVCommon::GetClassInfoPtr())
+                        CreateAndSetLayout(_peWhitespace, BorderLayout::Create, 0, nullptr);
+                    else if (this->GetClassInfoW() == LVGrid::GetClassInfoPtr())
+                        CreateAndSetLayout(_peWhitespace, FillLayout::Create, 0, nullptr);
+                    _peWhitespace->SetLayoutPos(-1);
+                    hr = Element::Create(0, this, nullptr, &_peSelector);
+                    if (SUCCEEDED(hr))
+                    {
+                        Element::Insert(&_peSelector, 1, 1);
+                        _peSelector->SetID(L"selector");
+                        _peSelector->SetLayoutPos(-2);
+                        _peSelector->SetVisible(false);
+                        _peSelector->SetClass(g_selectionrect ? L"selectoralpha" : L"selectornoalpha");
+                        WCHAR* cxDragStr{}, * cyDragStr{};
+                        GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
+                        GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
+                        _szDrag.cx = _wtoi(cxDragStr);
+                        _szDrag.cy = _wtoi(cyDragStr);
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
+    HRESULT LVCommon::_CreateAnimatingClone(Element* peOrig, RECT* prcOrig, Element** ppeClone)
+    {
+        if (!ppeClone)
+            return E_POINTER;
+        Element* peClone{};
+        Element::Create(0, peOrig->GetParent()->GetParent(), nullptr, &peClone);
+        peOrig->GetParent()->GetParent()->Add(&peClone, 1);
+        AddLayeredRef(peClone->GetDisplayNode());
+        SetGadgetFlags(peClone->GetDisplayNode(), NULL, NULL);
+        peOrig->SetLayoutPos(-2);
+        peOrig->SetX(-1); // This force refreshes the absolute placement, allowing for the gadget bitmap's capture.
+        peOrig->SetX(0);
+        peOrig->SetY(0);
+        peOrig->SetWidth(prcOrig->right - prcOrig->left);
+        peOrig->SetHeight(prcOrig->bottom - prcOrig->top);
+        RECT rcParent{};
+        GetGadgetRect(peOrig->GetParent()->GetDisplayNode(), &rcParent, 0xC);
+        peClone->SetLayoutPos(-2);
+        peClone->SetX(prcOrig->left - rcParent.left);
+        peClone->SetY(prcOrig->top - rcParent.top - 1);
+        peClone->SetWidth(prcOrig->right - prcOrig->left);
+        peClone->SetHeight(prcOrig->bottom - prcOrig->top);
+        HBITMAP hbmOld;
+        RECT rcDummy{};
+        GetGadgetBitmap(peOrig->GetDisplayNode(), &hbmOld, &rcDummy);
+        IterateBitmap(hbmOld, UndoPremultiplication, 1, 0, 1, NULL);
+        CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(hbmOld, 7, 0xffffffff, false, false, false);
+        if (spvBitmap)
+            peClone->SetValue(Element::BackgroundProp, 1, spvBitmap);
+        DeleteObject(hbmOld);
+        if (ppeClone)
+            *ppeClone = peClone;
+        return S_OK;
+    }
+
+    void LVCommon::_MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        DWORD marqueeThread;
+        HANDLE marqueeThreadHandle;
+        LVCommon* listview = (LVCommon*)elem->GetParent();
+        if (pProp == TouchButton::PressedProp())
+        {
+            if (!(listview->_flags & LVCF_PRESSED))
+            {
+                GetGadgetRect(listview->GetDisplayNode(), &listview->_rcGadget, 0xC);
+                GetCursorPos(&listview->_ptOrigin);
+                ScreenToClient(((HWNDElement*)listview->GetRoot())->GetHWND(), &listview->_ptOrigin);
+                GTRANS_DESC transDesc[1];
+                TransitionStoryboardInfo tsbInfo = {};
+                Element* selector = listview->_peSelector;
+                TriggerFade(selector, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                DUI_SetGadgetZOrder(selector, -1);
+                selector->SetWidth(0);
+                selector->SetHeight(0);
+                selector->SetX(listview->_ptOrigin.x);
+                selector->SetY(listview->_ptOrigin.y);
+                selector->SetVisible(true);
+                marqueeThreadHandle = CreateThread(nullptr, 0, _UpdateMarqueeSelectorPosition, (LPVOID)listview, 0, &marqueeThread);
+                if (marqueeThreadHandle) CloseHandle(marqueeThreadHandle);
+            }
+            listview->AddFlags(LVCF_PRESSED);
+        }
+        else if ((!(GetAsyncKeyState(VK_LBUTTON) & 0x8000) || !elem->GetMouseWithin()) && listview && listview->_flags & LVCF_PRESSED)
+        {
+            Element* selector = listview->_peSelector;
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerFade(selector, transDesc, 0, 0.0f, 0.1f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            DUI_SetGadgetZOrder(selector, -1);
+            listview->RemoveFlags(LVCF_PRESSED);
+        }
+    }
+
+    DWORD WINAPI LVCommon::_UpdateMarqueeSelectorPosition(LPVOID lpParam)
+    {
+        LVCommon* listview = (LVCommon*)lpParam;
+        bool ctrlKey = GetKeyState(VK_CONTROL) < 0;
+        SetWindowLongPtrW(listview->_hWorker, GWLP_USERDATA, (LONG_PTR)listview);
+        while (true)
+        {
+            if (!(listview->_flags & LVCF_PRESSED)) break;
+            Sleep(10);
+            SendMessageW(listview->_hWorker, WM_USER + 1, NULL, ctrlKey);
+        }
+        return 0;
+    }
+
+    LRESULT CALLBACK LVCommon::s_ListViewProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        LVCommon* lvc = (LVCommon*)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+        switch (uMsg)
+        {
+        case WM_SETTINGCHANGE:
+        {
+            bool selectionrect = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ListviewAlphaSelect");
+            lvc->_peSelector->SetClass(selectionrect ? L"selectoralpha" : L"selectornoalpha");
+            break;
+        }
+        case WM_USER + 1:
+        {
+            POINT ppt;
+            GetCursorPos(&ppt);
+            ScreenToClient(((HWNDElement*)lvc->GetRoot())->GetHWND(), &ppt);
+            MARGINS borders = {
+                (ppt.x < lvc->_ptOrigin.x) ? ppt.x : lvc->_ptOrigin.x, abs(ppt.x - lvc->_ptOrigin.x),
+                (ppt.y < lvc->_ptOrigin.y) ? ppt.y : lvc->_ptOrigin.y, abs(ppt.y - lvc->_ptOrigin.y)
+            };
+            if (borders.cxRightWidth == 0) borders.cxRightWidth = 1;
+            if (borders.cyBottomHeight == 0) borders.cyBottomHeight = 1;
+            borders.cxLeftWidth -= lvc->_rcGadget.left;
+            borders.cyTopHeight -= lvc->_rcGadget.top;
+            Element* selector = lvc->_peSelector;
+            selector->SetWidth(borders.cxRightWidth);
+            selector->SetX(borders.cxLeftWidth);
+            selector->SetHeight(borders.cyBottomHeight);
+            selector->SetY(borders.cyTopHeight);
+            CValuePtr v;
+            DynamicArray<Element*>* rgList = lvc->_peWhitespace->GetChildren(&v);
+            if (rgList && rgList->GetSize() > 0)
+            {
+                for (int items = 0; items < rgList->GetSize(); items++)
+                {
+                    LVItem* child = (LVItem*)rgList->GetItem(items);
+                    bool isLVItem = (child->GetClassInfoW() == LVItem::GetClassInfoPtr());
+                    if (isLVItem)
+                    {
+                        RECT rcBorders{};
+                        GetGadgetRect(child->GetDisplayNode(), &rcBorders, 0xC);
+                        bool selectstate = (borders.cxRightWidth + borders.cxLeftWidth + lvc->_rcGadget.left > rcBorders.left &&
+                            rcBorders.right > borders.cxLeftWidth + lvc->_rcGadget.left &&
+                            borders.cyBottomHeight + borders.cyTopHeight + lvc->_rcGadget.top > rcBorders.top &&
+                            rcBorders.bottom > borders.cyTopHeight + lvc->_rcGadget.top &&
+                            child->GetVisible());
+                        if (lParam)
+                        {
+                            if (selectstate)
+                            {
+                                if (!(child->GetFlags() & LVIF_NOSELTRIGGER))
+                                {
+                                    rgList->GetItem(items)->SetSelected(!(rgList->GetItem(items)->GetSelected()));
+                                    child->AddFlags(LVIF_NOSELTRIGGER);
+                                }
+                            }
+                            else
+                                child->RemoveFlags(LVIF_NOSELTRIGGER);
+                        }
+                        else
+                            child->SetSelected(selectstate);
+                    }
+                }
+            }
+            return 0;
+        }
+        case WM_USER + 2: // 0.5.8: Could be used for drag and drop in the future
+        {
+            return 0;
+        }
+        default:
+            break;
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    void LVCommon::_OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext)
+    {
+        ((LVItem*)*ppe)->SetShowKeyFocus(false);
+        if (!(_flags & LVCF_NOASSIGNFUNC))
+        {
+            vector<IElementListener*>* pv_pels = ((LVItem*)*ppe)->GetListeners();
+            pv_pels->push_back(assignFn(*ppe, SelectItemBase, true));
+            pv_pels->push_back(assignExtendedFn(*ppe, RefineSelections, true));
+            if (((LVItem*)*ppe)->GetCheckbox())
+                pv_pels->push_back(assignExtendedFn(((LVItem*)*ppe)->GetCheckbox(), CheckboxHandler, true));
+        }
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GTRANS_DESC transDesc[2];
+            TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            if (!(_flags & LVCF_ANIMATEPARTIAL))
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    for (int i = 0; i < rgList->GetSize(); i++)
+                    {
+                        if (rgList->GetItem(i)->GetLayoutPos() != -2)
+                        {
+                            Element* child = rgList->GetItem(i);
+                            RECT rcItem;
+                            GetGadgetRect(child->GetDisplayNode(), &rcItem, 0xC);
+                            if (rcItem.top > prcGadget->top)
+                            {
+                                TriggerTranslate(child, transDesc, 0, 0.0f, 0.367f, 0.75f, 0.0f, 0.0f, 1.0f,
+                                    0, prcGadget->top - prcNext->top, 0, 0, false, false, true);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void LVCommon::_OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext)
+    {
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GTRANS_DESC transDesc[3];
+            TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+            TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+            if (!(_flags & LVCF_ANIMATEPARTIAL))
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    for (int i = rgList->GetSize() - 1; i >= 0; i--)
+                    {
+                        if (rgList->GetItem(i)->GetLayoutPos() != -2)
+                        {
+                            Element* child = rgList->GetItem(i);
+                            RECT rcItem;
+                            GetGadgetRect(child->GetDisplayNode(), &rcItem, 0xC);
+                            if (rcItem.top >= prcGadget->top)
+                            {
+                                TriggerTranslate(child, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                    0, 0, 0, 0, false, false, true);
+                                TriggerTranslate(child, transDesc, 1, 0.0f, 0.06f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                    0, prcNext->top - prcGadget->top, 0, prcNext->top - prcGadget->top, false, false, true);
+                                TriggerTranslate(child, transDesc, 2, 0.06f, 0.427f, 0.85f, 0.0f, 0.0f, 1.0f,
+                                    0, prcNext->top - prcGadget->top, 0, 0, false, false, true);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    IClassInfo* LVGrid::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void LVGrid::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* LVGrid::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void LVGrid::OnInput(InputEvent* pInput)
+    {
+        BYTE keyState = 0;
+        static Element* peFocusedOld;
+        static short ctrlKey, shiftKey;
+        static ULONGLONG ullTick = 0;
+        CValuePtr v;
+        DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+        if ((pInput->nCode == GMOUSE_MOVE || pInput->nCode == GMOUSE_DOWN) && pInput->nDevice == GINPUT_KEYBOARD && _fAllowNav)
+        {
+            short sLeft, sUp, sRight, sDown;
+            sLeft = GetAsyncKeyState(VK_LEFT);
+            sUp = GetAsyncKeyState(VK_UP);
+            sRight = GetAsyncKeyState(VK_RIGHT);
+            sDown = GetAsyncKeyState(VK_DOWN);
+            ctrlKey = GetAsyncKeyState(VK_CONTROL);
+            shiftKey = GetAsyncKeyState(VK_SHIFT);
+            keyState = ((BYTE)((sLeft & 0x8000) && (sLeft & 1))) + ((BYTE)((sUp & 0x8000) && (sUp & 1)) << 1) +
+                ((BYTE)((sRight & 0x8000) && (sRight & 1)) << 2) + ((BYTE)((sDown & 0x8000) && (sDown & 1)) << 3);
+            if (pInput->nCode == GMOUSE_DOWN)
+                _fKeyDown = false;
+            if (!_fKeyDown || keyState != _keyStateOld)
+            {
+                if (keyState & 0xF)
+                {
+                    if (!_peFocused || !_peFocused->GetVisible())
+                    {
+                        int yBase = _rgYPos[0];
+                        int indexY = 0;
+                        LVItem* toSelect = _rgYItems[0];
+                        while (_rgYPos[indexY] == yBase)
+                        {
+                            if (((localeType != 1 && _rgYItems[indexY]->GetX() < toSelect->GetX()) ||
+                                (localeType == 1 && _rgYItems[indexY]->GetX() > toSelect->GetX())) && _rgYItems[indexY]->GetVisible())
+                                toSelect = _rgYItems[indexY];
+                            indexY++;
+                        }
+                        toSelect->SetSelected(true);
+                        toSelect->SetKeyFocus();
+                        _peSelected = toSelect;
+                        _peFocused = toSelect;
+                        if (!(shiftKey & 0x8000) || !_pePivot)
+                            _pePivot = _peSelected;
+                        LVCommon::OnInput(pInput);
+                        return;
+                    }
+                    RECT rcFocused{}, rcToBeFocused{}, rcPivot{};
+                    GetGadgetRect(_peFocused->GetDisplayNode(), &rcFocused, 0xC);
+                    int indexX = _SearchArrayExact(&_rgXPos, rcFocused.left);
+                    int indexY = _SearchArrayExact(&_rgYPos, rcFocused.top);
+                    bool foundItem = true;
+                    bool animatebound = (_peFocused != peFocusedOld || keyState != _keyStateOld);
+                    if (keyState & 0x5)
+                    {
+                        while (_rgXPos[indexX] == rcFocused.left)
+                        {
+                            if (keyState & 0x1)
+                                indexX--;
+                            else if (keyState & 0x4)
+                                indexX++;
+                            if (indexX == -1 || indexX == _rgXItems.size())
+                            {
+                                foundItem = false;
+                                break;
+                            }
+                        }
+                        if (foundItem)
+                        {
+                            GetGadgetRect(_rgXItems[indexX]->GetDisplayNode(), &rcToBeFocused, 0xC);
+                            RECT* rcLong = (rcFocused.bottom - rcFocused.top > rcToBeFocused.bottom - rcToBeFocused.top) ? &rcFocused : &rcToBeFocused;
+                            RECT* rcShort = (rcLong == &rcToBeFocused) ? &rcFocused : &rcToBeFocused;
+                            int halfHeight = (rcShort->bottom - rcShort->top) / 2;
+                            while (rcShort->top < rcLong->top - halfHeight || rcShort->bottom > rcLong->bottom + halfHeight ||
+                                !_rgXItems[indexX]->GetVisible() || _rgXItems[indexX] == _peFocused)
+                            {
+                                if (keyState & 0x1)
+                                    indexX--;
+                                else if (keyState & 0x4)
+                                    indexX++;
+                                if (indexX == -1 || indexX == _rgXItems.size())
+                                {
+                                    foundItem = false;
+                                    break;
+                                }
+                                if (!_rgXItems[indexX]->GetVisible())
+                                    continue;
+                                GetGadgetRect(_rgXItems[indexX]->GetDisplayNode(), &rcToBeFocused, 0xC);
+                                rcLong = (rcFocused.bottom - rcFocused.top > rcToBeFocused.bottom - rcToBeFocused.top) ? &rcFocused : &rcToBeFocused;
+                                rcShort = (rcLong == &rcToBeFocused) ? &rcFocused : &rcToBeFocused;
+                                halfHeight = (rcShort->bottom - rcShort->top) / 2;
+                            }
+                            if (foundItem && _rgXItems[indexX]->GetVisible())
+                            {
+                                peFocusedOld = _peFocused;
+                                if (!(ctrlKey & 0x8000))
+                                {
+                                    _peSelected = _rgXItems[indexX];
+                                    _peSelected->SetSelected(true);
+                                }
+                                _peFocused = _rgXItems[indexX];
+                                _peFocused->SetKeyFocus();
+                            }
+                            else if (animatebound)
+                                goto ELEMNOTFOUND;
+                        }
+                        else if (animatebound)
+                            goto ELEMNOTFOUND;
+                    }
+                    else if (keyState & 0xA)
+                    {
+                        while (_rgYPos[indexY] == rcFocused.top)
+                        {
+                            if (keyState & 0x2)
+                                indexY--;
+                            else if (keyState & 0x8)
+                                indexY++;
+                            if (indexY == -1 || indexY == _rgYItems.size())
+                            {
+                                foundItem = false;
+                                break;
+                            }
+                        }
+                        if (foundItem)
+                        {
+                            GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcToBeFocused, 0xC);
+                            RECT* rcWide = (rcFocused.right - rcFocused.left > rcToBeFocused.right - rcToBeFocused.left) ? &rcFocused : &rcToBeFocused;
+                            RECT* rcNarrow = (rcWide == &rcToBeFocused) ? &rcFocused : &rcToBeFocused;
+                            int halfWidth = (rcNarrow->right - rcNarrow->left) / 2;
+                            while (rcNarrow->left < rcWide->left - halfWidth || rcNarrow->right > rcWide->right + halfWidth ||
+                                !_rgYItems[indexY]->GetVisible() || _rgYItems[indexY] == _peFocused)
+                            {
+                                if (keyState & 0x2)
+                                    indexY--;
+                                else if (keyState & 0x8)
+                                    indexY++;
+                                if (indexY == -1 || indexY == _rgYItems.size())
+                                {
+                                    foundItem = false;
+                                    break;
+                                }
+                                if (!_rgYItems[indexY]->GetVisible())
+                                    continue;
+                                GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcToBeFocused, 0xC);
+                                rcWide = (rcFocused.right - rcFocused.left > rcToBeFocused.right - rcToBeFocused.left) ? &rcFocused : &rcToBeFocused;
+                                rcNarrow = (rcWide == &rcToBeFocused) ? &rcFocused : &rcToBeFocused;
+                                halfWidth = (rcNarrow->right - rcNarrow->left) / 2;
+                            }
+                            if (foundItem && _rgYItems[indexY]->GetVisible())
+                            {
+                                peFocusedOld = _peFocused;
+                                if (!(ctrlKey & 0x8000))
+                                {
+                                    _peSelected = _rgYItems[indexY];
+                                    _peSelected->SetSelected(true);
+                                }
+                                _peFocused = _rgYItems[indexY];
+                                _peFocused->SetKeyFocus();
+                            }
+                            else if (animatebound)
+                                goto ELEMNOTFOUND;
+                        }
+                        else if (animatebound)
+                            goto ELEMNOTFOUND;
+                    }
+                    if (rgList && !(ctrlKey & 0x8000))
+                    {
+                        for (int items = 0; items < rgList->GetSize(); items++)
+                        {
+                            if (rgList->GetItem(items)->GetSelected())
+                                rgList->GetItem(items)->SetSelected(false);
+                        }
+                    }
+                    if (shiftKey & 0x8000 && _pePivot)
+                    {
+                        GetGadgetRect(_pePivot->GetDisplayNode(), &rcPivot, 0xC);
+                        _ShiftSelectionHelper(&rcPivot, &rcToBeFocused);
+                    }
+                    else if (!(ctrlKey & 0x8000)) _pePivot = _peSelected;
+                    _keyStateOld = keyState;
+                }
+                else if (_peAnimating && _peSelected != _peAnimating)
+                {
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    TriggerScaleOut(_peAnimating, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peAnimating->GetDisplayNode(), &tsbInfo);
+                    if (pInput->nCode == GMOUSE_DOWN && keyState == 0 && _keyStateOld != 0 && _peFocused == peFocusedOld)
+                        goto ELEMNOTFOUND;
+                }
+                else if (pInput->nCode == GMOUSE_DOWN && keyState == 0 && _keyStateOld != 0 && _peFocused == peFocusedOld)
+                    goto ELEMNOTFOUND;
+            }
+        }
+        else if (false)
+        {
+        ELEMNOTFOUND:
+            if (!(ctrlKey & 0x8000) && _peSelected)
+            {
+                if (_peAnimating && _peSelected != _peAnimating)
+                {
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    TriggerScaleOut(_peAnimating, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peAnimating->GetDisplayNode(), &tsbInfo);
+                }
+                float flOriginX, flOriginY, flScaleX, flScaleY;
+                if (keyState & 0x5)
+                {
+                    flScaleX = 1.071f;
+                    flScaleY = 0.933f;
+                    if (keyState & 0x1) flOriginX = 2.0f;
+                    else if (keyState & 0x5) flOriginX = -1.0f;
+                    flOriginY = 0.5f;
+                }
+                if (keyState & 0xA)
+                {
+                    flScaleX = 0.933f;
+                    flScaleY = 1.071f;
+                    flOriginX = 0.5f;
+                    if (keyState & 0x2) flOriginY = 2.0f;
+                    else if (keyState & 0x8) flOriginY = -1.0f;
+                }
+                if (_peFocused != _peSelected)
+                {
+                    _peSelected->SetSelected(false);
+                    _peSelected = _peFocused;
+                    if (!(shiftKey & 0x8000) || !_pePivot)
+                        _pePivot = _peSelected;
+                }
+                _peSelected->SetSelected(true);
+                if (pInput->nCode == GMOUSE_MOVE)
+                {
+                    KillTimer(_hWorker, 1);
+                    _peAnimating = _peSelected;
+                    _fKeyDown = true;
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    ullTick = GetTickCount64();
+                    TriggerScaleIn(_peSelected, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f,
+                        flOriginX, flOriginY, flScaleX, flScaleY, flOriginX, flOriginY, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peSelected->GetDisplayNode(), &tsbInfo);
+                    DUI_SetGadgetZOrder(_peSelected, -1);
+                    _keyStateOld2 = keyState;
+                }
+                else if (pInput->nCode == GMOUSE_DOWN)
+                {
+                    DWORD animCoef = g_animCoef;
+                    if (g_AnimShiftKey && !(shiftKey & 0x8000)) animCoef = 100;
+                    DWORD dwTickDelay = 3 * animCoef - (GetTickCount64() - ullTick);
+                    if (dwTickDelay > 0x7FFFFFFF) dwTickDelay = 0;
+                    SetWindowLongPtrW(_hWorker, GWLP_USERDATA, (LONG_PTR)this);
+                    KillTimer(_hWorker, 1);
+                    SetTimer(_hWorker, 1, dwTickDelay, nullptr);
+                }
+                peFocusedOld = _peFocused;
+                _keyStateOld = keyState;
+            }
+        }
+        LVCommon::OnInput(pInput);
+    }
+
+    void LVGrid::OnKeyFocusMoved(Element* peFrom, Element* peTo)
+    {
+        CValuePtr v;
+        DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+        short ctrlKey = GetAsyncKeyState(VK_CONTROL);
+        short shiftKey = GetAsyncKeyState(VK_SHIFT);
+        if (peTo)
+        {
+            _fAllowNav = (peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() || peTo == _peWhitespace);
+            bool fKeyboard = (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000 || GetAsyncKeyState(VK_RBUTTON) & 0x8000));
+            // Handling checkboxes in LVItems (requires setting the LVItem's checkbox first)
+            if (peTo->GetClassInfoW() != LVItem::GetClassInfoPtr())
+            {
+                Element* peParent = peTo;
+                while (peParent->GetParent())
+                {
+                    peParent = peParent->GetParent();
+                    if (peParent->GetClassInfoW() == LVItem::GetClassInfoPtr())
+                        break;
+                }
+                if (peParent->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo == ((LVItem*)peParent)->GetCheckbox())
+                {
+                    _fAllowNav = true;
+                    peTo = peParent;
+                }
+            }
+            ////////////////////////////////////////////////////////////////////////////////
+            if (peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo->GetParent() == _peWhitespace)
+            {
+                if ((!(ctrlKey & 0x8000) || (peFrom && peFrom->GetParent() != _peWhitespace)))
+                {
+                    _peSelected = peTo;
+                    if (!(shiftKey & 0x8000) || !_pePivot)
+                        _pePivot = peTo;
+                    else
+                    {
+                        if (rgList)
+                        {
+                            for (int items = 0; items < rgList->GetSize(); items++)
+                            {
+                                if (rgList->GetItem(items)->GetSelected())
+                                    rgList->GetItem(items)->SetSelected(false);
+                            }
+                        }
+                        RECT rcPivot{}, rcTo{};
+                        GetGadgetRect(_pePivot->GetDisplayNode(), &rcPivot, 0xC);
+                        GetGadgetRect(peTo->GetDisplayNode(), &rcTo, 0xC);
+                        _ShiftSelectionHelper(&rcPivot, &rcTo);
+                    }
+                    if (fKeyboard)
+                        _peSelected->SetSelected(true);
+                }
+                _peFocused = peTo;
+            }
+        }
+
+        // 0.5.8: TODO: Remove this part once a better EventListener is implemented
+        // because we do not want this desktop-specific behavior to apply to EVERY LVGrid
+        HWND hwndForeground = GetForegroundWindow();
+        DWORD threadId = GetWindowThreadProcessId(hwndForeground, NULL);
+        GUITHREADINFO gui;
+        ZeroMemory(&gui, sizeof(gui));
+        gui.cbSize = sizeof(GUITHREADINFO);
+        if (GetGUIThreadInfo(threadId, &gui))
+        {
+            if (gui.hwndFocus)
+                hwndForeground = gui.hwndFocus;
+        }
+        HWND hTaskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
+        HWND hTrayNotify = FindWindowExW(hTaskbar, nullptr, L"TrayNotifyWnd", nullptr);
+        HWND hShowDesktop = FindWindowExW(hTrayNotify, nullptr, L"TrayShowDesktopButtonWClass", nullptr);
+        RECT rcShow{};
+        GetWindowRect(hShowDesktop, &rcShow);
+        POINT pt;
+        GetCursorPos(&pt);
+        if (!peTo && (hwndForeground == g_hSHELLDLL_DefView ||
+            pt.x >= rcShow.left && pt.x <= rcShow.right && pt.y >= rcShow.top && pt.y <= rcShow.bottom))
+        {
+            SetFocus(wnd->GetHWND());
+            peTo = _peWhitespace;
+        }
+        ///////////////////////////////////////////////////////////////////////////
+
+        if (!(shiftKey & 0x8000) && _pePivot != _peSelected)
+            _pePivot = _peSelected;
+        Element::OnKeyFocusMoved(peFrom, peTo);
+    }
+
+    bool LVGrid::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = LVCommon::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::HeightProp))
+            result = true;
+        return result;
+    }
+
+    HRESULT LVGrid::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<LVGrid, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT LVGrid::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateLVVisual();
+        HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+        if (hShlwapi)
+        {
+            pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+            _hWorker = SHCreateWorkerWindowW(s_LVGridProc, HWND_MESSAGE, 0, 0, nullptr);
+        }
+        return hr;
+    }
+
+    HRESULT LVGrid::Register()
+    {
+        return ClassInfo<LVGrid, LVCommon>::RegisterGlobal(HINST_THISCOMPONENT, L"LVGrid", nullptr, 0);
+    }
+
+    void LVGrid::NotifyGridChanges(LVItem** rgLVItems, POINT* rgPosOld, POINT* rgPosNew, int cSize)
+    {
+        if (cSize == -1)
+        {
+            CValuePtr v;
+            DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+            if (rgList && rgList->GetSize() > 0)
+            {
+                _rgXPos.clear();
+                _rgYPos.clear();
+                _rgXItems.clear();
+                _rgYItems.clear();
+                RECT rcGadget;
+                POINT ptIndex;
+                for (int i = 0; i < rgList->GetSize(); i++)
+                {
+                    if (rgList->GetItem(i)->GetClassInfoW() != LVItem::GetClassInfoPtr())
+                        continue;
+                    GetGadgetRect(rgList->GetItem(i)->GetDisplayNode(), &rcGadget, 0xC);
+                    ptIndex.x = _SearchArray(&_rgXPos, rcGadget.left);
+                    ptIndex.y = _SearchArray(&_rgYPos, rcGadget.top);
+                    _rgXPos.insert(_rgXPos.begin() + ptIndex.x, rcGadget.left);
+                    _rgYPos.insert(_rgYPos.begin() + ptIndex.y, rcGadget.top);
+                    _rgXItems.insert(_rgXItems.begin() + ptIndex.x, (LVItem*)rgList->GetItem(i));
+                    _rgYItems.insert(_rgYItems.begin() + ptIndex.y, (LVItem*)rgList->GetItem(i));
+                }
+            }
+        }
+        else if (cSize > 0)
+        {
+            POINT ptIndex, ptPivot;
+            for (int i = 0; i < cSize; i++)
+            {
+                if (rgLVItems[i])
+                {
+                    ptIndex.x = _SearchArrayExact(&_rgXPos, rgPosOld[i].x);
+                    ptIndex.y = _SearchArrayExact(&_rgYPos, rgPosOld[i].y);
+                    ptPivot = ptIndex;
+                    bool reverseX = false, reverseY = false;
+                    RECT rcSearch{};
+                    wstring filename = rgLVItems[i]->GetFilename();
+                    while (_rgXItems[ptIndex.x]->GetFilename() != filename)
+                    {
+                        if (reverseX) ptIndex.x--;
+                        else ptIndex.x++;
+                        if (ptIndex.x >= 0 && ptIndex.x < _rgXPos.size())
+                            GetGadgetRect(_rgXItems[ptIndex.x]->GetDisplayNode(), &rcSearch, 0xC);
+                        if (rcSearch.left > rgPosOld[i].x || ptIndex.x >= _rgXPos.size())
+                        {
+                            if (!reverseX)
+                                ptIndex.x = ptPivot.x - 1;
+                            reverseX = true;
+                        }
+                        if (rcSearch.left < rgPosOld[i].x || ptIndex.x < 0)
+                            break;
+                    }
+                    while (_rgYItems[ptIndex.y]->GetFilename() != filename)
+                    {
+                        if (reverseY) ptIndex.y--;
+                        else ptIndex.y++;
+                        if (ptIndex.y >= 0 && ptIndex.y < _rgYPos.size())
+                            GetGadgetRect(_rgYItems[ptIndex.y]->GetDisplayNode(), &rcSearch, 0xC);
+                        if (rcSearch.top > rgPosOld[i].y || ptIndex.y >= _rgYPos.size())
+                        {
+                            if (!reverseY)
+                                ptIndex.y = ptPivot.y - 1;
+                            reverseY = true;
+                        }
+                        if (rcSearch.top < rgPosOld[i].y || ptIndex.y < 0)
+                            break;
+                    }
+                    _rgXPos.erase(_rgXPos.begin() + ptIndex.x);
+                    _rgYPos.erase(_rgYPos.begin() + ptIndex.y);
+                    _rgXItems.erase(_rgXItems.begin() + ptIndex.x);
+                    _rgYItems.erase(_rgYItems.begin() + ptIndex.y);
+                }
+            }
+            for (int i = 0; i < cSize; i++)
+            {
+                ptIndex.x = _SearchArray(&_rgXPos, rgPosNew[i].x);
+                ptIndex.y = _SearchArray(&_rgYPos, rgPosNew[i].y);
+                _rgXPos.insert(_rgXPos.begin() + ptIndex.x, rgPosNew[i].x);
+                _rgYPos.insert(_rgYPos.begin() + ptIndex.y, rgPosNew[i].y);
+                _rgXItems.insert(_rgXItems.begin() + ptIndex.x, rgLVItems[i]);
+                _rgYItems.insert(_rgYItems.begin() + ptIndex.y, rgLVItems[i]);
+            }
+        }
+    }
+
+    int LVGrid::_SearchArray(vector<int>* rgPos, int iCloseValue)
+    {
+        int index = 0;
+        int size = rgPos->size();
+        int step = size / 2;
+        if (step == 0) step = 1;
+        while (index < size && (*rgPos)[index] != iCloseValue)
+        {
+            while (index < size && (*rgPos)[index] < iCloseValue)
+            {
+                index += step;
+                if (step > 1) step /= 2;
+            }
+            if (index >= size)
+            {
+                index = size;
+                break;
+            }
+            if (index > 0 && (*rgPos)[index - 1] <= iCloseValue)
+                break;
+            while (index > 0 && (*rgPos)[index] > iCloseValue)
+            {
+                index -= step;
+                if (step > 1) step /= 2;
+            }
+            if (index <= 0)
+            {
+                index = 0;
+                break;
+            }
+            if (index < size - 1 && (*rgPos)[index + 1] >= iCloseValue)
+                break;
+        }
+        if (index < size && (*rgPos)[index] < iCloseValue)
+            index++;
+        return index;
+    }
+
+    int LVGrid::_SearchArrayExact(vector<int>* rgPos, int iTargetValue)
+    {
+        int index = 0;
+        int size = rgPos->size();
+        int step = size / 2;
+        if (step == 0) step = 1;
+        unsigned short runs = 0; // Preventive measure for launch/refresh animation, which causes no exact match and an infinite loop
+        while (index < size && (*rgPos)[index] != iTargetValue && runs < 0xFF00)
+        {
+            while (index < size && (*rgPos)[index] < iTargetValue && runs < 0xFF00)
+            {
+                runs++;
+                index += step;
+                if (step > 1) step /= 2;
+            }
+            while (index > 0 && (*rgPos)[index] > iTargetValue && runs < 0xFF00)
+            {
+                runs++;
+                index -= step;
+                if (step > 1) step /= 2;
+            }
+            runs++;
+        }
+        if (runs >= 0xFF00) return 0;
+        return index;
+    }
+
+    void LVGrid::_ShiftSelectionHelper(RECT* prcPivot, RECT* prcTo)
+    {
+        int indexY;
+        RECT* rcLong = (prcPivot->bottom - prcPivot->top > prcTo->bottom - prcTo->top) ? prcPivot : prcTo;
+        RECT* rcShort = (rcLong == prcTo) ? prcPivot : prcTo;
+        int halfHeight = (rcShort->bottom - rcShort->top) / 2;
+        int start, end;
+        int leftOneRow = min(prcPivot->left, prcTo->left);
+        int rightOneRow = max(prcPivot->right, prcTo->right);
+        if (prcPivot->top - halfHeight <= prcTo->top)
+        {
+            indexY = _SearchArrayExact(&_rgYPos, prcPivot->top);
+            if (prcPivot->bottom + halfHeight >= prcTo->bottom)
+            {
+                start = (localeType == 1) ? rightOneRow : leftOneRow;
+                end = (localeType == 1) ? leftOneRow : rightOneRow;
+            }
+            else
+            {
+                start = (localeType == 1) ? prcPivot->right : prcPivot->left;
+                end = (localeType == 1) ? prcTo->left : prcTo->right;
+            }
+        }
+        else
+        {
+            indexY = _SearchArrayExact(&_rgYPos, prcTo->top);
+            start = (localeType == 1) ? prcTo->right : prcTo->left;
+            end = (localeType == 1) ? prcPivot->left : prcPivot->right;
+        }
+        int top = min(prcPivot->top, prcTo->top);
+        int bottom = max(prcPivot->top, prcTo->top);
+        while (_rgYPos[indexY] >= top - halfHeight && indexY >= 0)
+            indexY--;
+        indexY++;
+        RECT rcCurrent{};
+        while (indexY < _rgYPos.size() && _rgYPos[indexY] <= bottom + halfHeight)
+        {
+            if (_rgYPos[indexY] <= top + halfHeight)
+            {
+                GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
+                if (_rgYPos[indexY] >= bottom - halfHeight)
+                {
+                    if ((localeType != 1 && (rcCurrent.left >= start && rcCurrent.right <= end)) ||
+                        (localeType == 1 && (rcCurrent.right <= start && rcCurrent.left >= end)))
+                        _rgYItems[indexY]->SetSelected(true);
+                }
+                else if ((localeType != 1 && rcCurrent.left >= start) || (localeType == 1 && rcCurrent.right <= start))
+                    _rgYItems[indexY]->SetSelected(true);
+            }
+            else if (_rgYPos[indexY] >= bottom - halfHeight)
+            {
+                GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
+                if ((localeType != 1 && rcCurrent.right <= end) || (localeType == 1 && rcCurrent.left >= end))
+                    _rgYItems[indexY]->SetSelected(true);
+            }
+            else _rgYItems[indexY]->SetSelected(true);
+            indexY++;
+        }
+    }
+
+    LRESULT CALLBACK LVGrid::s_LVGridProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        LVGrid* lvg = (LVGrid*)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+        switch (uMsg)
+        {
+        case WM_TIMER:
+        {
+        case 1:
+            if (lvg->_peAnimating)
+            {
+                float flOriginX{}, flOriginY{}, flScaleX = 1.0f, flScaleY = 1.0f;
+                if (lvg->_keyStateOld2 & 0x5)
+                {
+                    flScaleX = 1.071f;
+                    flScaleY = 0.933f;
+                    if (lvg->_keyStateOld2 & 0x1) flOriginX = 2.0f;
+                    else if (lvg->_keyStateOld2 & 0x5) flOriginX = -1.0f;
+                    flOriginY = 0.5f;
+                }
+                if (lvg->_keyStateOld2 & 0xA)
+                {
+                    flScaleX = 0.933f;
+                    flScaleY = 1.071f;
+                    flOriginX = 0.5f;
+                    if (lvg->_keyStateOld2 & 0x2) flOriginY = 2.0f;
+                    else if (lvg->_keyStateOld2 & 0x8) flOriginY = -1.0f;
+                }
+                GTRANS_DESC transDesc[1];
+                TransitionStoryboardInfo tsbInfo = {};
+                TriggerScaleIn(lvg->_peAnimating, transDesc, 0, 0.0f, 0.2f, 0.11f, 0.6f, 0.23f, 0.97f,
+                    flScaleX, flScaleY, flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lvg->_peAnimating->GetDisplayNode(), &tsbInfo);
+                DUI_SetGadgetZOrder(lvg->_peAnimating, -1);
+            }
+            lvg->_keyStateOld2 = 0;
+            lvg->_peAnimating = nullptr;
+            KillTimer(hWnd, wParam);
+            break;
+        }
+        default:
+            break;
+        }
+        return s_ListViewProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    void LVGrid::_OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext)
+    {
+        ((LVItem*)*ppe)->SetShowKeyFocus(false);
+        POINT ptIndex;
+        ptIndex.x = _SearchArray(&_rgXPos, prcGadget->left);
+        ptIndex.y = _SearchArray(&_rgYPos, prcGadget->top);
+        _rgXPos.insert(_rgXPos.begin() + ptIndex.x, prcGadget->left);
+        _rgYPos.insert(_rgYPos.begin() + ptIndex.y, prcGadget->top);
+        _rgXItems.insert(_rgXItems.begin() + ptIndex.x, (LVItem*)*ppe);
+        _rgYItems.insert(_rgYItems.begin() + ptIndex.y, (LVItem*)*ppe);
+        if (!(_flags & LVCF_NOASSIGNFUNC))
+        {
+            vector<IElementListener*>* pv_pels = ((LVItem*)*ppe)->GetListeners();
+            pv_pels->push_back(assignFn(*ppe, SelectItemBase, true));
+            pv_pels->push_back(assignExtendedFn(*ppe, RefineSelections, true));
+            if (((LVItem*)*ppe)->GetCheckbox())
+                pv_pels->push_back(assignExtendedFn(((LVItem*)*ppe)->GetCheckbox(), CheckboxHandler, true));
+        }
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GTRANS_DESC transDesc[2];
+            TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+        }
+    }
+
+    void LVGrid::_OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext)
+    {
+        POINT ptIndex, ptPivot;
+        ptIndex.x = _SearchArrayExact(&_rgXPos, prcGadget->left);
+        ptIndex.y = _SearchArrayExact(&_rgYPos, prcGadget->top);
+        ptPivot = ptIndex;
+        bool reverseX = false, reverseY = false;
+        RECT rcSearch{};
+        if (ptIndex.x > _rgXItems.size() - 1)
+            ptIndex.x = _rgXItems.size() - 1;
+        if (ptIndex.y > _rgYItems.size() - 1)
+            ptIndex.y = _rgYItems.size() - 1;
+        while (_rgXItems[ptIndex.x]->GetSimpleFilename() != ((LVItem*)*ppe)->GetSimpleFilename())
+        {
+            if (reverseX) ptIndex.x--;
+            else ptIndex.x++;
+            if (ptIndex.x == -1 || ptIndex.x == _rgXItems.size())
+                return;
+            GetGadgetRect(_rgXItems[ptIndex.x]->GetDisplayNode(), &rcSearch, 0xC);
+            if (rcSearch.left > prcGadget->left)
+            {
+                reverseX = true;
+                ptIndex.x = ptPivot.x - 1;
+            }
+            if (rcSearch.left < prcGadget->left)
+                break;
+        }
+        while (_rgYItems[ptIndex.y]->GetSimpleFilename() != ((LVItem*)*ppe)->GetSimpleFilename())
+        {
+            if (reverseY) ptIndex.y--;
+            else ptIndex.y++;
+            if (ptIndex.y == -1 || ptIndex.y == _rgYItems.size())
+                return;
+            GetGadgetRect(_rgYItems[ptIndex.y]->GetDisplayNode(), &rcSearch, 0xC);
+            if (rcSearch.top > prcGadget->top)
+            {
+                reverseY = true;
+                ptIndex.y = ptPivot.y - 1;
+            }
+            if (rcSearch.top < prcGadget->top)
+                break;
+        }
+        if (*ppe == _pePivot)
+            _pePivot = nullptr;
+        _rgXPos.erase(_rgXPos.begin() + ptIndex.x);
+        _rgYPos.erase(_rgYPos.begin() + ptIndex.y);
+        _rgXItems.erase(_rgXItems.begin() + ptIndex.x);
+        _rgYItems.erase(_rgYItems.begin() + ptIndex.y);
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GTRANS_DESC transDesc[2];
+            TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+            TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+        }
+    }
+
+    void LVGrid::_OnRemoveAll()
+    {
+        _peSelected = nullptr;
+        _peFocused = nullptr;
+        _rgXPos.clear();
+        _rgYPos.clear();
+        _rgXItems.clear();
+        _rgYItems.clear();
+    }
+
+    IClassInfo* LVTiles::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void LVTiles::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* LVTiles::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void LVTiles::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, LVTiles::ItemMinWidthProp) || PropNotify::IsEqual(ppi, iIndex, LVTiles::ItemHeightProp))
+            this->_UpdateGridLayoutParams();
+        LVCommon::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    HRESULT LVTiles::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<LVTiles, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT LVTiles::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateLVVisual();
+        HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+        if (hShlwapi)
+        {
+            pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+            _hWorker = SHCreateWorkerWindowW(s_ListViewProc, HWND_MESSAGE, 0, 0, nullptr);
+        }
+        return hr;
+    }
+
+    HRESULT LVTiles::Register()
+    {
+        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        {
+            &impItemMinWidthProp,
+            &impItemHeightProp
+        };
+        return ClassInfo<LVTiles, LVCommon>::RegisterGlobal(HINST_THISCOMPONENT, L"LVTiles", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    const PropertyInfo* WINAPI LVTiles::ItemMinWidthProp()
+    {
+        return &impItemMinWidthProp;
+    }
+
+    int LVTiles::GetItemMinWidth()
+    {
+        int v = this->GetPropCommon(ItemMinWidthProp);
+        if (v < 1) v = 1;
+        return v;
+    }
+
+    void LVTiles::SetItemMinWidth(int iFirstImage)
+    {
+        this->SetPropCommon(ItemMinWidthProp, iFirstImage);
+    }
+
+    const PropertyInfo* WINAPI LVTiles::ItemHeightProp()
+    {
+        return &impItemHeightProp;
+    }
+
+    int LVTiles::GetItemHeight()
+    {
+        return this->GetPropCommon(ItemHeightProp);
+    }
+
+    void LVTiles::SetItemHeight(int iScaleIntervals)
+    {
+        this->SetPropCommon(ItemHeightProp, iScaleIntervals);
+    }
+
+    void LVTiles::_UpdateGridLayoutParams()
+    {
+        CValuePtr v;
+        RECT rcGadget{}, rcPadding{};
+        _peWhitespace->GetRenderPadding(&rcPadding);
+        GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcGadget, 0x4);
+        int width = rcGadget.right - rcPadding.left - rcPadding.right;
+        _szGridLayout.cx = floor(width / this->GetItemMinWidth());
+        int iNonAbsChildren{};
+        DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+        if (rgList)
+        {
+            for (int i = 0; i < rgList->GetSize(); i++)
+            {
+                if (rgList->GetItem(i)->GetLayoutPos() != -2)
+                    iNonAbsChildren++;
+            }
+            RECT rcMargin = *(rgList->GetItem(0)->GetMargin(&v));
+            _szGridLayout.cx = floor(width / (this->GetItemMinWidth() + max(rcMargin.left, rcMargin.right)));
+            _szGridLayout.cy = ceil(iNonAbsChildren / static_cast<float>(_szGridLayout.cx));
+        }
+        int iHeight = this->GetItemHeight() * _szGridLayout.cy + rcPadding.top + rcPadding.bottom;
+        if (rgList && rgList->GetSize() > _szGridLayout.cx)
+        {
+            int i = _szGridLayout.cx;
+            while (i < rgList->GetSize())
+            {
+                if (rgList->GetItem(i)->GetLayoutPos() == -2)
+                {
+                    i++;
+                    continue;
+                }
+                RECT rcMargin = *(rgList->GetItem(i)->GetMargin(&v));
+                iHeight += max(rcMargin.top, rcMargin.bottom);
+                i += _szGridLayout.cx;
+            }
+        }
+        _peWhitespace->SetHeight(iHeight);
+        int gridlayoutParams[2] = { _szGridLayout.cy, _szGridLayout.cx };
+        CreateAndSetLayout(_peWhitespace, GridLayout::Create, ARRAYSIZE(gridlayoutParams), gridlayoutParams);
+    }
+
+    int LVTiles::GetPropCommon(const PropertyProcT pPropertyProc)
+    {
+        if (!this) return -1;
+        if (this->IsDestroyed()) return -1;
+        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        int v = pv->GetInt();
+        pv->Release();
+        return v;
+    }
+
+    void LVTiles::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt)
+    {
+        Value* pv = Value::CreateInt(iCreateInt);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(pPropertyProc, 1, pv);
+            pv->Release();
+        }
+    }
+
+    void LVTiles::_OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext)
+    {
+        ((LVItem*)*ppe)->SetShowKeyFocus(false);
+        _UpdateGridLayoutParams();
+        if (!(_flags & LVCF_NOASSIGNFUNC))
+        {
+            vector<IElementListener*>* pv_pels = ((LVItem*)*ppe)->GetListeners();
+            pv_pels->push_back(assignFn(*ppe, SelectItemBase, true));
+            pv_pels->push_back(assignExtendedFn(*ppe, RefineSelections, true));
+            if (((LVItem*)*ppe)->GetCheckbox())
+                pv_pels->push_back(assignExtendedFn(((LVItem*)*ppe)->GetCheckbox(), CheckboxHandler, true));
+        }
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            GTRANS_DESC transDesc[2];
+            TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            if (!(_flags & LVCF_ANIMATEPARTIAL))
+            {
+                GetGadgetRect((*ppe)->GetDisplayNode(), prcGadget, 0xC);
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    for (int i = 0; i < rgList->GetSize(); i++)
+                    {
+                        if (rgList->GetItem(i)->GetLayoutPos() != -2)
+                        {
+                            RECT rcItem;
+                            GetGadgetRect(rgList->GetItem(i)->GetDisplayNode(), &rcItem, 0xC);
+                            if (rcItem.top > prcGadget->top || (rcItem.top >= prcGadget->top && 
+                                ((localeType != 1 && rcItem.left > prcGadget->left) || (localeType == 1 && rcItem.right < prcGadget->right))))
+                            {
+                                Element* child = rgList -> GetItem(i);
+                                if (i > 0)
+                                    GetGadgetRect(rgList->GetItem(i - 1)->GetDisplayNode(), prcNext, 0xC);
+                                if (prcNext->top - rcItem.top == 0)
+                                {
+                                    TriggerTranslate(child, transDesc, 0, 0.0f, 0.367f, 0.75f, 0.0f, 0.0f, 1.0f,
+                                        prcNext->left - rcItem.left, prcNext->top - rcItem.top, 0, 0, false, false, true);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+                                }
+                                else
+                                {
+                                    GTRANS_DESC transDesc2[6];
+                                    TriggerTranslate(child, transDesc2, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                        0, 0, prcNext->left - rcItem.left, prcNext->top - rcItem.top, false, false, true);
+                                    TriggerFade(child, transDesc2, 1, 0.0f, 0.147f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                                    TriggerScaleIn(child, transDesc2, 2, 0.0f, 0.147f, 1.0f, 0.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 0.5f, 0.5f, 0.0f, 0.0f, 0.5f, 0.5f, false, false);
+                                    TriggerTranslate(child, transDesc2, 3, 0.147f, 0.147f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                        prcNext->left - rcItem.left, prcNext->top - rcItem.top, 0, 0, false, false, true);
+                                    TriggerFade(child, transDesc2, 4, 0.147f, 0.367f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                                    TriggerScaleIn(child, transDesc2, 5, 0.147f, 0.367f, 0.0f, 0.0f, 0.0f, 1.0f,
+                                        0.0f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void LVTiles::_OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext)
+    {
+        RECT rcParent{};
+        GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
+        _UpdateGridLayoutParams();
+        if (!(_flags & LVCF_NOANIMATE))
+        {
+            RECT rcParentOld;
+            GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParentOld, 0xC);
+            prcGadget->top += (rcParentOld.top - rcParent.top);
+            prcGadget->bottom += (rcParentOld.top - rcParent.top);
+            prcNext->top += (rcParentOld.top - rcParent.top);
+            prcNext->bottom += (rcParentOld.top - rcParent.top);
+            GTRANS_DESC transDesc[3];
+            TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+            TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
+            TransitionStoryboardInfo tsbInfo = {};
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+            if (!(_flags & LVCF_ANIMATEPARTIAL))
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
+                if (rgList && rgList->GetSize() > 0)
+                {
+                    for (int i = rgList->GetSize() - 1; i >= 0; i--)
+                    {
+                        if (rgList->GetItem(i)->GetLayoutPos() != -2)
+                        {
+                            RECT rcItem;
+                            GetGadgetRect(rgList->GetItem(i)->GetDisplayNode(), &rcItem, 0xC);
+                            if (rcItem.top > prcGadget->top || (rcItem.top >= prcGadget->top &&
+                                ((localeType != 1 && rcItem.left >= prcGadget->left) || (localeType == 1 && rcItem.right <= prcGadget->right))))
+                            {
+                                Element* child = rgList->GetItem(i);
+                                if (i < rgList->GetSize() - 1 && rgList->GetItem(i + 1)->GetLayoutPos() != -2)
+                                    GetGadgetRect(rgList->GetItem(i + 1)->GetDisplayNode(), prcNext, 0xC);
+                                if (prcNext->top - rcItem.top == 0)
+                                {
+                                    TriggerTranslate(child, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                        0, 0, prcNext->left - rcItem.left, 0, false, false, true);
+                                    TriggerTranslate(child, transDesc, 1, 0.06f, 0.06f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                        prcNext->left - rcItem.left, prcNext->top - rcItem.top, prcNext->left - rcItem.left, prcNext->top - rcItem.top,
+                                        false, false, true);
+                                    TriggerTranslate(child, transDesc, 2, 0.06f, 0.427f, 0.85f, 0.0f, 0.0f, 1.0f,
+                                        prcNext->left - rcItem.left, prcNext->top - rcItem.top, 0, 0, false, false, true);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                                }
+                                else
+                                {
+                                    GTRANS_DESC transDesc2[7];
+                                    TriggerTranslate(child, transDesc2, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                        0, 0, prcNext->left - rcItem.left, prcNext->top - rcItem.top, false, false, true);
+                                    TriggerFade(child, transDesc2, 1, 0.0f, 0.06f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, true);
+                                    TriggerFade(child, transDesc2, 2, 0.06f, 0.225f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                                    TriggerScaleIn(child, transDesc2, 3, 0.06f, 0.225f, 1.0f, 0.0f, 1.0f, 1.0f,
+                                        1.0f, 1.0f, 0.5f, 0.5f, 0.0f, 0.0f, 0.5f, 0.5f, false, false);
+                                    TriggerTranslate(child, transDesc2, 4, 0.225f, 0.225f, 0.0f, 0.0f, 1.0f, 1.0f,
+                                        prcNext->left - rcItem.left, prcNext->top - rcItem.top, 0, 0, false, false, true);
+                                    TriggerFade(child, transDesc2, 5, 0.225f, 0.427f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                                    TriggerScaleIn(child, transDesc2, 6, 0.225f, 0.427f, 0.0f, 0.0f, 0.0f, 1.0f,
+                                        0.0f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     LVItem::~LVItem()
@@ -2411,6 +4299,11 @@ namespace DirectDesktop
     void LVItem::SetChildItems(vector<LVItem*>* vpm)
     {
         _childItemss = vpm;
+    }
+
+    vector<IElementListener*>* LVItem::GetListeners()
+    {
+        return &_pels;
     }
 
     void LVItem::SetListeners(vector<IElementListener*> pels)
@@ -2922,7 +4815,7 @@ namespace DirectDesktop
                     CSafeElementPtr<DDScalableElement> indicator;
                     indicator.Assign(regElem<DDScalableElement*>(L"DDCMB_SelectionIndicator", this));
                     TriggerScaleOut(indicator, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, scaleRelease, 0.5f, 0.5f, false, false);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, indicator->GetDisplayNode(), &tsbInfo);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                 }
             }
         }
@@ -3337,9 +5230,13 @@ namespace DirectDesktop
                         {
                             _tsvSelectionMenu->Add(&_peHostInner, 1);
                             _peSelectionMenu->Add((Element**)&_tsvSelectionMenu, 1);
-                            BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
-                            if (DWMActive)
-                            {                                
+                            WCHAR* WindowsBuildStr;
+                            GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+                            int WindowsBuild = _wtoi(WindowsBuildStr);
+                            free(WindowsBuildStr);
+                            if (DWMActive && WindowsBuild >= 16299)
+                            {
+                                BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
                                 AddLayeredRef(_tsvSelectionMenu->GetDisplayNode());
                                 SetGadgetFlags(_tsvSelectionMenu->GetDisplayNode(), NULL, NULL);
                                 MARGINS margins = { -1, -1, -1, -1 };
@@ -3403,6 +5300,7 @@ namespace DirectDesktop
         TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
+    // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDSlider::OnInput(InputEvent* pInput)
     {
         if (pInput->nCode == GMOUSE_MOVE)
@@ -3441,7 +5339,7 @@ namespace DirectDesktop
                         height = _peFillBase->GetHeight() + round((sliderSize - _peThumb->GetHeight() / 2) / 10);
                         canMove = true;
                     }
-                    else if (sDown & 1 || sUp & 0x8000)
+                    else if (sDown & 1 || sDown & 0x8000)
                     {
                         height = _peFillBase->GetHeight() - round((sliderSize - _peThumb->GetHeight() / 2) / 10);
                         canMove = true;
@@ -3914,6 +5812,7 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDColorPicker::OnInput(InputEvent* pInput)
     {
         if (pInput->nCode == GMOUSE_MOVE)
@@ -4301,6 +6200,7 @@ namespace DirectDesktop
         return s_pClassInfo;
     }
 
+    // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDTabbedPages::OnInput(InputEvent* pInput)
     {
         if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice == GINPUT_KEYBOARD)
@@ -4465,10 +6365,11 @@ namespace DirectDesktop
         {
             for (int id = 0; id < pel->GetSize(); id++)
             {
+                Element* child = pel->GetItem(id);
                 bool fAnimate = true;
                 for (int id2 = 0; id2 < _vecAnimating.size(); id2++)
                 {
-                    if (pel->GetItem(id) == _vecAnimating[id2])
+                    if (child == _vecAnimating[id2])
                     {
                         fAnimate = false;
                         break;
@@ -4478,19 +6379,19 @@ namespace DirectDesktop
                 {
                     if ((localeType != 1 && index < _pageID) || (localeType == 1 && index > _pageID))
                     {
-                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false, true);
-                        TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, false, true);
+                        TriggerTranslate(child, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false, true);
+                        TriggerClip(child, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, false, true);
                     }
                     else if ((localeType != 1 && index > _pageID) || (localeType == 1 && index < _pageID))
                     {
-                        TriggerTranslate(pel->GetItem(id), transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false, true);
-                        TriggerClip(pel->GetItem(id), transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, false, true);
+                        TriggerTranslate(child, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false, true);
+                        TriggerClip(child, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, false, true);
                     }
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pel->GetItem(id)->GetDisplayNode(), &tsbInfo);
-                    _vecAnimating.push_back(pel->GetItem(id));
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                    _vecAnimating.push_back(child);
                     DWORD animCoef = g_animCoef;
                     if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-                    yValuePtrs* yV = new yValuePtrs{ &_vecAnimating, pel->GetItem(id), static_cast<DWORD>(3.3f * animCoef) };
+                    yValuePtrs* yV = new yValuePtrs{ &_vecAnimating, child, static_cast<DWORD>(3.3f * animCoef) };
                     HANDLE hRemoveFromVec = CreateThread(nullptr, 0, s_RemoveFromVec, yV, NULL, nullptr);
                     if (hRemoveFromVec) CloseHandle(hRemoveFromVec);
                 }
@@ -4510,7 +6411,7 @@ namespace DirectDesktop
                     TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, rcList.right - rcList.left, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
                 }
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peSettingsPage->GetDisplayNode(), &tsbInfo);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                 _pfnTabs[index](peSettingsPage);
             }
         }
@@ -4612,13 +6513,13 @@ namespace DirectDesktop
             static short sLeft, sRight;
             sLeft = GetAsyncKeyState(VK_LEFT);
             sRight = GetAsyncKeyState(VK_RIGHT);
-            if (sLeft & 1 || sLeft & 0x8000)
+            if ((localeType != 1 && (sLeft & 1 || sLeft & 0x8000)) || (localeType == 1 && (sRight & 1 || sRight & 0x8000)))
             {
                 if (((DDMenu*)this->_peLinked))
                     ((DDMenu*)this->_peLinked)->_HideMenu();
                 _fKeyFocusInit = false;
             }
-            else if (sRight & 1 || sRight & 0x8000)
+            else if ((localeType != 1 && (sRight & 1 || sRight & 0x8000)) || (localeType == 1 && (sLeft & 1 || sLeft & 0x8000)))
             {
                 if (this->_submenu)
                     ((DDMenu*)_peLinked)->_OnButtonClick(this, true);
@@ -4635,7 +6536,7 @@ namespace DirectDesktop
             if (itemID == 0xFFFF)
                 itemID = 0;
             WPARAM wParam = MAKEWPARAM(itemID, MF_MOUSESELECT | MF_HILITE);
-            PostMessageW(wnd->GetHWND(), WM_MENUSELECT, wParam, (LPARAM)((DDMenu*)this->_peLinked)->_hMenu);
+            PostMessageW(((DDMenu*)this->_peLinked)->_hWndTrack, WM_MENUSELECT, wParam, (LPARAM)((DDMenu*)this->_peLinked)->_hMenu);
             if (peFrom && _submenu)
             {
                 _fKeyFocusInit = true;
@@ -4685,7 +6586,7 @@ namespace DirectDesktop
                 if (itemID == 0xFFFF)
                     itemID = 0;
                 WPARAM wParam = MAKEWPARAM(itemID, MF_MOUSESELECT | MF_HILITE);
-                PostMessageW(wnd->GetHWND(), WM_MENUSELECT, wParam, (LPARAM)((DDMenu*)this->_peLinked)->_hMenu);
+                PostMessageW(((DDMenu*)this->_peLinked)->_hWndTrack, WM_MENUSELECT, wParam, (LPARAM)((DDMenu*)this->_peLinked)->_hMenu);
                 for (int i = 0; i < ((DDMenu*)this->_peLinked)->_count; i++)
                 {
                     ((DDMenu*)this->_peLinked)->_peSelections[i]->_fKeyFocusInit = false;
@@ -4866,7 +6767,7 @@ namespace DirectDesktop
                     if (wParam == 4)
                     {
                         menu->_wndSelectionMenu->ShowWindow(SW_HIDE);
-                        PostMessageW(wnd->GetHWND(), WM_UNINITMENUPOPUP, (WPARAM)menu->_hMenu, NULL);
+                        PostMessageW(menu->_hWndTrack, WM_UNINITMENUPOPUP, (WPARAM)menu->_hMenu, NULL);
                     }
                     else if (wParam == 6)
                     {
@@ -5012,7 +6913,7 @@ namespace DirectDesktop
         return hr;
     }
 
-    HRESULT DDMenu::InitializeItemEntries(vector<LVItem*> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl)
+    HRESULT DDMenu::InitializeItemEntries(vector<LVItem**> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl)
     {
         bool fVirtual = false;
         HRESULT hr;
@@ -5020,7 +6921,7 @@ namespace DirectDesktop
         DEFCONTEXTMENU dcm = { nullptr, nullptr, NULL, psf, cidl, ppidl, nullptr, ARRAYSIZE(_hKeys), _hKeys };
         if (cidl > 0)
         {
-            baseExt = vItems[0]->GetExt();
+            baseExt = (*vItems[0])->GetExt();
             if (baseExt == L"Virtual_NotImpl")
             {
                 fVirtual = true;
@@ -5028,9 +6929,9 @@ namespace DirectDesktop
             }
             for (int i = 1; i < cidl; i++)
             {
-                if (vItems[i]->GetExt() != baseExt)
+                if ((*vItems[i])->GetExt() != baseExt)
                 {
-                    if (vItems[i]->GetExt() == L"Virtual_NotImpl")
+                    if ((*vItems[i])->GetExt() == L"Virtual_NotImpl")
                         return E_NOTIMPL;
                     baseExt = L"None";
                     break;
@@ -5056,7 +6957,7 @@ namespace DirectDesktop
         {
             hr = psf->GetUIObjectOf(nullptr, 1, ppidl, IID_IContextMenu, nullptr, (void**)&_pICv1);
             for (int i = 1; i < cidl; i++)
-                vItems[i]->SetSelected(false);
+                (*vItems[i])->SetSelected(false);
         }
         
         if (SUCCEEDED(hr))
@@ -5153,9 +7054,13 @@ namespace DirectDesktop
                         {
                             _tsvSelectionMenu->Add(&_peHostInner, 1);
                             _peSelectionMenu->Add((Element**)&_tsvSelectionMenu, 1);
-                            BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
-                            if (DWMActive)
+                            WCHAR* WindowsBuildStr;
+                            GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
+                            int WindowsBuild = _wtoi(WindowsBuildStr);
+                            free(WindowsBuildStr);
+                            if (DWMActive && WindowsBuild >= 16299)
                             {
+                                BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
                                 AddLayeredRef(_tsvSelectionMenu->GetDisplayNode());
                                 SetGadgetFlags(_tsvSelectionMenu->GetDisplayNode(), NULL, NULL);
                                 MARGINS margins = { -1, -1, -1, -1 };
@@ -5383,6 +7288,7 @@ namespace DirectDesktop
 
     int DDMenu::TrackPopupMenuEx(UINT uFlags, int x, int y, HWND hwnd, LPTPMPARAMS lptpm)
     {
+        _hWndTrack = hwnd;
         g_menu = this;
         g_oldMainProc = (WNDPROC)SetWindowLongPtrW(hwnd, GWLP_WNDPROC, (LONG_PTR)s_HookMenuProc);
         if (_fUsingLegacy)
@@ -5678,7 +7584,7 @@ namespace DirectDesktop
             if (_interfaceLevel > 1)
             {
                 MenuData* pmd = new MenuData{ x, rcParentMenu.top + ptSelection.y, _uID, fInstant };
-                PostMessageW(wnd->GetHWND(), WM_INITMENUPOPUP, (WPARAM)(button->_submenu), (LPARAM)pmd);
+                PostMessageW(_hWndTrack, WM_INITMENUPOPUP, (WPARAM)(button->_submenu), (LPARAM)pmd);
             }
             else
                 button->_submenu->_SetVisible(x, rcParentMenu.top + ptSelection.y, this, fInstant);
@@ -6143,7 +8049,7 @@ namespace DirectDesktop
                     (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
                 _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
             }
-            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED |SWP_NOACTIVATE);
+            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED | SWP_NOACTIVATE);
             SetLayeredWindowAttributes(_wnd->GetHWND(), 0, 255, LWA_ALPHA);
             g_nwnds.push_back(this);
             DDNotificationBanner::s_RepositionBanners(false, dimensions.top + 16 * g_flScaleFactor + cy, 0);

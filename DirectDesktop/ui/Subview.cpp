@@ -83,6 +83,8 @@ namespace DirectDesktop
             for (int num = 0; num < yV->num; num++)
             {
                 if (num >= l_pm->size()) break;
+                if (!(*l_pm)[num])
+                    continue;
                 (*l_pm)[num]->SetVisible(true);
             }
             break;
@@ -111,17 +113,16 @@ namespace DirectDesktop
             for (int num = 0; num < yV->num; num++)
             {
                 if (num >= l_pm->size()) break;
+                if (!(*l_pm)[num])
+                    continue;
                 DWORD lviFlags = (*l_pm)[num]->GetFlags();
                 DDScalableElement* peIcon = (*l_pm)[num]->GetIcon();
                 Element* peShortcutArrow = (*l_pm)[num]->GetShortcutArrow();
                 RichText* peText = (*l_pm)[num]->GetText();
                 if (!g_touchmode)
                 {
-                    if (l_pm)
-                    {
-                        (*l_pm)[num]->SetWidth(innerSizeX);
-                        (*l_pm)[num]->SetHeight(innerSizeY + textm.tmHeight + 23 * g_flScaleFactor);
-                    }
+                    (*l_pm)[num]->SetWidth(innerSizeX);
+                    (*l_pm)[num]->SetHeight(innerSizeY + textm.tmHeight + 23 * g_flScaleFactor);
                     int textlines = 1;
                     if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
                     if (peText)
@@ -389,6 +390,8 @@ namespace DirectDesktop
         }
         for (int num = 0; num < yV->num; num++)
         {
+            if (!(*l_pm)[num])
+                continue;
             if (yV->peOptionalTarget1)
                 (*l_pm)[num]->AddFlags(LVIF_REFRESH);
         }
@@ -408,7 +411,7 @@ namespace DirectDesktop
                 delete yV;
                 return 0;
             }
-            if ((*l_pm)[num]->GetFlags() & LVIF_REFRESH)
+            if ((*l_pm)[num] && (*l_pm)[num]->GetFlags() & LVIF_REFRESH)
             {
                 DesktopIcon* di = new DesktopIcon;
                 vdi.push_back(di);
@@ -428,6 +431,8 @@ namespace DirectDesktop
         bool refreshable = true;
         for (int num = 0; num < yV->num; num++)
         {
+            if (!(*l_pm)[num])
+                continue;
             if (yV->peOptionalTarget2 && !(((LVItem*)yV->peOptionalTarget2)->GetFlags() & LVIF_MEMSELECT))
             {
                 for (int num2 = 0; num2 < num - 1; num2++)
@@ -445,48 +450,51 @@ namespace DirectDesktop
             if ((*l_pm)[num]->GetFlags() & LVIF_REFRESH)
             {
                 DesktopIcon* di = vdi[num];
-                int lines_basedOnEllipsis{};
-                DWORD alignment{};
-                RECT g_touchmoderect{};
-                int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
-                int textlines = 1;
-                if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
-                yValue* yV2 = new yValue{ num, yV->fl1, yV->fl2 };
-                if (g_touchmode) CalcDesktopIconInfo(yV2, &lines_basedOnEllipsis, &alignment, true, yV->vpm);
-                HBITMAP capturedBitmap{};
-                if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode, NULL);
-                else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode, NULL);
-                delete yV2;
-                if (g_touchmode)
+                if (di)
                 {
-                    if (g_isGlass)
-                        di->crDominantTile = RGB(224, 224, 224);
-                    if (GetRValue(di->crDominantTile) * 0.299 + GetGValue(di->crDominantTile) * 0.587 + GetBValue(di->crDominantTile) * 0.114 > 152)
+                    int lines_basedOnEllipsis{};
+                    DWORD alignment{};
+                    RECT g_touchmoderect{};
+                    int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
+                    int textlines = 1;
+                    if (textm.tmHeight <= 18 * g_flScaleFactor) textlines = 2;
+                    yValue* yV2 = new yValue{ num, yV->fl1, yV->fl2 };
+                    if (g_touchmode) CalcDesktopIconInfo(yV2, &lines_basedOnEllipsis, &alignment, true, yV->vpm);
+                    HBITMAP capturedBitmap{};
+                    if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode, NULL);
+                    else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), innerSizeX, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode, NULL);
+                    delete yV2;
+                    if (g_touchmode)
+                    {
+                        if (g_isGlass)
+                            di->crDominantTile = RGB(224, 224, 224);
+                        if (GetRValue(di->crDominantTile) * 0.299 + GetGValue(di->crDominantTile) * 0.587 + GetBValue(di->crDominantTile) * 0.114 > 152)
+                        {
+                            IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
+                            IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1, NULL);
+                        }
+                        else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
+                    }
+                    else if (g_theme && !g_touchmode)
                     {
                         IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
-                        IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 1, NULL);
+                        IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9, NULL);
                     }
                     else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
+                    if (capturedBitmap != nullptr) di->text = capturedBitmap;
                 }
-                else if (g_theme && !g_touchmode)
-                {
-                    IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
-                    IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9, NULL);
-                }
-                else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
-                if (capturedBitmap != nullptr) di->text = capturedBitmap;
                 (*l_pm)[num]->RemoveFlags(LVIF_REFRESH);
             }
             else if (g_showfolderitemcount && (*l_pm)[num]->GetFlags() & LVIF_DIR)
-                {
-                    refreshable = false;
-                    Element* lvi{};
-                    if (yV->peOptionalTarget1)
-                        lvi = yV->peOptionalTarget1->GetParent()->GetParent()->GetParent();
-                    else if (yV->peOptionalTarget2)
-                        lvi = yV->peOptionalTarget2;
-                    SendMessageW(subviewwnd->GetHWND(), WM_USER + 6, (WPARAM)((*l_pm)[num]), (LPARAM)lvi);
-                }
+            {
+                refreshable = false;
+                Element* lvi{};
+                if (yV->peOptionalTarget1)
+                    lvi = yV->peOptionalTarget1->GetParent()->GetParent()->GetParent();
+                else if (yV->peOptionalTarget2)
+                    lvi = yV->peOptionalTarget2;
+                SendMessageW(subviewwnd->GetHWND(), WM_USER + 6, (WPARAM)((*l_pm)[num]), (LPARAM)lvi);
+            }
         }
         if (refreshable)
         {
@@ -757,6 +765,12 @@ namespace DirectDesktop
             ddnb->CreateBanner(DDNT_SUCCESS, LoadStrFromRes(4042).c_str(), nullptr, 3);
         }
         //SetWindowPos(subviewwnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        
+        // 0.5.8: We need to gracefully process the Animation2 or DestroyAll,
+        // most importantly when the user exits the subview before a folder's icons are loaded.
+        // It would involve waiting until we get a signal that the folder is ready.
+        // While this is a rare occurrence and the icon loading CAN terminate itself if the user exist too early,
+        // it would still be a good improvement for stability.
         if (fNoRefresh) fullscreenAnimation2(peAnimateTo);
         else
             centered->DestroyAll(true);
@@ -792,7 +806,7 @@ namespace DirectDesktop
                 coef = ((LVItem*)elem)->GetMouseWithin() ? 1.0625f : 1.0f;
             TLVITEMANIMATION:
                 TriggerScaleOut(elem, transDesc, 0, 0.0f, 0.25f, 0.25f, 0.1f, 0.25f, 1.0f, coef, coef, 0.5f, 0.5f, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, elem->GetDisplayNode(), &tsbInfo);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                 DUI_SetGadgetZOrder(elem, -1);
             }
         }
@@ -861,7 +875,7 @@ namespace DirectDesktop
                 v_pels.push_back(assignFn((*subpm)[j], SelectSubItem, true));
                 v_pels.push_back(assignFn((*subpm)[j], ItemRightClick, true));
                 v_pels.push_back(assignExtendedFn((*subpm)[j], SelectSubItemListener, true));
-                v_pels.push_back(assignExtendedFn((*subpm)[j], ShowCheckboxIfNeeded, true));
+                v_pels.push_back(assignExtendedFn((*subpm)[j], LVCommon::RefineSelections, true));
                 (*subpm)[j]->SetListeners(v_pels);
                 v_pels.clear();
                 if (!g_touchmode) (*subpm)[j]->SetClass(L"singleclicked");
@@ -1224,6 +1238,51 @@ namespace DirectDesktop
         }
     }
 
+    void AddAnItem(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            CSafeElementPtr<LVTiles> lvc1;
+            lvc1.Assign(regElem<LVTiles*>(L"lvc1", elem->GetRoot()));
+            LVItem* lvcT;
+            parserSubview->CreateElement(L"lvcItem", nullptr, nullptr, nullptr, (Element**)&lvcT);
+            lvc1->Add((Element**)&lvcT, 1);
+        }
+    }
+
+    void InsertSecond(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            CSafeElementPtr<LVTiles> lvc1;
+            lvc1.Assign(regElem<LVTiles*>(L"lvc1", elem->GetRoot()));
+            CValuePtr v;
+            DynamicArray<Element*>* pel = lvc1->GetWhitespaceElement()->GetChildren(&v);
+            if (pel && pel->GetSize() > 1)
+            {
+                LVItem* lvcT;
+                parserSubview->CreateElement(L"lvcItem", nullptr, nullptr, nullptr, (Element**)&lvcT);
+                lvc1->Insert((Element**)&lvcT, 1, 2);
+            }
+        }
+    }
+
+    void RemoveThird(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            CSafeElementPtr<LVTiles> lvc1;
+            lvc1.Assign(regElem<LVTiles*>(L"lvc1", elem->GetRoot()));
+            CValuePtr v;
+            DynamicArray<Element*>* pel = lvc1->GetWhitespaceElement()->GetChildren(&v);
+            if (pel && pel->GetSize() > 3)
+            {
+                Element* three = pel->GetItem(3);
+                lvc1->RemoveAndDestroy(three);
+            }
+        }
+    }
+
     void ShowPage3(Element* pePage)
     {
         if (pePage)
@@ -1250,6 +1309,12 @@ namespace DirectDesktop
             SetCurrent.Assign(regElem<DDScalableTouchButton*>(L"SetCurrent", pePage));
             CSafeElementPtr<DDScalableTouchButton> ResetDesktop;
             ResetDesktop.Assign(regElem<DDScalableTouchButton*>(L"ResetDesktop", pePage));
+            CSafeElementPtr<DDScalableTouchButton> addlast;
+            addlast.Assign(regElem<DDScalableTouchButton*>(L"addlast", pePage));
+            CSafeElementPtr<DDScalableTouchButton> inserttwo;
+            inserttwo.Assign(regElem<DDScalableTouchButton*>(L"inserttwo", pePage));
+            CSafeElementPtr<DDScalableTouchButton> removethree;
+            removethree.Assign(regElem<DDScalableTouchButton*>(L"removethree", pePage));
             RegKeyValue rkvTemp{};
             rkvTemp.SetHKeyName(HKEY_CURRENT_USER);
             rkvTemp.SetPath(L"Software\\DirectDesktop\\Debug");
@@ -1302,6 +1367,9 @@ namespace DirectDesktop
             assignFn(LaunchEffectsSelection, ToggleSetting);
             assignFn(SetCurrent, SetDefaultRes);
             assignFn(ResetDesktop, ResetDesktopSize);
+            assignFn(addlast, AddAnItem);
+            assignFn(inserttwo, InsertSecond);
+            assignFn(removethree, RemoveThird);
         }
     }
 

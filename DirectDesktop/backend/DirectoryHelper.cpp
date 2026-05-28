@@ -242,12 +242,27 @@ namespace DirectDesktop
         size_t lastdot = filename.find_last_of(L".");
         if (shortpm != nullptr)
         {
-            if (lastdot == wstring::npos)
+            if (lastdot == wstring::npos && !dir)
+                shortpm->SetExt(L"None");
+            else if (dir)
             {
-                if (dir)
-                    shortpm->SetExt(L"Folder");
-                else
-                    shortpm->SetExt(L"None");
+                shortpm->SetExt(L"Folder");
+                if (lastdot != wstring::npos && filename[filename.length() - 1] == '}' && filename[lastdot + 1] == '{')
+                {
+                    HKEY hKey;
+                    std::wstring registryPath = L"CLSID\\" + filename.substr(lastdot + 1, wstring::npos);
+                    if (RegOpenKeyExW(HKEY_CLASSES_ROOT, registryPath.c_str(), 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+                    {
+                        HKEY hSubKey;
+                        if (RegOpenKeyExW(hKey, L"ShellFolder", 0, KEY_READ, &hSubKey) == ERROR_SUCCESS)
+                        {
+                            shortpm->RemoveFlags(LVIF_DIR);
+                            shortpm->RemoveFlags(LVIF_GROUP);
+                            RegCloseKey(hSubKey);
+                        }
+                        RegCloseKey(hKey);
+                    }
+                }
             }
             else
                 shortpm->SetExt(filename.substr(lastdot, wstring::npos));
@@ -255,9 +270,7 @@ namespace DirectDesktop
         if (isEnabled)
         {
             if (dir)
-            {
                 return filename;
-            }
             lastdot = filename.rfind(L".lnk");
             if (lastdot == wstring::npos) lastdot = filename.rfind(L".pif");
             else
@@ -1279,6 +1292,9 @@ namespace DirectDesktop
                 }
             }
         }
+        pm.resize(fileCount);
+        pmBuf.resize(fileCount);
+        pmBuf2.resize(fileCount);
         for (int index = 0; index < pm.size(); index++)
         {
             pm[index] = pmBuf[index];
@@ -1321,7 +1337,8 @@ namespace DirectDesktop
                     if (logging == IDYES)
                     {
                         WCHAR details[320];
-                        StringCchPrintfW(details, 320, L"\nItem arranged (%d of %d)\nItem name: %s\nX: %d, Y: %d", index + 1, fileCount, pm[index]->GetFilename().c_str(), pm[index]->GetInternalXPos(), pm[index]->GetInternalYPos());
+                        StringCchPrintfW(details, 320, L"\nItem arranged (%d of %d)\nItem name: %s\nX: %d, Y: %d",
+                            index + 1, fileCount, pm[index]->GetFilename().c_str(), pm[index]->GetInternalXPos(), pm[index]->GetInternalYPos());
                         MainLogger.WriteLine(details);
                     }
                     break;

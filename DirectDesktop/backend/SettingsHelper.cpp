@@ -40,7 +40,6 @@ namespace DirectDesktop
     BYTE iconColorID;
     COLORREF IconColorizationColor;
     bool g_atleastonesetting{};
-    Element* UIContainer;
 
     HKEY RegKeyValue::GetHKeyName() const noexcept
     {

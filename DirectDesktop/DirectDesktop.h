@@ -26,6 +26,7 @@ namespace DirectDesktop
     extern bool g_overridefilelistener;
     extern bool g_newfolder;
     extern DUIXmlParser* g_parser;
+    extern LVGrid* UIContainer;
     extern DDMenu* g_menu;
     extern HANDLE g_hToken;
 
@@ -65,6 +66,7 @@ namespace DirectDesktop
     {
         DWORD dwMillis;
         Element* pe;
+        Element** ppe;
         float val1;
         float val2;
     };

@@ -42,7 +42,7 @@ namespace DirectDesktop
 
     Element* sampleText;
     Element* mainContainer;
-    TouchButton* emptyspace;
+    LVGrid* UIContainer;
     LVItem* g_outerElem;
     Element* selector;
     TouchButton *prevpageMain, *nextpageMain;
@@ -264,10 +264,10 @@ namespace DirectDesktop
         }
     }
 
-    BOOL ScheduleGadgetTransitions_DWMCheck(UINT uOrder, UINT rgTransSize, const GTRANS_DESC* rgTrans, HGADGET hgad, TransitionStoryboardInfo* ptsbInfo)
+    BOOL ScheduleGadgetTransitions_DWMCheck(UINT uOrder, UINT cTrans, const GTRANS_DESC* rgTrans, HGADGET hgad, TransitionStoryboardInfo* ptsbInfo)
     {
         if (DWMActive)
-            return ScheduleGadgetTransitions(uOrder, rgTransSize, rgTrans, hgad, ptsbInfo);
+            return ScheduleGadgetTransitions(uOrder, cTrans, rgTrans, hgad, ptsbInfo);
         else
             return FALSE;
     }
@@ -309,7 +309,6 @@ namespace DirectDesktop
     int g_emptyclicks = 1;
     bool g_touchmode{};
     bool g_renameactive{};
-    bool isPressed = 0, isIconPressed = 0;
     bool delayedshutdownstatuses[6] = { false, false, false, false, false, false };
 
     void SetTheme()
@@ -329,14 +328,14 @@ namespace DirectDesktop
     constexpr LPCWSTR szWindowClass = L"DIRECTDESKTOP";
     BYTE* shellstate;
     vector<LVItem*> pm;
-    vector<LVItem*> selectedLVItems;
+    vector<LVItem**> selectedLVItems;
     bool g_launch = true;
     bool g_setcolors = true;
     bool g_canRefreshMain = true;
     bool g_hiddenIcons;
     bool g_editmode = false;
+    bool g_editavailable = true;
     bool g_invokedpagechange = false;
-    bool g_ensureNoRefresh = false;
     bool g_pageviewer = false;
     bool g_searchopen = false;
     void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
@@ -344,15 +343,16 @@ namespace DirectDesktop
     void IconThumbHelper(int id);
     DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam);
     DWORD WINAPI SetElemPos(LPVOID lpParam);
+    DWORD WINAPI SetVisibleIfPageMismatch(LPVOID lpParam);
+    DWORD WINAPI DelayedGridNotify(LPVOID lpParam);
     DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam);
     void ShowDirAsGroupDesktop(LVItem* lvi, bool fNew);
     void ClearGroupDirectoryElement(unsigned short index);
     void SelectItem(Element* elem, Event* iev);
-    void DragItem(vector<LVItem*> vItems);
+    void ManageSubItems(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+    void DragItem(vector<LVItem**> vItems);
     void CreateNewFolder();
-    void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void ItemDragListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
-    void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
     void UpdateGroupOnColorChange(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
     enum WTS_STREAMTYPE
@@ -582,7 +582,7 @@ namespace DirectDesktop
                 {
                     TriggerTranslate(pm[items], transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 9999, pm[items]->GetY(), 9999, pm[items]->GetY(), false, false, false);
                     TriggerTranslate(pm[items], transDesc, 1, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX(), pm[items]->GetY(), false, false, false);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 3, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 3, transDesc, nullptr, &tsbInfo);
                     DUI_SetGadgetZOrder(pm[items], -1);
                 }
                 else
@@ -605,7 +605,13 @@ namespace DirectDesktop
                     TriggerTranslate(pm[items], transDesc, 0, 0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX() + offset, pm[items]->GetY(), pm[items]->GetX() + offset, pm[items]->GetY(), false, false, false);
                     TriggerFade(pm[items], transDesc, 1, 0.083f, 0.183f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
                     TriggerFade(pm[items], transDesc, 2, 0.33f, 0.33f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, true);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                    DWORD animCoef = g_animCoef;
+                    if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                    DWORD dwDEA = DWMActive ? 183 * (animCoef / 100.0f) : 0;
+                    DelayedElementActions* dea = new DelayedElementActions{ dwDEA, nullptr, (Element**)&pm[items] };
+                    HANDLE hDelayedSetVisible = CreateThread(nullptr, 0, SetVisibleIfPageMismatch, dea, NULL, nullptr);
+                    if (hDelayedSetVisible) CloseHandle(hDelayedSetVisible);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, nullptr, &tsbInfo);
                     DUI_SetGadgetZOrder(pm[items], -1);
                 }
             }
@@ -634,7 +640,7 @@ namespace DirectDesktop
             TriggerTranslate(pageVisual[i], transDesc, 2, 0.05f, 0.55f, 0.1f, 0.9f, 0.2f, 1.0f, animSrc2, 0.0f, animSrc * -1, 0.0f, false, false, false);
             TriggerFade(pageVisual[i], transDesc, 3, fadedelay, fadedelay + 0.1f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
             TriggerScaleIn(pageVisual[i], transDesc, 4, 0.133f, 0.55f, 0.32f, 0.32f, 0.24f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pageVisual[i]->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
             DUI_SetGadgetZOrder(pageVisual[i], -2);
             animSrc2 = animSrc;
             animSrc = 0;
@@ -672,7 +678,7 @@ namespace DirectDesktop
                 TriggerTranslate(peEffect, transDesc, 0, 0.0f, time / 100.0f, 1.0f, 0.0f, 1.0f, 1.0f, peIconOrigin.x - 3 * g_flScaleFactor, peIconOrigin.y + scalediconsize,
                     peIconOrigin.x + deviation * 4 * scalediconsize, peIconOrigin.y + UIContainer->GetHeight(), false, false, false);
                 TriggerRotate(peEffect, transDesc, 1, 0.0f, time / 80.0f, 0.25f, 0.1f, 0.9f, 0.75f, -deviation * 180.0f, 0.0f, 0.5f, static_cast<float>(-scalediconsize) / peEffect->GetHeight(), false, true);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEffect->GetDisplayNode(), &tsbInfo);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
             }
             break;
         }
@@ -718,6 +724,7 @@ namespace DirectDesktop
         SetWindowPos(g_hSHELLDLL_DefView, nullptr, dimensions.left + topLeftMon.x, dimensions.top + topLeftMon.y, dimensions.right - dimensions.left, dimensions.bottom - dimensions.top, swpFlags);
         UIContainer->SetWidth(dimensions.right - dimensions.left);
         UIContainer->SetHeight(dimensions.bottom - dimensions.top);
+        TouchButton* emptyspace = UIContainer->GetWhitespaceElement();
         if (emptyspace)
         {
             emptyspace->SetWidth(dimensions.right - dimensions.left);
@@ -940,7 +947,10 @@ namespace DirectDesktop
                 {
                     HWND hSysListView32 = FindWindowExW(g_hSHELLDLL_DefView, nullptr, L"SysListView32", L"FolderView");
                     if (hSysListView32 && !g_hiddenIcons)
+                    {
+                        EnableWindow(hSysListView32, TRUE);
                         ShowWindow(hSysListView32, SW_SHOW);
+                    }
                 }
                 //if (pEdit) pEdit->Destroy(true);
                 StopMessagePump();
@@ -1007,7 +1017,7 @@ namespace DirectDesktop
                                 if (Children->GetItem(i)->GetID() == StrToID(L"pageVisual"))
                                 {
                                     TriggerFade(Children->GetItem(i), transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 3, transDesc, Children->GetItem(i)->GetDisplayNode(), &tsbInfo);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 3, transDesc, nullptr, &tsbInfo);
                                 }
                             }
                             Element* pageVisual;
@@ -1023,7 +1033,7 @@ namespace DirectDesktop
                             TriggerScaleOut(pageVisual, transDesc, 1, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.9f, 0.9f, 0.5f, 0.5f, false, false);
                             TriggerFade(pageVisual, transDesc, 2, 0.267f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
                             TriggerScaleIn(pageVisual, transDesc, 3, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 0.9f, 0.9f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, true);
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pageVisual->GetDisplayNode(), &tsbInfo);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             DUI_SetGadgetZOrder(pageVisual, -2);
                         }
                         break;
@@ -1079,7 +1089,7 @@ namespace DirectDesktop
                         for (int items = 0; items < pm.size(); items++)
                         {
                             if (pm[items]->GetSelected() == true)
-                                selectedLVItems.push_back(pm[items]);
+                                selectedLVItems.push_back(&pm[items]);
                         }
                         if (selectedLVItems.size() == 0 && (wParam <= 20 && wParam != 19 || wParam == 23))
                             break;
@@ -1120,12 +1130,16 @@ namespace DirectDesktop
                     case 24:
                         CreateNewFolder();
                         break;
+                    case 25:
+                        g_editavailable = true;
+                        break;
                 }
                 delete iev;
                 break;
             }
             case WM_USER + 1:
             {
+                bool moved = false;
                 for (LVItem* lvi : pm)
                 {
                     if (lvi->GetPage() == g_currentPageID)
@@ -1142,17 +1156,19 @@ namespace DirectDesktop
                             TriggerFade(lvi, transDesc, 1, delay, delay + 0.25f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                             TriggerScaleIn(lvi, transDesc, 2, delay, delay + scale, 0.1f, 0.9f, 0.2f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
                             TransitionStoryboardInfo tsbInfo = {};
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lvi->GetDisplayNode(), &tsbInfo);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             lvi->RemoveFlags(LVIF_FLYING);
                         }
                         else if (lvi->GetFlags() & LVIF_MOVING)
                         {
+                            moved = true;
                             GTRANS_DESC transDesc[1];
                             TransitionStoryboardInfo tsbInfo = {};
                             if (lvi->GetPreRefreshMemPage() == lvi->GetPage())
                             {
-                                TriggerTranslate(lvi, transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f, lvi->GetX(), lvi->GetY(), lvi->GetMemXPos(), lvi->GetMemYPos(), false, false, false);
-                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lvi->GetDisplayNode(), &tsbInfo);
+                                float flDuration = (lvi->GetFlags() & LVIF_SFG) ? 0.0f : 0.4f;
+                                TriggerTranslate(lvi, transDesc, 0, 0.0f, flDuration, 0.75f, 0.45f, 0.0f, 1.0f, lvi->GetX(), lvi->GetY(), lvi->GetMemXPos(), lvi->GetMemYPos(), false, false, false);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                                 if (lvi->GetGroupSize() == LVIGS_NORMAL && lvi->GetMemIconSize() != g_iconsz && !g_touchmode)
                                 {
                                     CSafeElementPtr<DDScalableElement> icon; icon.Assign(regElem<DDScalableElement*>(L"iconElem", lvi));
@@ -1160,19 +1176,19 @@ namespace DirectDesktop
                                     float scaleOrigY = lvi->GetY() / static_cast<float>(dimensions.bottom);
                                     float scaling = lvi->GetMemIconSize() / static_cast<float>(g_iconsz);
                                     TriggerScaleIn(icon, transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f, scaling, scaling, scaleOrigX, scaleOrigY, 1.0f, 1.0f, scaleOrigX, scaleOrigY, false, false);
-                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, icon->GetDisplayNode(), &tsbInfo);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                                     DUI_SetGadgetZOrder(icon, -2);
                                 }
                             }
                             else
                             {
-                                TriggerFade(lvi, transDesc, 0, 0.0f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lvi->GetDisplayNode(), &tsbInfo);
+                                TriggerFade(lvi, transDesc, 0, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             }
                             DWORD animCoef = g_animCoef;
                             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-                            DWORD dwDEA = DWMActive ? 400 * (animCoef / 100.0f) : 0;
-                            DelayedElementActions* dea = new DelayedElementActions{ dwDEA, lvi, static_cast<float>(lvi->GetMemXPos()), static_cast<float>(lvi->GetMemYPos()) };
+                            DWORD dwDEA = (DWMActive && !(lvi->GetFlags() & LVIF_SFG)) ? 400 * (animCoef / 100.0f) : 0;
+                            DelayedElementActions* dea = new DelayedElementActions{ dwDEA, lvi, nullptr, static_cast<float>(lvi->GetMemXPos()), static_cast<float>(lvi->GetMemYPos()) };
                             DWORD DelayedSetPos;
                             HANDLE hDelayedSetPos = CreateThread(nullptr, 0, SetElemPos, dea, NULL, nullptr);
                             if (hDelayedSetPos) CloseHandle(hDelayedSetPos);
@@ -1182,6 +1198,15 @@ namespace DirectDesktop
                     }
                     lvi->SetVisible(lvi->GetPage() == g_currentPageID && !g_hiddenIcons);
                     lvi->SetMemIconSize(g_iconsz);
+                    lvi->RemoveFlags(LVIF_SFG);
+                }
+                if (moved)
+                {
+                    DWORD animCoef = g_animCoef;
+                    if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                    DWORD dwDEA = DWMActive ? 400 * (animCoef / 100.0f) + 50 : 50;
+                    HANDLE hDelayedNotify = CreateThread(nullptr, 0, DelayedGridNotify, &dwDEA, NULL, nullptr);
+                    if (hDelayedNotify) CloseHandle(hDelayedNotify);
                 }
                 if (g_launch) g_launch = false;
                 break;
@@ -1208,40 +1233,25 @@ namespace DirectDesktop
                 RichText* peText = pm[lParam]->GetText();
                 TouchButton* peCheckbox = pm[lParam]->GetCheckbox();
                 DDScalableRichText* peItemCount = pm[lParam]->GetItemCountElement();
-                v_pels.push_back(assignExtendedFn(pm[lParam], ItemDragListener, true));
-                v_pels.push_back(assignFn(pm[lParam], ItemRightClick, true));
-                v_pels.push_back(assignExtendedFn(peIcon, UpdateGroupOnColorChange, true));
                 if (!g_treatdirasgroup || pm[lParam]->GetGroupSize() == LVIGS_NORMAL)
                 {
                     v_pels.push_back(assignFn(pm[lParam], SelectItem, true));
+                    v_pels.push_back(assignFn(pm[lParam], LVCommon::SelectItemBase, true));
                     v_pels.push_back(assignExtendedFn(pm[lParam], SelectItemListener, true));
-                    v_pels.push_back(assignExtendedFn(pm[lParam], ShowCheckboxIfNeeded, true));
-                    v_pels.push_back(assignExtendedFn(peCheckbox, CheckboxHandler, true));
+                    v_pels.push_back(assignExtendedFn(pm[lParam], LVCommon::RefineSelections, true));
+                    v_pels.push_back(assignExtendedFn(peCheckbox, LVCommon::CheckboxHandler, true));
                 }
+                else
+                    v_pels.push_back(assignExtendedFn(pm[lParam], ManageSubItems, true));
+                v_pels.push_back(assignExtendedFn(pm[lParam], ItemDragListener, true));
+                v_pels.push_back(assignFn(pm[lParam], ItemRightClick, true));
+                v_pels.push_back(assignExtendedFn(peIcon, UpdateGroupOnColorChange, true));
                 ClearGroupDirectoryElement(lParam);
                 if (g_treatdirasgroup && pm[lParam]->GetGroupSize() != LVIGS_NORMAL)
                 {
                     peIcon->SetX(0);
                     peIcon->SetY(0);
                     pm[lParam]->SetSelected(false);
-                    if (localeType == 1)
-                    {
-                        switch (pm[lParam]->GetGroupSize())
-                        {
-                        case LVIGS_SMALL:
-                            pm[lParam]->SetX(pm[lParam]->GetX() + pm[lParam]->GetWidth() - g_groupsmall.cx);
-                            break;
-                        case LVIGS_MEDIUM:
-                            pm[lParam]->SetX(pm[lParam]->GetX() + pm[lParam]->GetWidth() - g_groupmedium.cx);
-                            break;
-                        case LVIGS_WIDE:
-                            pm[lParam]->SetX(pm[lParam]->GetX() + pm[lParam]->GetWidth() - g_groupwide.cx);
-                            break;
-                        case LVIGS_LARGE:
-                            pm[lParam]->SetX(pm[lParam]->GetX() + pm[lParam]->GetWidth() - g_grouplarge.cx);
-                            break;
-                        }
-                    }
                     pm[lParam]->SetTooltip(false);
                     peInner->SetLayoutPos(-3);
                     peCheckbox->SetLayoutPos(-3);
@@ -1335,7 +1345,6 @@ namespace DirectDesktop
                         }
                     }
                     SelectItemListener(pm[lParam], Element::SelectedProp(), 69, nullptr, nullptr);
-                    pm[lParam]->RemoveFlags(LVIF_SFG);
                 }
                 pm[lParam]->SetListeners(v_pels);
                 v_pels.clear();
@@ -1406,56 +1415,6 @@ namespace DirectDesktop
             }
             case WM_USER + 5:
             {
-                WCHAR *cxDragStr{}, *cyDragStr{};
-                GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
-                GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
-                static const int dragWidth = _wtoi(cxDragStr);
-                static const int dragHeight = _wtoi(cyDragStr);
-                free(cxDragStr), free(cyDragStr);
-                POINT ppt;
-                GetCursorPos(&ppt);
-                ScreenToClient(wnd->GetHWND(), &ppt);
-                if (localeType == 1) ppt.x = dimensions.right - ppt.x;
-                if (abs(ppt.x - origX) > dragWidth || abs(ppt.y - origY) > dragHeight)
-                {
-                    g_emptyclicks = 1;
-                }
-                MARGINS borders = {
-                    (ppt.x < origX) ? ppt.x : origX, abs(ppt.x - origX),
-                    (ppt.y < origY) ? ppt.y : origY, abs(ppt.y - origY)
-                };
-                if (borders.cxRightWidth == 0) borders.cxRightWidth = 1;
-                if (borders.cyBottomHeight == 0) borders.cyBottomHeight = 1;
-                selector->SetWidth(borders.cxRightWidth);
-                selector->SetX(borders.cxLeftWidth);
-                selector->SetHeight(borders.cyBottomHeight);
-                selector->SetY(borders.cyTopHeight);
-                for (int items = 0; items < pm.size(); items++)
-                {
-                    MARGINS iconborders = { pm[items]->GetX(), pm[items]->GetX() + pm[items]->GetWidth(), pm[items]->GetY(), pm[items]->GetY() + pm[items]->GetHeight() };
-                    bool selectstate = (borders.cxRightWidth + borders.cxLeftWidth > iconborders.cxLeftWidth &&
-                        iconborders.cxRightWidth > borders.cxLeftWidth &&
-                        borders.cyBottomHeight + borders.cyTopHeight > iconborders.cyTopHeight &&
-                        iconborders.cyBottomHeight > borders.cyTopHeight && pm[items]->GetVisible());
-                    if (pm[items]->GetPage() == g_currentPageID && !(g_treatdirasgroup && pm[items]->GetGroupSize() != LVIGS_NORMAL))
-                    {
-                        if (lParam)
-                        {
-                            if (selectstate)
-                            {
-                                if (!(pm[items]->GetFlags() & LVIF_NOSELTRIGGER))
-                                {
-                                    pm[items]->SetSelected(!(pm[items]->GetSelected()));
-                                    pm[items]->AddFlags(LVIF_NOSELTRIGGER);
-                                }
-                            }
-                            else
-                                pm[items]->RemoveFlags(LVIF_NOSELTRIGGER);
-                        }
-                        else
-                            pm[items]->SetSelected(selectstate);
-                    }
-                }
                 break;
             }
             case WM_USER + 6:
@@ -1531,16 +1490,11 @@ namespace DirectDesktop
                 POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(wnd->GetHWND(), &ppt);
-                WCHAR *cxDragStr{}, *cyDragStr{};
-                GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
-                GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
-                static const int dragWidth = _wtoi(cxDragStr);
-                static const int dragHeight = _wtoi(cyDragStr);
-                free(cxDragStr), free(cyDragStr);
-                vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
-                if (abs(ppt.x - ((POINT*)lParam)->x) > dragWidth || abs(ppt.y - ((POINT*)lParam)->y) > dragHeight)
+                vector<LVItem**> internalselectedLVItems = (*(vector<LVItem**>*)wParam);
+                SIZE szDrag = UIContainer->GetDragSize();
+                if (abs(ppt.x - ((POINT*)lParam)->x) > szDrag.cx || abs(ppt.y - ((POINT*)lParam)->y) > szDrag.cy)
                 {
-                    internalselectedLVItems[0]->AddFlags(LVIF_DRAG);
+                    (*internalselectedLVItems[0])->AddFlags(LVIF_DRAG);
                     g_dragpreview->SetVisible(true);
                 }
                 if (localeType == 1) ppt.x = dimensions.right - ppt.x;
@@ -1558,11 +1512,13 @@ namespace DirectDesktop
                     {
                         if (wParam != 0)
                         {
-                            vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
+                            vector<LVItem**> internalselectedLVItems = (*(vector<LVItem**>*)wParam);
+                            if (internalselectedLVItems.size() < 1)
+                                break;
                             DWORD animCoef = g_animCoef;
                             if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
                             DWORD dwDEA = DWMActive ? 400 * (animCoef / 100.0f) : 0;
-                            if (internalselectedLVItems[0]->GetFlags() & LVIF_DRAG)
+                            if (*internalselectedLVItems[0] && (*internalselectedLVItems[0])->GetFlags() & LVIF_DRAG)
                             {
                                 POINT ppt;
                                 CValuePtr v;
@@ -1583,7 +1539,7 @@ namespace DirectDesktop
                                 short largestYPos = (dimensions.bottom - (2 * desktoppadding_y) + desktoppadding) / outerSizeY;
                                 if (largestXPos == 0) largestXPos = 1;
                                 if (largestYPos == 0) largestYPos = 1;
-                                short desiredWidthMain = internalselectedLVItems[0]->GetWidth();
+                                short desiredWidthMain = (*internalselectedLVItems[0])->GetWidth();
                                 if (g_touchmode)
                                 {
                                     desiredWidthMain = g_touchSizeX;
@@ -1595,20 +1551,20 @@ namespace DirectDesktop
                                 {
                                     xRender = ppt.x + origX - desktoppadding_x - desiredWidthMain;
                                 }
-                                short magnitudeX = round((internalselectedLVItems[0]->GetMemXPos() - xRender) / static_cast<float>(outerSizeX));
-                                short magnitudeY = round((internalselectedLVItems[0]->GetMemYPos() - ppt.y + origY + desktoppadding_y) / static_cast<float>(outerSizeY));
+                                short magnitudeX = round(((*internalselectedLVItems[0])->GetMemXPos() - xRender) / static_cast<float>(outerSizeX));
+                                short magnitudeY = round(((*internalselectedLVItems[0])->GetMemYPos() - ppt.y + origY + desktoppadding_y) / static_cast<float>(outerSizeY));
                                 short destX = desktoppadding_x + round(xRender / static_cast<float>(outerSizeX)) * outerSizeX;
                                 short destY = desktoppadding_y + round((ppt.y - origY - desktoppadding_y) / static_cast<float>(outerSizeY)) * outerSizeY;
                                 if (localeType == 1)
                                 {
                                     destX = dimensions.right - destX - desiredWidthMain;
                                 }
-                                short mainElementX = internalselectedLVItems[0]->GetMemXPos();
-                                short mainElementY = internalselectedLVItems[0]->GetMemYPos();
-                                if (g_touchmode && internalselectedLVItems[0]->GetTileSize() == LVITS_ICONONLY)
+                                short mainElementX = (*internalselectedLVItems[0])->GetMemXPos();
+                                short mainElementY = (*internalselectedLVItems[0])->GetMemYPos();
+                                if (g_touchmode && (*internalselectedLVItems[0])->GetTileSize() == LVITS_ICONONLY)
                                 {
                                     if (localeType == 1) mainElementX -= outerSizeX / 2;
-                                    BYTE smallPos = internalselectedLVItems[0]->GetSmallPos() - 1;
+                                    BYTE smallPos = (*internalselectedLVItems[0])->GetSmallPos() - 1;
                                     mainElementY -= (outerSizeY / 2) * (smallPos / 2);
                                     if (smallPos & 1)
                                         mainElementX -= outerSizeX / 2 * localeDirection;
@@ -1616,143 +1572,163 @@ namespace DirectDesktop
                                 short itemstodrag = internalselectedLVItems.size();
                                 for (short items = 0; items < itemstodrag; items++)
                                 {
-                                    internalselectedLVItems[items]->AddFlags(LVIF_DRAG);
+                                    if (*internalselectedLVItems[items])
+                                        (*internalselectedLVItems[items])->AddFlags(LVIF_DRAG);
                                 }
+                                LVItem** rgLVItems = new LVItem*[itemstodrag];
+                                POINT* rgptPosOld = new POINT[itemstodrag];
+                                POINT* rgptPosNew = new POINT[itemstodrag];
                                 vector<LVItem*> pLoopX, pLoopY;
                                 for (short items = 0; items < itemstodrag; items++)
                                 {
-                                    short finaldestX = destX - mainElementX + internalselectedLVItems[items]->GetMemXPos();
-                                    short finaldestY = destY - mainElementY + internalselectedLVItems[items]->GetMemYPos();
-                                    short desiredWidth = internalselectedLVItems[items]->GetWidth();
-                                    short desiredHeight = internalselectedLVItems[items]->GetHeight();
-                                    short textheight = g_touchmode ? 0 : internalselectedLVItems[items]->GetText()->GetHeight();
-                                    if (g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY)
+                                    if (*internalselectedLVItems[items])
                                     {
-                                        desiredWidth = g_touchSizeX;
-                                        desiredHeight = g_touchSizeY;
-                                        BYTE smallPos = internalselectedLVItems[items]->GetSmallPos() - 1;
-                                        finaldestY -= (outerSizeY / 2) * (smallPos / 2);
-                                        if (smallPos & 1)
-                                            finaldestX -= outerSizeX / 2 * localeDirection;
-                                    }
-                                    bool noLoop = true;
-                                    if (finaldestY < desktoppadding_y)
-                                    {
-                                        if (items != 0 && internalselectedLVItems[0]->GetY() > desktoppadding_y + desiredHeight)
-                                            noLoop = SetDestX(1 - ceil(finaldestY / static_cast<float>(outerSizeY)),
-                                                dimensions.right - desktoppadding_x - outerSizeX, desktoppadding_x + desiredWidth - outerSizeX, outerSizeX, outerSizeY,
-                                                &finaldestX, &finaldestY, mainElementY, desktoppadding_x, &dimensions);
-                                        if (noLoop) finaldestY = desktoppadding_y;
-                                    }
-                                    if (finaldestY > dimensions.bottom - desiredHeight - desktoppadding_y - desktoppadding)
-                                    {
-                                        if (items != 0 && internalselectedLVItems[0]->GetY() < dimensions.bottom - desiredHeight * 2 - desktoppadding_y)
-                                            noLoop = SetDestX(1 + ceil((finaldestY - dimensions.bottom) / static_cast<float>(outerSizeY)),
-                                                dimensions.right - desktoppadding_x - outerSizeX, desktoppadding_x + desiredWidth - outerSizeX, outerSizeX, outerSizeY,
-                                                &finaldestX, &finaldestY, mainElementY, desktoppadding_x, &dimensions);
-                                        if (noLoop) finaldestY = round((dimensions.bottom - desiredHeight - 2 * desktoppadding_y) / static_cast<float>(outerSizeY)) * outerSizeY + desktoppadding_y;
-                                    }
-                                    noLoop = true;
-                                    if (localeType == 1)
-                                    {
-                                        if (finaldestX < desktoppadding_x)
+                                        short finaldestX = destX - mainElementX + (*internalselectedLVItems[items])->GetMemXPos();
+                                        short finaldestY = destY - mainElementY + (*internalselectedLVItems[items])->GetMemYPos();
+                                        short desiredWidth = (*internalselectedLVItems[items])->GetWidth();
+                                        short desiredHeight = (*internalselectedLVItems[items])->GetHeight();
+                                        short textheight = g_touchmode ? 0 : (*internalselectedLVItems[items])->GetText()->GetHeight();
+                                        if (g_touchmode && (*internalselectedLVItems[items])->GetTileSize() == LVITS_ICONONLY)
                                         {
-                                            if (items != 0 && internalselectedLVItems[0]->GetX() > desktoppadding_x + desiredWidth)
-                                                noLoop = SetDestY(1 - ceil(finaldestX / static_cast<float>(outerSizeX)),
-                                                    dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
-                                                    &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
-                                            if (noLoop) finaldestX = dimensions.right - round((dimensions.right - outerSizeX) / static_cast<float>(outerSizeX)) * outerSizeX - desktoppadding_x + desktoppadding;
+                                            desiredWidth = g_touchSizeX;
+                                            desiredHeight = g_touchSizeY;
+                                            BYTE smallPos = (*internalselectedLVItems[items])->GetSmallPos() - 1;
+                                            finaldestY -= (outerSizeY / 2) * (smallPos / 2);
+                                            if (smallPos & 1)
+                                                finaldestX -= outerSizeX / 2 * localeDirection;
                                         }
-                                        if (finaldestX > dimensions.right - desiredWidth + desktoppadding_x)
+                                        bool noLoop = true;
+                                        if (finaldestY < desktoppadding_y)
                                         {
-                                            if (items != 0 && internalselectedLVItems[0]->GetX() < dimensions.right - desiredWidth * 2 - desktoppadding_x)
-                                                noLoop = SetDestY(1 + ceil((finaldestX - dimensions.right) / static_cast<float>(outerSizeX)),
-                                                    dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
-                                                    &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
-                                            if (noLoop) finaldestX = dimensions.right - desiredWidth - desktoppadding_x;
+                                            if (items != 0 && (*internalselectedLVItems[0])->GetY() > desktoppadding_y + desiredHeight)
+                                                noLoop = SetDestX(1 - ceil(finaldestY / static_cast<float>(outerSizeY)),
+                                                    dimensions.right - desktoppadding_x - outerSizeX, desktoppadding_x + desiredWidth - outerSizeX, outerSizeX, outerSizeY,
+                                                    &finaldestX, &finaldestY, mainElementY, desktoppadding_x, &dimensions);
+                                            if (noLoop) finaldestY = desktoppadding_y;
                                         }
-                                    }
-                                    else
-                                    {
-                                        if (finaldestX < desktoppadding_x)
+                                        if (finaldestY > dimensions.bottom - desiredHeight - desktoppadding_y - desktoppadding)
                                         {
-                                            if (items != 0 && internalselectedLVItems[0]->GetX() > desktoppadding_x + desiredWidth)
-                                                noLoop = SetDestY(1 - ceil(finaldestX / static_cast<float>(outerSizeX)),
-                                                    dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
-                                                    &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
-                                            if (noLoop) finaldestX = desktoppadding_x;
+                                            if (items != 0 && (*internalselectedLVItems[0])->GetY() < dimensions.bottom - desiredHeight * 2 - desktoppadding_y)
+                                                noLoop = SetDestX(1 + ceil((finaldestY - dimensions.bottom) / static_cast<float>(outerSizeY)),
+                                                    dimensions.right - desktoppadding_x - outerSizeX, desktoppadding_x + desiredWidth - outerSizeX, outerSizeX, outerSizeY,
+                                                    &finaldestX, &finaldestY, mainElementY, desktoppadding_x, &dimensions);
+                                            if (noLoop) finaldestY = round((dimensions.bottom - desiredHeight - 2 * desktoppadding_y) / static_cast<float>(outerSizeY)) * outerSizeY + desktoppadding_y;
                                         }
-                                        if (finaldestX > dimensions.right - desiredWidth - desktoppadding_x)
+                                        noLoop = true;
+                                        if (localeType == 1)
                                         {
-                                            if (items != 0 && internalselectedLVItems[0]->GetX() < dimensions.right - desiredWidth * 2 - desktoppadding_x)
-                                                noLoop = SetDestY(1 + ceil((finaldestX - dimensions.right) / static_cast<float>(outerSizeX)),
-                                                    dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
-                                                    &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
-                                            if (noLoop) finaldestX = round((dimensions.right - desiredWidth) / static_cast<float>(outerSizeX)) * outerSizeX - outerSizeX + desktoppadding_x;
+                                            if (finaldestX < desktoppadding_x)
+                                            {
+                                                if (items != 0 && (*internalselectedLVItems[0])->GetX() > desktoppadding_x + desiredWidth)
+                                                    noLoop = SetDestY(1 - ceil(finaldestX / static_cast<float>(outerSizeX)),
+                                                        dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
+                                                        &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
+                                                if (noLoop) finaldestX = dimensions.right - round((dimensions.right - outerSizeX) / static_cast<float>(outerSizeX)) * outerSizeX - desktoppadding_x + desktoppadding;
+                                            }
+                                            if (finaldestX > dimensions.right - desiredWidth + desktoppadding_x)
+                                            {
+                                                if (items != 0 && (*internalselectedLVItems[0])->GetX() < dimensions.right - desiredWidth * 2 - desktoppadding_x)
+                                                    noLoop = SetDestY(1 + ceil((finaldestX - dimensions.right) / static_cast<float>(outerSizeX)),
+                                                        dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
+                                                        &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
+                                                if (noLoop) finaldestX = dimensions.right - desiredWidth - desktoppadding_x;
+                                            }
                                         }
-                                    }
-                                    short saveddestX = (localeType == 1) ? dimensions.right - finaldestX - internalselectedLVItems[items]->GetWidth() - desktoppadding_x : finaldestX - desktoppadding_x;
-                                    for (short items2 = 0; items2 < pm.size(); items2++)
-                                    {
-                                        bool existingTouchGrid = false;
-                                        short textheight2 = g_touchmode ? 0 : pm[items2]->GetText()->GetHeight();
-                                        if (pm[items2]->GetMemXPos() + pm[items2]->GetWidth() >= finaldestX &&
-                                            pm[items2]->GetMemYPos() + pm[items2]->GetHeight() - textheight2 >= finaldestY &&
-                                            pm[items2]->GetMemXPos() - internalselectedLVItems[items]->GetWidth() <= finaldestX &&
-                                            pm[items2]->GetMemYPos() - internalselectedLVItems[items]->GetHeight() + textheight <= finaldestY &&
-                                            pm[items2]->GetPage() == internalselectedLVItems[items]->GetPage() &&
-                                            (!(pm[items2]->GetFlags() & LVIF_DRAG) || g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY))
+                                        else
                                         {
-                                                if (g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY &&
+                                            if (finaldestX < desktoppadding_x)
+                                            {
+                                                if (items != 0 && (*internalselectedLVItems[0])->GetX() > desktoppadding_x + desiredWidth)
+                                                    noLoop = SetDestY(1 - ceil(finaldestX / static_cast<float>(outerSizeX)),
+                                                        dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
+                                                        &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
+                                                if (noLoop) finaldestX = desktoppadding_x;
+                                            }
+                                            if (finaldestX > dimensions.right - desiredWidth - desktoppadding_x)
+                                            {
+                                                if (items != 0 && (*internalselectedLVItems[0])->GetX() < dimensions.right - desiredWidth * 2 - desktoppadding_x)
+                                                    noLoop = SetDestY(1 + ceil((finaldestX - dimensions.right) / static_cast<float>(outerSizeX)),
+                                                        dimensions.bottom - desktoppadding_y - outerSizeY, outerSizeX, outerSizeY,
+                                                        &finaldestX, &finaldestY, mainElementX, desktoppadding_y, &dimensions);
+                                                if (noLoop) finaldestX = round((dimensions.right - desiredWidth) / static_cast<float>(outerSizeX)) * outerSizeX - outerSizeX + desktoppadding_x;
+                                            }
+                                        }
+                                        short saveddestX = (localeType == 1) ? dimensions.right - finaldestX - (*internalselectedLVItems[items])->GetWidth() - desktoppadding_x :
+                                            finaldestX - desktoppadding_x;
+                                        rgLVItems[items] = (*internalselectedLVItems[items]);
+                                        rgptPosOld[items].x = (*internalselectedLVItems[items])->GetMemXPos();
+                                        rgptPosOld[items].y = (*internalselectedLVItems[items])->GetMemYPos();
+                                        for (short items2 = 0; items2 < pm.size(); items2++)
+                                        {
+                                            bool existingTouchGrid = false;
+                                            short textheight2 = g_touchmode ? 0 : pm[items2]->GetText()->GetHeight();
+                                            if (pm[items2]->GetMemXPos() + pm[items2]->GetWidth() >= finaldestX &&
+                                                pm[items2]->GetMemYPos() + pm[items2]->GetHeight() - textheight2 >= finaldestY &&
+                                                pm[items2]->GetMemXPos() - (*internalselectedLVItems[items])->GetWidth() <= finaldestX &&
+                                                pm[items2]->GetMemYPos() - (*internalselectedLVItems[items])->GetHeight() + textheight <= finaldestY &&
+                                                pm[items2]->GetPage() == (*internalselectedLVItems[items])->GetPage() &&
+                                                (!(pm[items2]->GetFlags() & LVIF_DRAG) || g_touchmode && (*internalselectedLVItems[items])->GetTileSize() == LVITS_ICONONLY))
+                                            {
+                                                if (g_touchmode && (*internalselectedLVItems[items])->GetTileSize() == LVITS_ICONONLY &&
                                                     pm[items2]->GetTileSize() == LVITS_ICONONLY && pm[items2]->GetTouchGrid()->GetItemCount() < 4 &&
-                                                    (internalselectedLVItems[items]->GetInternalXPos() != (saveddestX / outerSizeX) ||
-                                                        internalselectedLVItems[items]->GetInternalYPos() != ((finaldestY - desktoppadding_y) / outerSizeY)))
+                                                    ((*internalselectedLVItems[items])->GetInternalXPos() != (saveddestX / outerSizeX) ||
+                                                        (*internalselectedLVItems[items])->GetInternalYPos() != ((finaldestY - desktoppadding_y) / outerSizeY)))
                                                 {
-                                                    internalselectedLVItems[items]->SetTouchGrid(pm[items2]->GetTouchGrid());
+                                                    (*internalselectedLVItems[items])->SetTouchGrid(pm[items2]->GetTouchGrid());
                                                     existingTouchGrid = true;
                                                     items2 = pm.size() - 1;
                                                 }
                                                 else break;
-                                        }
-                                        if (items2 == pm.size() - 1)
-                                        {
-                                            if (g_touchmode && internalselectedLVItems[items]->GetTileSize() == LVITS_ICONONLY)
+                                            }
+                                            if (items2 == pm.size() - 1)
                                             {
-                                                if (!existingTouchGrid)
+                                                if (g_touchmode && (*internalselectedLVItems[items])->GetTileSize() == LVITS_ICONONLY)
                                                 {
-                                                    internalselectedLVItems[items]->SetMemXPos(finaldestX);
-                                                    internalselectedLVItems[items]->SetMemYPos(finaldestY);
-                                                    internalselectedLVItems[items]->SetTouchGrid(new LVItemTouchGrid);
+                                                    if (!existingTouchGrid)
+                                                    {
+                                                        (*internalselectedLVItems[items])->SetMemXPos(finaldestX);
+                                                        (*internalselectedLVItems[items])->SetMemYPos(finaldestY);
+                                                        (*internalselectedLVItems[items])->SetTouchGrid(new LVItemTouchGrid);
+                                                    }
                                                 }
+                                                else
+                                                {
+                                                    (*internalselectedLVItems[items])->SetMemXPos(finaldestX);
+                                                    (*internalselectedLVItems[items])->SetMemYPos(finaldestY);
+                                                    DelayedElementActions* dea = new DelayedElementActions{ dwDEA, *internalselectedLVItems[items], nullptr, static_cast<float>(finaldestX), static_cast<float>(finaldestY) };
+                                                    DWORD DelayedSetPos;
+                                                    HANDLE hDelayedSetPos = CreateThread(nullptr, 0, SetElemPos, dea, NULL, nullptr);
+                                                    if (hDelayedSetPos) CloseHandle(hDelayedSetPos);
+                                                    GTRANS_DESC transDesc[1];
+                                                    TransitionStoryboardInfo tsbInfo = {};
+                                                    TriggerTranslate((*internalselectedLVItems[items]), transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f,
+                                                        (*internalselectedLVItems[items])->GetX() - (g_currentPageID - (*internalselectedLVItems[items])->GetMemPage()) * dimensions.right * localeDirection,
+                                                        (*internalselectedLVItems[items])->GetY(), finaldestX, finaldestY, false, false, false);
+                                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                                                    DUI_SetGadgetZOrder((*internalselectedLVItems[items]), -1);
+                                                }
+                                                (*internalselectedLVItems[items])->SetInternalXPos(saveddestX / outerSizeX);
+                                                (*internalselectedLVItems[items])->SetInternalYPos((finaldestY - desktoppadding_y) / outerSizeY);
+                                                (*internalselectedLVItems[items])->SetMemPage((*internalselectedLVItems[items])->GetPage());
+                                                (*internalselectedLVItems[items])->SetVisible(true);
                                             }
-                                            else
-                                            {
-                                                internalselectedLVItems[items]->SetMemXPos(finaldestX);
-                                                internalselectedLVItems[items]->SetMemYPos(finaldestY);
-                                                DelayedElementActions* dea = new DelayedElementActions{ dwDEA, internalselectedLVItems[items], static_cast<float>(finaldestX), static_cast<float>(finaldestY) };
-                                                DWORD DelayedSetPos;
-                                                HANDLE hDelayedSetPos = CreateThread(nullptr, 0, SetElemPos, dea, NULL, nullptr);
-                                                if (hDelayedSetPos) CloseHandle(hDelayedSetPos);
-                                                GTRANS_DESC transDesc[1];
-                                                TransitionStoryboardInfo tsbInfo = {};
-                                                TriggerTranslate(internalselectedLVItems[items], transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f,
-                                                    internalselectedLVItems[items]->GetX() - (g_currentPageID - internalselectedLVItems[items]->GetMemPage()) * dimensions.right * localeDirection,
-                                                    internalselectedLVItems[items]->GetY(), finaldestX, finaldestY, false, false, false);
-                                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, internalselectedLVItems[items]->GetDisplayNode(), &tsbInfo);
-                                                DUI_SetGadgetZOrder(internalselectedLVItems[items], -1);
-                                            }
-                                            internalselectedLVItems[items]->SetInternalXPos(saveddestX / outerSizeX);
-                                            internalselectedLVItems[items]->SetInternalYPos((finaldestY - desktoppadding_y) / outerSizeY);
-                                            internalselectedLVItems[items]->SetMemPage(internalselectedLVItems[items]->GetPage());
-                                            internalselectedLVItems[items]->SetVisible(true);
                                         }
+                                        rgptPosNew[items].x = (*internalselectedLVItems[items])->GetMemXPos();
+                                        rgptPosNew[items].y = (*internalselectedLVItems[items])->GetMemYPos();
                                     }
                                 }
+                                UIContainer->NotifyGridChanges(rgLVItems, rgptPosOld, rgptPosNew, itemstodrag);
+                                delete[] rgLVItems;
+                                delete[] rgptPosOld;
+                                delete[] rgptPosNew;
                             }
-                            for (LVItem* lvi : internalselectedLVItems)
+                            for (LVItem** pplvi : internalselectedLVItems)
                             {
-                                lvi->RemoveFlags(LVIF_DRAG);
+                                if (*pplvi)
+                                    (*pplvi)->RemoveFlags(LVIF_DRAG);
                             }
+                            free(internalselectedLVItems[0]);
+                            internalselectedLVItems[0] = nullptr;
                             internalselectedLVItems.clear();
                         }
                         break;
@@ -1829,8 +1805,7 @@ namespace DirectDesktop
                 int isThumbnailHidden = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"IconsOnly");
                 wstring foundfilename = (wstring)L"\"" + fi->filepath + (wstring)L"\\" + fi->filename + (wstring)L"\"";
                 DWORD attr = GetFileAttributesW(RemoveQuotes(foundfilename).c_str());
-                wstring foundsimplefilename = hideExt((wstring)fi->filename, isFileExtHidden, (attr & 16), outerElem);
-                if (attr & 16 && ((outerElem->GetFlags() & LVIF_SHORTCUT && attr & 2) || outerElem->GetExt() != L"Folder"))
+                if (attr == 0xFFFFFFFF)
                 {
                     outerElem->DestroyAll(true);
                     outerElem->Destroy(true);
@@ -1839,6 +1814,7 @@ namespace DirectDesktop
                     delete fi;
                     break;
                 }
+                wstring foundsimplefilename = hideExt((wstring)fi->filename, isFileExtHidden, (attr & 16), outerElem);
                 if (attr & 16)
                 {
                     outerElem->AddFlags(LVIF_DIR);
@@ -1936,18 +1912,13 @@ namespace DirectDesktop
                     pm[currentID]->AddFlags(LVIF_NEWITEM);
                 RearrangeIcons(false, false, true);
                 pm[currentID]->AddFlags(LVIF_REFRESH);
-                if (!yV)
-                {
-                    GTRANS_DESC transDesc[2];
-                    TriggerFade(pm[currentID], transDesc, 0, 0.0f, 0.083f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-                    TriggerScaleIn(pm[currentID], transDesc, 1, 0.0f, 0.25f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-                    TransitionStoryboardInfo tsbInfo = {};
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pm[currentID]->GetDisplayNode(), &tsbInfo);
-                }
-                DUI_SetGadgetZOrder(pm[currentID], -1);
                 if (g_newfolder)
                 {
                     g_newfolder = false;
+                    for (int i = 0; i < pm.size(); i++)
+                        if (i != currentID)
+                            pm[i]->SetSelected(false);
+                    pm[currentID]->SetSelected(true);
                     SelectItemListener(pm[currentID], Element::SelectedProp(), 69, nullptr, nullptr);
                     ShowRename(pm[currentID]);
                 }
@@ -1958,29 +1929,23 @@ namespace DirectDesktop
             case WM_USER + 22:
             {
                 LVItem* toRemove = (LVItem*)wParam;
-                if (uMsg == WM_USER + 21)
+                if (uMsg == WM_USER + 22)
                 {
-                    GTRANS_DESC transDesc[2];
-                    TriggerFade(toRemove, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-                    TriggerScaleOut(toRemove, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
-                    TransitionStoryboardInfo tsbInfo = {};
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, toRemove->GetDisplayNode(), &tsbInfo);
+                    UIContainer->AddFlags(LVCF_NOANIMATE);
                 }
-                else
-                {
-                    toRemove->Destroy(true);
-                    toRemove = nullptr;
-                }
+                UIContainer->RemoveAndDestroy(toRemove);
+                UIContainer->RemoveFlags(LVCF_NOANIMATE);
                 break;
             }
             case WM_USER + 23:
             {
-                vector<LVItem*> internalselectedLVItems = (*(vector<LVItem*>*)wParam);
+                vector<LVItem**> internalselectedLVItems = (*(vector<LVItem**>*)wParam);
                 DragItem(internalselectedLVItems);
                 return 0;
             }
             case WM_USER + 24:
             {
+                UIContainer->NotifyGridChanges(nullptr, nullptr, nullptr, -1);
                 break;
             }
             case WM_USER + 25:
@@ -2016,11 +1981,6 @@ namespace DirectDesktop
         return CallWindowProc(WndProc, hWnd, uMsg, wParam, lParam);
     }
 
-    LRESULT CALLBACK InnerWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-    {
-        return CallWindowProc(WndProcInner, hWnd, uMsg, wParam, lParam);
-    }
-
     LRESULT CALLBACK MsgWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         switch (uMsg)
@@ -2044,29 +2004,38 @@ namespace DirectDesktop
             case WM_USER + 5:
             {
                 DelayedElementActions* dea = (DelayedElementActions*)wParam;
-                if (dea->pe)
+                Element* pe;
+                if (dea->ppe)
+                    pe = *(dea->ppe);
+                else
+                    pe = dea->pe;
+                if (pe)
                 {
-                    if (!dea->pe->IsDestroyed())
+                    if (!pe->IsDestroyed())
                     {
                         switch (lParam)
                         {
                         case 1:
-                            dea->pe->SetVisible(false);
-                            dea->pe->DestroyAll(true);
-                            dea->pe->Destroy(true);
+                            pe->SetVisible(false);
+                            pe->DestroyAll(true);
+                            pe->Destroy(true);
                             break;
                         case 2:
-                            dea->pe->SetVisible(!dea->pe->GetVisible());
+                            pe->SetVisible(!pe->GetVisible());
                             break;
                         case 3:
-                            if (!dea->pe->GetMouseWithin()) dea->pe->SetSelected(false);
+                            if (!pe->GetMouseWithin()) pe->SetSelected(false);
                             break;
                         case 4:
-                            dea->pe->SetX(dea->val1);
-                            dea->pe->SetY(dea->val2);
+                            pe->SetX(dea->val1);
+                            pe->SetY(dea->val2);
                             break;
                         case 5:
-                            RedrawBorderCore<DDScalableElement>((DDScalableElement*)(dea->pe));
+                            RedrawBorderCore<DDScalableElement>((DDScalableElement*)(pe));
+                            break;
+                        case 6:
+                            if (((LVItem*)pe)->GetMemPage() != g_currentPageID)
+                                pe->SetVisible(!pe->GetVisible());
                             break;
                         }
                     }
@@ -2084,6 +2053,22 @@ namespace DirectDesktop
             }
         }
         return CallWindowProc(WndProcMessagesOnly, hWnd, uMsg, wParam, lParam);
+    }
+
+    LRESULT CALLBACK InnerWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+
+        switch (uMsg)
+        {
+        //case WM_NCHITTEST:
+        //{
+        //        DDNotificationBanner* ddnb = new DDNotificationBanner();
+        //        ddnb->CreateBanner(DDNT_INFO, L"Okkkkkkkkkkk", to_wstring(uMsg).c_str(), 5);
+
+        //    break;
+        //}
+        }
+        return CallWindowProc(WndProcInner, hWnd, uMsg, wParam, lParam);
     }
 
     DWORD WINAPI fastin(LPVOID lpParam)
@@ -2165,7 +2150,7 @@ namespace DirectDesktop
         ILFree(pidl);
     }
 
-    void DragItem(vector<LVItem*> vItems)
+    void DragItem(vector<LVItem**> vItems)
     {
         ComPtr<IShellFolder> ppFolder = nullptr;
         HRESULT hr = SHGetDesktopFolder(&ppFolder);
@@ -2174,7 +2159,7 @@ namespace DirectDesktop
         for (int i = 0; i < cidl; i++)
         {
             LPITEMIDLIST pidl = nullptr;
-            if (SUCCEEDED(SHParseDisplayName((LPWSTR)RemoveQuotes(vItems[i]->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr)))
+            if (SUCCEEDED(SHParseDisplayName((LPWSTR)RemoveQuotes((*vItems[i])->GetFilename()).c_str(), nullptr, &pidl, 0, nullptr)))
                 rgpidl.push_back(pidl);
         }
         ComPtr<IShellItemArray> pItemArray = nullptr;
@@ -2209,10 +2194,12 @@ namespace DirectDesktop
                 if (dwEffect == DROPEFFECT_MOVE)
                 {
                     for (int i = 0; i < cidl; i++)
-                        vItems[i]->StopListening();
+                        if (vItems[i] && *vItems[i])
+                            (*vItems[i])->StopListening();
                 }
-                vItems[0]->RemoveFlags(LVIF_DRAG);
-                isIconPressed = 0;
+                if (vItems[0] && *vItems[0])
+                    (*vItems[0])->RemoveFlags(LVIF_DRAG);
+                UIContainer->RemoveFlags(LVCF_ITEMPRESSED);
                 pds->Release();
                 DeleteObject(hbmPreview);
             }
@@ -2486,7 +2473,6 @@ namespace DirectDesktop
             {
                 lviTarget->SetGroupSize(LVIGS_NORMAL);
                 if (g_touchmode) lviTarget->SetDrawType(1);
-                if (localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth());
                 lviTarget->SetTooltip(true);
                 yValue* yV = new yValue{ i };
                 HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
@@ -2519,7 +2505,7 @@ namespace DirectDesktop
             dirtitle.Assign(regElem<Element*>(L"dirtitle", lviTarget));
             Element* dirtitleclone;
             TriggerCrossfade(dirtitle, 0.0f, 0.133f, &dirtitleclone);
-            float scaleX{}, scaleY{}, scaleX2{}, scaleY2{}, clipX{}, clipX2{};
+            float scaleX{}, scaleY{}, clipX{}, clipX2{};
             int widthOld = iconElement->GetWidth();
             int heightOld = iconElement->GetHeight();
             RECT scrollsize{};
@@ -2574,12 +2560,12 @@ namespace DirectDesktop
             ShowDirAsGroupDesktop(lviTarget, false);
 
             GTRANS_DESC transDesc2[3];
-            clipX = (localeType == 1) ? 1.0f : 1.0f - scaleX;
-            clipX2 = (localeType == 1) ? 1.0f - scaleX : 1.0f;
+            clipX = (localeType == 1) ? 1.0f - scaleX : 0.0f; 
+            clipX2 = (localeType == 1) ? 1.0f : scaleX;
             if (elem->GetID() == StrToID(L"Smaller"))
-                TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, clipX, 1.0f - scaleY, clipX2, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1.0f - scaleX, 1.0f - scaleY, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
             if (elem->GetID() == StrToID(L"Larger"))
-                TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 0.0f, 0.0f, scaleX, scaleY, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, clipX, 0.0f, clipX2, scaleY, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
             TriggerScaleIn(groupdirlist, transDesc2, 1, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / scaleX, 1 / scaleY, originX, 0.0f, 1.0f, 1.0f, originX, 0.0f, false, false);
             TriggerTranslate(groupdirlist, transDesc2, 2, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f,
                 (scrollsize.left - rcItem.left) * (1 - scaleX), (scrollsize.top - rcItem.top) * (1 - scaleY), 0, 0, false, false, true);
@@ -2591,12 +2577,12 @@ namespace DirectDesktop
     DWORD WINAPI AutoHideMoreOptions(LPVOID lpParam)
     {
         CSafeElementPtr<Element> tasksOld;
-        tasksOld.Assign(regElem<Element*>(L"tasks", (LVItem*)lpParam));
+        tasksOld.Assign(regElem<Element*>(L"tasks", *(LVItem**)lpParam));
         Sleep(10000);
-        if (g_ensureNoRefresh && lpParam && !((LVItem*)lpParam)->IsDestroyed() && ((LVItem*)lpParam)->GetGroupSize() != LVIGS_NORMAL)
+        if (*(LVItem**)lpParam && (*(LVItem**)lpParam)->GetGroupSize() != LVIGS_NORMAL)
         {
-            Element* tasks = regElem<Element*>(L"tasks", (LVItem*)lpParam);
-            Element* More = regElem<Element*>(L"More", (LVItem*)lpParam);
+            Element* tasks = regElem<Element*>(L"tasks", *(LVItem**)lpParam);
+            Element* More = regElem<Element*>(L"More", *(LVItem**)lpParam);
             if (tasks == tasksOld) SendMessageW(wnd->GetHWND(), WM_USER + 25, (WPARAM)tasks, (LPARAM)More);
         }
         return 0;
@@ -2607,12 +2593,18 @@ namespace DirectDesktop
         HANDLE hAutoHide{};
         if (iev->uidType == DDLVActionButton::Click)
         {
-            g_ensureNoRefresh = true;
             elem->SetLayoutPos(-3);
             CSafeElementPtr<Element> tasks;
             tasks.Assign(regElem<Element*>(L"tasks", ((DDLVActionButton*)elem)->GetAssociatedItem()));
             tasks->SetLayoutPos(2);
-            hAutoHide = CreateThread(nullptr, 0, AutoHideMoreOptions, (LPVOID)((DDLVActionButton*)elem)->GetAssociatedItem(), 0, nullptr);
+            LVItem* lvi = ((DDLVActionButton*)elem)->GetAssociatedItem();
+            int i = 0;
+            for (i = 0; i < pm.size(); i++)
+            {
+                if (pm[i] == lvi)
+                    break;
+            }
+            hAutoHide = CreateThread(nullptr, 0, AutoHideMoreOptions, (LPVOID)(&pm[i]), 0, nullptr);
             if (hAutoHide) CloseHandle(hAutoHide);
         }
     }
@@ -2662,10 +2654,13 @@ namespace DirectDesktop
         DelayedElementActions* dea = (DelayedElementActions*)lpParam;
         Sleep(dea->dwMillis);
         dea = (DelayedElementActions*)lpParam;
-        if (dea->pe)
-        {
+        Element* pe;
+        if (dea->ppe)
+            pe = *(dea->ppe);
+        else
+            pe = dea->pe;
+        if (pe)
             SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 3);
-        }
         else delete dea;
         return 0;
     }
@@ -2688,7 +2683,7 @@ namespace DirectDesktop
                         {
                             pm[items]->SetVisible(!g_hiddenIcons);
                             TriggerTranslate(pm[items], transDesc, 0, 0.1f, 0.1f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX(), pm[items]->GetY(), false, false, false);
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             DUI_SetGadgetZOrder(pm[items], -1);
                         }
                         else pm[items]->SetVisible(false);
@@ -2701,6 +2696,7 @@ namespace DirectDesktop
                 else
                 {
                     TriggerPageTransition(-1, dimensions);
+                    UIContainer->GetWhitespaceElement()->SetKeyFocus();
                 }
                 nextpageMain->SetVisible(true);
                 if (g_currentPageID == 1) prevpageMain->SetVisible(false);
@@ -2739,7 +2735,7 @@ namespace DirectDesktop
                         {
                             pm[items]->SetVisible(!g_hiddenIcons);
                             TriggerTranslate(pm[items], transDesc, 0, 0.1f, 0.1f, 0.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX(), pm[items]->GetY(), false, false, false);
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             DUI_SetGadgetZOrder(pm[items], -1);
                         }
                         else pm[items]->SetVisible(false);
@@ -2752,6 +2748,7 @@ namespace DirectDesktop
                 else
                 {
                     TriggerPageTransition(1, dimensions);
+                    UIContainer->GetWhitespaceElement()->SetKeyFocus();
                 }
                 prevpageMain->SetVisible(true);
                 if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
@@ -3088,8 +3085,8 @@ namespace DirectDesktop
 
     void IconThumbHelper(int id)
     {
-        DDScalableElement* peIcon = pm[id]->GetIcon();
         CValuePtr vChildren;
+        DDScalableElement* peIcon = pm[id]->GetIcon();
         DynamicArray<Element*>* pel = peIcon->GetChildren(&vChildren);
         for (int i = 0; pel && i < pel->GetSize(); i++)
         {
@@ -3100,6 +3097,7 @@ namespace DirectDesktop
             }
         }
         UpdateCache* uc{};
+        TouchButton* emptyspace = UIContainer->GetWhitespaceElement();
         CValuePtr v = emptyspace->GetValue(Element::BackgroundProp, 1, uc);
         peIcon->SetClass(L"");
         peIcon->SetValue(Element::BackgroundProp, 1, v);
@@ -3304,12 +3302,14 @@ namespace DirectDesktop
             }
             for (int j = 0; j < lviCount; j++)
             {
+                if (!(*d_subpm)[j] && !fNew)
+                    continue;
                 if (fNew)
                 {
                     v_pels.push_back(assignFn((*d_subpm)[j], SelectSubItem, true));
                     v_pels.push_back(assignFn((*d_subpm)[j], ItemRightClick, true));
                     v_pels.push_back(assignExtendedFn((*d_subpm)[j], SelectSubItemListener, true));
-                    v_pels.push_back(assignExtendedFn((*d_subpm)[j], ShowCheckboxIfNeeded, true));
+                    v_pels.push_back(assignExtendedFn((*d_subpm)[j], LVCommon::RefineSelections, true));
                     (*d_subpm)[j]->SetListeners(v_pels);
                     v_pels.clear();
                     if (!g_touchmode) (*d_subpm)[j]->SetClass(L"singleclicked");
@@ -3422,30 +3422,14 @@ namespace DirectDesktop
 
     void SelectItem(Element* elem, Event* iev)
     {
-        static int validation = 0;
         short ctrlKey = GetAsyncKeyState(VK_CONTROL);
         short enterKey = GetAsyncKeyState(VK_RETURN);
         if (iev->uidType == LVItem::Click)
         {
-            validation++;
-            TouchButton* checkbox = ((LVItem*)elem)->GetCheckbox();
-            if (!(ctrlKey & 0x8000) && (elem == emptyspace || checkbox->GetMouseWithin() == false))
-            {
-                for (int items = 0; items < pm.size(); items++)
-                {
-                    if (pm[items] != elem)
-                        pm[items]->SetSelected(false);
-                }
-            }
-            if (elem != emptyspace)
-            {
-                if (checkbox->GetMouseWithin() == false) elem->SetSelected(ctrlKey ? !elem->GetSelected() : true);
-                else if (validation & 1) elem->SetSelected(!elem->GetSelected());
-                if (!(shellstate[4] & 0x20) || g_touchmode || enterKey)
-                    goto CLICKACTION;
-            }
+            if (!(shellstate[4] & 0x20) || g_touchmode || enterKey)
+                goto CLICKACTION;
         }
-        if (iev->uidType == LVItem::MultipleClick && shellstate[4] & 0x20 && !g_touchmode && elem != emptyspace)
+        if (iev->uidType == LVItem::MultipleClick && shellstate[4] & 0x20 && !g_touchmode)
         {
         CLICKACTION:
             if (!(ctrlKey & 0x8000))
@@ -3554,7 +3538,7 @@ namespace DirectDesktop
             if (selectionElem)
                 selectionElem->SetVisible(!(g_treatdirasgroup && ((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL) && elem->GetSelected());
 
-            if (pProp == TouchButton::PressedProp())
+            if (pProp == TouchButton::PressedProp() && elem->GetMouseWithin())
             {
                 ((LVItem*)elem)->GetInnerElement()->SetEnabled(!((LVItem*)elem)->GetPressed());
                 coef = ((LVItem*)elem)->GetPressed() ? 0.9325f : 1.0f;
@@ -3565,69 +3549,37 @@ namespace DirectDesktop
                 coef = ((LVItem*)elem)->GetMouseWithin() ? 1.0625f : 1.0f;
             TLVITEMANIMATION:
                 TriggerScaleOut(elem, transDesc, 0, 0.0f, 0.25f, 0.25f, 0.1f, 0.25f, 1.0f, coef, coef, 0.5f, 0.5f, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, elem->GetDisplayNode(), &tsbInfo);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                 DUI_SetGadgetZOrder(elem, -1);
             }
         }
     }
 
-    void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    // 0.5.8: TODO: Move this to a dedicated folder viewer class
+    void ManageSubItems(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
-        TouchButton* checkboxElem = ((LVItem*)elem)->GetCheckbox();
-        if (pProp == Element::MouseWithinProp() || pProp == Element::SelectedProp())
+        vector<LVItem*>* vList = ((LVItem*)elem)->GetChildItems();
+        if (!(((LVItem*)elem)->GetFlags() & LVIF_SFG))
         {
-            if (!g_touchmode && g_labelshadow && ((!elem->GetMouseWithin() && pProp == Element::SelectedProp()) ||
-                (!elem->GetSelected() && pProp == Element::MouseWithinProp())))
+            if (pProp == Element::SelectedProp() && !elem->GetKeyFocused() && vList)
             {
-                CSafeElementPtr<Element> innerElem;
-                innerElem.Assign(((LVItem*)elem)->GetInnerElement());
-                float initialFade = elem->GetSelected() ? 1.0f : elem->GetMouseWithin() ? 0.0f : 1.0f;
-                float finalFade = elem->GetMouseWithin() || elem->GetSelected() ? 1.0f : 0.0f;
-                GTRANS_DESC transDesc[1];
-                TransitionStoryboardInfo tsbInfo = {};
-                innerElem->SetVisible(true);
-                TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, false, false, !elem->GetMouseWithin() && !elem->GetSelected());
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, innerElem->GetDisplayNode(), &tsbInfo);
-                // Apparently this needs to be done otherwise there will be ugly overlays...
-                ////////////////////////////////////
-                CValuePtr v;
-                DynamicArray<Element*>* pel = elem->GetChildren(&v);
-                for (int id = 0; id < pel->GetSize(); id++)
+                for (int i = 0; i < vList->size(); i++)
                 {
-                    if (pel->GetItem(id) == innerElem) continue;
-                    TriggerFade(pel->GetItem(id), transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
-                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pel->GetItem(id)->GetDisplayNode(), &tsbInfo);
+                    if ((*vList)[i])
+                        (*vList)[i]->SetSelected(elem->GetSelected());
                 }
-                ////////////////////////////////////
             }
-            if (g_showcheckboxes == 1 && checkboxElem)
-                checkboxElem->SetVisible(elem->GetMouseWithin() || elem->GetSelected());
+            if (pProp == Element::KeyFocusedProp() && vList)
+            {
+                for (int i = 0; i < vList->size(); i++)
+                {
+                    if ((*vList)[i])
+                        (*vList)[i]->SetSelected(false);
+                }
+                if (elem->GetKeyFocused() && (*vList)[0])
+                    (*vList)[0]->SetSelected(true);
+            }
         }
-    }
-
-    void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        if (pProp == Element::MouseFocusedProp())
-        {
-            UpdateCache* uc{};
-            LVItem* grandparent = (LVItem*)elem->GetParent()->GetParent();
-            CValuePtr v = elem->GetValue(Element::MouseFocusedProp, 1, uc);
-            if (grandparent->GetInnerElement())
-                grandparent->GetInnerElement()->SetValue(Element::MouseFocusedProp(), 1, v);
-            if (uc) free(uc);
-        }
-    }
-
-    DWORD WINAPI UpdateMarqueeSelectorPosition(LPVOID lpParam)
-    {
-        bool ctrlKey = GetKeyState(VK_CONTROL) < 0;
-        while (true)
-        {
-            if (!isPressed) break;
-            Sleep(10);
-            SendMessageW(wnd->GetHWND(), WM_USER + 5, NULL, ctrlKey);
-        }
-        return 0;
     }
 
     DWORD WINAPI UpdateIconPosition(LPVOID lpParam)
@@ -3657,7 +3609,7 @@ namespace DirectDesktop
             }
             else if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000))
             {
-                isIconPressed = 0;
+                UIContainer->RemoveFlags(LVCF_ITEMPRESSED);
                 selectedLVItems.clear();
                 break;
             }
@@ -3667,14 +3619,17 @@ namespace DirectDesktop
 
     void MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pv2)
     {
-        DWORD marqueeThread;
-        HANDLE marqueeThreadHandle;
         if (pProp == TouchButton::PressedProp())
         {
             //// TRIPLE CLICK AND HIDE
-            // execution
-            if (g_tripleclickandhide == true && ((TouchButton*)elem)->GetPressed() == true)
+            // 0.5.8: Selection logic has been moved to the LVCommon class
+            static POINT ptOrigin = UIContainer->GetDragOriginPoint();
+            if (g_tripleclickandhide && ((TouchButton*)elem)->GetPressed() == true)
             {
+                POINT ptNew;
+                GetCursorPos(&ptNew);
+                if (abs(ptNew.x - ptOrigin.x) > 15 || abs(ptNew.y - ptOrigin.y) > 15)
+                    g_emptyclicks = 1;
                 g_emptyclicks++;
                 HANDLE tripleClickThreadHandle = CreateThread(nullptr, 0, MultiClickHandler, &g_emptyclicks, 0, nullptr);
                 if (tripleClickThreadHandle) CloseHandle(tripleClickThreadHandle);
@@ -3695,7 +3650,7 @@ namespace DirectDesktop
                             case 0:
                                 TriggerTranslate(pm[items], transDesc, 0, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, pm[items]->GetX(), pm[items]->GetY(), pm[items]->GetX() + startXPos, pm[items]->GetY() + startYPos, false, false, false);
                                 TriggerFade(pm[items], transDesc, 1, delay + 0.11f, delay + 0.22f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-                                TriggerScaleOut(pm[items], transDesc, 2, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, true, false);
+                                TriggerScaleOut_Ref((Element**)&pm[items], transDesc, 2, delay, delay + 0.22f, 1.0f, 0.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.5f, true, false);
                                 break;
                             case 1:
                                 delay *= 2;
@@ -3705,7 +3660,7 @@ namespace DirectDesktop
                                 break;
                             }
                             TransitionStoryboardInfo tsbInfo = {};
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, pm[items]->GetDisplayNode(), &tsbInfo);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             DUI_SetGadgetZOrder(pm[items], -1);
                         }
                     }
@@ -3713,54 +3668,8 @@ namespace DirectDesktop
                     SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"HideIcons", g_hiddenIcons, false, nullptr);
                     g_emptyclicks = 1;
                 }
+                ptOrigin = UIContainer->GetDragOriginPoint();
             }
-            // Hitbox
-            if (!isPressed)
-            {
-                RECT dimensions{};
-                GetClientRect(wnd->GetHWND(), &dimensions);
-                POINT ppt;
-                GetCursorPos(&ppt);
-                ScreenToClient(wnd->GetHWND(), &ppt);
-                const int smallX = (localeType == 1) ? dimensions.right - ppt.x - 4 : ppt.x - 4;
-                elem->SetX(smallX);
-                elem->SetY(ppt.y - 4);
-                elem->SetWidth(9);
-                elem->SetHeight(9);
-                if (localeType == 1) origX = dimensions.right - ppt.x;
-                else origX = ppt.x;
-                origY = ppt.y;
-                GTRANS_DESC transDesc[1];
-                TransitionStoryboardInfo tsbInfo = {};
-                TriggerFade(selector, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, selector->GetDisplayNode(), &tsbInfo);
-                DUI_SetGadgetZOrder(selector, -1);
-                selector->SetWidth(0);
-                selector->SetHeight(0);
-                selector->SetX(origX);
-                selector->SetY(origY);
-                selector->SetVisible(true);
-                marqueeThreadHandle = CreateThread(nullptr, 0, UpdateMarqueeSelectorPosition, nullptr, 0, &marqueeThread);
-                if (marqueeThreadHandle) CloseHandle(marqueeThreadHandle);
-            }
-            isPressed = 1;
-        }
-        //// SELECTION RECTANGLE
-        else if ((!(GetAsyncKeyState(VK_LBUTTON) & 0x8000) || !elem->GetMouseWithin()) && isPressed)
-        {
-            RECT dimensions{};
-            GetClientRect(wnd->GetHWND(), &dimensions);
-            elem->SetX(dimensions.left);
-            elem->SetY(dimensions.top);
-            elem->SetWidth(dimensions.right);
-            elem->SetHeight(dimensions.bottom);
-
-            GTRANS_DESC transDesc[1];
-            TransitionStoryboardInfo tsbInfo = {};
-            TriggerFade(selector, transDesc, 0, 0.0f, 0.1f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, selector->GetDisplayNode(), &tsbInfo);
-            DUI_SetGadgetZOrder(selector, -1);
-            isPressed = 0;
         }
     }
 
@@ -3812,28 +3721,32 @@ namespace DirectDesktop
         POINT ppt;
         if (pProp == LVItem::CapturedProp())
         {
-            if (((LVItem*)elem)->GetCaptured())
+            if (((LVItem*)elem)->GetCaptured() && elem->GetMouseWithin())
             {
                 selectedLVItems.clear();
-                selectedLVItems.push_back((LVItem*)elem);
+                LVItem** selectedMain = (LVItem**)malloc(sizeof(LVItem*));
+                *selectedMain = (LVItem*)elem;
+                selectedLVItems.push_back(selectedMain);
                 int selectedItems{};
-                if (elem->GetSelected() == false && !(GetAsyncKeyState(VK_CONTROL) & 0x8000))
-                {
-                    for (int items = 0; items < pm.size(); items++)
-                        pm[items]->SetSelected(false);
-                    elem->SetSelected(true);
-                }
-                /////// TEMP(?): I don't want to make folder groups selectable at the moment, maybe later, maybe not
-                if (g_treatdirasgroup && ((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL)
-                {
-                    elem->SetSelected(false);
-                }
+                // 0.5.8 : WIP Selectable folder groups
+                // Old code to be removed later
+                ///////// TEMP(?): I don't want to make folder groups selectable at the moment, maybe later, maybe not
+                //if (g_treatdirasgroup && ((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL)
+                //{
+                //    // Not handled by LVCommon's listener
+                //    if (!elem->GetSelected() && !(GetAsyncKeyState(VK_CONTROL) & 0x8000))
+                //    {
+                //        for (int items = 0; items < pm.size(); items++)
+                //            pm[items]->SetSelected(false);
+                //    }
+                //    ////////////////////////////////////
+                //}
                 for (int items = 0; items < pm.size(); items++)
                 {
                     if (pm[items]->GetSelected() == true)
                     {
                         selectedItems++;
-                        if (pm[items] != elem) selectedLVItems.push_back(pm[items]);
+                        if (pm[items] != elem) selectedLVItems.push_back(&pm[items]);
                     }
                 }
                 g_dragpreview = g_touchmode ? dragpreviewTouch : dragpreview;
@@ -3888,7 +3801,7 @@ namespace DirectDesktop
                 }
                 dragThreadHandle = CreateThread(nullptr, 0, UpdateIconPosition, &selectedLVItems, 0, &dragThread);
                 if (dragThreadHandle) CloseHandle(dragThreadHandle);
-                isIconPressed = 1;
+                UIContainer->AddFlags(LVCF_ITEMPRESSED);
             }
         }
     }
@@ -3943,11 +3856,38 @@ namespace DirectDesktop
         DelayedElementActions* dea = (DelayedElementActions*)lpParam;
         Sleep(dea->dwMillis);
         dea = (DelayedElementActions*)lpParam;
-        if (dea->pe)
-        {
+        Element* pe;
+        if (dea->ppe)
+            pe = *(dea->ppe);
+        else
+            pe = dea->pe;
+        if (pe)
             SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 4);
-        }
         else delete dea;
+        return 0;
+    }
+
+    DWORD WINAPI SetVisibleIfPageMismatch(LPVOID lpParam)
+    {
+        DelayedElementActions* dea = (DelayedElementActions*)lpParam;
+        Sleep(dea->dwMillis);
+        dea = (DelayedElementActions*)lpParam;
+        Element* pe;
+        if (dea->ppe)
+            pe = *(dea->ppe);
+        else
+            pe = dea->pe;
+        if (pe)
+            SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 6);
+        else delete dea;
+        return 0;
+    }
+
+    DWORD WINAPI DelayedGridNotify(LPVOID lpParam)
+    {
+        DWORD* pdwMillis = (DWORD*)lpParam;
+        Sleep(*pdwMillis);
+        SendMessageW(wnd->GetHWND(), WM_USER + 24, NULL, NULL);
         return 0;
     }
 
@@ -3987,6 +3927,7 @@ namespace DirectDesktop
             GetPos(false, nullptr);
             g_maxPageID = 1;
         }
+        count = pm.size();
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Icon arrangement: 1 of 5 complete: Imported your desktop icon positions.");
         if (reloadicons)
         {
@@ -4135,7 +4076,7 @@ namespace DirectDesktop
                                     positions[page - 1][xPos + i][yPos + k] = true;
                             else positions[page - 1][xPos + i][yPos] = true;
                         }
-                        if (!(pm[j]->GetFlags() & (LVIF_MOVING | LVIF_SFG)) || pm[j]->GetPreRefreshMemPage() != page)
+                        if (!(pm[j]->GetFlags() & LVIF_MOVING) || pm[j]->GetFlags() & LVIF_SFG || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(yRender);
@@ -4164,7 +4105,7 @@ namespace DirectDesktop
                     }
                     else
                     {
-                        if (!(pm[j]->GetFlags() & (LVIF_MOVING | LVIF_SFG)) || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
+                        if (!(pm[j]->GetFlags() & LVIF_MOVING) || pm[j]->GetFlags() & LVIF_SFG || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
                         {
                             pm[j]->SetX(xRender);
                             pm[j]->SetY(yRender);
@@ -4303,7 +4244,7 @@ namespace DirectDesktop
                             xRender += outerSizeX / 2 * localeDirection;
                     }
                 }
-                if (!(pm[j]->GetFlags() & (LVIF_MOVING | LVIF_SFG)) || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
+                if (!(pm[j]->GetFlags() & LVIF_MOVING) || pm[j]->GetFlags() & LVIF_SFG || pm[j]->GetPreRefreshMemPage() != pm[j]->GetPage())
                 {
                     pm[j]->SetX(xRender);
                     pm[j]->SetY(yRender);
@@ -4360,21 +4301,26 @@ namespace DirectDesktop
 
     void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen)
     {
+        DWORD flags = LVCF_NOANIMATE | LVCF_NOASSIGNFUNC;
+        UIContainer->AddFlags(static_cast<LVCommonFlags>(flags));
         if (fResetUIState) SendMessageW(wnd->GetHWND(), WM_CHANGEUISTATE, 3, NULL);
-        g_ensureNoRefresh = false;
         const WCHAR* elemname = g_touchmode ? L"outerElemTouch" : L"outerElem";
         if (g_outerElem)
         {
             g_outerElem->DestroyAll(true);
             g_outerElem->Destroy(true);
         }
-        static IElementListener *pel_SelectItem, *pel_MarqueeSelector, *pel_DesktopRightClick;
+        static IElementListener *pel_MarqueeSelector, *pel_DesktopRightClick;
         parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&g_outerElem);
         if (bAlreadyOpen && isDefaultRes()) SetPos(true);
-        for (LVItem* lvi : pm)
-            lvi->RemoveFlags(LVIF_DIR);
-        UIContainer->DestroyAll(true);
+        for (int i = 0; i < pm.size(); i++)
+        {
+            pm[i]->RemoveFlags(LVIF_DIR);
+            pm[i] = nullptr;
+        }
         pm.clear();
+        selectedLVItems.clear();
+        UIContainer->DestroyAll(true);
         GetFontHeight();
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 1 of 6 complete: Prepared DirectDesktop to receive desktop data.");
         WCHAR* path{};
@@ -4395,10 +4341,9 @@ namespace DirectDesktop
         int count2{};
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 2 of 6 complete: Obtained desktop item count.");
 
-        parser->CreateElement(L"emptyspace", nullptr, nullptr, nullptr, (Element**)&emptyspace);
-        UIContainer->Add((Element**)&emptyspace, 1);
         RECT dimensions{};
         GetClientRect(wnd->GetHWND(), &dimensions);
+        TouchButton* emptyspace = UIContainer->GetWhitespaceElement();
         emptyspace->SetX(dimensions.left);
         emptyspace->SetY(dimensions.top);
         emptyspace->SetWidth(dimensions.right);
@@ -4408,12 +4353,6 @@ namespace DirectDesktop
         {
             LVItem* outerElem;
             parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&outerElem);
-            UIContainer->Add((Element**)&outerElem, 1);
-            if (DWMActive)
-            {
-                AddLayeredRef(outerElem->GetDisplayNode());
-                SetGadgetFlags(outerElem->GetDisplayNode(), NULL, NULL);
-            }
             CSafeElementPtr<DDScalableElement> iconElem;
             iconElem.Assign(regElem<DDScalableElement*>(L"iconElem", outerElem));
             if (g_touchmode) assignExtendedFn(iconElem, UpdateTileOnColorChange);
@@ -4425,6 +4364,8 @@ namespace DirectDesktop
             outerElem->SetItemCountElement(regElem<DDScalableRichText*>(L"folderItemsElem", outerElem));
             pm.push_back(outerElem);
         }
+        UIContainer->RemoveFlags(LVCF_NOANIMATE);
+        UIContainer->AddFlags(LVCF_ANIMATEPARTIAL);
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
         EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, &count2, lviCount);
         DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
@@ -4467,8 +4408,25 @@ namespace DirectDesktop
         }
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 5 of 6 complete: Filled the arrays with relevant desktop icon data.");
         RearrangeIcons(false, true, false);
-        free(pel_SelectItem), free(pel_MarqueeSelector), free(pel_DesktopRightClick);
-        pel_SelectItem = assignFn(emptyspace, SelectItem, true);
+        for (int i = 0; i < lviCount; i++)
+        {
+            UIContainer->Add((Element**)&pm[i], 1);
+            if (DWMActive)
+            {
+                AddLayeredRef(pm[i]->GetDisplayNode());
+                SetGadgetFlags(pm[i]->GetDisplayNode(), NULL, NULL);
+            }
+        }
+        if (pel_MarqueeSelector)
+        {
+            emptyspace->RemoveListener(pel_MarqueeSelector);
+            free(pel_MarqueeSelector);
+        }
+        if (pel_DesktopRightClick)
+        {
+            emptyspace->RemoveListener(pel_DesktopRightClick);
+            free(pel_DesktopRightClick);
+        }
         pel_MarqueeSelector = assignExtendedFn(emptyspace, MarqueeSelector, true);
         pel_DesktopRightClick = assignFn(emptyspace, DesktopRightClick, true);
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 6 of 6 complete: Arranged the icons according to your icon placements.");
@@ -4496,6 +4454,7 @@ namespace DirectDesktop
             if (pm[i]->GetFilename() == foundfilename)
             {
                 LVItem* toRemove = pm[i];
+                toRemove->RemoveFlags(LVIF_DIR);
                 pm.erase(pm.begin() + i);
                 PostMessageW(wnd->GetHWND(), WM_USER + 21, (WPARAM)toRemove, NULL);
                 break;
@@ -4550,9 +4509,9 @@ namespace DirectDesktop
                 {
                     if (pm[i]->GetFilename() == foundfilename)
                     {
+                        Sleep(100);
                         if (pm[i]->GetFlags() & LVIF_DIR)
                         {
-                            Sleep(100);
                             if (pm[i]->GetGroupSize() == LVIGS_NORMAL)
                                 PostMessageW(wnd->GetHWND(), WM_USER + 26, NULL, i);
                             else
@@ -4630,7 +4589,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 94");
+            peTemp[1]->SetContentString(L"Build 95");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");
@@ -4700,7 +4659,7 @@ namespace DirectDesktop
             {
                 if (pKeyInfo->vkCode == VK_F2)
                 {
-                    if (!keyHold[pKeyInfo->vkCode] && !g_renameactive && !isIconPressed)
+                    if (!keyHold[pKeyInfo->vkCode] && !g_renameactive && !(UIContainer->GetFlags() & LVCF_ITEMPRESSED))
                     {
                         ShowRename(nullptr);
                         keyHold[pKeyInfo->vkCode] = true;
@@ -4722,7 +4681,7 @@ namespace DirectDesktop
                     for (int items = 0; items < pm.size(); items++)
                     {
                         if (pm[items]->GetSelected() == true)
-                            selectedLVItems.push_back(pm[items]);
+                            selectedLVItems.push_back(&pm[items]);
                     }
                     if (selectedLVItems.size() == 0)
                         DesktopRightClickCore(nullptr, nullptr);
@@ -4782,19 +4741,6 @@ namespace DirectDesktop
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
-                if (pKeyInfo->vkCode == 'A' && GetAsyncKeyState(VK_CONTROL) & 0x8000 && !g_renameactive)
-                {
-                    if (!keyHold[pKeyInfo->vkCode])
-                    {
-                        for (int i = 0; i < pm.size(); i++)
-                        {
-                            if (pm[i]->GetPage() != g_currentPageID || !pm[i]->GetVisible())
-                                continue;
-                            pm[i]->SetSelected(true);
-                        }
-                        keyHold[pKeyInfo->vkCode] = true;
-                    }
-                }
                 if (pKeyInfo->vkCode == VK_RETURN && GetAsyncKeyState(VK_MENU) & 0x8000)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
@@ -4811,7 +4757,7 @@ namespace DirectDesktop
                         keyHold[pKeyInfo->vkCode] = true;
                     }
                 }
-                if (pKeyInfo->vkCode == 'N' && GetAsyncKeyState(VK_SHIFT) & 0x8000 && GetAsyncKeyState(VK_CONTROL) & 0x8000)
+                if (pKeyInfo->vkCode == 'N' && GetAsyncKeyState(VK_SHIFT) & 0x8000 && GetAsyncKeyState(VK_CONTROL) & 0x8000 && !g_renameactive)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
@@ -4832,7 +4778,8 @@ namespace DirectDesktop
             }
             if (activity & 0x11)
             {
-                if ((pKeyInfo->vkCode == VK_LEFT || pKeyInfo->vkCode == VK_RIGHT) && GetAsyncKeyState(VK_SHIFT) & 0x8000 && !g_renameactive)
+                if ((pKeyInfo->vkCode == VK_LEFT || pKeyInfo->vkCode == VK_RIGHT) && GetAsyncKeyState(VK_SHIFT) & 0x8000 &&
+                    (GetAsyncKeyState(VK_MENU) & 0x8000 || g_editmode) && !g_renameactive)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
@@ -4867,20 +4814,24 @@ namespace DirectDesktop
                     }
                 }
             }
-            if (activity & 0x17)
+            if (!(activity & 0x28))
             {
                 if (pKeyInfo->vkCode == 'E' && GetAsyncKeyState(VK_LWIN) & 0x8000 && GetAsyncKeyState(VK_CONTROL) & 0x8000)
                 {
                     if (!keyHold[pKeyInfo->vkCode])
                     {
-                        DWORD delay = g_editmode ? 0 : 400;
-                        SetTimer(wnd->GetHWND(), 1, delay, nullptr);
-                        keyHold[pKeyInfo->vkCode] = true;
+                        DWORD animCoef = g_animCoef;
+                        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                        DWORD delay = g_editmode ? 500 * (animCoef / 100.0f) : 50;
+                        if (g_editavailable)
+                        {
+                            g_editavailable = false;
+                            SetTimer(wnd->GetHWND(), 25, delay, nullptr);
+                            SetTimer(wnd->GetHWND(), 1, 10, nullptr);
+                            keyHold[pKeyInfo->vkCode] = true;
+                        }
                     }
                 }
-            }
-            if (!(activity & 0x28))
-            {
                 if ((pKeyInfo->vkCode == 'Q' && GetAsyncKeyState(VK_LWIN) & 0x8000 && GetAsyncKeyState(VK_MENU) & 0x8000))
                 {
                     if (!keyHold[pKeyInfo->vkCode])
@@ -4903,7 +4854,17 @@ namespace DirectDesktop
                             TriggerEMToPV(true);
                             RefreshSimpleView(0x0);
                         }
-                        else if (activity & 0x11) HideSimpleView(true);
+                        else if (activity & 0x11)
+                        {
+                            if (g_editavailable)
+                            {
+                                DWORD animCoef = g_animCoef;
+                                if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                                g_editavailable = false;
+                                SetTimer(wnd->GetHWND(), 25, 500 * (animCoef / 100.0f), nullptr);
+                            }
+                            HideSimpleView(true);
+                        }
                         if (activity & 0x20) DestroySearchPage();
                         keyHold[pKeyInfo->vkCode] = true;
                     }
@@ -5049,6 +5010,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     DDScalableRichText::Register();
     DDScalableTouchButton::Register();
     DDScalableTouchEdit::Register();
+    LVCommon::Register();
+    LVGrid::Register();
+    LVTiles::Register();
     LVItem::Register();
     DDLVActionButton::Register();
     DDIconButton::Register();
@@ -5122,6 +5086,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     {
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Found SysListView32 window to hide.");
         ShowWindow(hSysListView32, SW_HIDE);
+        EnableWindow(hSysListView32, FALSE);
     }
     KeyHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardProc, HINST_THISCOMPONENT, 0);
     DWORD dwExStyle = NULL, dwCreateFlags = 0x10;
@@ -5162,7 +5127,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     sampleText = regElem<Element*>(L"sampleText", pMain);
     mainContainer = regElem<Element*>(L"mainContainer", pMain);
-    UIContainer = regElem<Element*>(L"UIContainer", pMain);
+    UIContainer = regElem<LVGrid*>(L"UIContainer", pMain);
     selector = regElem<Element*>(L"selector", pMain);
     prevpageMain = regElem<TouchButton*>(L"prevpageMain", pMain);
     nextpageMain = regElem<TouchButton*>(L"nextpageMain", pMain);
@@ -5214,9 +5179,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     GTRANS_DESC transDesc[1];
     TriggerScaleOut(prevpageMain, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.5f, false, false);
     TransitionStoryboardInfo tsbInfo = {};
-    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, prevpageMain->GetDisplayNode(), &tsbInfo);
+    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
     TriggerScaleOut(nextpageMain, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.5f, false, false);
-    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nextpageMain->GetDisplayNode(), &tsbInfo);
+    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
 
     RegKeyValue DDKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL);
     g_showcheckboxes = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoCheckSelect");
@@ -5354,6 +5319,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ddnb->AppendButton(LoadStrFromRes(4240, L"comctl32.dll").c_str(), nullptr, true);
         logging = IDNO;
     }
+    UIContainer->GetWhitespaceElement()->SetKeyFocus();
     StartMessagePump();
     UnInitProcess();
     WTSUnRegisterSessionNotification(wnd->GetHWND());

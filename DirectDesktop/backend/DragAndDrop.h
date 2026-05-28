@@ -188,9 +188,8 @@ namespace DirectDesktop
 	extern DWORD TheDropProc(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hdata, HWND hwnd, DWORD key_state, POINTL pt, std::wstring dest, void* param);
 
 	extern HANDLE g_hHeap;
-	extern bool isIconPressed;
 	extern CMinimalDragImage* pMinimal;
-	extern vector<LVItem*> selectedLVItems;
+	extern vector<LVItem**> selectedLVItems;
 	extern DirectUI::TouchButton* prevpageMain, *nextpageMain;
 	extern void TriggerPageTransition(int direction, RECT& dimensions);
 	extern void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page);

@@ -32,7 +32,6 @@ namespace DirectDesktop
 	extern void PinGroup(Element* elem, Event* iev);
 
 	extern NativeHWNDHost* wnd;
-	extern Element* UIContainer;
 	extern DDScalableElement* RegistryListener;
 	extern TouchButton* fullscreenpopupbase;
 	extern DDScalableTouchButton* fullscreeninner;

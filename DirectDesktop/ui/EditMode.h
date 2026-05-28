@@ -18,7 +18,7 @@ namespace DirectDesktop
     extern NativeHWNDHost* editwnd;
     extern NativeHWNDHost* editbgwnd;
     extern HWND g_hWndTaskbar, g_hWorkerW, g_hSHELLDLL_DefView;
-    extern Element* mainContainer, *UIContainer;
+    extern Element* mainContainer;
     extern Element* PageViewer;
     extern int localeType;
     extern int g_currentPageID, g_maxPageID;

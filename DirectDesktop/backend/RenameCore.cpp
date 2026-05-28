@@ -137,10 +137,19 @@ namespace DirectDesktop
                 SetWindowPos(hEdit, nullptr, NULL, NULL, currentWidth, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER);
             else
             {
+                short localeDirection = (localeType == 1) ? -1 : 1;
+                DUIElem->SetX(rcGadget.left + (rcGadget.right - rcGadget.left - max(rc.right - rc.left, 16) - (rcPadding.left + rcPadding.right + localeDirection)) / 2);
+                DUIElem->SetWidth(max(rc.right - rc.left, 16) + rcPadding.left + rcPadding.right + localeDirection);
+                if (localeType == 1)
+                {
+                    RECT dimensions{};
+                    GetClientRect(wnd->GetHWND(), &dimensions);
+                    int wGadget = rcGadget.right - rcGadget.left;
+                    rcGadget.left = dimensions.right - rcGadget.left - wGadget;
+                    rcGadget.right = dimensions.right - rcGadget.right + wGadget;
+                }
                 SetWindowPos(hEdit, nullptr, rcGadget.left + (rcGadget.right - rcGadget.left - max(rc.right - rc.left, 16)) / 2,
                     rcWindow.top, max(rc.right - rc.left, 16), rc.bottom - rc.top, SWP_NOZORDER);
-                DUIElem->SetX(rcGadget.left + (rcGadget.right - rcGadget.left - max(rc.right - rc.left, 16) - (rcPadding.left + rcPadding.right + 1)) / 2);
-                DUIElem->SetWidth(max(rc.right - rc.left, 16) + rcPadding.left + rcPadding.right + 1);
             }
             DUIElem->SetHeight(rc.bottom - rc.top + rcPadding.top + rcPadding.bottom + 1);
             GetClientRect(hEdit, &rcWindow);
@@ -250,6 +259,10 @@ namespace DirectDesktop
                         case 3:
                             DUIElem.Assign(regElem<Element*>(L"RenameBoxTexture", UIContainer));
                             DUIElem->SetVisible(true);
+                            GTRANS_DESC transDesc[1];
+                            TransitionStoryboardInfo tsbInfo = {};
+                            TriggerFade(DUIElem, transDesc, 0, 0.0f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, false, false, false);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, DUIElem->GetDisplayNode(), &tsbInfo);
                             SetLayeredWindowAttributes(hWnd, 0, 255, LWA_ALPHA);
                             break;
                     }
@@ -402,7 +415,8 @@ namespace DirectDesktop
                 SendMessageW(hEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
                 SetWindowLongPtrW(hEdit, GWL_EXSTYLE, 0xC0000A40L | WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP);
                 SetLayeredWindowAttributes(hEdit, 0, 1, LWA_ALPHA);
-                SetWindowPos(hEdit, HWND_TOP, ebsz.left + rcPadding.left, ebsz.top + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
+                int editX = (localeType == 1) ? dimensions.right - ebsz.right + rcPadding.left : ebsz.left + rcPadding.left;
+                SetWindowPos(hEdit, HWND_TOP, editX, ebsz.top + rcPadding.top, NULL, NULL, SWP_NOSIZE | SWP_SHOWWINDOW);
                 SetFocus(hEdit);
                 int textLen = lviOpt->GetSimpleFilename().find_last_of(L".");
                 if (textLen == wstring::npos) textLen = lviOpt->GetSimpleFilename().length();

@@ -512,6 +512,14 @@
 			<if class="menuseparator">
 				<DDMenuButton layoutpos="top" height="1rp" margin="rect(0,4rp,0,4rp)" background="argb(24,0,0,0)"/>
 			</if>
+			<if id="atom(selector)">
+				<if class="selectoralpha">
+					<Element background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
+				</if>
+				<if class="selectornoalpha">
+					<Element background="argb(0,0,0,0)" borderthickness="rect(2rp,2rp,2rp,2rp)" bordercolor="white"/>
+				</if>
+			</if>
 			<if class="TopSection">
 				<DDScalableElement FirstScaledImage="1071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
 			</if>
@@ -1035,6 +1043,14 @@
 			</if>
 			<if class="menuseparator">
 				<DDMenuButton layoutpos="top" height="1rp" margin="rect(0,4rp,0,4rp)" background="argb(24,255,255,255)"/>
+			</if>
+			<if id="atom(selector)">
+				<if class="selectoralpha">
+					<Element background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
+				</if>
+				<if class="selectornoalpha">
+					<Element background="argb(0,0,0,0)" borderthickness="rect(2rp,2rp,2rp,2rp)" bordercolor="white"/>
+				</if>
 			</if>
 			<if class="TopSection">
 				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>

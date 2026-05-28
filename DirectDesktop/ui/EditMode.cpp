@@ -454,7 +454,11 @@ namespace DirectDesktop
             g_invokedpagechange = false;
             if (g_touchmode) g_iconsz = 32;
             UIContainer->SetVisible(true);
-            if (fullanimate) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+            if (fullanimate)
+            {
+                SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
+                SetFocus(wnd->GetHWND());
+            }
             if (!fullscreenpopupbaseE->IsDestroyed())
             {
                 GTRANS_DESC transDesc[8];
@@ -654,7 +658,7 @@ namespace DirectDesktop
             g_invokedpagechange = true;
         }
         g_animatePVEnter = fReverse;
-        GTRANS_DESC transDesc[1];
+        GTRANS_DESC transDesc[3];
         TransitionStoryboardInfo tsbInfo = {};
         CSafeElementPtr<Element> pagesrow1; pagesrow1.Assign(regElem<Element*>(L"pagesrow1", PV_Inner));
         CSafeElementPtr<Element> pagesrow2; pagesrow2.Assign(regElem<Element*>(L"pagesrow2", PV_Inner));
@@ -677,23 +681,25 @@ namespace DirectDesktop
                         {
                             for (int j = 0; j < PageChildren->GetSize(); j++)
                             {
-                                if (PageChildren->GetItem(j)->GetID() == StrToID(L"pagetasks"))
+                                Element* child = PageChildren->GetItem(j);
+                                if (child->GetID() == StrToID(L"pagetasks"))
                                 {
-                                    PageChildren->GetItem(j)->SetVisible(true);
-                                    TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
-                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PageChildren->GetItem(j)->GetDisplayNode(), &tsbInfo);
+                                    child->SetVisible(true);
+                                    TriggerFade(child, transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, nullptr, &tsbInfo);
                                 }
-                                if (PageChildren->GetItem(j)->GetID() == StrToID(L"PV_PageIcons"))
+                                if (child->GetID() == StrToID(L"PV_PageIcons"))
                                 {
-                                    DynamicArray<Element*>* PVPIChildren = PageChildren->GetItem(j)->GetChildren(&v);
+                                    DynamicArray<Element*>* PVPIChildren = child->GetChildren(&v);
                                     for (int k = 0; k < PVPIChildren->GetSize(); k++)
                                     {
-                                        if (PVPIChildren->GetItem(k)->GetID() == StrToID(L"number"))
+                                        Element* child2 = PVPIChildren->GetItem(k);
+                                        if (child2->GetID() == StrToID(L"number"))
                                         {
-                                            PVPIChildren->GetItem(k)->SetVisible(true);
-                                            TriggerFade(PVPIChildren->GetItem(k), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
-                                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PVPIChildren->GetItem(k)->GetDisplayNode(), &tsbInfo);
-                                            DUI_SetGadgetZOrder(PVPIChildren->GetItem(k), 4);
+                                            child2->SetVisible(true);
+                                            TriggerFade(child2, transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, nullptr, &tsbInfo);
+                                            DUI_SetGadgetZOrder(child2, 4);
                                         }
                                     }
                                 }
@@ -702,30 +708,32 @@ namespace DirectDesktop
                         }
                         for (int j = 0; j < PageChildren->GetSize(); j++)
                         {
+                            Element* child = PageChildren->GetItem(j);
                             if (PageChildren->GetItem(j)->GetID() == StrToID(L"animateddimming"))
                             {
-                                PageChildren->GetItem(j)->SetVisible(true);
-                                TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade3, flFade4, !fReverse, false, false);
+                                child->SetVisible(true);
+                                TriggerFade(child, transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade3, flFade4, !fReverse, false, false);
                             }
                             else
                             {
-                                if (PageChildren->GetItem(j)->GetID() == StrToID(L"PV_PageIcons"))
+                                if (child->GetID() == StrToID(L"PV_PageIcons"))
                                 {
-                                    DynamicArray<Element*>* PVPIChildren = PageChildren->GetItem(j)->GetChildren(&v);
+                                    DynamicArray<Element*>* PVPIChildren = child->GetChildren(&v);
                                     for (int k = 0; k < PVPIChildren->GetSize(); k++)
                                     {
+                                        Element* child2 = PVPIChildren->GetItem(k);
                                         if (PVPIChildren->GetItem(k)->GetID() == StrToID(L"number"))
                                         {
-                                            PVPIChildren->GetItem(k)->SetVisible(true);
-                                            TriggerFade(PVPIChildren->GetItem(k), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
-                                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PVPIChildren->GetItem(k)->GetDisplayNode(), &tsbInfo);
-                                            DUI_SetGadgetZOrder(PVPIChildren->GetItem(k), 4);
+                                            child2->SetVisible(true);
+                                            TriggerFade(child2, transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, nullptr, &tsbInfo);
+                                            DUI_SetGadgetZOrder(child2, 4);
                                         }
                                     }
                                 }
-                                TriggerFade(PageChildren->GetItem(j), transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
+                                TriggerFade(child, transDesc, 0, flFade1, flFade2, 0.0f, 0.0f, 1.0f, 1.0f, flFade4, flFade3, false, false, true);
                             }
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PageChildren->GetItem(j)->GetDisplayNode(), &tsbInfo);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, nullptr, &tsbInfo);
                         }
                     }
                 }
@@ -737,36 +745,31 @@ namespace DirectDesktop
             SimpleViewTop->SetVisible(true);
             SimpleViewBottom->SetVisible(true);
             TriggerFade(SimpleViewTop, transDesc, 0, 0.433f, 0.566f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTop->GetDisplayNode(), &tsbInfo);
-            TriggerFade(SimpleViewBottom, transDesc, 0, 0.433f, 0.566f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewBottom->GetDisplayNode(), &tsbInfo);
-            TriggerFade(PageViewerTop, transDesc, 0, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PageViewerTop->GetDisplayNode(), &tsbInfo);
+            TriggerFade(SimpleViewBottom, transDesc, 1, 0.433f, 0.566f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+            TriggerFade(PageViewerTop, transDesc, 2, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
         }
         else
         {
             TriggerFade(SimpleViewTop, transDesc, 0, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTop->GetDisplayNode(), &tsbInfo);
-            TriggerFade(SimpleViewBottom, transDesc, 0, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewBottom->GetDisplayNode(), &tsbInfo);
-            TriggerFade(PageViewerTop, transDesc, 0, 0.433f, 0.566f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PageViewerTop->GetDisplayNode(), &tsbInfo);
+            TriggerFade(SimpleViewBottom, transDesc, 1, 0.067f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+            TriggerFade(PageViewerTop, transDesc, 2, 0.433f, 0.566f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, true);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
         }
         if (g_maxPageID <= 6)
         {
             if (fReverse) TriggerScaleOut(PV_Inner, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 2.8f, 2.8f, ptPage.x, ptPage.y, false, false);
             else TriggerScaleIn(PV_Inner, transDesc, 0, 0.0f, 0.3f, 0.75f, 0.45f, 0.0f, 1.0f, 2.8f, 2.8f, ptPage.x, ptPage.y, 1.0f, 1.0f, ptPage.x, ptPage.y, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PV_Inner->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, nullptr, &tsbInfo);
         }
         else
         {
             CSafeElementPtr<Element> overflow; overflow.Assign(regElem<Element*>(L"overflow", PV_Inner));
             if (fReverse) TriggerFade(overflow, transDesc, 0, 0.033f, 0.216f, 0.0f, 0.0f, 0.58f, 1.0f, 1.0f, 0.0f, false, false, true);
-            else TriggerFade(overflow, transDesc, 0, 0.0f, 0.183f, 0.25f, 0.1f, 0.25f, 1.0f, 0.0f, 1.0f, false, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, overflow->GetDisplayNode(), &tsbInfo);
+            else TriggerFade(overflow, transDesc, 1, 0.0f, 0.183f, 0.25f, 0.1f, 0.25f, 1.0f, 0.0f, 1.0f, false, false, false);
             if (fReverse) TriggerScaleOut(PV_Inner, transDesc, 0, 0.033f, 0.3f, 1.0f, 1.0f, 0.0f, 1.0f, 1.15f, 1.15f, 0.5f, 0.5f, false, false);
-            else TriggerScaleIn(PV_Inner, transDesc, 0, 0.0f, 0.267f, 0.0f, 0.0f, 0.0f, 1.0f, 1.15f, 1.15f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, PV_Inner->GetDisplayNode(), &tsbInfo);
+            else TriggerScaleIn(PV_Inner, transDesc, 1, 0.0f, 0.267f, 0.0f, 0.0f, 0.0f, 1.0f, 1.15f, 1.15f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
         }
         DUI_SetGadgetZOrder(PV_Inner, -4);
         if (fReverse)
@@ -803,10 +806,10 @@ namespace DirectDesktop
         TransitionStoryboardInfo tsbInfo = {};
         TriggerScaleIn(SimpleViewTopInner, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, 0.5f, 0.0f, 1.0f, 3.705f / 3, 0.5f, 0.0f, false, false);
         TriggerScaleIn(SimpleViewTopInner, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 3.705f / 3, 0.5f, 0.0f, 1.0f, 1.0f, 0.5f, 0.0f, false, false);
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewTopInner->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
         TriggerScaleIn(SimpleViewBottomInner, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, 0.5f, 1.0f, 1.0f, 3.7f / 3, 0.5f, 1.0f, false, false);
         TriggerScaleIn(SimpleViewBottomInner, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 3.7f / 3, 0.5f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, false, false);
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, SimpleViewBottomInner->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
         TriggerScaleIn(bg_left_middle, transDescL, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 0.5f, 3.7f / 3, 0.9f, flOriginLeft, 0.5f, false, false);
         TriggerScaleIn(bg_left_middle, transDescL, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.9f, flOriginLeft, 0.5f, 1.0f, 1.0f, flOriginLeft, 0.5f, false, false);
         TriggerScaleIn(bg_right_middle, transDescR, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 0.5f, 3.7f / 3, 0.9f, flOriginRight, 0.5f, false, false);
@@ -815,26 +818,26 @@ namespace DirectDesktop
         {
             TriggerScaleIn(bg_left_top, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 1.0f, 3.7f / 3, 0.65f, flOriginLeft, 1.0f, false, false);
             TriggerScaleIn(bg_left_top, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginLeft, 1.0f, 1.0f, 1.0f, flOriginLeft, 1.0f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_left_top->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
             TriggerScaleIn(bg_left_middle, transDescL, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 0.5f, 1.7f, 1.0f, flOriginLeft, 0.5f, false, false);
             TriggerScaleIn(bg_left_middle, transDescL, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.7f, 1.0f, flOriginLeft, 0.5f, 1.0f, 1.0f, flOriginLeft, 0.5f, false, false);
             TriggerScaleIn(bg_left_bottom, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginLeft, 0.0f, 3.7f / 3, 0.65f, flOriginLeft, 0.0f, false, false);
             TriggerScaleIn(bg_left_bottom, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginLeft, 0.0f, 1.0f, 1.0f, flOriginLeft, 0.0f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_left_bottom->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
         }
         if (nextpage->GetWidth() > 1)
         {
             TriggerScaleIn(bg_right_top, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 0.0f, 3.7f / 3, 0.65f, flOriginRight, 1.0f, false, false);
             TriggerScaleIn(bg_right_top, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginRight, 0.0f, 1.0f, 1.0f, flOriginRight, 1.0f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_right_top->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
             TriggerScaleIn(bg_right_middle, transDescR, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 0.5f, 1.7f, 1.0f, flOriginRight, 0.5f, false, false);
             TriggerScaleIn(bg_right_middle, transDescR, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 1.7f, 1.0f, flOriginRight, 0.5f, 1.0f, 1.0f, flOriginRight, 0.5f, false, false);
             TriggerScaleIn(bg_right_bottom, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f, flOriginRight, 1.0f, 3.7f / 3, 0.65f, flOriginRight, 0.0f, false, false);
             TriggerScaleIn(bg_right_bottom, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 3.7f / 3, 0.65f, flOriginRight, 1.0f, 1.0f, 1.0f, flOriginRight, 0.0f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, bg_right_bottom->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
         }
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDescL), transDescL, bg_left_middle->GetDisplayNode(), &tsbInfo);
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDescR), transDescR, bg_right_middle->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDescL), transDescL, nullptr, &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDescR), transDescR, nullptr, &tsbInfo);
     }
 
     void EnterSelectedPage(Element* elem, Event* iev)

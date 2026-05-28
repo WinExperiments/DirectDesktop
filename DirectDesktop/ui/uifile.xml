@@ -2,16 +2,13 @@
 	<HWNDElement resid="main" layoutpos="none" layout="borderlayout()" sheet="default" background="rgb(0,0,0)">
 		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp" background="argb(0,0,0,0)">
 			<Element id="atom(mainContainer)" layout="filllayout()" layoutpos="client">
-				<Element id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()">
-
-				</Element>
+				<LVGrid id="atom(UIContainer)" layout="filllayout()" layoutpos="absolute" background="argb(0,0,0,0)" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()"/>
 				<TouchButton layout="filllayout()" id="atom(prevpageMain)" layoutpos="left" background="sgraphic(3001,7,-1,0,0,1,1)" class="pageselector" behaviors="PVL::AnimationTrap()">
 					<RichText id="atom(togglepageGlyph)" layoutpos="client" background="argb(0,0,0,0)" content="resstr(140)"/>
 				</TouchButton>
 				<TouchButton layout="filllayout()" id="atom(nextpageMain)" layoutpos="right" background="sgraphic(3002,7,-1,0,0,1,1)" class="pageselector" behaviors="PVL::AnimationTrap()">
 					<RichText id="atom(togglepageGlyph)" layoutpos="client" background="argb(0,0,0,0)" content="resstr(141)"/>
 				</TouchButton>
-				<Element id="atom(selector)" layout="borderlayout()" visible="false" layoutpos="absolute"/>
 				<Element id="atom(dragpreview)" visible="false" layoutpos="absolute" alpha="160" layout="filllayout()" background="argb(0,0,0,0)">
 					<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false" mousefocused="false"/>
 					<Element id="atom(iconElem)" contentalign="bottomcenter" layout="filllayout()" layoutpos="absolute">
@@ -59,7 +56,6 @@
 		</Element>
 	</HWNDElement>
 	<Element resid="pageVisual" id="atom(pageVisual)" layoutpos="absolute"/>
-	<TouchButton resid="emptyspace" layoutpos="absolute" background="argb(0,0,0,0)"/>
 	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>
 	<LVItem resid="outerElem" layout="filllayout()" visible="false" handleenter="true" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()">
 		<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false" contentalign="bottomcenter"/>
@@ -99,12 +95,6 @@
 			<if id="atom(mainContainer)">
 				<Element background="black"/>
 			</if>
-			<if class="selectoralpha">
-				<Element background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
-			</if>
-			<if class="selectornoalpha">
-				<Element background="argb(0,0,0,0)" borderthickness="rect(2rp,2rp,2rp,2rp)" bordercolor="white"/>
-			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
 				<if mousefocused="true">
@@ -115,6 +105,9 @@
 					<if mousefocused="true">
 						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
 					</if>
+				</if>
+				<if keyfocused="true">
+					<Element contentalign="focusrect"/>
 				</if>
 			</if>
 			<if class="itemTouchOuter">
@@ -170,12 +163,6 @@
 			<if id="atom(mainContainer)">
 				<Element background="black"/>
 			</if>
-			<if class="selectoralpha">
-				<Element background="20066" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="themeable(20005, highlight)"/>
-			</if>
-			<if class="selectornoalpha">
-				<Element background="argb(0,0,0,0)" borderthickness="rect(2rp,2rp,2rp,2rp)" bordercolor="white"/>
-			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
 				<if mousefocused="true">
@@ -186,6 +173,9 @@
 					<if mousefocused="true">
 						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
 					</if>
+				</if>
+				<if keyfocused="true">
+					<Element contentalign="middlecenter|focusrect"/>
 				</if>
 			</if>
 			<if class="itemTouchOuter">

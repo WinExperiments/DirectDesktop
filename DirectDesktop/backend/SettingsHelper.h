@@ -38,7 +38,6 @@ namespace DirectDesktop
     extern bool g_atleastonesetting;
     extern int localeType;
 
-    extern Element* UIContainer;
     extern NativeHWNDHost* wnd;
     extern NativeHWNDHost* subviewwnd;
     extern void RearrangeIcons(bool animation, bool reloadicons, bool bAlreadyOpen);

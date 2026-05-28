@@ -13,6 +13,7 @@ namespace DirectDesktop
     extern bool g_atleastonesetting;
     extern DWORD g_animCoef;
     extern int GetCurrentScaleInterval();
+    extern HWND g_hSHELLDLL_DefView;
     struct yValue;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
@@ -335,6 +336,17 @@ namespace DirectDesktop
         HRESULT _CreateTEVisual();
     };
 
+    enum LVCommonFlags : DWORD
+    {
+        LVCF_NONE = 0x00000000,
+        LVCF_PRESSED = 0x00000001,
+        LVCF_ITEMPRESSED = 0x00000002,
+        LVCF_EXPLORERDRAG = 0x00000004,
+        LVCF_NOANIMATE = 0x00000008,
+        LVCF_ANIMATEPARTIAL = 0x00000010,
+        LVCF_NOASSIGNFUNC = 0x00000020
+    };
+
     enum LVItemGroupSize
     {
         LVIGS_NORMAL = 0,
@@ -378,7 +390,182 @@ namespace DirectDesktop
         LVIF_NEWITEM = 0x00004000
     };
 
+    class LVItem;
     class LVItemTouchGrid;
+
+    // 0.5.8: ListView classes not finalized, they are just a predecessor of what's coming in 0.6. Feedback is welcomed.
+
+    class LVCommon : public Element
+    {
+    public:
+        LVCommon()
+            : _pelMarqueeSelector(nullptr)
+            , _hWorker(nullptr)
+            , _peSelector(nullptr)
+            , _peWhitespace(nullptr)
+            , _peSelected(nullptr)
+            , _peFocused(nullptr)
+            , _idSelectedPivot(0)
+            , _ptOrigin{}
+            , _szDrag{}
+            , _rcGadget{}
+            , _flags(LVCF_NONE)
+        {
+        }
+
+        ~LVCommon();
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnInput(InputEvent* pInput) override;
+        void OnKeyFocusMoved(Element* peFrom, Element* peTo) override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+        Element* GetSelectionElement();
+        TouchButton* GetWhitespaceElement();
+        LVCommonFlags GetFlags();
+        void AddFlags(LVCommonFlags lvcf);
+        void RemoveFlags(LVCommonFlags lvcf);
+        void SetFlags(LVCommonFlags lvcf);
+        POINT GetDragOriginPoint();
+        SIZE GetDragSize();
+
+        HRESULT Add(Element* pe);
+        virtual HRESULT Add(Element** ppe, UINT cCount) override;
+        HRESULT Add(Element* pe, CompareCallback lpfnCompare);
+        HRESULT Insert(Element* pe, UINT iInsertIdx);
+        virtual HRESULT Insert(Element** ppe, UINT cCount, UINT iInsertIdx) override;
+        HRESULT Remove(Element* pe);
+        virtual HRESULT Remove(Element** ppe, UINT cCount) override;
+        HRESULT RemoveAll();
+        HRESULT RemoveAndDestroy(Element* pe);
+        HRESULT Destroy(bool fDelayed = true);
+        HRESULT DestroyAll(bool fDelayed);
+
+        static void SelectItemBase(Element* elem, Event* iev);
+        static void RefineSelections(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+        static void CheckboxHandler(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+
+    protected:
+        IElementListener* _pelMarqueeSelector;
+        HWND _hWorker;
+        Element* _peSelector;
+        TouchButton* _peWhitespace;
+        Element* _peSelected;
+        Element* _peFocused;
+        UINT _idSelectedPivot;
+        POINT _ptOrigin;
+        SIZE _szDrag;
+        RECT _rcGadget;
+        LVCommonFlags _flags;
+        HRESULT _CreateLVVisual();
+        static HRESULT _CreateAnimatingClone(Element* peOrig, RECT* prcOrig, Element** ppeClone);
+        static void _MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+        static DWORD WINAPI _UpdateMarqueeSelectorPosition(LPVOID lpParam);
+        static LRESULT CALLBACK s_ListViewProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnRemoveAll() {}
+    };
+
+    class LVGrid : public LVCommon
+    {
+    public:
+        LVGrid()
+            : _rgXPos{}
+            , _rgYPos{}
+            , _rgXItems{}
+            , _rgYItems{}
+            , _pePivot(nullptr)
+            , _peAnimating(nullptr)
+            , _fAllowNav(true)
+            , _fKeyDown(false)
+            , _keyStateOld(0)
+            , _keyStateOld2(0)
+        {
+            _flags = LVCF_ANIMATEPARTIAL;
+        }
+
+        ~LVGrid()
+        {
+        }
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnInput(InputEvent* pInput) override;
+        void OnKeyFocusMoved(Element* peFrom, Element* peTo) override;
+        bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+
+        void NotifyGridChanges(LVItem** rgLVItem, POINT* rgPosOld, POINT* rgPosNew, int cSize);
+
+    protected:
+        vector<int> _rgXPos;
+        vector<int> _rgYPos;
+        vector<LVItem*> _rgXItems;
+        vector<LVItem*> _rgYItems;
+        Element* _pePivot;
+        Element* _peAnimating;
+        bool _fAllowNav;
+        bool _fKeyDown;
+        BYTE _keyStateOld;
+        BYTE _keyStateOld2;
+        int _SearchArray(vector<int>* rgPos, int iCloseValue);
+        int _SearchArrayExact(vector<int>* rgPos, int iTargetValue);
+        void _ShiftSelectionHelper(RECT* prcPivot, RECT* prcTo);
+        static LRESULT CALLBACK s_LVGridProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnRemoveAll();
+    };
+
+    class LVTiles : public LVCommon
+    {
+    public:
+        LVTiles()
+            : _szGridLayout{}
+        {
+        }
+
+        ~LVTiles()
+        {
+        }
+        static IClassInfo* GetClassInfoPtr();
+        static void SetClassInfoPtr(IClassInfo* pClass);
+        IClassInfo* GetClassInfoW() override;
+        void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        static HRESULT Register();
+        static const PropertyInfo* WINAPI ItemMinWidthProp();
+        static const PropertyInfo* WINAPI ItemHeightProp();
+        int GetItemMinWidth();
+        int GetItemHeight();
+        void SetItemMinWidth(int iItemMinWidth);
+        void SetItemHeight(int iItemHeight);
+
+    protected:
+        SIZE _szGridLayout;
+        void _UpdateGridLayoutParams();
+        int GetPropCommon(const PropertyProcT pPropertyProc);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnRemoveAll() {}
+    };
 
     class LVItem final : public DDScalableTouchButton
     {
@@ -476,6 +663,7 @@ namespace DirectDesktop
         void SetItemCountElement(DDScalableRichText* peItemCount);
         vector<LVItem*>* GetChildItems();
         void SetChildItems(vector<LVItem*>* vpm);
+        vector<IElementListener*>* GetListeners();
         void SetListeners(vector<IElementListener*> pels);
         void ClearAllListeners();
         HANDLE GetDirEvent();
@@ -1063,6 +1251,7 @@ namespace DirectDesktop
             , _pICv1(nullptr)
             , _hMenu(nullptr)
             , _hTimer(nullptr)
+            , _hWndTrack(nullptr)
             , _interfaceLevel(0)
             , _uTrackFlags(0)
             , _uID(0)
@@ -1097,7 +1286,7 @@ namespace DirectDesktop
         {
         }
         HRESULT InitializeDesktopEntries(IShellFolder* psf, IShellView* psv);
-        HRESULT InitializeItemEntries(vector<LVItem*> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl);
+        HRESULT InitializeItemEntries(vector<LVItem**> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl);
         HRESULT CreatePopupMenu(bool fLegacy);
         void DestroyPopupMenu();
         bool GetMenuItemInfoW(UINT item, BOOL fByPosition, LPMENUITEMINFOW lpmii);
@@ -1123,6 +1312,7 @@ namespace DirectDesktop
         IContextMenu* _pICv1;
         HMENU _hMenu;
         HWND _hTimer;
+        HWND _hWndTrack;
         BYTE _interfaceLevel;
         UINT _uTrackFlags;
         UINT _uID;

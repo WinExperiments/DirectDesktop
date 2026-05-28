@@ -318,7 +318,7 @@ namespace DirectDesktop
 	{
 		this->pDataObject = pDataObject;
 		if (this->pDataObject) this->pDataObject->AddRef();
-		if (isIconPressed)
+		if (UIContainer->GetFlags() & LVCF_ITEMPRESSED)
 		{
 			_cf = CF_HDROP;
 			bAllowDrop = TRUE;
@@ -476,7 +476,7 @@ namespace DirectDesktop
 						this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49872, L"shell32.dll").c_str(), _destDirDispName.c_str());
 						break;
 					case DROPEFFECT_MOVE:
-						if (isIconPressed && !lviTarget)
+						if (UIContainer->GetFlags() & LVCF_ITEMPRESSED && !lviTarget)
 							this->_SetDropDescription(g_lockiconpos ? DROPIMAGE_NONE : DROPIMAGE_NOIMAGE, LoadStrFromRes(4044).c_str(), nullptr);
 						else if (dwKeyState & MK_SHIFT && lviTarget && lviTarget->GetFilename() == L"::{645FF040-5081-101B-9F08-00AA002F954E}")
 						DELETEDESC:
@@ -527,13 +527,13 @@ namespace DirectDesktop
 		}
 		else
 		{
-			if (pt.x <= 16 * g_flScaleFactor)
+			if ((localeType != 1 && pt.x < 16 * g_flScaleFactor) || (localeType == 1 && pt.x >= rcDimensions.right - 16 * g_flScaleFactor))
 			{
 				if (!(ptLocFlags & 1))
 					dwTickCountL = GetTickCount64();
 				ptLocFlags = 1;
 			}
-			else if (pt.x > rcDimensions.right - 16 * g_flScaleFactor)
+			else if ((localeType != 1 && pt.x >= rcDimensions.right - 16 * g_flScaleFactor) || (localeType == 1 && pt.x < 16 * g_flScaleFactor))
 			{
 				if (!(ptLocFlags & 2))
 					dwTickCountR = GetTickCount64();
@@ -545,7 +545,8 @@ namespace DirectDesktop
 			{
 				g_currentPageID--;
 				for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
-					selectedLVItems[i]->SetPage(g_currentPageID);
+					if (*selectedLVItems[i])
+						(*selectedLVItems[i])->SetPage(g_currentPageID);
 				TriggerPageTransition(-1, rcDimensions);
 				nextpageMain->SetVisible(true);
 				if (g_currentPageID == 1) prevpageMain->SetVisible(false);
@@ -555,7 +556,8 @@ namespace DirectDesktop
 			{
 				g_currentPageID++;
 				for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
-					selectedLVItems[i]->SetPage(g_currentPageID);
+					if (*selectedLVItems[i])
+						(*selectedLVItems[i])->SetPage(g_currentPageID);
 				TriggerPageTransition(1, rcDimensions);
 				prevpageMain->SetVisible(true);
 				if (g_currentPageID == g_maxPageID) nextpageMain->SetVisible(false);
@@ -589,7 +591,7 @@ namespace DirectDesktop
 			pDropTargetHelper->Drop(pDataObject, (POINT*)&pt, *pdwEffect);
 
 		DWORD pdwEffect2 = _DropEffect(dwKeyState, pt, *pdwEffect);
-		if (isIconPressed && pdwEffect2 == DROPEFFECT_MOVE && (LONG_PTR)_lviLastTarget < 1)
+		if (UIContainer->GetFlags() & LVCF_ITEMPRESSED && pdwEffect2 == DROPEFFECT_MOVE && (LONG_PTR)_lviLastTarget < 1)
 		{
 			SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)&selectedLVItems, 0);
 			if (pDataObject)
@@ -708,7 +710,7 @@ namespace DirectDesktop
 	DWORD CDropTarget::_DropEffect(DWORD dwKeyState, POINTL pt, DWORD dwAllowed)
 	{
 		DWORD dwEffect = DROPEFFECT_MOVE;
-		if (!bSameDrive && !isIconPressed)
+		if (!bSameDrive && !(UIContainer->GetFlags() & LVCF_ITEMPRESSED))
 			dwEffect = DROPEFFECT_COPY;
 		if (dwKeyState & MK_CONTROL)
 			dwEffect = dwAllowed & DROPEFFECT_COPY;
@@ -752,7 +754,7 @@ namespace DirectDesktop
 				continue;
 			for (int j = 0; j < selectedLVItems.size(); j++)
 			{
-				if (pm[i] == selectedLVItems[j])
+				if (pm[i] == (*selectedLVItems[j]))
 				{
 					forceContinue = true;
 					break;
