@@ -349,7 +349,6 @@ namespace DirectDesktop
                     innerElement->SetVisible(false);
                 if (dirname)
                     dirname->SetVisible(false);
-                LoadLibraryW(L"Msftedit.dll");
                 unsigned long keyR{};
                 CValuePtr v;
                 parser->CreateElement(L"RenameBoxTexture", nullptr, nullptr, nullptr, &RenameBoxTexture);

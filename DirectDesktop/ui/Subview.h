@@ -25,7 +25,6 @@ namespace DirectDesktop
 	extern void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
 	extern void ShowDebugInfoOnDesktop(bool bUnused1, bool bUnused2, bool bUnused3);
 
-	extern void ShowCheckboxIfNeeded(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 	extern void OpenGroupInExplorer(Element* elem, Event* iev);
 	extern void CloseCustomizePage(Element* elem, Event* iev);
 	extern void OpenCustomizePage(Element* elem, Event* iev);
@@ -47,7 +46,7 @@ namespace DirectDesktop
 	void HidePopupCore(bool WinDInvoked, bool fNoRefresh);
 	void InitSubview();
 
-	void ShowDirAsGroup(LVItem* lvi);
+	void ShowDirAsGroup(LVItem** pplvi);
 	void SetDefaultRes(Element* elem, Event* iev);
 	void SelectSubItem(Element* elem, Event* iev);
 	void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);

@@ -1,7 +1,7 @@
 <duixml>
 	<HWNDElement resid="fullscreenpopup" layout="filllayout()" layoutpos="none" background="rgb(0,0,0)" margin="rect(0,0,0,0)" sheet="popup">
 		<TouchButton id="atom(fullscreenpopupbase)" layout="filllayout()" layoutpos="client" visible="false">
-			<Element id="atom(fullscreenpopupbg)" layoutpos="client"/>
+			<Element id="atom(fullscreenpopupbg)" layoutpos="client" visible="false"/>
 			<Element id="atom(popupcontainer)" background="argb(0,0,0,0)" layout="flowlayout(0,2,2,0)" layoutpos="client" padding="rect(16rp,16rp,16rp,16rp)" alpha="255" animation="alpha|s|veryfast">
 				<Element id="atom(centered)" layout="filllayout()" background="argb(0,0,0,0)"/>
 			</Element>
@@ -306,7 +306,7 @@
 			</if>
 			<LVTiles background="white"/>
 			<if class="lvitest">
-				<LVItem height="24rp" content="Test" contentalign="middleleft" padding="rect(4rp,0,0,0)" margin="rect(0,0,6rp,6rp)" background="argb(0,0,0,0)"/>
+				<LVItem height="24rp" content="Test" contentalign="middleleft" padding="rect(4rp,0,0,0)" margin="rect(0,0,6rp,6rp)" background="argb(0,0,0,0)" foreground="black"/>
 				<if selected="true">
 					<LVItem background="20002"/>
 				</if>
@@ -356,7 +356,7 @@
 			</if>
 			<LVTiles background="rgb(32,32,32)"/>
 			<if class="lvitest">
-				<LVItem height="24rp" content="Test" contentalign="middleleft" padding="rect(4rp,0,0,0)" margin="rect(0,0,6rp,6rp)" background="argb(0,0,0,0)"/>
+				<LVItem height="24rp" content="Test" contentalign="middleleft" padding="rect(4rp,0,0,0)" margin="rect(0,0,6rp,6rp)" background="argb(0,0,0,0)" foreground="white"/>
 				<if selected="true">
 					<LVItem background="20007"/>
 				</if>

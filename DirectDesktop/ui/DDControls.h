@@ -387,7 +387,8 @@ namespace DirectDesktop
         LVIF_ADVANCEDICON = 0x00000800,
         LVIF_NOSELTRIGGER = 0x00001000,
         LVIF_NOGROUPANIM = 0x00002000,
-        LVIF_NEWITEM = 0x00004000
+        LVIF_NEWITEM = 0x00004000,
+        LVIF_GROUPEX = 0x00008000
     };
 
     class LVItem;

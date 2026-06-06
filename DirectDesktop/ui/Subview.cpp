@@ -32,15 +32,15 @@ namespace DirectDesktop
     bool g_issubviewopen = false;
     bool g_issettingsopen = false;
     bool g_pendingaction = false;
+    bool g_peek = false;
+    bool g_focused = false;
 
     WNDPROC WndProcSubview;
+    WNDPROC WndProcSubviewInner;
 
+    // 0.5.8.1: TODO: Better peek listener
     LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-        int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
-        int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor - textm.tmHeight;
-        int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) - 48 * g_flScaleFactor) / 2;
-        int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) - 48 * g_flScaleFactor) / 2;
         switch (uMsg)
         {
         case WM_DPICHANGED:
@@ -64,16 +64,80 @@ namespace DirectDesktop
         {
             return 0;
         }
+        case WM_CANCELMODE:
+        {
+            if (!g_peek)
+            {
+                g_peek = true;
+                GTRANS_DESC transDesc[1];
+                TransitionStoryboardInfo tsbInfo = {};
+                TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.5f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+                DUI_SetGadgetZOrder(UIContainer, -1);
+                if (g_windowAnim && g_clientAnim)
+                    fullscreenpopupbg->SetVisible(false);
+            }
+            break;
+        }
+        case WM_NCHITTEST:
+        {
+            if (g_peek)
+            {
+                g_peek = false;
+                GTRANS_DESC transDesc[1];
+                TransitionStoryboardInfo tsbInfo = {};
+                TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+                if (g_windowAnim && g_clientAnim)
+                {
+                    centered->SetVisible(false);
+                    TriggerScaleIn(centered, transDesc, 0, 0.05f, 0.3f, 0.25f, 0.1f, 0.25f, 1.0f, 0.97f, 0.97f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, true, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                    AnimateWindow(hWnd, 10, AW_BLEND | AW_HIDE);
+                    HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
+                    if (AnimHandle) CloseHandle(AnimHandle);
+                    SetTimer(subviewwnd->GetHWND(), 2, 50, nullptr);
+                }
+            }
+            break;
+        }
+        case WM_NCACTIVATE:
+        {
+            if (wParam == 0)
+            {
+                HWND hForeground = GetForegroundWindow();
+                if (!hForeground)
+                {
+                    HWND hTrayNotify = FindWindowExW(g_hWndTaskbar, nullptr, L"TrayNotifyWnd", nullptr);
+                    HWND hShowDesktop = FindWindowExW(hTrayNotify, nullptr, L"TrayShowDesktopButtonWClass", nullptr);
+                    RECT rc;
+                    POINT pt;
+                    GetWindowRect(hShowDesktop, &rc);
+                    GetCursorPos(&pt);
+                    if (PtInRect(&rc, pt))
+                    {
+                        g_peek = false;
+                        HidePopupCore(true, true);
+                    }
+                }
+            }
+            break;
+        }
         case WM_TIMER:
         {
             KillTimer(hWnd, wParam);
             switch (wParam)
-                case 1:
-                    if (g_tempElem)
-                        if (!((Element*)g_tempElem)->IsDestroyed())
-                            if (((Element*)g_tempElem)->GetID() == StrToID(L"ResetDesktop"))
-                                ((Element*)g_tempElem)->SetEnabled(true);
-                    break;
+            {
+            case 1:
+                if (g_tempElem)
+                    if (!((Element*)g_tempElem)->IsDestroyed())
+                        if (((Element*)g_tempElem)->GetID() == StrToID(L"ResetDesktop"))
+                            ((Element*)g_tempElem)->SetEnabled(true);
+                break;
+            case 2:
+                fullscreenpopupbg->SetVisible(g_issubviewopen);
+                break;
+            }
             break;
         }
         case WM_USER + 1:
@@ -102,6 +166,10 @@ namespace DirectDesktop
         }
         case WM_USER + 3:
         {
+            int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
+            int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor - textm.tmHeight;
+            int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) - 48 * g_flScaleFactor) / 2;
+            int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) - 48 * g_flScaleFactor) / 2;
             yValueEx* yV = (yValueEx*)lParam;
             vector<LVItem*>* l_pm = yV->vpm;
             vector<DesktopIcon*>* vdi = (vector<DesktopIcon*>*)wParam;
@@ -109,7 +177,12 @@ namespace DirectDesktop
             if (yV->peOptionalTarget1)
                 lvi = yV->peOptionalTarget1->GetParent()->GetParent()->GetParent();
             else if (yV->peOptionalTarget2)
-                lvi = yV->peOptionalTarget2;
+                lvi = *((LVItem**)yV->peOptionalTarget2);
+            else
+            {
+                delete yV;
+                break;
+            }
             for (int num = 0; num < yV->num; num++)
             {
                 if (num >= l_pm->size()) break;
@@ -195,16 +268,19 @@ namespace DirectDesktop
             {
                 CSafeElementPtr<TouchScrollViewer> groupdirlist;
                 groupdirlist.Assign(regElem<TouchScrollViewer*>(L"groupdirlist", lvi));
-                groupdirlist->SetVisible(true);
                 CSafeElementPtr<Element> dirtitle;
                 dirtitle.Assign(regElem<Element*>(L"dirtitle", lvi));
-                dirtitle->SetVisible(true);
+                if (groupdirlist)
+                {
+                    groupdirlist->SetVisible(true);
+                    dirtitle->SetVisible(true);
+                }
 
                 DWORD dwFlags = NULL;
                 if (lvi->GetClassInfoW() == LVItem::GetClassInfoPtr())
                     dwFlags = ((LVItem*)lvi)->GetFlags();
 
-                if (!(dwFlags & LVIF_NOGROUPANIM))
+                if (!(dwFlags & LVIF_NOGROUPANIM) && groupdirlist)
                 {
                     RECT rcList;
                     groupdirlist->GetVisibleRect(&rcList);
@@ -247,6 +323,10 @@ namespace DirectDesktop
         }
         case WM_USER + 4:
         {
+            int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor;
+            int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 48) * g_flScaleFactor - textm.tmHeight;
+            int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) - 48 * g_flScaleFactor) / 2;
+            int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) - 48 * g_flScaleFactor) / 2;
             yValueEx* yV = (yValueEx*)lParam;
             vector<LVItem*>* l_pm = yV->vpm;
             for (int num = 0; num < yV->num; num++)
@@ -337,6 +417,11 @@ namespace DirectDesktop
         return CallWindowProc(WndProcSubview, hWnd, uMsg, wParam, lParam);
     }
 
+    LRESULT CALLBACK InnerWindowProc2(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        return CallWindowProc(WndProcSubviewInner, hWnd, uMsg, wParam, lParam);
+    }
+
     HANDLE g_subiconSemaphore = CreateSemaphoreW(nullptr, 16, 16, nullptr);
 
     DWORD WINAPI subfastin_icons(LPVOID lpParam)
@@ -373,6 +458,13 @@ namespace DirectDesktop
         yValueEx* yV = (yValueEx*)lpParam;
         vector<LVItem*>* l_pm = yV->vpm;
         vector<DesktopIcon*> vdi;
+        LVItem** pplvi = (LVItem**)yV->peOptionalTarget2;
+        if (!pplvi)
+        {
+            UnInitThread();
+            delete yV;
+            return 0;
+        }
         COLORREF colorPickerPalette[8] =
         {
             (iconColorID == 1) ? ImmersiveColor : IconColorizationColor, ImmersiveColor,
@@ -380,9 +472,9 @@ namespace DirectDesktop
             RGB(247, 99, 12), RGB(255, 185, 0), RGB(0, 204, 106)
         };
         int count2{};
-        if (yV->peOptionalTarget1 && yV->peOptionalTarget2) // only re-enumerate when there's a pending container (optional target 1)
-            EnumerateFolder((LPWSTR)RemoveQuotes(((LVItem*)yV->peOptionalTarget2)->GetFilename()).c_str(), l_pm, &count2, yV->num);
-        if (yV->peOptionalTarget2 && !(((LVItem*)yV->peOptionalTarget2)->GetFlags() & LVIF_MEMSELECT))
+        if (yV->peOptionalTarget1 && *pplvi) // only re-enumerate when there's a pending container (optional target 1)
+            EnumerateFolder((LPWSTR)RemoveQuotes((*pplvi)->GetFilename()).c_str(), l_pm, &count2, yV->num);
+        if (*pplvi && !((*pplvi)->GetFlags() & LVIF_GROUPEX))
         {
             UnInitThread();
             delete yV;
@@ -397,7 +489,7 @@ namespace DirectDesktop
         }
         for (int num = 0; num < yV->num; num++)
         {
-            if (yV->peOptionalTarget2 && !(((LVItem*)yV->peOptionalTarget2)->GetFlags() & LVIF_MEMSELECT))
+            if (*pplvi && !((*pplvi)->GetFlags() & LVIF_GROUPEX))
             {
                 for (int num2 = 0; num2 < num - 1; num2++)
                 {
@@ -411,13 +503,15 @@ namespace DirectDesktop
                 delete yV;
                 return 0;
             }
+            if (!(*l_pm)[num])
+                continue;
             if ((*l_pm)[num] && (*l_pm)[num]->GetFlags() & LVIF_REFRESH)
             {
                 DesktopIcon* di = new DesktopIcon;
                 vdi.push_back(di);
                 CSafeElementPtr<DDScalableElement> IconElement;
-                if (yV->peOptionalTarget2)
-                    IconElement.Assign(regElem<DDScalableElement*>(L"iconElem", yV->peOptionalTarget2));
+                if (*pplvi)
+                    IconElement.Assign(regElem<DDScalableElement*>(L"iconElem", *pplvi));
                 yValueEx* yV3 = new yValueEx{ static_cast<int>(colorPickerPalette[IconElement->GetGroupColor()]),
                     static_cast<float>(num), NULL, l_pm, reinterpret_cast<Element*>(di), nullptr };
                 QueueUserWorkItem(SubviewIconsHelper, yV3, 0);
@@ -433,7 +527,7 @@ namespace DirectDesktop
         {
             if (!(*l_pm)[num])
                 continue;
-            if (yV->peOptionalTarget2 && !(((LVItem*)yV->peOptionalTarget2)->GetFlags() & LVIF_MEMSELECT))
+            if (*pplvi && !((*pplvi)->GetFlags() & LVIF_GROUPEX))
             {
                 for (int num2 = 0; num2 < num - 1; num2++)
                 {
@@ -491,8 +585,8 @@ namespace DirectDesktop
                 Element* lvi{};
                 if (yV->peOptionalTarget1)
                     lvi = yV->peOptionalTarget1->GetParent()->GetParent()->GetParent();
-                else if (yV->peOptionalTarget2)
-                    lvi = yV->peOptionalTarget2;
+                else if (*pplvi)
+                    lvi = *pplvi;
                 SendMessageW(subviewwnd->GetHWND(), WM_USER + 6, (WPARAM)((*l_pm)[num]), (LPARAM)lvi);
             }
         }
@@ -510,14 +604,15 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (!g_windowAnim) animCoef = 0;
+        if (!g_windowAnim || !g_clientAnim) animCoef = 0;
         Sleep(175 * (animCoef / 100.0f));
-        if (g_windowAnim)
+        if (g_windowAnim && g_clientAnim)
             AnimateWindow(subviewwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
         else
             subviewwnd->ShowWindow(SW_HIDE);
         //CloakWindow(subviewwnd->GetHWND(), true);
         BlurBackground(subviewwnd->GetHWND(), false, true, 0x33, fullscreenpopupbg);
+        SetTimer(subviewwnd->GetHWND(), 2, 0, nullptr);
         SendMessageW(subviewwnd->GetHWND(), WM_USER + 2, NULL, NULL);
         SetForegroundWindow(wnd->GetHWND());
         return 0;
@@ -527,7 +622,7 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (g_windowAnim)
+        if (g_windowAnim && g_clientAnim)
             AnimateWindow(subviewwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
         else
             subviewwnd->ShowWindow(SW_SHOW);
@@ -638,6 +733,8 @@ namespace DirectDesktop
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
         SetTimer(wnd->GetHWND(), 7, 100, nullptr);
         g_issubviewopen = true;
+        DWORD dwMillis = (g_windowAnim && g_clientAnim) ? 50 : 0;
+        SetTimer(subviewwnd->GetHWND(), 2, dwMillis, nullptr);
     }
 
     void fullscreenAnimation2(Element* peAnimateTo)
@@ -729,7 +826,6 @@ namespace DirectDesktop
             ptIcon.y += (rcIcon.bottom - rcIcon.top) / 2;
         }
         fullscreenAnimation(800 * g_flScaleFactor, 480 * g_flScaleFactor, 0.8, 0.92, ptIcon, peAnimateFrom);
-        //subviewwnd->ShowWindow(SW_SHOW);
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
         BlurBackground(subviewwnd->GetHWND(), true, true, 0x33, fullscreenpopupbg);
@@ -740,7 +836,7 @@ namespace DirectDesktop
     {
         if (!WinDInvoked) SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
         Element* peAnimateTo{};
-        for (LVItem* lvi : pm)
+        for (LVItem*& lvi : pm)
         {
             if (lvi->GetOpenDirState() == LVIODS_FULLSCREEN)
             {
@@ -755,7 +851,7 @@ namespace DirectDesktop
             }
             if (!(g_treatdirasgroup && lvi->GetGroupSize() != LVIGS_NORMAL))
             {
-                lvi->RemoveFlags(LVIF_MEMSELECT);
+                lvi->RemoveFlags(LVIF_GROUPEX);
                 lvi->SetOpenDirState(LVIODS_NONE);
             }
         }
@@ -812,15 +908,18 @@ namespace DirectDesktop
         }
     }
 
-    void ShowDirAsGroup(LVItem* lvi)
+    void ShowDirAsGroup(LVItem** pplvi)
     {
+        if (!pplvi) return;
+        LVItem* lvi = *pplvi;
+        if (!lvi) return;
         unsigned short lviCount = lvi->GetItemCount();
         Element* peAnimate = lvi->GetIcon();
         if (g_touchmode) peAnimate = lvi;
         SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
         ShowPopupCore(peAnimate);
         SetWindowPos(subviewwnd->GetHWND(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        lvi->AddFlags(LVIF_MEMSELECT);
+        lvi->AddFlags(LVIF_GROUPEX);
         lvi->SetOpenDirState(LVIODS_FULLSCREEN);
         Element* groupdirectory{};
         parserSubview->CreateElement(L"groupdirectory", nullptr, nullptr, nullptr, (Element**)&groupdirectory);
@@ -905,7 +1004,7 @@ namespace DirectDesktop
             }
             lvi->SetChildItems(subpm);
             DWORD animThread2;
-            yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, subpm, PendingContainer, lvi };
+            yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, subpm, PendingContainer, (Element*)pplvi };
             HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
             if (animThreadHandle2) CloseHandle(animThreadHandle2);
         }
@@ -1380,6 +1479,7 @@ namespace DirectDesktop
             HideSimpleView(false);
             g_editmode = false;
             ShowPopupCore(nullptr);
+            SetFocus(subviewwnd->GetHWND());
             g_issettingsopen = true;
             Element* settingsview{};
             parserSubview->CreateElement(L"settingsview", nullptr, nullptr, nullptr, (Element**)&settingsview);
@@ -1416,6 +1516,7 @@ namespace DirectDesktop
 
         CLIPFORMAT cf_list[1] = { CF_HDROP };
         HWND hwndInner = FindWindowExW(subviewwnd->GetHWND(), nullptr, L"DirectUIHWND", nullptr);
+        WndProcSubviewInner = (WNDPROC)SetWindowLongPtrW(hwndInner, GWLP_WNDPROC, (LONG_PTR)InnerWindowProc2);
         g_subviewtarget = MyRegisterDragDrop(hwndInner, cf_list, 1, WM_NULL, TheDropProc, NULL);
         g_subviewtarget->SetSubviewFlag();
 

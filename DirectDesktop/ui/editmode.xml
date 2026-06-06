@@ -41,7 +41,7 @@
 		</Element>
 	</HWNDElement>
 	<DDScalableTouchButton resid="fullscreeninner" layoutpos="absolute" background="argb(0,0,0,0)"/>
-	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay" DrawType="1"/>
+	<DDScalableElement resid="simpleviewoverlay" layoutpos="absolute" class="roundoverlay"/>
 	<Element resid="deskpreviewmask" background="rgb(0,0,0)" layoutpos="absolute"/>
 	<Element resid="PageViewer" background="argb(0,0,0,0)" layoutpos="client" layout="filllayout()">
 		<Element id="atom(PV_Inner)" layoutpos="client" layout="filllayout()">
@@ -66,7 +66,7 @@
 		</Element>
 	</Element>
 	<LVItem resid="PV_Page" id="atom(PV_Page)" background="argb(0,0,0,0)" layout="filllayout()">
-		<DDScalableElement id="atom(PV_PageIcons)" class="roundoverlay" DrawType="1" layoutpos="client" layout="flowlayout(0,2,2,0)">
+		<DDScalableElement id="atom(PV_PageIcons)" class="roundoverlay" layoutpos="client" layout="flowlayout(0,2,2,0)">
 			<DDScalableElement id="atom(number)" foreground="white" contentalign="middlecenter" FirstScaledImage="3038" ScaledImageIntervals="7" DrawType="1"
 							   font="36pt;None;None;Segoe UI Light" compositedtext="true" textglowsize="0" borderthickness="rect(8rp,8rp,8rp,8rp)" width="72rp" height="72rp" padding="rect(0,0,0,4rp)"/>
 		</DDScalableElement>
@@ -112,7 +112,7 @@
 			<Element foreground="black"/>
 			<DDScalableElement foreground="black"/>
 			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="1008" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableElement FirstScaledImage="1008" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
 				<Element background="argb(128,224,224,224)"/>
@@ -181,7 +181,7 @@
 			<Element foreground="white"/>
 			<DDScalableElement foreground="white"/>
 			<if class="roundoverlay">
-				<DDScalableElement FirstScaledImage="2008" ScaledImageIntervals="7" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
+				<DDScalableElement FirstScaledImage="2008" ScaledImageIntervals="7" DrawType="1" borderthickness="rect(8rp,8rp,8rp,8rp)"/>
 			</if>
 			<if class="popupbg">
 				<Element background="argb(128,32,32,32)"/>

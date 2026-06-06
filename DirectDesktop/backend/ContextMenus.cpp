@@ -464,7 +464,7 @@ namespace DirectDesktop
                 {
                     if ((*vItems[0])->GetGroupSize() == LVIGS_NORMAL)
                     {
-                        ShowDirAsGroup((*vItems[0]));
+                        ShowDirAsGroup(vItems[0]);
                         break;
                     }
                 }
@@ -507,20 +507,29 @@ namespace DirectDesktop
         if (iev->uidType == LVItem::RightClick)
         {
             bool checkselections = true;
-            if (!elem->GetSelected())
+            selectedLVItems.clear();
+            if (!elem->GetSelected() || (elem->GetParent()->GetParent()->GetClassInfoW() != LVGrid::GetClassInfoPtr()))
             {
+                bool main = false;
                 checkselections = false;
                 for (int items = 0; items < pm.size(); items++)
+                {
                     pm[items]->SetSelected(false);
+                    if (pm[items] == elem)
+                    {
+                        main = true;
+                        pm[items]->SetSelected(true);
+                        selectedLVItems.push_back(&pm[items]);
+                    }
+                }
+                if (!main) selectedLVItems.push_back((LVItem**)&elem);
             }
-            selectedLVItems.clear();
-            selectedLVItems.push_back((LVItem**)&elem);
             if (!g_issubviewopen && checkselections) // 0.5.6.4: temporary hack until selected lvitems is extended to subview
             {
                 for (int items = 0; items < pm.size(); items++)
                 {
-                    if (pm[items]->GetSelected() == true)
-                        if (pm[items] != elem) selectedLVItems.push_back(&pm[items]);
+                    if (pm[items] != elem && pm[items]->GetSelected()) selectedLVItems.push_back(&pm[items]);
+                    else if (pm[items] == elem) selectedLVItems.insert(selectedLVItems.begin(), &pm[items]);
                 }
             }
             if (elem->GetMouseFocused()) RightClickCore(selectedLVItems, nullptr, true);

@@ -7,6 +7,7 @@ using namespace DirectUI;
 namespace DirectDesktop
 {
     extern bool g_editmode;
+    extern bool g_editavailable;
     extern bool g_invokedpagechange;
     extern bool g_hiddenIcons;
     extern bool g_pageviewer;

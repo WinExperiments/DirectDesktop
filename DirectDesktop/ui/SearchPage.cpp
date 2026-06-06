@@ -21,8 +21,10 @@ namespace DirectDesktop
     DDScalableTouchEdit* searchbox;
     WNDPROC WndProcSearch;
 
+    DWORD WINAPI AnimateSearchWindow(LPVOID lpParam);
     void DestroySearchPage();
 
+    // 0.5.8.1: TODO: Better peek listener
     LRESULT CALLBACK SearchWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         switch (uMsg)
@@ -32,6 +34,64 @@ namespace DirectDesktop
                 return 0;
             case WM_DESTROY:
                 return 0;
+            case WM_CANCELMODE:
+            {
+                if (!g_peek)
+                {
+                    g_peek = true;
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.5f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+                    DUI_SetGadgetZOrder(UIContainer, -1);
+                }
+                break;
+            }
+            case WM_NCHITTEST:
+            {
+                if (g_peek)
+                {
+                    g_peek = false;
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
+                    ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+                    if (g_windowAnim && g_clientAnim)
+                    {
+                        CSafeElementPtr<Element> pagecontent;
+                        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+                        pagecontent->SetVisible(false);
+                        TriggerScaleIn(pagecontent, transDesc, 0, 0.05f, 0.3f, 0.25f, 0.1f, 0.25f, 1.0f, 0.97f, 0.97f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, true, false);
+                        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                        AnimateWindow(hWnd, 10, AW_BLEND | AW_HIDE);
+                        HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateSearchWindow, nullptr, NULL, nullptr);
+                        if (AnimHandle) CloseHandle(AnimHandle);
+                    }
+                }
+                break;
+            }
+            case WM_NCACTIVATE:
+            {
+                if (wParam == 0)
+                {
+                    HWND hForeground = GetForegroundWindow();
+                    if (!hForeground)
+                    {
+                        HWND hTrayNotify = FindWindowExW(g_hWndTaskbar, nullptr, L"TrayNotifyWnd", nullptr);
+                        HWND hShowDesktop = FindWindowExW(hTrayNotify, nullptr, L"TrayShowDesktopButtonWClass", nullptr);
+                        RECT rc;
+                        POINT pt;
+                        GetWindowRect(hShowDesktop, &rc);
+                        GetCursorPos(&pt);
+                        if (PtInRect(&rc, pt))
+                        {
+                            g_peek = false;
+                            DestroySearchPage();
+                        }
+                    }
+                }
+                break;
+            }
             case WM_TIMER:
                 KillTimer(hWnd, wParam);
                 switch (wParam)
@@ -53,7 +113,7 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (g_windowAnim)
+        if (g_windowAnim && g_clientAnim)
             AnimateWindow(searchwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
         else
             searchwnd->ShowWindow(SW_SHOW);
@@ -65,10 +125,10 @@ namespace DirectDesktop
     {
         DWORD animCoef = g_animCoef;
         if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (!g_windowAnim) animCoef = 0;
+        if (!g_windowAnim || !g_clientAnim) animCoef = 0;
         Sleep(175 * (animCoef / 100.0f));
         SetForegroundWindow(wnd->GetHWND());
-        if (g_windowAnim)
+        if (g_windowAnim && g_clientAnim)
             AnimateWindow(searchwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
         else
             searchwnd->ShowWindow(SW_HIDE);

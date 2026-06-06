@@ -156,6 +156,8 @@ namespace DirectDesktop
                     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
                 }
                 else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
+                if (ddtb->GetAssociatedFn() != nullptr)
+                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
                 if (rkv.GetValueToFind() == L"Hidden")
                 {
                     DWORD dwDisableToggle;
@@ -163,8 +165,6 @@ namespace DirectDesktop
                     if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
                     return;
                 }
-                if (ddtb->GetAssociatedFn() != nullptr)
-                    ddtb->ExecAssociatedFn(ddtb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }
@@ -177,14 +177,14 @@ namespace DirectDesktop
                 RegKeyValue rkv = ddcmb->GetRegKeyValue();
                 BYTE regSetter = ddcmb->GetSelection();
                 if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
+                if (ddcmb->GetAssociatedFn() != nullptr)
+                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 if (ddcmb->GetShellInteraction())
                 {
                     SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
                     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
                 }
                 else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
-                if (ddcmb->GetAssociatedFn() != nullptr)
-                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }

@@ -819,7 +819,6 @@ namespace DirectDesktop
             {
                 LoadStringW(WinStorageDLL, 9216, ThisPC, 260);
                 FindShellIcon(pmLVItem, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPC, count2);
-                delete[] ThisPC;
             }
             else FindShellIcon(pmLVItem, L"{20D04FE0-3AEA-1069-A2D8-08002B30309D}", ThisPCBuf, count2);
             wchar_t *RecycleBin = new wchar_t[260], *RecycleBinBuf{};
@@ -828,7 +827,6 @@ namespace DirectDesktop
             {
                 LoadStringW(WinStorageDLL, 8964, RecycleBin, 260);
                 FindShellIcon(pmLVItem, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBin, count2);
-                delete[] RecycleBin;
             }
             else FindShellIcon(pmLVItem, L"{645FF040-5081-101B-9F08-00AA002F954E}", RecycleBinBuf, count2);
             wchar_t* UserFiles = new wchar_t[260];
@@ -847,6 +845,8 @@ namespace DirectDesktop
             //FindShellIcon(pmLVItem, L"{2CC5CA98-6485-489A-920E-B3E88A6CCCE3}", LearnAbout, count2); // Disabled until a better way to find CLSIDs is written
             free(ThisPCBuf);
             free(RecycleBinBuf);
+            delete[] ThisPC;
+            delete[] RecycleBin;
             delete[] UserFiles;
             delete[] ControlPanel;
             delete[] Network;
@@ -1386,6 +1386,7 @@ namespace DirectDesktop
         };
         BYTE* valueSizeKey{}, *valueCommon{};
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &valueSizeKey);
+        DWORD dwCount = _msize(valueSizeKey);
         //GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DesktopLayoutCommon", &valueCommon);
         size_t offsetSizeKey = 0, offsetCommon = 0;
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
@@ -1397,7 +1398,7 @@ namespace DirectDesktop
         }
         if (full)
         {
-            for (int i = 0; i < pm.size(); i++)
+            while (offsetSizeKey < dwCount)
             {
                 unsigned short namelen = *reinterpret_cast<unsigned short*>(&valueSizeKey[offsetSizeKey]);
                 offsetSizeKey += 2;
@@ -1441,8 +1442,11 @@ namespace DirectDesktop
             free(valueSizeKey);
             valueSizeKey = nullptr;
             GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", &valueSizeKey);
+            dwCount = _msize(valueSizeKey);
             offsetSizeKey = 0;
-            for (int i = 0; i < pm.size(); i++)
+            int i = 0, last = 0;
+            int count = pm.size();
+            while (offsetSizeKey < dwCount && i < count)
             {
                 if (pm[i]->GetFlags() & LVIF_DIR)
                 {
@@ -1451,7 +1455,8 @@ namespace DirectDesktop
                     wstring filename = wstring(reinterpret_cast<WCHAR*>(&valueSizeKey[offsetSizeKey]), namelen);
                     offsetSizeKey += (namelen * 2);
                     bool match = false;
-                    for (int j = 0; j < pm.size(); j++)
+                    int offsetFilenames = 0; // 0.5.8.1: The workaround this variable does (alignment after new folders) needs rigorous testing.
+                    for (int j = last; j < pm.size(); j++)
                     {
                         if (pm[j]->GetFilename() == filename)
                         {
@@ -1459,11 +1464,24 @@ namespace DirectDesktop
                             offsetSizeKey += 2;
                             pm[j]->SetGroupSize(static_cast<LVItemGroupSize>(size));
                             match = true;
+                            i += offsetFilenames;
+                            last = i + 1;
                             break;
                         }
+                        else if (pm[j]->GetFlags() & LVIF_DIR)
+                        {
+                            pm[j]->SetGroupSize(LVIGS_NORMAL);
+                            offsetFilenames++;
+                        }
                     }
-                    if (!match) offsetSizeKey += 2;
+                    if (!match)
+                    {
+                        offsetSizeKey += 2;
+                        i--;
+                    }
                 }
+                i++;
+                if (i >= pm.size()) break;
             }
         }
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable"))
@@ -1471,8 +1489,11 @@ namespace DirectDesktop
             free(valueSizeKey);
             valueSizeKey = nullptr;
             GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", &valueSizeKey);
+            dwCount = _msize(valueSizeKey);
             offsetSizeKey = 0;
-            for (int i = 0; i < pm.size(); i++)
+            int i = 0, last = 0;
+            int count = pm.size();
+            while (offsetSizeKey < dwCount && i < count)
             {
                 DDScalableElement* peIcon = pm[i]->GetIcon();
                 if (pm[i]->GetFlags() & LVIF_DIR)
@@ -1482,7 +1503,8 @@ namespace DirectDesktop
                     wstring filename = wstring(reinterpret_cast<WCHAR*>(&valueSizeKey[offsetSizeKey]), namelen);
                     offsetSizeKey += (namelen * 2);
                     bool match = false;
-                    for (int j = 0; j < pm.size(); j++)
+                    int offsetFilenames = 0; // 0.5.8.1: The workaround this variable does (alignment after new folders) needs rigorous testing.
+                    for (int j = last; j < pm.size(); j++)
                     {
                         if (pm[j]->GetFilename() == filename)
                         {
@@ -1512,11 +1534,28 @@ namespace DirectDesktop
                             offsetSizeKey += 2;
                             peIcon->SetDDCPIntensity(intensity);
                             match = true;
+                            i += offsetFilenames;
+                            last = i + 1;
                             break;
                         }
+                        else if (pm[j]->GetFlags() & LVIF_DIR)
+                        {
+                            peIcon->SetGroupColor(0);
+                            DDScalableRichText* peItemCount = pm[j]->GetItemCountElement();
+                            if (g_isGlass || g_touchmode);
+                            else if (g_isColorized)
+                                peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
+                            else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
+                            offsetFilenames++;
+                        }
                     }
-                    if (!match) offsetSizeKey += 4;
+                    if (!match)
+                    {
+                        offsetSizeKey += 4;
+                        i--;
+                    }
                 }
+                i++;
             }
         }
         free(valueSizeKey);

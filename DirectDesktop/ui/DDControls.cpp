@@ -2337,8 +2337,11 @@ namespace DirectDesktop
                     }
                 }
             }
+            bool selectedOld = elem->GetSelected();
             if (!fInCheckbox) elem->SetSelected(ctrlKey ? !elem->GetSelected() : true);
             else if (validation & 1) elem->SetSelected(!elem->GetSelected());
+            if (elem->GetSelected() == selectedOld == true)
+                ((LVItem*)elem)->AddFlags(LVIF_MEMSELECT);
         }
     }
 
@@ -2346,6 +2349,11 @@ namespace DirectDesktop
     {
         if (pProp == Element::MouseWithinProp() || pProp == Element::SelectedProp())
         {
+            if (pProp == Element::SelectedProp())
+            {
+                if (!pV2->GetBool())
+                    ((LVItem*)elem)->RemoveFlags(LVIF_MEMSELECT);
+            }
             TouchButton* checkboxElem = ((LVItem*)elem)->GetCheckbox();
             bool fKeyboard = (GetAsyncKeyState(VK_LEFT) & 0x8000 || GetAsyncKeyState(VK_UP) & 0x8000 ||
                 GetAsyncKeyState(VK_RIGHT) & 0x8000 || GetAsyncKeyState(VK_DOWN) & 0x8000 ||
@@ -2427,6 +2435,7 @@ namespace DirectDesktop
         return hr;
     }
 
+    // 0.5.8.1: TODO: Add stuff for cCount
     HRESULT LVCommon::Add(Element** ppe, UINT cCount)
     {
         HRESULT hr = _peWhitespace->Add(ppe, cCount);
@@ -2467,6 +2476,7 @@ namespace DirectDesktop
         return hr;
     }
 
+    // 0.5.8.1: TODO: Add stuff for cCount
     HRESULT LVCommon::Insert(Element** ppe, UINT cCount, UINT iInsertIdx)
     {
         HRESULT hr = _peWhitespace->Insert(ppe, cCount, iInsertIdx);
@@ -2492,9 +2502,9 @@ namespace DirectDesktop
         RECT rcRemove{}, rcNext{}, rcParent{};
         Element* peClone{};
         HRESULT hr = S_OK;
+        GetGadgetRect(pe->GetDisplayNode(), &rcRemove, 0xC);
         if (!(_flags & LVCF_NOANIMATE))
         {
-            GetGadgetRect(pe->GetDisplayNode(), &rcRemove, 0xC);
             if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
             {
                 GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
@@ -2535,14 +2545,15 @@ namespace DirectDesktop
         return hr;
     }
 
+    // 0.5.8.1: TODO: Add stuff for cCount
     HRESULT LVCommon::Remove(Element** ppe, UINT cCount)
     {
         RECT rcRemove{}, rcNext{}, rcParent{};
         Element* peClone{};
         HRESULT hr = S_OK;
+        GetGadgetRect((*ppe)->GetDisplayNode(), &rcRemove, 0xC);
         if (!(_flags & LVCF_NOANIMATE))
         {
-            GetGadgetRect((*ppe)->GetDisplayNode(), &rcRemove, 0xC);
             if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
             {
                 GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
@@ -2594,9 +2605,9 @@ namespace DirectDesktop
         RECT rcRemove{}, rcNext{}, rcParent{};
         Element* peClone = pe;
         HRESULT hr = S_OK;
+        GetGadgetRect(pe->GetDisplayNode(), &rcRemove, 0xC);
         if (!(_flags & LVCF_NOANIMATE))
         {
-            GetGadgetRect(pe->GetDisplayNode(), &rcRemove, 0xC);
             if (this->GetClassInfoW() != LVGrid::GetClassInfoPtr())
             {
                 GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParent, 0xC);
@@ -2683,6 +2694,7 @@ namespace DirectDesktop
                         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
                         _szDrag.cx = _wtoi(cxDragStr);
                         _szDrag.cy = _wtoi(cyDragStr);
+                        GetGadgetRect(this->GetDisplayNode(), &_rcGadget, 0xC);
                     }
                 }
             }
@@ -2855,6 +2867,7 @@ namespace DirectDesktop
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 
+    // 0.5.8.1: TODO: rcLVHost must be a TouchScrollViewer for so that out of bound rects can be excluded
     void LVCommon::_OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext)
     {
         ((LVItem*)*ppe)->SetShowKeyFocus(false);
@@ -2868,11 +2881,16 @@ namespace DirectDesktop
         }
         if (!(_flags & LVCF_NOANIMATE))
         {
+            RECT rcLVHost;
+            GetGadgetRect(this->GetParent()->GetDisplayNode(), &rcLVHost, 0xC);
             GTRANS_DESC transDesc[2];
-            TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
             TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            if (prcGadget->right > rcLVHost.left && prcGadget->bottom > rcLVHost.top && prcGadget->left < rcLVHost.right && prcGadget->top < rcLVHost.bottom)
+            {
+                TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            }
             if (!(_flags & LVCF_ANIMATEPARTIAL))
             {
                 CValuePtr v;
@@ -2886,7 +2904,8 @@ namespace DirectDesktop
                             Element* child = rgList->GetItem(i);
                             RECT rcItem;
                             GetGadgetRect(child->GetDisplayNode(), &rcItem, 0xC);
-                            if (rcItem.top > prcGadget->top)
+                            if (rcItem.top > prcGadget->top &&
+                                rcItem.right > rcLVHost.left && rcItem.bottom > rcLVHost.top && rcItem.left < rcLVHost.right && rcItem.top < rcLVHost.bottom)
                             {
                                 TriggerTranslate(child, transDesc, 0, 0.0f, 0.367f, 0.75f, 0.0f, 0.0f, 1.0f,
                                     0, prcGadget->top - prcNext->top, 0, 0, false, false, true);
@@ -2903,11 +2922,16 @@ namespace DirectDesktop
     {
         if (!(_flags & LVCF_NOANIMATE))
         {
+            RECT rcLVHost;
+            GetGadgetRect(this->GetParent()->GetDisplayNode(), &rcLVHost, 0xC);
             GTRANS_DESC transDesc[3];
-            TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
             TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+            if (prcGadget->right > rcLVHost.left && prcGadget->bottom > rcLVHost.top && prcGadget->left < rcLVHost.right && prcGadget->top < rcLVHost.bottom)
+            {
+                TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+            }
             if (!(_flags & LVCF_ANIMATEPARTIAL))
             {
                 CValuePtr v;
@@ -2921,7 +2945,8 @@ namespace DirectDesktop
                             Element* child = rgList->GetItem(i);
                             RECT rcItem;
                             GetGadgetRect(child->GetDisplayNode(), &rcItem, 0xC);
-                            if (rcItem.top >= prcGadget->top)
+                            if (rcItem.top >= prcGadget->top &&
+                                rcItem.right > rcLVHost.left && rcItem.bottom > rcLVHost.top && rcItem.left < rcLVHost.right && rcItem.top < rcLVHost.bottom)
                             {
                                 TriggerTranslate(child, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
                                     0, 0, 0, 0, false, false, true);
@@ -3014,7 +3039,7 @@ namespace DirectDesktop
                                 indexX--;
                             else if (keyState & 0x4)
                                 indexX++;
-                            if (indexX == -1 || indexX == _rgXItems.size())
+                            if (indexX < 0 || indexX >= _rgXItems.size())
                             {
                                 foundItem = false;
                                 break;
@@ -3033,7 +3058,7 @@ namespace DirectDesktop
                                     indexX--;
                                 else if (keyState & 0x4)
                                     indexX++;
-                                if (indexX == -1 || indexX == _rgXItems.size())
+                                if (indexX < 0 || indexX >= _rgXItems.size())
                                 {
                                     foundItem = false;
                                     break;
@@ -3070,7 +3095,7 @@ namespace DirectDesktop
                                 indexY--;
                             else if (keyState & 0x8)
                                 indexY++;
-                            if (indexY == -1 || indexY == _rgYItems.size())
+                            if (indexY < 0 || indexY >= _rgYItems.size())
                             {
                                 foundItem = false;
                                 break;
@@ -3089,7 +3114,7 @@ namespace DirectDesktop
                                     indexY--;
                                 else if (keyState & 0x8)
                                     indexY++;
-                                if (indexY == -1 || indexY == _rgYItems.size())
+                                if (indexY < 0 || indexY >= _rgYItems.size())
                                 {
                                     foundItem = false;
                                     break;
@@ -3273,6 +3298,7 @@ namespace DirectDesktop
 
         // 0.5.8: TODO: Remove this part once a better EventListener is implemented
         // because we do not want this desktop-specific behavior to apply to EVERY LVGrid
+        WCHAR elementinfo[160], className[64];
         HWND hwndForeground = GetForegroundWindow();
         DWORD threadId = GetWindowThreadProcessId(hwndForeground, NULL);
         GUITHREADINFO gui;
@@ -3296,6 +3322,11 @@ namespace DirectDesktop
             SetFocus(wnd->GetHWND());
             peTo = _peWhitespace;
         }
+        //GetClassNameW(hwndForeground, className, 64);
+        //StringCchPrintfW(elementinfo, 160, L"peFrom: %x\npeTo: %x\npeSelected: %x\nActive window: %s",
+        //    peFrom, peTo, _peSelected, className);
+        //DDNotificationBanner* ddnb = new DDNotificationBanner();
+        //ddnb->CreateBanner(DDNT_INFO, nullptr, elementinfo, 8);
         ///////////////////////////////////////////////////////////////////////////
 
         if (!(shiftKey & 0x8000) && _pePivot != _peSelected)
@@ -3596,6 +3627,7 @@ namespace DirectDesktop
         return s_ListViewProc(hWnd, uMsg, wParam, lParam);
     }
 
+    // 0.5.8.1: TODO: rcLVHost must be a TouchScrollViewer for so that out of bound rects can be excluded
     void LVGrid::_OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext)
     {
         ((LVItem*)*ppe)->SetShowKeyFocus(false);
@@ -3616,11 +3648,16 @@ namespace DirectDesktop
         }
         if (!(_flags & LVCF_NOANIMATE))
         {
-            GTRANS_DESC transDesc[2];
-            TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            RECT rcLVHost;
+            GetGadgetRect(this->GetParent()->GetDisplayNode(), &rcLVHost, 0xC);
+            if (prcGadget->right > rcLVHost.left && prcGadget->bottom > rcLVHost.top && prcGadget->left < rcLVHost.right && prcGadget->top < rcLVHost.bottom)
+            {
+                GTRANS_DESC transDesc[2];
+                TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                TransitionStoryboardInfo tsbInfo = {};
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            }
         }
     }
 
@@ -3636,32 +3673,36 @@ namespace DirectDesktop
             ptIndex.x = _rgXItems.size() - 1;
         if (ptIndex.y > _rgYItems.size() - 1)
             ptIndex.y = _rgYItems.size() - 1;
-        while (_rgXItems[ptIndex.x]->GetSimpleFilename() != ((LVItem*)*ppe)->GetSimpleFilename())
+        while (_rgXItems[ptIndex.x]->GetFilename() != ((LVItem*)*ppe)->GetFilename())
         {
             if (reverseX) ptIndex.x--;
             else ptIndex.x++;
-            if (ptIndex.x == -1 || ptIndex.x == _rgXItems.size())
-                return;
+            if (ptIndex.x < 0 || ptIndex.x >= _rgXItems.size())
+                break;
             GetGadgetRect(_rgXItems[ptIndex.x]->GetDisplayNode(), &rcSearch, 0xC);
             if (rcSearch.left > prcGadget->left)
             {
                 reverseX = true;
                 ptIndex.x = ptPivot.x - 1;
+                if (ptIndex.x < 0)
+                    break;
             }
             if (rcSearch.left < prcGadget->left)
                 break;
         }
-        while (_rgYItems[ptIndex.y]->GetSimpleFilename() != ((LVItem*)*ppe)->GetSimpleFilename())
+        while (_rgYItems[ptIndex.y]->GetFilename() != ((LVItem*)*ppe)->GetFilename())
         {
             if (reverseY) ptIndex.y--;
             else ptIndex.y++;
-            if (ptIndex.y == -1 || ptIndex.y == _rgYItems.size())
-                return;
+            if (ptIndex.y < 0 || ptIndex.y >= _rgYItems.size())
+                break;
             GetGadgetRect(_rgYItems[ptIndex.y]->GetDisplayNode(), &rcSearch, 0xC);
             if (rcSearch.top > prcGadget->top)
             {
                 reverseY = true;
                 ptIndex.y = ptPivot.y - 1;
+                if (ptIndex.y < 0)
+                    break;
             }
             if (rcSearch.top < prcGadget->top)
                 break;
@@ -3674,11 +3715,16 @@ namespace DirectDesktop
         _rgYItems.erase(_rgYItems.begin() + ptIndex.y);
         if (!(_flags & LVCF_NOANIMATE))
         {
-            GTRANS_DESC transDesc[2];
-            TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            RECT rcLVHost;
+            GetGadgetRect(this->GetParent()->GetDisplayNode(), &rcLVHost, 0xC);
+            if (prcGadget->right > rcLVHost.left && prcGadget->bottom > rcLVHost.top && prcGadget->left < rcLVHost.right && prcGadget->top < rcLVHost.bottom)
+            {
+                GTRANS_DESC transDesc[2];
+                TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
+                TransitionStoryboardInfo tsbInfo = {};
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            }
         }
     }
 
@@ -3839,6 +3885,7 @@ namespace DirectDesktop
         }
     }
 
+    // 0.5.8.1: TODO: rcLVHost must be a TouchScrollViewer for so that out of bound rects can be excluded
     void LVTiles::_OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext)
     {
         ((LVItem*)*ppe)->SetShowKeyFocus(false);
@@ -3853,11 +3900,16 @@ namespace DirectDesktop
         }
         if (!(_flags & LVCF_NOANIMATE))
         {
+            RECT rcLVHost;
+            GetGadgetRect(this->GetParent()->GetDisplayNode(), &rcLVHost, 0xC);
             GTRANS_DESC transDesc[2];
-            TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
             TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            if (prcGadget->right > rcLVHost.left && prcGadget->bottom > rcLVHost.top && prcGadget->left < rcLVHost.right && prcGadget->top < rcLVHost.bottom)
+            {
+                TriggerFade(*ppe, transDesc, 0, 0.06f, 0.143f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                TriggerScaleIn(*ppe, transDesc, 1, 0.06f, 0.31f, 0.0f, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+            }
             if (!(_flags & LVCF_ANIMATEPARTIAL))
             {
                 GetGadgetRect((*ppe)->GetDisplayNode(), prcGadget, 0xC);
@@ -3871,10 +3923,11 @@ namespace DirectDesktop
                         {
                             RECT rcItem;
                             GetGadgetRect(rgList->GetItem(i)->GetDisplayNode(), &rcItem, 0xC);
-                            if (rcItem.top > prcGadget->top || (rcItem.top >= prcGadget->top && 
-                                ((localeType != 1 && rcItem.left > prcGadget->left) || (localeType == 1 && rcItem.right < prcGadget->right))))
+                            if ((rcItem.top > prcGadget->top || (rcItem.top >= prcGadget->top && 
+                                ((localeType != 1 && rcItem.left > prcGadget->left) || (localeType == 1 && rcItem.right < prcGadget->right)))) &&
+                                rcItem.right > rcLVHost.left && rcItem.bottom > rcLVHost.top && rcItem.left < rcLVHost.right && rcItem.top < rcLVHost.bottom)
                             {
-                                Element* child = rgList -> GetItem(i);
+                                Element* child = rgList->GetItem(i);
                                 if (i > 0)
                                     GetGadgetRect(rgList->GetItem(i - 1)->GetDisplayNode(), prcNext, 0xC);
                                 if (prcNext->top - rcItem.top == 0)
@@ -3913,6 +3966,8 @@ namespace DirectDesktop
         _UpdateGridLayoutParams();
         if (!(_flags & LVCF_NOANIMATE))
         {
+            RECT rcLVHost;
+            GetGadgetRect(this->GetParent()->GetDisplayNode(), &rcLVHost, 0xC);
             RECT rcParentOld;
             GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcParentOld, 0xC);
             prcGadget->top += (rcParentOld.top - rcParent.top);
@@ -3920,10 +3975,13 @@ namespace DirectDesktop
             prcNext->top += (rcParentOld.top - rcParent.top);
             prcNext->bottom += (rcParentOld.top - rcParent.top);
             GTRANS_DESC transDesc[3];
-            TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
-            TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
             TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+            if (prcGadget->right > rcLVHost.left && prcGadget->bottom > rcLVHost.top && prcGadget->left < rcLVHost.right && prcGadget->top < rcLVHost.bottom)
+            {
+                TriggerFade(*ppeClone, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TriggerScaleOut(*ppeClone, transDesc, 1, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.88f, 0.88f, 0.5f, 0.5f, false, true);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 1, transDesc, nullptr, &tsbInfo);
+            }
             if (!(_flags & LVCF_ANIMATEPARTIAL))
             {
                 CValuePtr v;
@@ -3936,8 +3994,9 @@ namespace DirectDesktop
                         {
                             RECT rcItem;
                             GetGadgetRect(rgList->GetItem(i)->GetDisplayNode(), &rcItem, 0xC);
-                            if (rcItem.top > prcGadget->top || (rcItem.top >= prcGadget->top &&
-                                ((localeType != 1 && rcItem.left >= prcGadget->left) || (localeType == 1 && rcItem.right <= prcGadget->right))))
+                            if ((rcItem.top > prcGadget->top || (rcItem.top >= prcGadget->top &&
+                                ((localeType != 1 && rcItem.left >= prcGadget->left) || (localeType == 1 && rcItem.right <= prcGadget->right)))) &&
+                                rcItem.right > rcLVHost.left && rcItem.bottom > rcLVHost.top && rcItem.left < rcLVHost.right && rcItem.top < rcLVHost.bottom)
                             {
                                 Element* child = rgList->GetItem(i);
                                 if (i < rgList->GetSize() - 1 && rgList->GetItem(i + 1)->GetLayoutPos() != -2)
@@ -5552,8 +5611,11 @@ namespace DirectDesktop
 
     void DDSlider::SetCurrentValue(float currValue, bool fExternal)
     {
-        if (currValue < _minValue) currValue = _minValue;
-        if (currValue > _maxValue) currValue = _maxValue;
+        if (fExternal)
+        {
+            if (currValue < _minValue) currValue = _minValue;
+            if (currValue > _maxValue) currValue = _maxValue;
+        }
         _currValue = currValue;
         if (fExternal)
         {
@@ -5699,8 +5761,11 @@ namespace DirectDesktop
         _peTrack->SetLayoutPos(DDSFillLayoutPos);
         _peFill->SetLayoutPos(DDSFillLayoutPos);
 
+        float boundCurrValue = _currValue;
+        if (boundCurrValue < _minValue) boundCurrValue = _minValue;
+        if (boundCurrValue > _maxValue) boundCurrValue = _maxValue;
         float relMaxValue = _maxValue - _minValue;
-        float relCurrValue = _currValue - _minValue;
+        float relCurrValue = boundCurrValue - _minValue;
         if (vertical)
         {
             int height = this->GetHeight() - this->GetTextHeight();
@@ -6513,13 +6578,14 @@ namespace DirectDesktop
             static short sLeft, sRight;
             sLeft = GetAsyncKeyState(VK_LEFT);
             sRight = GetAsyncKeyState(VK_RIGHT);
-            if ((localeType != 1 && (sLeft & 1 || sLeft & 0x8000)) || (localeType == 1 && (sRight & 1 || sRight & 0x8000)))
+            bool rtl = ((DDMenu*)_peLinked)->_uTrackFlags & TPM_LAYOUTRTL;
+            if ((!rtl && (sLeft & 1 || sLeft & 0x8000)) || (rtl && (sRight & 1 || sRight & 0x8000)))
             {
                 if (((DDMenu*)this->_peLinked))
                     ((DDMenu*)this->_peLinked)->_HideMenu();
                 _fKeyFocusInit = false;
             }
-            else if ((localeType != 1 && (sRight & 1 || sRight & 0x8000)) || (localeType == 1 && (sLeft & 1 || sLeft & 0x8000)))
+            else if ((!rtl && (sRight & 1 || sRight & 0x8000)) || (rtl && (sLeft & 1 || sLeft & 0x8000)))
             {
                 if (this->_submenu)
                     ((DDMenu*)_peLinked)->_OnButtonClick(this, true);
@@ -7930,7 +7996,7 @@ namespace DirectDesktop
         Element* pHostElement;
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
+        DWORD dwExStyle = WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, dwCreateFlags = 0x10;
         if (DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
@@ -7964,6 +8030,8 @@ namespace DirectDesktop
             SetGadgetFlags(_pDDNB->GetDisplayNode(), NULL, NULL);
             MARGINS margins = { -1, -1, -1, -1 };
             DwmExtendFrameIntoClientArea(_wnd->GetHWND(), &margins);
+            BOOL bNoCloak = TRUE;
+            HRESULT hr = DwmSetWindowAttribute(_wnd->GetHWND(), DWMWA_EXCLUDED_FROM_PEEK, &bNoCloak, sizeof(bNoCloak));
             if (WindowsBuild > 22000 || WindowsBuild == 22000 && WindowsRev >= 51)
             {
                 DWORD cornerPreference = DWMWCP_ROUND;

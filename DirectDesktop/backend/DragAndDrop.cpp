@@ -591,6 +591,7 @@ namespace DirectDesktop
 			pDropTargetHelper->Drop(pDataObject, (POINT*)&pt, *pdwEffect);
 
 		DWORD pdwEffect2 = _DropEffect(dwKeyState, pt, *pdwEffect);
+
 		if (UIContainer->GetFlags() & LVCF_ITEMPRESSED && pdwEffect2 == DROPEFFECT_MOVE && (LONG_PTR)_lviLastTarget < 1)
 		{
 			SendMessageW(wnd->GetHWND(), WM_USER + 18, g_lockiconpos ? NULL : (WPARAM)&selectedLVItems, 0);
@@ -605,6 +606,9 @@ namespace DirectDesktop
 		}
 		else if (_lviLastTarget && (LONG_PTR)_lviLastTarget != -1 && (_lviLastTarget->GetFlags() & LVIF_SHORTCUT || _lviLastTarget->GetExt() == L".exe"))
 		{
+			for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
+				if (*selectedLVItems[i])
+					(*selectedLVItems[i])->SetPage((*selectedLVItems[i])->GetMemPage());
 			LaunchItem(RemoveQuotes(_lviLastTarget->GetFilename()).c_str());
 			if (pDataObject)
 			{
@@ -615,6 +619,9 @@ namespace DirectDesktop
 			_lviLastTarget = (LVItem*)-1;
 			return S_OK;
 		}
+		for (int i = 0; i < selectedLVItems.size() && !g_lockiconpos; i++)
+			if (*selectedLVItems[i])
+				(*selectedLVItems[i])->SetPage((*selectedLVItems[i])->GetMemPage());
 
 		FORMATETC fmtetc = { CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL | TYMED_ISTREAM | TYMED_ISTORAGE };
 		STGMEDIUM medium;
