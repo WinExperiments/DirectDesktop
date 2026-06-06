@@ -3460,7 +3460,7 @@ namespace DirectDesktop
         short ctrlKey = GetAsyncKeyState(VK_CONTROL);
         short shiftKey = GetAsyncKeyState(VK_SHIFT);
         short enterKey = GetAsyncKeyState(VK_RETURN);
-        static BYTE textclicks = 1;
+        static short textclicks = 1;
         if (iev->uidType == LVItem::Click || iev->uidType == LVItem::MultipleClick)
         {
             if (elem->GetSelected() && (shellstate[4] & 0x20) && !g_touchmode && (((LVItem*)elem)->GetFlags() & LVIF_MEMSELECT) &&
@@ -4669,7 +4669,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 96");
+            peTemp[1]->SetContentString(L"Build 96a");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", DWMActive ? L"Yes" : L"No");

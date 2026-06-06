@@ -1386,7 +1386,9 @@ namespace DirectDesktop
         };
         BYTE* valueSizeKey{}, *valueCommon{};
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &valueSizeKey);
-        DWORD dwCount = _msize(valueSizeKey);
+        DWORD dwCount = 0;
+        if (valueSizeKey)
+            dwCount = _msize(valueSizeKey);
         //GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"DesktopLayoutCommon", &valueCommon);
         size_t offsetSizeKey = 0, offsetCommon = 0;
         if (EnsureRegValueExists(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize))
@@ -1442,7 +1444,9 @@ namespace DirectDesktop
             free(valueSizeKey);
             valueSizeKey = nullptr;
             GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupSizeTable", &valueSizeKey);
-            dwCount = _msize(valueSizeKey);
+            dwCount = 0;
+            if (valueSizeKey)
+                dwCount = _msize(valueSizeKey);
             offsetSizeKey = 0;
             int i = 0, last = 0;
             int count = pm.size();
@@ -1489,7 +1493,9 @@ namespace DirectDesktop
             free(valueSizeKey);
             valueSizeKey = nullptr;
             GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"GroupColorTable", &valueSizeKey);
-            dwCount = _msize(valueSizeKey);
+            dwCount = 0;
+            if (valueSizeKey)
+                dwCount = _msize(valueSizeKey);
             offsetSizeKey = 0;
             int i = 0, last = 0;
             int count = pm.size();
