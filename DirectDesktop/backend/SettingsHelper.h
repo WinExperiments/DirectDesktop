@@ -21,6 +21,7 @@ namespace DirectDesktop
     extern BOOL g_tooltipAnim;
     extern bool g_labelshadow;
     extern bool g_selectionrect;
+    extern bool g_autohidetaskbar;
     extern bool g_treatdirasgroup;
     extern bool g_showfolderitemcount;
     extern bool g_tripleclickandhide;

@@ -17,7 +17,7 @@
 					<Element id="atom(shortcutElem)" direction="ltr" layoutpos="absolute" contentalign="bottomleft"/>
 					<RichText id="atom(textElem)" layoutpos="bottom" contentalign="topcenter"/>
 					<RichText id="atom(folderItemsElem)" contentalign="middlecenter" layoutpos="absolute"/>
-					<Element layout="ninegridlayout()" layoutpos="ninetopleft">
+					<Element id="atom(checkarea)" layout="ninegridlayout()" layoutpos="ninetopleft">
 						<TouchButton id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopleft" margin="rect(6rp,6rp,0,0)"/>
 					</Element>
 					<Element layout="flowlayout(0,2,2,2)" layoutpos="client" background="argb(0,0,0,0)">
@@ -44,7 +44,7 @@
 							<RichText id="atom(textElem)" layoutpos="top"/>
 						</Element>
 					</Element>
-					<Element layout="ninegridlayout()" layoutpos="ninetopright">
+					<Element id="atom(checkarea)" layout="ninegridlayout()" layoutpos="ninetopright">
 						<TouchButton id="atom(checkboxElem)" class="checkbox" selected="true" visible="false" layoutpos="ninetopright" margin="rect(0,8rp,8rp,0)"/>
 					</Element>
 					<Element layout="flowlayout(0,2,2,2)" layoutpos="client" background="argb(0,0,0,0)">
@@ -63,7 +63,7 @@
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
 		<DDScalableRichText id="atom(folderItemsElem)" class="itemcount" visible="false" layoutpos="absolute" contentalign="middlecenter" font="iconfont;100%" minsize="size(16rp,16rp)"/>
-		<Element layout="ninegridlayout()" layoutpos="ninetopleft" background="argb(0,0,0,0)">
+		<Element id="atom(checkarea)" layout="ninegridlayout()" layoutpos="ninetopleft" background="argb(0,0,0,0)">
 			<TouchButton id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopleft" width="20rp" height="20rp" margin="rect(6rp,6rp,0,0)"/>
 		</Element>
 	</LVItem>
@@ -84,7 +84,7 @@
 				<RichText id="atom(textElem)" layoutpos="top" width="112rp" height="56rp" background="argb(0,0,0,0)"/>
 			</Element>
 		</Element>
-		<Element layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
+		<Element id="atom(checkarea)" layout="ninegridlayout()" layoutpos="ninetopright" background="argb(0,0,0,0)">
 			<TouchButton id="atom(checkboxElem)" class="checkbox" visible="false" layoutpos="ninetopright" width="20rp" height="20rp" margin="rect(0,8rp,8rp,0)"/>
 		</Element>
 	</LVItem>

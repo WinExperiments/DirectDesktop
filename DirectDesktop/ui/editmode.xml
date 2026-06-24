@@ -22,8 +22,10 @@
 		</Element>
 		<Element id="atom(SimpleViewTop)" layout="filllayout()" layoutpos="top" background="argb(0,0,0,0)" padding="rect(32rp,8rp,32rp,8rp)">
 			<Element layout="flowlayout(0,2,2,3)" layoutpos="client">
+				<TouchButton id="atom(SimpleViewPrevPage)" width="64rp" height="64rp" content="resstr(140)" font="resstr(135)" class="simpleview" margin="rect(0,0,16rp,0)" visible="false"/>
 				<DDScalableRichText id="atom(pageinfo)" font="iconfont;250%;semibold" class="simpleview" contentalign="middlecenter"/>
 				<RichText id="atom(SimpleViewHomeBadge)" layoutpos="none" class="simpleview" content="resstr(164)" font="resstr(156)" contentalign="middlecenter" margin="rect(4rp,0,0,0)"/>
+				<TouchButton id="atom(SimpleViewNextPage)" width="64rp" height="64rp" content="resstr(141)" font="resstr(135)" class="simpleview" margin="rect(16rp,0,0,0)" visible="false"/>
 			</Element>
 			<Element layout="flowlayout(0,2,1,0)" layoutpos="right">
 				<TouchButton id="atom(SimpleViewPower)" width="64rp" height="64rp" content="resstr(144)" font="resstr(135)" class="simpleview" margin="rect(0,0,16rp,0)"/>

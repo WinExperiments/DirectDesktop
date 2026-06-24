@@ -214,7 +214,10 @@ namespace DirectDesktop
                 LPWSTR pszOldName;
                 psiItem->GetDisplayName(SIGDN_PARENTRELATIVE, &pszOldName);
                 if (wcscmp(pszOldName, pszNewName) != 0)
+                {
+                    //TaskDialog(wnd->GetHWND(), NULL, NULL, L"Started", L"DragDrop_New", NULL, NULL, NULL);
                     InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
+                }
                 else
                 {
                     for (int i = 0; i < _pszPending.size(); i++)
@@ -229,6 +232,7 @@ namespace DirectDesktop
                                 goto SKIPNEWITEM;
                         }
                     }
+                    //TaskDialog(wnd->GetHWND(), NULL, NULL, L"Started", L"DragDrop", NULL, NULL, NULL);
                     InitNewLVItem(_destDir, pszNewName, _ppt, *_pPage);
                 SKIPNEWITEM:
                     PrepDimensions();
@@ -596,7 +600,10 @@ namespace DirectDesktop
                     {
                         case FILE_ACTION_ADDED:
                             if (!g_overridefilelistener)
+                            {
+                                //TaskDialog(wnd->GetHWND(), NULL, NULL, L"Started", L"External", NULL, NULL, NULL);
                                 InitNewLVItem(path, filename, nullptr, NULL);
+                            }
                             break;
                         case FILE_ACTION_REMOVED:
                             RemoveLVItem(path, filename);
@@ -1520,15 +1527,18 @@ namespace DirectDesktop
                             if (!g_treatdirasgroup || pm[j]->GetGroupSize() == LVIGS_NORMAL)
                             {
                                 peIcon->SetAssociatedColor(colorPickerPalette[colorID]);
-                                DDScalableRichText* peItemCount = pm[j]->GetItemCountElement();
-                                if (g_isGlass || g_touchmode);
-                                else if (peIcon->GetGroupColor() == 0)
+                                if (g_showfolderitemcount)
                                 {
-                                    if (g_isColorized)
-                                        peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
-                                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
+                                    DDScalableRichText* peItemCount = pm[j]->GetItemCountElement();
+                                    if (g_isGlass || g_touchmode);
+                                    else if (peIcon->GetGroupColor() == 0)
+                                    {
+                                        if (g_isColorized)
+                                            peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
+                                        else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
+                                    }
+                                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[colorID]);
                                 }
-                                else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[colorID]);
                             }
                             else
                             {
@@ -1547,11 +1557,6 @@ namespace DirectDesktop
                         else if (pm[j]->GetFlags() & LVIF_DIR)
                         {
                             peIcon->SetGroupColor(0);
-                            DDScalableRichText* peItemCount = pm[j]->GetItemCountElement();
-                            if (g_isGlass || g_touchmode);
-                            else if (g_isColorized)
-                                peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
-                            else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
                             offsetFilenames++;
                         }
                     }
@@ -1565,6 +1570,20 @@ namespace DirectDesktop
             }
         }
         free(valueSizeKey);
+        for (LVItem*& lvi : pm)
+        {
+            if (g_showfolderitemcount)
+            {
+                DDScalableRichText* peItemCount = lvi->GetItemCountElement();
+                if (peItemCount->GetAssociatedColor() == 0)
+                {
+                    if (g_isGlass || g_touchmode);
+                    else if (g_isColorized)
+                        peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
+                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
+                }
+            }
+        }
     }
 
     void SetPos(bool full)

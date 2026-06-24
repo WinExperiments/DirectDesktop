@@ -388,7 +388,8 @@ namespace DirectDesktop
         LVIF_NOSELTRIGGER = 0x00001000,
         LVIF_NOGROUPANIM = 0x00002000,
         LVIF_NEWITEM = 0x00004000,
-        LVIF_GROUPEX = 0x00008000
+        LVIF_GROUPEX = 0x00008000,
+        LVIF_TEXTONLY = 0x00010000
     };
 
     class LVItem;
@@ -411,6 +412,8 @@ namespace DirectDesktop
             , _szDrag{}
             , _rcGadget{}
             , _flags(LVCF_NONE)
+            , _dwSafeRemove(0)
+            , _ullRemoveTick(0)
         {
         }
 
@@ -442,6 +445,7 @@ namespace DirectDesktop
         virtual HRESULT Remove(Element** ppe, UINT cCount) override;
         HRESULT RemoveAll();
         HRESULT RemoveAndDestroy(Element* pe);
+        HRESULT RemoveAndDestroy(Element** ppe, UINT cCount);
         HRESULT Destroy(bool fDelayed = true);
         HRESULT DestroyAll(bool fDelayed);
 
@@ -461,16 +465,20 @@ namespace DirectDesktop
         SIZE _szDrag;
         RECT _rcGadget;
         LVCommonFlags _flags;
+        DWORD _dwSafeRemove;
+        ULONGLONG _ullRemoveTick;
         HRESULT _CreateLVVisual();
-        static HRESULT _CreateAnimatingClone(Element* peOrig, RECT* prcOrig, Element** ppeClone);
+        static HRESULT _CreateAnimatingClone(Element** ppeOrig, RECT* prcOrig, Element** ppeClone, UINT cCount);
+        void _RemoveStuckClones(DynamicArray<Element*>* rgList);
         static void _MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
         static DWORD WINAPI _UpdateMarqueeSelectorPosition(LPVOID lpParam);
         static LRESULT CALLBACK s_ListViewProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     private:
         static IClassInfo* s_pClassInfo;
-        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext);
-        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext, UINT cCount);
+        virtual HRESULT _OnRemoving(Element** ppe, Element** ppeClone, RECT* prcParent, RECT* prcGadget, RECT* prcNext, UINT cCount);
+        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual void _OnRemoveAll() {}
     };
 
@@ -525,8 +533,9 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
-        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext);
-        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext, UINT cCount);
+        virtual HRESULT _OnRemoving(Element** ppe, Element** ppeClone, RECT* prcParent, RECT* prcGadget, RECT* prcNext, UINT cCount);
+        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual void _OnRemoveAll();
     };
 
@@ -563,8 +572,9 @@ namespace DirectDesktop
 
     private:
         static IClassInfo* s_pClassInfo;
-        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext);
-        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext);
+        virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext, UINT cCount);
+        virtual HRESULT _OnRemoving(Element** ppe, Element** ppeClone, RECT* prcParent, RECT* prcGadget, RECT* prcNext, UINT cCount);
+        virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual void _OnRemoveAll() {}
     };
 
@@ -652,6 +662,7 @@ namespace DirectDesktop
         void SetTouchGrid(LVItemTouchGrid* lvitg, BYTE index);
         DDScalableElement* GetInnerElement();
         DDScalableElement* GetIcon();
+        DDScalableElement** GetIconRef();
         Element* GetShortcutArrow();
         RichText* GetText();
         TouchButton* GetCheckbox();
@@ -662,6 +673,7 @@ namespace DirectDesktop
         void SetText(RichText* peText);
         void SetCheckbox(TouchButton* peCheckbox);
         void SetItemCountElement(DDScalableRichText* peItemCount);
+        void DisconnectElements();
         vector<LVItem*>* GetChildItems();
         void SetChildItems(vector<LVItem*>* vpm);
         vector<IElementListener*>* GetListeners();

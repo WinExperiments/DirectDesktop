@@ -29,6 +29,7 @@ namespace DirectDesktop
 	extern void CloseCustomizePage(Element* elem, Event* iev);
 	extern void OpenCustomizePage(Element* elem, Event* iev);
 	extern void PinGroup(Element* elem, Event* iev);
+	extern void UpdateIconColorizationColor(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
 	extern NativeHWNDHost* wnd;
 	extern DDScalableElement* RegistryListener;
@@ -42,7 +43,7 @@ namespace DirectDesktop
 	extern HMODULE g_hModTWinUI;
 	extern CDropTarget* g_subviewtarget;
 
-	void ShowPopupCore(Element* peAnimateFrom);
+	void ShowPopupCore(Element** ppeAnimateFrom);
 	void HidePopupCore(bool WinDInvoked, bool fNoRefresh);
 	void InitSubview();
 
@@ -52,4 +53,5 @@ namespace DirectDesktop
 	void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
 	DWORD WINAPI subfastin(LPVOID lpParam);
+	extern DWORD WINAPI RearrangeIconsHelper(LPVOID lpParam);
 }

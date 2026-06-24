@@ -206,8 +206,9 @@ namespace DirectDesktop
     std::wstring LoadStrFromRes(UINT id, LPCWSTR dllName);
     std::wstring RemoveQuotes(const std::wstring& input);
     std::wstring GetDialogString(UINT id, LPCWSTR dllName, UINT optCtrlID, short uCtrlIDOrder);
+    bool ValidateStrDigits(const WCHAR* str);
     extern void DUI_SetGadgetZOrder(DirectUI::Element* pe, UINT uZOrder);
-    BOOL ScheduleGadgetTransitions_DWMCheck(UINT uOrder, UINT rgTransSize, const GTRANS_DESC* rgTrans, HGADGET hgad, TransitionStoryboardInfo* ptsbInfo);
+    BOOL ScheduleGadgetTransitions_DWMCheck(UINT version, UINT cTrans, const GTRANS_DESC* rgTrans, HGADGET hgadNotify, TransitionStoryboardInfo* ptsbInfo);
     extern void CALLBACK DUI_ParserErrorCB(const WCHAR* pszError, const WCHAR* pszToken, int dLine, void* pContext);
     extern bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind);
     extern int GetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName);

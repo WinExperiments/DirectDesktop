@@ -13,11 +13,14 @@ using namespace DirectUI;
 
 namespace DirectDesktop
 {   
+    typedef HWND(WINAPI* pfnSHCreateWorkerWindowW)(WNDPROC, HWND, DWORD, DWORD, LPVOID);
+
     NativeHWNDHost *editwnd, *editbgwnd, *editwndOld;
     HWNDElement *editparent, *editbgparent;
     DUIXmlParser* parserEdit;
     Element *pEdit, *pEditBG;
     unsigned long key5 = 0, key6 = 0;
+    HWND edit_hWorker;
     WNDPROC WndProcEdit, WndProcEditBG;
     DDScalableTouchButton* fullscreeninnerE;
     Element* popupcontainerE;
@@ -28,7 +31,7 @@ namespace DirectDesktop
     DDScalableElement* deskpreviewmask;
     Element *SimpleViewTop, *SimpleViewBottom;
     Element *SimpleViewTopInner, *SimpleViewBottomInner;
-    TouchButton* SimpleViewPower, *SimpleViewSearch;
+    TouchButton* SimpleViewPower, *SimpleViewSearch, *SimpleViewPrevPage, *SimpleViewNextPage;
     DDIconButton* SimpleViewSettings, *SimpleViewPages, *SimpleViewClose;
     DDScalableTouchButton *nextpage, *prevpage;
     DDScalableRichText* pageinfo;
@@ -53,6 +56,9 @@ namespace DirectDesktop
     bool ValidateStrDigits(const WCHAR* str);
     bool g_animatePVEnter = true;
     bool g_editingpages = false;
+    bool g_hiddentaskbar = true;
+    bool g_animateSVLaunch = true;
+    BYTE g_memTaskbarState = 255;
 
     LRESULT CALLBACK EditModeWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
@@ -85,9 +91,9 @@ namespace DirectDesktop
                             {
                                 if (PV_EnterPage)
                                 {
-                                    if (PV_EnterPage->GetContentString(&v) != nullptr)
-                                        removedPage = _wtoi(PV_EnterPage->GetContentString(&v));
-                                    if (!ValidateStrDigits(PV_EnterPage->GetContentString(&v)) || removedPage < 1 || removedPage > g_maxPageID)
+                                    const WCHAR* content = PV_EnterPage->GetContentString(&v);
+                                    if (content) removedPage = _wtoi(content);
+                                    if (!ValidateStrDigits(content) || removedPage < 1 || removedPage > g_maxPageID)
                                     {
                                         MessageBeep(MB_OK);
                                         WCHAR* errorcontent = new WCHAR[256];
@@ -167,8 +173,9 @@ namespace DirectDesktop
                             {
                                 if (PV_EnterPage)
                                 {
-                                    if (PV_EnterPage->GetContentString(&v) != nullptr) page = _wtoi(PV_EnterPage->GetContentString(&v));
-                                    if (!ValidateStrDigits(PV_EnterPage->GetContentString(&v)) || page < 1 || page > g_maxPageID)
+                                    const WCHAR* content = PV_EnterPage->GetContentString(&v);
+                                    if (content) page = _wtoi(content);
+                                    if (!ValidateStrDigits(content) || page < 1 || page > g_maxPageID)
                                     {
                                         MessageBeep(MB_OK);
                                         WCHAR* errorcontent = new WCHAR[256];
@@ -336,6 +343,149 @@ namespace DirectDesktop
     //    return CallWindowProc(WndProcEditBG, hWnd, uMsg, wParam, lParam);
     //}
 
+    LRESULT CALLBACK EditWorkerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        switch (uMsg)
+        {
+        case WM_TIMER:
+        {
+            static ULONGLONG ullTick;
+            static BYTE taskbarState = 0;
+            static RECT rc, rcOld, rcOld2, dimensions;
+            static bool hiddentaskbarOld = false;
+            static bool suppressedAnim = false;
+            switch (wParam)
+            {
+            case 1:
+            {
+                if (g_autohidetaskbar)
+                {
+                    if (g_animateSVLaunch) hiddentaskbarOld = true;
+                    GetWindowRect(g_hWndTaskbar, &rc);
+                    GetWindowRect(editwnd->GetHWND(), &dimensions);
+                    g_hiddentaskbar = (rc.right <= 4 * g_flScaleFactor || rc.bottom <= 4 * g_flScaleFactor ||
+                        rc.left >= dimensions.right - 4 * g_flScaleFactor || rc.top >= dimensions.bottom - 4 * g_flScaleFactor ||
+                        (rcOld.right > rc.right && rc.left <= 16 * g_flScaleFactor) ||
+                        (rcOld.bottom > rc.bottom && rc.top <= 16 * g_flScaleFactor) ||
+                        (rcOld.left < rc.left && rc.right >= dimensions.right - 16 * g_flScaleFactor) ||
+                        (rcOld.top < rc.top && rc.bottom >= dimensions.bottom - 16 * g_flScaleFactor));
+                    if (g_hiddentaskbar != hiddentaskbarOld)
+                    {
+                        if (rc.right <= dimensions.left + (dimensions.right - dimensions.left) / 2 && rc.left <= 16 * g_flScaleFactor)
+                        {
+                            taskbarState = 0;
+                        }
+                        if (rc.bottom <= dimensions.top + (dimensions.bottom - dimensions.top) / 2 && rc.top <= 16 * g_flScaleFactor)
+                        {
+                            taskbarState = 1;
+                        }
+                        if (rc.left >= dimensions.left + (dimensions.right - dimensions.left) / 2 && rc.right >= dimensions.right - 16 * g_flScaleFactor)
+                        {
+                            taskbarState = 2;
+                        }
+                        if (rc.top >= dimensions.top + (dimensions.bottom - dimensions.top) / 2 && rc.bottom >= dimensions.bottom - 16 * g_flScaleFactor)
+                        {
+                            taskbarState = 3;
+                        }
+                        DWORD animCoef = g_animCoef;
+                        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                        //DWORD dwMul = (g_hiddentaskbar && taskbarState == g_memTaskbarState) ? 7 : 3;
+                        DWORD dwTickDelay = 3 * animCoef - (GetTickCount64() - ullTick);
+                        if (dwTickDelay > 0x7FFFFFFF) dwTickDelay = 0;
+                        SetTimer(hWnd, 2, dwTickDelay, nullptr);
+                    }
+                    hiddentaskbarOld = g_hiddentaskbar;
+                    rcOld = rc;
+                    g_animateSVLaunch = false;
+                }
+                break;
+            }
+            case 2:
+            {
+                KillTimer(hWnd, 2);
+                short direction = g_hiddentaskbar ? -1 : 1;
+                short direction2 = (taskbarState & 2) ? -1 : 1;
+                if (!(taskbarState & 1))
+                {
+                    if (taskbarState & 2)
+                    {
+                        if (rc.right - rc.left >= dimensions.right - prevpage->GetX() - 32 * g_flScaleFactor)
+                            SimpleViewPrevPage->SetVisible(!g_hiddentaskbar && g_currentPageID > 1);
+                        if (rc.right - rc.left >= dimensions.right - nextpage->GetX() - 32 * g_flScaleFactor)
+                            SimpleViewNextPage->SetVisible(!g_hiddentaskbar && g_currentPageID < g_maxPageID);
+                    }
+                    else
+                    {
+                        if (rc.right - rc.left >= dimensions.left + prevpage->GetX() + prevpage->GetWidth() - 32 * g_flScaleFactor)
+                            SimpleViewPrevPage->SetVisible(!g_hiddentaskbar && g_currentPageID > 1);
+                        if (rc.right - rc.left >= dimensions.left + nextpage->GetX() + nextpage->GetWidth() - 32 * g_flScaleFactor)
+                            SimpleViewNextPage->SetVisible(!g_hiddentaskbar && g_currentPageID < g_maxPageID);
+                    }
+                }
+                else
+                {
+                    SimpleViewPrevPage->SetVisible(false);
+                    SimpleViewNextPage->SetVisible(false);
+                }
+                BYTE transSize = 0;
+                POINT extra{};
+                if (taskbarState != g_memTaskbarState && g_memTaskbarState != 255)
+                {
+                    direction *= -1;
+                    short direction3 = (g_memTaskbarState & 2) ? 1 : -1;
+                    switch (g_memTaskbarState)
+                    {
+                    case 0:
+                    case 2:
+                        extra.x = (rcOld2.right - rcOld2.left) * direction3;
+                        break;
+                    case 1:
+                    case 3:
+                        extra.y = (rcOld2.bottom - rcOld2.top) * direction3;
+                        break;
+                    }
+                }
+                if (!suppressedAnim)
+                {
+                    GTRANS_DESC transDesc[2];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    //float flDelay = (g_hiddentaskbar && taskbarState == g_memTaskbarState) ? 0.4f : 0.0f;
+                    switch (taskbarState)
+                    {
+                    case 0:
+                    case 2:
+                        TriggerTranslate(SimpleViewTop, transDesc, 0, 0.0f, 0.3f, 0.11, 0.6f, 0.23f, 0.97f,
+                            0, 0, (rc.right - rc.left) * direction * direction2, (g_memTaskbarState & 2) ? 0 : extra.y, false, false, true);
+                        TriggerTranslate(SimpleViewBottom, transDesc, 1, 0.0f, 0.3f, 0.11, 0.6f, 0.23f, 0.97f,
+                            0, 0, (rc.right - rc.left) * direction * direction2, (g_memTaskbarState & 2) ? extra.y : 0, false, false, true);
+                        break;
+                    case 1:
+                    case 3:
+                        TriggerTranslate((taskbarState & 2) ? SimpleViewTop : SimpleViewBottom, transDesc, 0, 0.0f, 0.3f, 0.11, 0.6f, 0.23f, 0.97f,
+                            0, 0, extra.x, 0, false, false, true);
+                        TriggerTranslate((taskbarState & 2) ? SimpleViewBottom : SimpleViewTop, transDesc, 1, 0.0f, 0.3f, 0.11, 0.6f, 0.23f, 0.97f,
+                            0, 0, extra.x, (rc.bottom - rc.top) * direction * direction2, false, false, true);
+                        break;
+                    }
+                    ScheduleGadgetTransitions_DWMCheck(0, 2, transDesc, nullptr, &tsbInfo);
+                    ullTick = GetTickCount64();
+                }
+                if (taskbarState != g_memTaskbarState || g_memTaskbarState == 255)
+                    rcOld2 = rc;
+                suppressedAnim = taskbarState != g_memTaskbarState && g_memTaskbarState != 255;
+                if (taskbarState != 255)
+                    g_memTaskbarState = taskbarState;
+                break;
+            }
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
     void SetTransElementPosition(Element* pe, int x, int y, int cx, int cy)
     {
         pe->SetX(x);
@@ -408,22 +558,12 @@ namespace DirectDesktop
     DWORD WINAPI CreateDesktopPreviewHelper(LPVOID lpParam)
     {
         InitThread(TSM_DESKTOP_DYNAMIC);
+        WaitForSingleObject(g_editSemaphore, 0);
         yValueEx* yV = static_cast<yValueEx*>(lpParam);
         CreateDesktopPreview(yV);
         ReleaseSemaphore(g_editSemaphore, 1, nullptr);
         UnInitThread();
         return 0;
-    }
-
-    bool ValidateStrDigits(const WCHAR* str)
-    {
-        if (!str || *str == L'\0') return false;
-        while (*str)
-        {
-            if (!iswdigit(*str)) return false;
-            ++str;
-        }
-        return true;
     }
 
     DWORD WINAPI animate7(LPVOID lpParam)
@@ -435,6 +575,10 @@ namespace DirectDesktop
         editwnd->DestroyWindow();
         //pEditBG->DestroyAll(true);
         //editbgwnd->DestroyWindow();
+        KillTimer(edit_hWorker, 1);
+        DestroyWindow(edit_hWorker);
+        g_memTaskbarState = 255;
+        g_animateSVLaunch = true;
         return 0;
     }
 
@@ -535,14 +679,14 @@ namespace DirectDesktop
                 ddm->SetMenuItemGlyph(i + 2000, FALSE, LoadStrFromRes(i + 200).c_str());
             UINT uFlags = TPM_RIGHTBUTTON | TPM_CENTERALIGN | TPM_TOPALIGN | TPM_RETURNCMD | TPM_VERPOSANIMATION;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
-
-            POINT ptZero{}, pt{};
-            RECT rcMenu{};
-            elem->GetRoot()->MapElementPoint(elem, &ptZero, &pt);
+   
+            RECT rcMenu{}, rcLocation{}, rcWindow{};
+            GetGadgetRect(elem->GetDisplayNode(), &rcLocation, 0xC);
             ddm->GetMenuRect(&rcMenu);
-            pt.x += elem->GetWidth() / 2;
-            pt.y += elem->GetHeight();
-            UINT uID = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, editwnd->GetHWND(), nullptr);
+            GetWindowRect(editwnd->GetHWND(), &rcWindow);
+            rcLocation.left += elem->GetWidth() / 2 + rcWindow.left;
+            rcLocation.top += elem->GetHeight() + rcWindow.top;
+            UINT uID = ddm->TrackPopupMenuEx(uFlags, rcLocation.left, rcLocation.top, editwnd->GetHWND(), nullptr);
             switch (uID)
             {
             case 2001:
@@ -798,8 +942,9 @@ namespace DirectDesktop
         {
             CValuePtr v;
             int page{};
-            if (PV_EnterPage->GetContentString(&v) != nullptr) page = _wtoi(PV_EnterPage->GetContentString(&v));
-            if (!ValidateStrDigits(PV_EnterPage->GetContentString(&v)) || page < 1 || page > g_maxPageID)
+            const WCHAR* content = PV_EnterPage->GetContentString(&v);
+            if (content) page = _wtoi(content);
+            if (!ValidateStrDigits(content) || page < 1 || page > g_maxPageID)
             {
                 MessageBeep(MB_OK);
                 WCHAR* errorcontent = new WCHAR[256];
@@ -1090,12 +1235,13 @@ namespace DirectDesktop
             UINT uFlags = TPM_RIGHTBUTTON | TPM_CENTERALIGN | TPM_BOTTOMALIGN | TPM_RETURNCMD | TPM_VERNEGANIMATION;
             if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
 
-            POINT ptZero{}, pt{};
-            RECT rcMenu{};
-            elem->GetRoot()->MapElementPoint(elem, &ptZero, &pt);
+            RECT rcMenu{}, rcLocation{}, rcWindow{};
+            GetGadgetRect(elem->GetDisplayNode(), &rcLocation, 0xC);
             ddm->GetMenuRect(&rcMenu);
-            pt.x += elem->GetWidth() / 2;
-            LPARAM lParam = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, editwnd->GetHWND(), nullptr);
+            GetWindowRect(editwnd->GetHWND(), &rcWindow);
+            rcLocation.left += elem->GetWidth() / 2 + rcWindow.left;
+            rcLocation.top += rcWindow.top;
+            LPARAM lParam = ddm->TrackPopupMenuEx(uFlags, rcLocation.left, rcLocation.top, editwnd->GetHWND(), nullptr);
             ddm->DestroyPopupMenu();
             if (lParam > 0)
             {
@@ -1418,8 +1564,8 @@ namespace DirectDesktop
             g_editavailable = false;
             g_animatePVEnter = true;
             if (!g_invokedpagechange) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
-            static IElementListener* pel_GoToPrevPage, * pel_GoToNextPage, * pel_ShowShutdownDialog,
-                * pel_ShowSearchUI, * pel_ShowSettings, * pel_ShowPageViewer, * pel_ExitWindow;
+            static IElementListener* pel_GoToPrevPage, *pel_GoToNextPage, *pel_GoToPrevPage2, *pel_GoToNextPage2,
+                *pel_ShowShutdownDialog, *pel_ShowSearchUI, *pel_ShowSettings, *pel_ShowPageViewer, *pel_ExitWindow;
             RECT dimensions;
             POINT topLeftMon = GetTopLeftMonitor();
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -1477,12 +1623,16 @@ namespace DirectDesktop
             bg_right_bottom = regElem<Element*>(L"bg_right_bottom", pEdit);
             prevpage = regElem<DDScalableTouchButton*>(L"prevpage", pEdit);
             nextpage = regElem<DDScalableTouchButton*>(L"nextpage", pEdit);
+            SimpleViewPrevPage = regElem<DDScalableTouchButton*>(L"SimpleViewPrevPage", pEdit);
+            SimpleViewNextPage = regElem<DDScalableTouchButton*>(L"SimpleViewNextPage", pEdit);
             pageinfo = regElem<DDScalableRichText*>(L"pageinfo", pEdit);
 
-            free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_ShowShutdownDialog),
-                free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_ShowPageViewer), free(pel_ExitWindow);
+            free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_GoToPrevPage2), free(pel_GoToNextPage2),
+                free(pel_ShowShutdownDialog), free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_ShowPageViewer), free(pel_ExitWindow);
             pel_GoToPrevPage = (IElementListener*)assignFn(prevpage, GoToPrevPage, true);
             pel_GoToNextPage = (IElementListener*)assignFn(nextpage, GoToNextPage, true);
+            pel_GoToPrevPage2 = (IElementListener*)assignFn(SimpleViewPrevPage, GoToPrevPage, true);
+            pel_GoToNextPage2 = (IElementListener*)assignFn(SimpleViewNextPage, GoToNextPage, true);
             pel_ShowShutdownDialog = (IElementListener*)assignFn(SimpleViewPower, ShowShutdownDialog, true);
             pel_ShowSearchUI = (IElementListener*)assignFn(SimpleViewSearch, ShowSearchUI, true);
             pel_ShowSettings = (IElementListener*)assignFn(SimpleViewSettings, ShowSettings, true);
@@ -1538,6 +1688,15 @@ namespace DirectDesktop
             //centeredEBG->Add((Element**)&deskpreviewmask, 1);
             //deskpreviewmask->SetX(dimensions.right * 0.15);
             //deskpreviewmask->SetY(dimensions.bottom * 0.15);
+
+            HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+            if (hShlwapi)
+            {
+                pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                    (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+                edit_hWorker = SHCreateWorkerWindowW(EditWorkerProc, HWND_MESSAGE, 0, 0, nullptr);
+                SetTimer(edit_hWorker, 1, 60, nullptr);
+            }
 
             _UpdateSimpleViewContent(animate, animFlags);
 

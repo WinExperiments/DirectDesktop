@@ -44,7 +44,8 @@ namespace DirectDesktop
     class CFileOperationProgressSink : public IFileOperationProgressSink
     {
     public:
-        CFileOperationProgressSink() : _lRefCount(0), _destDir(nullptr), _prcDimensions(nullptr), _ppt(nullptr), _pPage(nullptr), _pszPending{} {}
+        CFileOperationProgressSink() : _lRefCount(0), _destDir(nullptr), _prcDimensions(nullptr), _ppt(nullptr), _pPage(nullptr),
+            _pszPending{}, _lviTargetDir(nullptr) {}
         ~CFileOperationProgressSink();
 
         HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);

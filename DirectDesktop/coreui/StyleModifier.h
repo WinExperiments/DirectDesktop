@@ -35,4 +35,6 @@ namespace DirectDesktop
     COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize);
     COLORREF GetLightestPixel(HBITMAP hbm);
     COLORREF CreateGlowColor(COLORREF cr);
+
+    COLORREF GetDUIImmersiveColor(int iDuiColor);
 }

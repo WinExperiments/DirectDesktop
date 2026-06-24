@@ -37,14 +37,15 @@ namespace DirectDesktop
             if (touchmodeMem == !touch)
             {
                 // DO NOT REMOVE THIS TIMER OTHERWISE CRASHING HAPPENS MORE OFTEN
+                g_canRefreshMain = false;
                 SetTimer(wnd->GetHWND(), 16, 200, nullptr);
-                SetTimer(wnd->GetHWND(), 13, 600, nullptr);
+                SetTimer(wnd->GetHWND(), 13, 400, nullptr);
             }
             else
             {
                 RearrangeIcons(true, true, false);
                 g_canRefreshMain = false;
-                SetTimer(wnd->GetHWND(), 13, 500, nullptr);
+                SetTimer(wnd->GetHWND(), 13, 400, nullptr);
             }
         }
     }
@@ -105,15 +106,6 @@ namespace DirectDesktop
                     ddm->InsertMenuW(1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
                     ddm->InsertMenuW(2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
                     ddm->InsertMenuW(3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
-                    if (!g_canRefreshMain)
-                    {
-                        ddm->EnableMenuItem(2002, MF_BYCOMMAND | MF_DISABLED);
-                        ddsm->EnableMenuItem(1001, MF_BYCOMMAND | MF_DISABLED);
-                        ddsm->EnableMenuItem(1002, MF_BYCOMMAND | MF_DISABLED);
-                        ddsm->EnableMenuItem(1003, MF_BYCOMMAND | MF_DISABLED);
-                        ddsm->EnableMenuItem(1004, MF_BYCOMMAND | MF_DISABLED);
-                        ddsm->EnableMenuItem(1005, MF_BYCOMMAND | MF_DISABLED);
-                    }
                     UINT uQuery = CMF_EXPLORE;
                     if (GetKeyState(VK_SHIFT) < 0) uQuery |= CMF_EXTENDEDVERBS;
                     if (cmdID) uQuery = CMF_DEFAULTONLY;
@@ -152,7 +144,7 @@ namespace DirectDesktop
                         if (g_canRefreshMain)
                         {
                             SetTimer(wnd->GetHWND(), 2, 200, nullptr);
-                            SetTimer(wnd->GetHWND(), 13, 600, nullptr);
+                            SetTimer(wnd->GetHWND(), 13, 400, nullptr);
                         }
                         break;
                     case 2003:
@@ -532,7 +524,8 @@ namespace DirectDesktop
                     else if (pm[items] == elem) selectedLVItems.insert(selectedLVItems.begin(), &pm[items]);
                 }
             }
-            if (elem->GetMouseFocused()) RightClickCore(selectedLVItems, nullptr, true);
+            if (elem->GetMouseFocused() && selectedLVItems.size() > 0)
+                RightClickCore(selectedLVItems, nullptr, true);
         }
     }
 }

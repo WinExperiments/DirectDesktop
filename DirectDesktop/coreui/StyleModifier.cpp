@@ -530,4 +530,9 @@ namespace DirectDesktop
         if (glow.b > 254) glow.b = 254;
         return RGB(glow.r, glow.g, glow.b);
     }
+
+    COLORREF GetDUIImmersiveColor(int iDuiColor)
+    {
+        return (COLORREF)CImmersiveColor::GetColor(static_cast<IMMERSIVE_COLOR_TYPE>(iDuiColor - 20001));
+    }
 }

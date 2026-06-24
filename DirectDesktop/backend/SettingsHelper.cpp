@@ -25,6 +25,7 @@ namespace DirectDesktop
     BOOL g_tooltipAnim;
     bool g_labelshadow;
     bool g_selectionrect;
+    bool g_autohidetaskbar;
     bool g_treatdirasgroup;
     bool g_showfolderitemcount;
     bool g_tripleclickandhide;
@@ -163,7 +164,6 @@ namespace DirectDesktop
                     DWORD dwDisableToggle;
                     HANDLE DisableToggleHandle = CreateThread(nullptr, 0, TempDisableToggle, (LPVOID)elem, 0, &dwDisableToggle);
                     if (DisableToggleHandle) CloseHandle(DisableToggleHandle);
-                    return;
                 }
                 g_atleastonesetting = true;
             }
@@ -177,14 +177,14 @@ namespace DirectDesktop
                 RegKeyValue rkv = ddcmb->GetRegKeyValue();
                 BYTE regSetter = ddcmb->GetSelection();
                 if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
-                if (ddcmb->GetAssociatedFn() != nullptr)
-                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 if (ddcmb->GetShellInteraction())
                 {
                     SHChangeNotify(SHCNE_ALLEVENTS, SHCNF_IDLIST, nullptr, nullptr);
                     SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"ShellState", SMTO_NORMAL, 200, nullptr);
                 }
                 else if (associatedSetting) *(BYTE*)associatedSetting = regSetter;
+                if (ddcmb->GetAssociatedFn() != nullptr)
+                    ddcmb->ExecAssociatedFn(ddcmb->GetAssociatedFn());
                 g_atleastonesetting = true;
             }
         }
