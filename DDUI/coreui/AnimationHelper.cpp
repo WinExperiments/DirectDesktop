@@ -1,15 +1,13 @@
 #include "pch.h"
-#include "..\DirectDesktop.h"
+#include "..\common.h"
 #include "AnimationHelper.h"
-#include "..\coreui\BitmapHelper.h"
-#include "..\coreui\StyleModifier.h"
+#include "BitmapHelper.h"
+#include "StyleModifier.h"
 
 using namespace DirectUI;
 
-namespace DirectDesktop
+namespace DDUI
 {
-    DWORD g_animCoef;
-
     DWORD WINAPI DestroyElement(LPVOID lpParam)
     {
         DelayedElementActions* dea = (DelayedElementActions*)lpParam;
@@ -112,7 +110,7 @@ namespace DirectDesktop
 
     void CheckHideDestroy(Element* pe, float flDelay, float flDuration, bool fHide, bool fDestroy)
     {
-        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
+        float flDEA = (g_ctx.DWMActive && g_ctx.clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe, nullptr };
@@ -121,7 +119,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && g_clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
+            if (g_ctx.DWMActive && g_ctx.clientAnim && !pe->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), pe, nullptr };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -130,7 +128,7 @@ namespace DirectDesktop
 
     void CheckHideDestroy_Ref(Element** ppe, float flDelay, float flDuration, bool fHide, bool fDestroy)
     {
-        float flDEA = (DWMActive && g_clientAnim) ? flDuration * 1000 : 0.0f;
+        float flDEA = (g_ctx.DWMActive && g_ctx.clientAnim) ? flDuration * 1000 : 0.0f;
         if (fDestroy)
         {
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), nullptr, ppe };
@@ -139,7 +137,7 @@ namespace DirectDesktop
         }
         else if (fHide)
         {
-            if (DWMActive && g_clientAnim && !(*ppe)->GetVisible()) flDEA = flDelay * 1000;
+            if (g_ctx.DWMActive && g_ctx.clientAnim && !(*ppe)->GetVisible()) flDEA = flDelay * 1000;
             DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(flDEA), nullptr, ppe };
             HANDLE hHide = CreateThread(nullptr, 0, HideElement, dea, NULL, nullptr);
             if (hHide) CloseHandle(hHide);
@@ -152,10 +150,10 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
+            DWORD animCoef = g_ctx.animCoef;
             POINT ptZero{}, ptLoc{};
             if (fAutoPos) pe->GetParent()->MapElementPoint(pe, &ptZero, &ptLoc);
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -180,8 +178,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -196,7 +194,7 @@ namespace DirectDesktop
             rgTrans[transIndex].Curve.ptfl2.y = rY1;
             rgTrans[transIndex].vInitial.flScalar = initialOpacity;
             rgTrans[transIndex].vEnd.flScalar = targetOpacity;
-            float flDEA = (DWMActive && g_clientAnim) ? *pflDuration * 1000 : 0.0f;
+            float flDEA = (g_ctx.DWMActive && g_ctx.clientAnim) ? *pflDuration * 1000 : 0.0f;
         }
     }
     void _TriggerScaleIn(Element** ppe, GTRANS_DESC* rgTrans, UINT transIndex, float* pflDelay, float* pflDuration,
@@ -206,8 +204,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -236,8 +234,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -262,8 +260,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -288,8 +286,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -319,8 +317,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -341,7 +339,7 @@ namespace DirectDesktop
             rgTrans[transIndex].vEnd.flY = targetBottom;
             rgTrans[transIndex].vEnd.flOriginX = targetLeft;
             rgTrans[transIndex].vEnd.flOriginY = targetTop;
-            float flDEA = (DWMActive && g_clientAnim) ? *pflDuration * 1000 : 0.0f;
+            float flDEA = (g_ctx.DWMActive && g_ctx.clientAnim) ? *pflDuration * 1000 : 0.0f;
         }
     }
     void _TriggerRotate3D(Element** ppe, GTRANS_DESC* rgTrans, UINT transIndex, float* pflDelay, float* pflDuration,
@@ -351,8 +349,8 @@ namespace DirectDesktop
         Element* pe = *ppe;
         if (pe)
         {
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             *pflDelay *= (animCoef / 100.0f);
             *pflDuration *= (animCoef / 100.0f);
             rgTrans[transIndex].hgadChange = pe->GetDisplayNode();
@@ -375,7 +373,7 @@ namespace DirectDesktop
             rgTrans[transIndex].vEnd.flOriginX = targetOriginAxisX;
             rgTrans[transIndex].vEnd.flOriginY = targetOriginAxisY;
             rgTrans[transIndex].vEnd.flOriginZ = targetOriginAxisZ;
-            float flDEA = (DWMActive && g_clientAnim) ? *pflDuration * 1000 : 0.0f;
+            float flDEA = (g_ctx.DWMActive && g_ctx.clientAnim) ? *pflDuration * 1000 : 0.0f;
         }
     }
 

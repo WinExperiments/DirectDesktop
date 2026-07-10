@@ -7,9 +7,11 @@
 #include <propkey.h>
 #include "DragAndDrop.h"
 #include "DirectoryHelper.h"
+#include "SettingsHelper.h"
 #include "..\DirectDesktop.h"
 
 using namespace Microsoft::WRL;
+using namespace DDUI;
 
 namespace DirectDesktop
 {
@@ -389,7 +391,8 @@ namespace DirectDesktop
 			BOOL bShiftPressed = dwKeyState & MK_SHIFT;
 			LVItem* lviTarget = _MapPointToItem(&pt);
 			*pdwEffect = this->_DropEffect(dwKeyState, pt, *pdwEffect);
-			static const wstring desktopStr = LoadStrFromRes(21769, L"shell32.dll");
+			WCHAR pszDesktop[64];
+			LoadStrFromRes(pszDesktop, 64, 21769, L"shell32.dll");
 			if (!_bSubview)
 			{
 				if (lviTarget != _lviLastTarget)
@@ -451,7 +454,7 @@ namespace DirectDesktop
 					}
 					else
 					{
-						_destDirDispName = desktopStr;
+						_destDirDispName = pszDesktop;
 						LPWSTR pszDesktopPath{};
 						HRESULT hr = SHGetKnownFolderPath(FOLDERID_Desktop, 0, nullptr, &pszDesktopPath);
 						if (SUCCEEDED(hr))
@@ -465,6 +468,7 @@ namespace DirectDesktop
 				{
 					dwLastEffect = *pdwEffect;
 					_bShiftPressed = bShiftPressed;
+					WCHAR pszDesc[260];
 					switch (*pdwEffect)
 					{
 					case DROPEFFECT_COPY:
@@ -473,17 +477,27 @@ namespace DirectDesktop
 							*pdwEffect = DROPEFFECT_MOVE;
 							goto MOVETODESC;
 						}
-						this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49872, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						LoadStrFromRes(pszDesc, 260, 49872, L"shell32.dll");
+						this->_SetDropDescription(DROPIMAGE_COPY, pszDesc, _destDirDispName.c_str());
 						break;
 					case DROPEFFECT_MOVE:
 						if (UIContainer->GetFlags() & LVCF_ITEMPRESSED && !lviTarget)
-							this->_SetDropDescription(g_lockiconpos ? DROPIMAGE_NONE : DROPIMAGE_NOIMAGE, LoadStrFromRes(4044).c_str(), nullptr);
+						{
+							LoadStrFromRes(pszDesc, 260, 4044);
+							this->_SetDropDescription(g_lockiconpos ? DROPIMAGE_NONE : DROPIMAGE_NOIMAGE, pszDesc, nullptr);
+						}
 						else if (dwKeyState & MK_SHIFT && lviTarget && lviTarget->GetFilename() == L"::{645FF040-5081-101B-9F08-00AA002F954E}")
+						{
 						DELETEDESC:
-							this->_SetDropDescription(DROPIMAGE_WARNING, LoadStrFromRes(4147, L"shell32.dll").c_str(), nullptr);
+							LoadStrFromRes(pszDesc, 260, 4147, L"shell32.dll");
+							this->_SetDropDescription(DROPIMAGE_WARNING, pszDesc, nullptr);
+						}
 						else
+						{
 						MOVETODESC:
-							this->_SetDropDescription(DROPIMAGE_MOVE, LoadStrFromRes(49873, L"shell32.dll").c_str(), _destDirDispName.c_str());
+							LoadStrFromRes(pszDesc, 260, 49873, L"shell32.dll");
+							this->_SetDropDescription(DROPIMAGE_MOVE, pszDesc, _destDirDispName.c_str());
+						}
 						break;
 					case DROPEFFECT_LINK:
 						if (lviTarget && lviTarget->GetFilename() == L"::{645FF040-5081-101B-9F08-00AA002F954E}")
@@ -493,14 +507,19 @@ namespace DirectDesktop
 								goto DELETEDESC;
 							goto MOVETODESC;
 						}
-						this->_SetDropDescription(DROPIMAGE_LINK, LoadStrFromRes(49874, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						LoadStrFromRes(pszDesc, 260, 49874, L"shell32.dll");
+						this->_SetDropDescription(DROPIMAGE_LINK, pszDesc, _destDirDispName.c_str());
 						break;
 					default:
-						this->_SetDropDescription(DROPIMAGE_NONE, LoadStrFromRes(49879, L"shell32.dll").c_str(), _destDirDispName.c_str());
+						LoadStrFromRes(pszDesc, 260, 49879, L"shell32.dll");
+						this->_SetDropDescription(DROPIMAGE_NONE, pszDesc, _destDirDispName.c_str());
 						break;
 					}
 					if (lviTarget && (lviTarget->GetFlags() & LVIF_SHORTCUT || lviTarget->GetExt() == L".exe"))
-						this->_SetDropDescription(DROPIMAGE_COPY, LoadStrFromRes(49875, L"shell32.dll").c_str(), _destDirDispName.c_str());
+					{
+						LoadStrFromRes(pszDesc, 260, 49875, L"shell32.dll");
+						this->_SetDropDescription(DROPIMAGE_COPY, pszDesc, _destDirDispName.c_str());
+					}
 				}
 				if (lviTarget != _lviLastTarget)
 				{
@@ -527,13 +546,13 @@ namespace DirectDesktop
 		}
 		else
 		{
-			if ((localeType != 1 && pt.x < 16 * g_flScaleFactor) || (localeType == 1 && pt.x >= rcDimensions.right - 16 * g_flScaleFactor))
+			if ((g_pctx->localeType != 1 && pt.x < 16 * g_pctx->flScaleFactor) || (g_pctx->localeType == 1 && pt.x >= rcDimensions.right - 16 * g_pctx->flScaleFactor))
 			{
 				if (!(ptLocFlags & 1))
 					dwTickCountL = GetTickCount64();
 				ptLocFlags = 1;
 			}
-			else if ((localeType != 1 && pt.x >= rcDimensions.right - 16 * g_flScaleFactor) || (localeType == 1 && pt.x < 16 * g_flScaleFactor))
+			else if ((g_pctx->localeType != 1 && pt.x >= rcDimensions.right - 16 * g_pctx->flScaleFactor) || (g_pctx->localeType == 1 && pt.x < 16 * g_pctx->flScaleFactor))
 			{
 				if (!(ptLocFlags & 2))
 					dwTickCountR = GetTickCount64();
@@ -1501,8 +1520,8 @@ namespace DirectDesktop
 			hr = GetThemeBackgroundContentRect(_hTheme, _hdcWindow, 1, 0, &rcBounds, &rcContent);
 			if (SUCCEEDED(hr))
 			{
-				int x = ((_flags & DIF_DEFAULTIMAGE) ? 16 : 12) * g_flScaleFactor;
-				int y = ((_flags & DIF_DEFAULTIMAGE) ? 17 : 13) * g_flScaleFactor;
+				int x = ((_flags & DIF_DEFAULTIMAGE) ? 16 : 12) * g_pctx->flScaleFactor;
+				int y = ((_flags & DIF_DEFAULTIMAGE) ? 17 : 13) * g_pctx->flScaleFactor;
 				prc->left = x + _shdi.ptOffset.x;
 				prc->top = y + _shdi.ptOffset.y;
 				int iVal{};
@@ -1543,7 +1562,7 @@ namespace DirectDesktop
 			{
 				prc->left = rc.right;
 				prc->top = rc.top;
-				prc->right = 300 * g_flScaleFactor + prc->left;
+				prc->right = 300 * g_pctx->flScaleFactor + prc->left;
 				int iVal{};
 				hr = GetThemeMetric(_hTheme, NULL, 0, 0, 2417, &iVal);
 				if (SUCCEEDED(hr))
@@ -1559,9 +1578,9 @@ namespace DirectDesktop
 
 	HRESULT CMinimalDragImage::_GetTooltipRect(RECT* prcSrc, RECT* prcSrc2, RECT* prcDst)
 	{
-		prcDst->left = prcSrc->left - g_flScaleFactor;
+		prcDst->left = prcSrc->left - g_pctx->flScaleFactor;
 		prcDst->top = prcSrc2->top;
-		prcDst->right = prcSrc2->right + 7 * g_flScaleFactor;
+		prcDst->right = prcSrc2->right + 7 * g_pctx->flScaleFactor;
 		prcDst->bottom = prcSrc2->bottom;
 		return S_OK;
 	}
@@ -1713,13 +1732,13 @@ namespace DirectDesktop
 				if (!hasText || hasOffset)
 					_SizeDescriptionLine(iPartId, pszPrefix, szInsert, pszSuffix, &rcBounds, &rcSize1, &rcSize2, &rcExtent);
 				_DrawTooltipBackground(&rc, &rcBounds, width);
-				if (localeType == 1)
+				if (g_pctx->localeType == 1)
 				{
 					int cxNew = rc.right - rc.left;
 					int cxBoundsNew = rcBounds.right - rcBounds.left;
-					rcBounds.left = rc.left + 6 * g_flScaleFactor;
+					rcBounds.left = rc.left + 6 * g_pctx->flScaleFactor;
 					rcBounds.right = rcBounds.left + cxBoundsNew;
-					rc.left = rcBounds.right + 2 * g_flScaleFactor;
+					rc.left = rcBounds.right + 2 * g_pctx->flScaleFactor;
 					rc.right = rc.left + cxNew;
 					if (hasText)
 					{
@@ -1979,9 +1998,14 @@ namespace DirectDesktop
 										}
 										else
 										{
-											StringCchPrintfW(linkPath, MAX_PATH, L"%s - %s.lnk", linkPathIntermediate.c_str(), LoadStrFromRes(4153, L"shell32.dll").c_str());
+											WCHAR pszLink[260];
+											LoadStrFromRes(pszLink, 260, 4153, L"shell32.dll");
+											StringCchPrintfW(linkPath, MAX_PATH, L"%s - %s.lnk", linkPathIntermediate.c_str(), pszLink);
 											while (PathFileExistsW(linkPath))
-												StringCchPrintfW(linkPath, MAX_PATH, L"%s - %s (%d).lnk", linkPathIntermediate.c_str(), LoadStrFromRes(4153, L"shell32.dll").c_str(), ++fileDup);
+											{
+												LoadStrFromRes(pszLink, 260, 4153, L"shell32.dll");
+												StringCchPrintfW(linkPath, MAX_PATH, L"%s - %s (%d).lnk", linkPathIntermediate.c_str(), pszLink, ++fileDup);
+											}
 										}
 										hr = ppf->Save(linkPath, TRUE);
 										if (SUCCEEDED(hr) && !lviDir)

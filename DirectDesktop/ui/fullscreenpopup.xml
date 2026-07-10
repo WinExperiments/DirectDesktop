@@ -12,20 +12,20 @@
 		<Element layout="borderlayout()" layoutpos="client">
 			<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)" visible="false">
 				<Element layoutpos="right" layout="flowlayout(0,2,1,0)">
-					<DDLVActionButton id="atom(More)" content="resstr(153)" tooltip="true" accdesc="resstr(4054)" class="popupbuttonicon" visible="true" layoutpos="none"/>
+					<DDLVActionButton id="atom(More)" font="resstr(146)" content="resstr(153)" tooltip="true" accdesc="resstr(4054)" class="popupbuttonicon" visible="true" layoutpos="none"/>
 				</Element>
 				<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
-					<DDLVActionButton id="atom(Smaller)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
-					<DDLVActionButton id="atom(Larger)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Smaller)" font="resstr(146)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Larger)" font="resstr(146)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
 					<Element layout="filllayout()">
-						<DDLVActionButton id="atom(Pin)" layoutpos="client" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
-						<DDLVActionButton id="atom(Unpin)" layoutpos="client" content="resstr(150)" tooltip="true" accdesc="resstr(4053)" class="popupbuttonicon"/>
+						<DDLVActionButton id="atom(Pin)" layoutpos="client" font="resstr(146)" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
+						<DDLVActionButton id="atom(Unpin)" layoutpos="client" font="resstr(146)" content="resstr(150)" tooltip="true" accdesc="resstr(4053)" class="popupbuttonicon"/>
 					</Element>
-					<DDLVActionButton id="atom(Customize)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
-					<DDLVActionButton id="atom(OpenInExplorer)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Customize)" font="resstr(146)" content="resstr(147)" tooltip="true" accdesc="resstr(4027)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(OpenInExplorer)" font="resstr(146)" content="resstr(148)" tooltip="true" accdesc="resstr(4028)" class="popupbuttonicon"/>
 				</Element>
 				<Element id="atom(Group_BackContainer)" layoutpos="none" layout="flowlayout(0,0,0,0)" margin="rect(0,0,6rp,0)">
-					<DDLVActionButton id="atom(Group_Back)" layoutpos="left" content="resstr(154)" padding="rect(1rp,5rp,1rp,3rp)" tooltip="true" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Group_Back)" font="resstr(146)" layoutpos="left" content="resstr(154)" padding="rect(1rp,5rp,1rp,3rp)" tooltip="true" class="popupbuttonicon"/>
 				</Element>
 				<Element layoutpos="left" layout="verticalflowlayout(0,0,0,2)">
 					<DDScalableRichText id="atom(dirname)" class="popuptext" padding="rect(0,0,0,2rp)" contentalign="middleleft|endellipsis" font="iconfont;160%;semibold"/>
@@ -267,7 +267,7 @@
 	</Element>
 	<LVItem resid="lvcItem" class="lvitest" layoutpos="top"/>
 	<stylesheets>
-		<style resid="popup" base="ressheet(31, DDBase)">
+		<style resid="popup" base="ressheet(31, library(DDUI.dll), DDBase)">
 			<if id="atom(fullscreenpopupbg)">
 				<if class="TransparentEnabled">
 					<Element background="argb(0,0,0,0)"/>
@@ -317,7 +317,7 @@
 				</if>
 			</if>
 		</style>
-		<style resid="popupdark" base="ressheet(31, DDBaseDark)">
+		<style resid="popupdark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
 			<if id="atom(fullscreenpopupbg)">
 				<if class="TransparentEnabled">
 					<Element background="argb(0,0,0,0)"/>

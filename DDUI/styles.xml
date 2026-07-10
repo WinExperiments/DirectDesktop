@@ -104,7 +104,7 @@
 			</if>
 			<if class="popupbuttonicon">
 				<DDLVActionButton foreground="black" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" ImageCount="8"
-								  padding="rect(1rp,4rp,1rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" handleenter="true"/>
+								  padding="rect(1rp,4rp,1rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" handleenter="true"/>
 				<if mousefocused="true">
 					<DDLVActionButton FirstScaledImage="1015" ImageIndex="2"/>
 				</if>
@@ -636,7 +636,7 @@
 			</if>
 			<if class="popupbuttonicon">
 				<DDLVActionButton foreground="white" visible="false" background="argb(0,0,0,0)" FirstScaledImage="-1" ScaledImageIntervals="7" DrawType="1" ImageCount="8"
-								  padding="rect(1rp,4rp,1rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" font="resstr(146)" handleenter="true"/>
+								  padding="rect(1rp,4rp,1rp,4rp)" borderthickness="rect(4rp,4rp,4rp,4rp)" margin="rect(8rp,0,0,0)" handleenter="true"/>
 				<if mousefocused="true">
 					<DDLVActionButton FirstScaledImage="2015" ImageIndex="2"/>
 				</if>

@@ -10,8 +10,6 @@
 
 namespace DirectDesktop
 {
-    DDMenu* g_menu;
-
     std::wstring RemoveQuotes2(const std::wstring& input)
     {
         if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"')
@@ -36,6 +34,8 @@ namespace DirectDesktop
             if (!touch) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop", L"IconSize", iconsz, false, nullptr);
             if (touchmodeMem == !touch)
             {
+                if (touch) UIContainer->AddFlags(LVCF_TOUCH);
+                else UIContainer->RemoveFlags(LVCF_TOUCH);
                 // DO NOT REMOVE THIS TIMER OTHERWISE CRASHING HAPPENS MORE OFTEN
                 g_canRefreshMain = false;
                 SetTimer(wnd->GetHWND(), 16, 200, nullptr);
@@ -73,15 +73,19 @@ namespace DirectDesktop
                 {
                     ddm->CreatePopupMenu(cmdID);
                     ddsm->CreatePopupMenu(cmdID);
+                    g_menu = true;
                     //ddsm2->CreatePopupMenu(false);
                     MENUITEMINFOW mii{};
                     mii.cbSize = sizeof(MENUITEMINFOW);
                     mii.fMask = MIIM_STATE;
-                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4004).c_str());
-                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4005).c_str());
-                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4006).c_str());
-                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1004, LoadStrFromRes(4007).c_str());
-                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1005, LoadStrFromRes(4034).c_str());
+                    WCHAR pszMenu[64];
+                    for (int i = 1001; i <= 1004; i++)
+                    {
+                        LoadStrFromRes(pszMenu, 64, i + 3003);
+                        ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, i, pszMenu);
+                    }
+                    LoadStrFromRes(pszMenu, 64, 4034);
+                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1005, pszMenu);
                     for (int menuitem = 1001; menuitem <= 1005; menuitem++)
                     {
                         mii.fState = MFS_UNCHECKED;
@@ -94,17 +98,21 @@ namespace DirectDesktop
                     else if (g_iconsz <= 96) ddsm->SetMenuItemInfoW(1002, 0, &mii);
                     else ddsm->SetMenuItemInfoW(1001, 0, &mii);
                     ddsm->AppendMenuW(MF_SEPARATOR, 1006, L"_");
-                    ddsm->AppendMenuW(MF_STRING, 1007, LoadStrFromRes(4008).c_str());
+                    LoadStrFromRes(pszMenu, 64, 4008);
+                    ddsm->AppendMenuW(MF_STRING, 1007, pszMenu);
                     mii.fState = g_hiddenIcons ? MFS_UNCHECKED : MFS_CHECKED;
                     ddsm->SetMenuItemInfoW(1007, 0, &mii);
                     //ddsm2->AppendMenuW(MF_STRING, 1008, L"Name");
                     //ddsm2->AppendMenuW(MF_STRING, 1009, L"Date modified");
                     //ddsm2->AppendMenuW(MF_STRING, 1010, L"Type");
                     //ddsm2->AppendMenuW(MF_STRING, 1011, L"Size");
-                    ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, LoadStrFromRes(4001).c_str());
+                    LoadStrFromRes(pszMenu, 64, 4001);
+                    ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, pszMenu);
                     //ddm->InsertMenuW(1, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm2, L"Sort by");
-                    ddm->InsertMenuW(1, MF_BYPOSITION | MF_STRING, 2002, LoadStrFromRes(4002).c_str());
-                    ddm->InsertMenuW(2, MF_BYPOSITION | MF_STRING, 2003, LoadStrFromRes(4003).c_str());
+                    LoadStrFromRes(pszMenu, 64, 4002);
+                    ddm->InsertMenuW(1, MF_BYPOSITION | MF_STRING, 2002, pszMenu);
+                    LoadStrFromRes(pszMenu, 64, 4003);
+                    ddm->InsertMenuW(2, MF_BYPOSITION | MF_STRING, 2003, pszMenu);
                     ddm->InsertMenuW(3, MF_BYPOSITION | MF_SEPARATOR, 2004, L"_");
                     UINT uQuery = CMF_EXPLORE;
                     if (GetKeyState(VK_SHIFT) < 0) uQuery |= CMF_EXTENDEDVERBS;
@@ -129,12 +137,13 @@ namespace DirectDesktop
                     ddm->ForceEnablePaste();
 
                     UINT uFlags = TPM_RIGHTBUTTON | TPM_RETURNCMD | DDM_ANIMATESUBMENUS;
-                    if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
+                    if (g_pctx->localeType == 1) uFlags |= TPM_LAYOUTRTL;
 
                     int menuItemId = -1;
                     if (!cmdID)
                         menuItemId = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
 
+                    g_menu = false;
                     bool touchmodeMem{};
                     RECT dimensions;
                     GetClientRect(wnd->GetHWND(), &dimensions);
@@ -306,6 +315,7 @@ namespace DirectDesktop
         if (SUCCEEDED(hr))
         {
             ddm->CreatePopupMenu(cmdID);
+            g_menu = true;
             if (!cmdID && g_touchmode && cidl == 1)
             {
                 DDMenu* ddsm = new DDMenu();
@@ -313,9 +323,12 @@ namespace DirectDesktop
                 MENUITEMINFOW mii{};
                 mii.cbSize = sizeof(MENUITEMINFOW);
                 mii.fMask = MIIM_STATE;
-                ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1001, LoadStrFromRes(4089).c_str());
-                ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1002, LoadStrFromRes(4090).c_str());
-                ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, 1003, LoadStrFromRes(4091).c_str());
+                WCHAR pszMenu[64];
+                for (int i = 1001; i <= 1003; i++)
+                {
+                    LoadStrFromRes(pszMenu, 64, i + 3088);
+                    ddsm->AppendMenuW(MF_STRING | MFT_RADIOCHECK, i, pszMenu);
+                }
                 for (int menuitem = 1001; menuitem <= 1005; menuitem++)
                 {
                     mii.fState = MFS_UNCHECKED;
@@ -325,7 +338,8 @@ namespace DirectDesktop
                 if ((*vItems[0])->GetTileSize() == LVITS_ICONONLY) ddsm->SetMenuItemInfoW(1001, 0, &mii);
                 else if ((*vItems[0])->GetTileSize() == LVITS_NONE) ddsm->SetMenuItemInfoW(1002, 0, &mii);
                 else ddsm->SetMenuItemInfoW(1003, 0, &mii);
-                ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, LoadStrFromRes(4088).c_str());
+                LoadStrFromRes(pszMenu, 64, 4088);
+                ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)ddsm, pszMenu);
                 ddm->InsertMenuW(1, MF_BYPOSITION | MF_SEPARATOR, 2002, L"_");
                 if (!isDefaultRes()) ddm->EnableMenuItem(0, MF_BYPOSITION | MF_DISABLED);
             }
@@ -336,21 +350,22 @@ namespace DirectDesktop
             ddm->QueryContextMenu(2, MIN_SHELL_ID, MAX_SHELL_ID, uQuery);
 
             UINT uFlags = TPM_RIGHTBUTTON | TPM_RETURNCMD | DDM_ANIMATESUBMENUS;
-            if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
+            if (g_pctx->localeType == 1) uFlags |= TPM_LAYOUTRTL;
 
             int menuItemId = -1;
             if (!cmdID)
                 menuItemId = ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
 
+            g_menu = false;
             CSafeElementPtr<RichText> textElem;
             LVItemTileSize lvits;
             if (cmdID) lvits = LVITS_NONE;
             else lvits = (*vItems[0])->GetTileSize();
-            int tilepadding = DESKPADDING_TOUCH * g_flScaleFactor;
+            int tilepadding = DESKPADDING_TOUCH * g_pctx->flScaleFactor;
             switch (menuItemId)
             {
             case 1001:
-                if (localeType == 1)
+                if (g_pctx->localeType == 1)
                 {
                     if (lvits == LVITS_NONE)
                     {
@@ -368,12 +383,12 @@ namespace DirectDesktop
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", (*vItems[0])));
+                    textElem.Assign((RichText*)regElem(L"textElem", (*vItems[0])));
                     textElem->SetVisible(false);
                 }
                 break;
             case 1002:
-                if (localeType == 1)
+                if (g_pctx->localeType == 1)
                 {
                     if (lvits == LVITS_ICONONLY)
                     {
@@ -392,12 +407,12 @@ namespace DirectDesktop
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", (*vItems[0])));
+                    textElem.Assign((RichText*)regElem(L"textElem", (*vItems[0])));
                     textElem->SetVisible(true);
                 }
                 break;
             case 1003:
-                if (localeType == 1)
+                if (g_pctx->localeType == 1)
                 {
                     if (lvits == LVITS_ICONONLY)
                     {
@@ -416,7 +431,7 @@ namespace DirectDesktop
                 RearrangeIcons(true, false, true);
                 if (isDefaultRes())
                 {
-                    textElem.Assign(regElem<RichText*>(L"textElem", (*vItems[0])));
+                    textElem.Assign((RichText*)regElem(L"textElem", (*vItems[0])));
                     textElem->SetVisible(true);
                 }
                 break;
@@ -485,8 +500,10 @@ namespace DirectDesktop
             ddm->CreatePopupMenu(false);
             ddm->InsertMenuW(0, MF_BYPOSITION | MF_STRING, 1, L"Not Implemented");
             UINT uFlags = TPM_RIGHTBUTTON;
-            if (localeType == 1) uFlags |= TPM_LAYOUTRTL;
-            ddm->SetMenuItemGlyph(0, TRUE, LoadStrFromRes(138).c_str());
+            if (g_pctx->localeType == 1) uFlags |= TPM_LAYOUTRTL;
+            WCHAR glyph[3];
+            LoadStrFromRes(glyph, 3, 138);
+            ddm->SetMenuItemGlyph(0, TRUE, glyph);
             ddm->TrackPopupMenuEx(uFlags, pt.x, pt.y, wnd->GetHWND(), nullptr);
         }
         ddm->DestroyPopupMenu();

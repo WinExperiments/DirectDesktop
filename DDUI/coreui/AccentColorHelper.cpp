@@ -2,7 +2,7 @@
 
 #include "AccentColorHelper.h"
 
-namespace DirectDesktop
+namespace DDUI
 {
     COLORREF g_dwAccent{};
     hsl_t g_hslAccent{};

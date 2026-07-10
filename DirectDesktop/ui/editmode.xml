@@ -110,7 +110,7 @@
 		</DDScalableElement>
 	</Element>
 	<stylesheets>
-		<style resid="edit" base="ressheet(31, DDBase)">
+		<style resid="edit" base="ressheet(31, library(DDUI.dll), DDBase)">
 			<Element foreground="black"/>
 			<DDScalableElement foreground="black"/>
 			<if class="roundoverlay">
@@ -179,7 +179,7 @@
 				</if>
 			</if>
 		</style>
-		<style resid="editdark" base="ressheet(31, DDBaseDark)">
+		<style resid="editdark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
 			<Element foreground="white"/>
 			<DDScalableElement foreground="white"/>
 			<if class="roundoverlay">

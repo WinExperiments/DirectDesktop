@@ -4,9 +4,11 @@
 #include "..\backend\DragAndDrop.h"
 
 using namespace DirectUI;
+using namespace DDUI;
 
 namespace DirectDesktop
 {
+	extern TEXTMETRICW textm;
 	extern int g_lastDpiChangeTick;
 	extern int g_settingsPageID;
 	extern int g_touchSizeX, g_touchSizeY;
@@ -19,7 +21,6 @@ namespace DirectDesktop
 	extern bool g_issettingsopen;
 	extern BYTE* shellstate;
 
-	extern void UpdateScale();
 	extern void AdjustWindowSizes(bool firsttime);
 	extern void CalcDesktopIconInfo(yValue* yV, int* lines_basedOnEllipsis, DWORD* alignment, bool subdirectory, vector<LVItem*>* pmLVItem);
 	extern void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);

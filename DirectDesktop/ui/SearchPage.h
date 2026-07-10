@@ -3,7 +3,6 @@
 namespace DirectDesktop
 {
     extern HWND g_hWndTaskbar;
-    extern bool g_theme;
     extern bool g_searchopen;
     extern bool g_peek;
     extern DirectUI::DUIXmlParser* parser;

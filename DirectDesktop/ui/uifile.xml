@@ -91,7 +91,7 @@
 	<Element resid="GroupedIcon" layoutpos="absolute" background="argb(0,0,0,0)" contentalign="bottomcenter"/>
 	<Element resid="RenameBoxTexture" id="atom(RenameBoxTexture)" layoutpos="absolute" padding="rect(3rp,3rp,3rp,3rp)"/>
 	<stylesheets>
-		<style resid="default" base="ressheet(31, DDBase)">
+		<style resid="default" base="ressheet(31, library(DDUI.dll), DDBase)">
 			<if id="atom(mainContainer)">
 				<Element background="black"/>
 			</if>
@@ -159,7 +159,7 @@
 				<Element background="argb(72,208,208,208)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(216,208,208,208)"/>
 			</if>
 		</style>
-		<style resid="defaultdark" base="ressheet(31, DDBaseDark)">
+		<style resid="defaultdark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
 			<if id="atom(mainContainer)">
 				<Element background="black"/>
 			</if>

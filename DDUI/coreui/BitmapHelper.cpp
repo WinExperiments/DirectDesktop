@@ -7,18 +7,18 @@
 #include <wincodec.h>
 #include <gdiplus.h>
 
-namespace DirectDesktop
+namespace DDUI
 {
     // https://faithlife.codes/blog/2008/09/displaying_a_splash_screen_with_c_part_i/
-    IStream* CreateStreamOnResource(LPCTSTR lpName, LPCTSTR lpType)
+    IStream* CreateStreamOnResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType)
     {
         IStream* ipStream = nullptr;
 
-        HRSRC hrsrc = FindResourceW(nullptr, lpName, lpType);
+        HRSRC hrsrc = FindResourceW(hModule, lpName, lpType);
         if (hrsrc == nullptr) return ipStream;
 
-        DWORD dwResourceSize = SizeofResource(nullptr, hrsrc);
-        HGLOBAL hglbImage = LoadResource(nullptr, hrsrc);
+        DWORD dwResourceSize = SizeofResource(hModule, hrsrc);
+        HGLOBAL hglbImage = LoadResource(hModule, hrsrc);
         if (hglbImage == nullptr) return ipStream;
 
         LPVOID pvSourceResourceData = LockResource(hglbImage);
@@ -106,11 +106,11 @@ namespace DirectDesktop
         return false;
     }
 
-    bool LoadPNGAsBitmap(HBITMAP& hBitmap, int imageID)
+    bool LoadPNGAsBitmap(HMODULE hModule, HBITMAP& hBitmap, int imageID)
     {
         if (hBitmap) DeleteObject(hBitmap);
         IStream* ipImageStream{};
-        ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(imageID), _T("PNG"));
+        ipImageStream = CreateStreamOnResource(hModule, MAKEINTRESOURCEW(imageID), L"PNG");
         if (ipImageStream == nullptr) return false;
 
         IWICBitmapSource* ipBitmap = LoadBitmapFromStream(ipImageStream);
@@ -155,7 +155,7 @@ namespace DirectDesktop
 
         memset(pBitmapData, 0, width * height * 4);
         LOGFONTW lf{};
-        SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_dpi);
+        SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_ctx.dpi);
         if (touch) lf.lfHeight *= 1.25;
         lf.lfItalic |= dwFontStyle & 1;
         lf.lfUnderline |= dwFontStyle & 2;

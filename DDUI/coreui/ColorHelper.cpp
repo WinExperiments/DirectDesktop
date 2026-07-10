@@ -2,7 +2,7 @@
 
 #include "ColorHelper.h"
 
-namespace DirectDesktop
+namespace DDUI
 {
     DWORD rgb2bgr(COLORREF color)
     {

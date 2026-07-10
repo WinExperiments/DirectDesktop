@@ -1,8 +1,9 @@
 #pragma once
 
-#include "DDControls.h"
+#include <vector>
 
 using namespace DirectUI;
+using namespace DDUI;
 
 namespace DirectDesktop
 {
@@ -11,7 +12,7 @@ namespace DirectDesktop
     extern bool g_invokedpagechange;
     extern bool g_hiddenIcons;
     extern bool g_pageviewer;
-    extern std::vector<LVItem*> pm;
+    extern std::vector<DDUI::LVItem*> pm;
     extern struct DesktopIcon;
     extern DUIXmlParser* parser;
     extern Element* pEdit;
@@ -21,10 +22,9 @@ namespace DirectDesktop
     extern HWND g_hWndTaskbar, g_hWorkerW, g_hSHELLDLL_DefView;
     extern Element* mainContainer;
     extern Element* PageViewer;
-    extern int localeType;
     extern int g_currentPageID, g_maxPageID;
     extern void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
-    extern void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
+    extern void ApplyIcons(std::vector<DDUI::LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
     extern TouchButton *nextpageMain, *prevpageMain;
     extern DDScalableTouchButton *nextpage, *prevpage;
     extern DDScalableRichText* pageinfo;

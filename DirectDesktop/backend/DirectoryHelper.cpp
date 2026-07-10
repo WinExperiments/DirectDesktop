@@ -3,13 +3,12 @@
 #include "DirectoryHelper.h"
 #include "SettingsHelper.h"
 #include "..\DirectDesktop.h"
-#include "..\coreui\StyleModifier.h"
-#include <shlwapi.h>
 #include <exdisp.h>
 #include <ShlGuid.h>
 
 using namespace std;
 using namespace DirectUI;
+using namespace DDUI;
 
 namespace DirectDesktop
 {
@@ -154,18 +153,18 @@ namespace DirectDesktop
     {
         _prcDimensions = prcDimensions;
         _ppt = ppt;
-        if (localeType == 1)
+        if (g_pctx->localeType == 1)
             _ppt->x = prcDimensions->right - _ppt->x;
         _pPage = pPage;
     }
 
     void CFileOperationProgressSink::PrepDimensions()
     {
-        short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_dpi) + (g_iconsz - 44) * g_flScaleFactor;
-        short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_dpi) + (g_iconsz - 22) * g_flScaleFactor;
-        short desktoppadding = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
-        short desktoppadding_x = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
-        short desktoppadding_y = g_flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
+        short outerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_pctx->dpi) + (g_iconsz - 44) * g_pctx->flScaleFactor;
+        short outerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_pctx->dpi) + (g_iconsz - 22) * g_pctx->flScaleFactor;
+        short desktoppadding = g_pctx->flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
+        short desktoppadding_x = g_pctx->flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_X : DESKPADDING_NORMAL_X);
+        short desktoppadding_y = g_pctx->flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH_Y : DESKPADDING_NORMAL_Y);
         if (g_touchmode)
         {
             outerSizeX = g_touchSizeX + desktoppadding;
@@ -177,8 +176,8 @@ namespace DirectDesktop
             _ppt->y = desktoppadding_y;
             _ppt->x += outerSizeX;
         }
-        if ((localeType != 1 && _ppt->x > _prcDimensions->right - outerSizeX - desktoppadding_x) ||
-            (localeType == 1 && _ppt->x < _prcDimensions->left - outerSizeX - desktoppadding_x))
+        if ((g_pctx->localeType != 1 && _ppt->x > _prcDimensions->right - outerSizeX - desktoppadding_x) ||
+            (g_pctx->localeType == 1 && _ppt->x < _prcDimensions->left - outerSizeX - desktoppadding_x))
         {
             _ppt->x = desktoppadding_x;
             (*_pPage)++;
@@ -369,164 +368,6 @@ namespace DirectDesktop
         *result = false;
     }
 
-    bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind)
-    {
-        HKEY hKey = nullptr;
-        LONG lResult;
-        lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_READ, &hKey);
-        if (lResult == ERROR_FILE_NOT_FOUND) return false;
-
-        DWORD type;
-        DWORD dataSize = 0;
-        lResult = RegQueryValueExW(hKey, valueToFind, nullptr, &type, nullptr, &dataSize);
-        RegCloseKey(hKey);
-
-        if (lResult == ERROR_FILE_NOT_FOUND) return false;
-        else if (lResult != ERROR_SUCCESS) return false;
-
-        return true;
-    }
-
-    int GetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName)
-    {
-        int result = -1;
-        DWORD dwSize{};
-        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, nullptr, &dwSize);
-        if (lResult == ERROR_SUCCESS)
-        {
-            DWORD* dwValue = (DWORD*)malloc(dwSize);
-            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, dwValue, &dwSize);
-            if (dwValue != nullptr)
-            {
-                result = *dwValue;
-                free(dwValue);
-            }
-        }
-        return result;
-    }
-
-    void SetRegistryValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, DWORD dwValue, bool find, bool* isNewValue)
-    {
-        int result{};
-        DWORD dwSize{};
-        HKEY hKey;
-        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, nullptr, &dwSize);
-        lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
-        if (lResult == ERROR_FILE_NOT_FOUND)
-        {
-            lResult = RegCreateKeyExW(hKeyName, path, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
-            if (lResult == ERROR_SUCCESS)
-            {
-                lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
-                if (isNewValue != nullptr) *isNewValue = true;
-            }
-        }
-        else if (lResult == ERROR_SUCCESS)
-        {
-            DWORD* dwValueInternal = (DWORD*)malloc(dwSize);
-            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, dwValueInternal, &dwSize);
-            if (lResult == ERROR_SUCCESS && find == false)
-            {
-                lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
-                if (isNewValue != nullptr) *isNewValue = false;
-            }
-            else if (lResult != ERROR_SUCCESS)
-            {
-                lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
-                if (isNewValue != nullptr) *isNewValue = true;
-            }
-            free(dwValueInternal);
-        }
-        RegCloseKey(hKey);
-    }
-
-    bool GetRegistryStrValues(HKEY hKey, LPCWSTR path, LPCWSTR valueName, WCHAR** outStr)
-    {
-        if (!outStr) return false;
-
-        DWORD dwSize{};
-        LONG lResult = RegGetValueW(hKey, path, valueName, RRF_RT_REG_SZ, nullptr, nullptr, &dwSize);
-        if (lResult != ERROR_SUCCESS)
-        {
-            return false;
-        }
-
-        WCHAR* buffer = (WCHAR*)malloc(dwSize);
-        if (!buffer)
-        {
-            return false;
-        }
-
-        lResult = RegGetValueW(hKey, path, valueName, RRF_RT_REG_SZ, nullptr, buffer, &dwSize);
-        if (lResult != ERROR_SUCCESS)
-        {
-            free(buffer);
-            return false;
-        }
-
-        *outStr = buffer;
-        return true;
-    }
-
-    bool GetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE** outBytes)
-    {
-        if (!outBytes) return false;
-
-        DWORD dwSize{};
-        LONG lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_REG_BINARY, nullptr, nullptr, &dwSize);
-        if (lResult != ERROR_SUCCESS)
-        {
-            return false;
-        }
-
-        BYTE* buffer = (BYTE*)malloc(dwSize);
-        if (!buffer)
-        {
-            return false;
-        }
-
-        lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_REG_BINARY, nullptr, buffer, &dwSize);
-        if (lResult != ERROR_SUCCESS)
-        {
-            free(buffer);
-            return false;
-        }
-
-        *outBytes = buffer;
-        return true;
-    }
-
-    void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToSet, BYTE* bValue, DWORD length, bool find, bool* isNewValue)
-    {
-        int result{};
-        DWORD dwSize{};
-        HKEY hKey;
-        LONG lResult = RegOpenKeyExW(hKeyName, path, 0, KEY_SET_VALUE, &hKey);
-        if (lResult == ERROR_FILE_NOT_FOUND)
-        {
-            lResult = RegCreateKeyExW(hKeyName, path, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
-            if (lResult == ERROR_SUCCESS)
-            {
-                lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
-                if (isNewValue != nullptr) *isNewValue = true;
-            }
-        }
-        else if (lResult == ERROR_SUCCESS)
-        {
-            if (lResult == ERROR_SUCCESS && find == false)
-            {
-                lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
-                if (isNewValue != nullptr) *isNewValue = false;
-            }
-            else if (lResult != ERROR_SUCCESS)
-            {
-                lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
-                if (isNewValue != nullptr) *isNewValue = true;
-            }
-        }
-        RegCloseKey(hKey);
-    }
-
     wstring GetExplorerTooltipText(const wstring& filePath)
     {
         wstring tooltipText;
@@ -579,7 +420,9 @@ namespace DirectDesktop
                                   nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
         if (hDir == INVALID_HANDLE_VALUE)
         {
-            TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to open directory handle", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+            WCHAR pszErr[32];
+            LoadStrFromRes(pszErr, 32, 4025);
+            TaskDialog(nullptr, nullptr, pszErr, L"Failed to open directory handle", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
             return 1;
         }
 
@@ -621,7 +464,9 @@ namespace DirectDesktop
             }
             else
             {
-                TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to read directory changes", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                WCHAR pszErr[32];
+                LoadStrFromRes(pszErr, 32, 4025);
+                TaskDialog(nullptr, nullptr, pszErr, L"Failed to read directory changes", path, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
                 break;
             }
         }
@@ -649,7 +494,9 @@ namespace DirectDesktop
             nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
         if (hDir == INVALID_HANDLE_VALUE)
         {
-            TaskDialog(nullptr, nullptr, LoadStrFromRes(4025).c_str(), L"Failed to open directory handle", path.c_str(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+            WCHAR pszErr[32];
+            LoadStrFromRes(pszErr, 32, 4025);
+            TaskDialog(nullptr, nullptr, pszErr, L"Failed to open directory handle", path.c_str(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
             return 1;
         }
 
@@ -734,7 +581,9 @@ namespace DirectDesktop
                 size_t modifier2 = regValue.find(L",");
                 (*pm)[(*count2)]->SetSimpleFilename(displayName);
                 (*pm)[(*count2)]->SetFilename(clsidEx);
-                (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
+                WCHAR accDesc[256];
+                LoadStrFromRes(accDesc, 256, _wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str());
+                (*pm)[(*count2)]->SetAccDesc(accDesc);
                 (*pm)[(*count2)]->SetExt(L"Virtual_NotImpl");
                 (*count2)++;
                 free(cRegValue);
@@ -758,7 +607,9 @@ namespace DirectDesktop
                 size_t modifier2 = regValue.find(L",");
                 (*pm)[(*count2)]->SetSimpleFilename(displayName);
                 (*pm)[(*count2)]->SetFilename(clsidEx);
-                if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
+                WCHAR accDesc[256];
+                LoadStrFromRes(accDesc, 256, _wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str());
+                if (cRegValue) (*pm)[(*count2)]->SetAccDesc(accDesc);
                 (*pm)[(*count2)]->SetExt(L"Virtual_NotImpl");
                 (*count2)++;
                 free(cRegValue);
@@ -772,17 +623,21 @@ namespace DirectDesktop
             WCHAR clsidEx2[64];
             StringCchPrintfW(clsidEx2, 64, L"CLSID\\%s", clsid);
             WCHAR* cRegValue{};
-            GetRegistryStrValues(HKEY_CLASSES_ROOT, clsidEx2, L"InfoTip", &cRegValue);
-            wstring regValue{};
-            if (cRegValue) regValue = cRegValue;
-            size_t modifier = regValue.find_last_of(L"\\") + 1;
-            size_t modifier2 = regValue.find(L",");
+            if (GetRegistryStrValues(HKEY_CLASSES_ROOT, clsidEx2, L"InfoTip", &cRegValue))
+            {
+                wstring regValue{};
+                if (cRegValue) regValue = cRegValue;
+                size_t modifier = regValue.find_last_of(L"\\") + 1;
+                size_t modifier2 = regValue.find(L",");
+                WCHAR accDesc[256];
+                LoadStrFromRes(accDesc, 256, _wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str());
+                if (cRegValue) (*pm)[(*count2)]->SetAccDesc(accDesc);
+                free(cRegValue);
+            }
             (*pm)[(*count2)]->SetSimpleFilename(displayName);
             (*pm)[(*count2)]->SetFilename(clsidEx);
-            if (cRegValue) (*pm)[(*count2)]->SetAccDesc(LoadStrFromRes(_wtoi(regValue.substr(modifier2 + 2).c_str()), regValue.substr(modifier, modifier2 - modifier).c_str()).c_str());
             (*pm)[(*count2)]->SetExt(L"Virtual_NotImpl");
             (*count2)++;
-            free(cRegValue);
             return;
         }
     }
@@ -1379,17 +1234,17 @@ namespace DirectDesktop
         WCHAR DesktopLayoutWithSize[24];
         if (!g_touchmode) StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_%d", g_iconsz);
         else StringCchPrintfW(DesktopLayoutWithSize, 24, L"DesktopLayout_Touch");
-        COLORREF* pImmersiveColor = g_theme ? &ImmersiveColorL : &ImmersiveColorD;
+        COLORREF* pImmersiveColor = g_pctx->theme ? &(g_pColors->ImmersiveColorL) : &(g_pColors->ImmersiveColorD);
         COLORREF colorPickerPalette[8] =
         {
             -1,
             *pImmersiveColor,
-            g_theme ? RGB(76, 194, 255) : RGB(0, 103, 192),
-            g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
-            g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
-            g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
-            g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
-            g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
+            g_pctx->theme ? RGB(76, 194, 255) : RGB(0, 103, 192),
+            g_pctx->theme ? RGB(216, 141, 225) : RGB(158, 58, 176),
+            g_pctx->theme ? RGB(244, 103, 98) : RGB(210, 14, 30),
+            g_pctx->theme ? RGB(251, 154, 68) : RGB(224, 83, 7),
+            g_pctx->theme ? RGB(255, 213, 42) : RGB(225, 157, 0),
+            g_pctx->theme ? RGB(38, 255, 142) : RGB(0, 178, 90)
         };
         BYTE* valueSizeKey{}, *valueCommon{};
         GetRegistryBinValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", DesktopLayoutWithSize, &valueSizeKey);
@@ -1534,10 +1389,10 @@ namespace DirectDesktop
                                     else if (peIcon->GetGroupColor() == 0)
                                     {
                                         if (g_isColorized)
-                                            peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
-                                        else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
+                                            peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_pctx->theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_pColors->crPalette[iconColorID]));
+                                        else peItemCount->SetAssociatedColor(0xFF000000 | g_pColors->crPalette[1]);
                                     }
-                                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[colorID]);
+                                    else peItemCount->SetAssociatedColor(0xFF000000 | g_pColors->crPalette[colorID]);
                                 }
                             }
                             else
@@ -1579,8 +1434,8 @@ namespace DirectDesktop
                 {
                     if (g_isGlass || g_touchmode);
                     else if (g_isColorized)
-                        peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_colorPickerPalette[iconColorID]));
-                    else peItemCount->SetAssociatedColor(0xFF000000 | g_colorPickerPalette[1]);
+                        peItemCount->SetAssociatedColor(0xFF000000 | ((iconColorID == 0) ? g_pctx->theme ? RGB(64, 64, 64) : RGB(224, 224, 224) : g_pColors->crPalette[iconColorID]));
+                    else peItemCount->SetAssociatedColor(0xFF000000 | g_pColors->crPalette[1]);
                 }
             }
         }
@@ -1604,7 +1459,7 @@ namespace DirectDesktop
             DesktopLayout.push_back(homepageBinary[1]);
             for (int i = 0; i < pm.size(); i++)
             {
-                unsigned short xPos = (localeType == 1) ? dimensions.right - pm[i]->GetX() - pm[i]->GetWidth() : pm[i]->GetX();
+                unsigned short xPos = (g_pctx->localeType == 1) ? dimensions.right - pm[i]->GetX() - pm[i]->GetWidth() : pm[i]->GetX();
                 wstring filename = pm[i]->GetFilename();
                 unsigned short temp = filename.length();
                 const BYTE* namelen = reinterpret_cast<const BYTE*>(&temp);

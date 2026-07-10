@@ -1,12 +1,12 @@
 #pragma once
 
 #include "StyleModifier.h"
-#include "..\DirectDesktop.h"
+#include "..\common.h"
 #include <cmath>
 
 using namespace std;
 
-namespace DirectDesktop
+namespace DDUI
 {
     // https://blog.ivank.net/fastest-gaussian-blur.html
 
@@ -199,7 +199,7 @@ namespace DirectDesktop
         GetSystemPowerStatus(&sps);
         if (peOptional) peOptional->SetClass(L"TransparentDisabled");
         if (((GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") == 1 &&
-            !sps.SystemStatusFlag) || !fullscreen) && DWMActive)
+            !sps.SystemStatusFlag) || !fullscreen) && g_ctx.DWMActive)
         {
             HMODULE hUser = GetModuleHandleW(L"user32.dll");
             if (hUser)
@@ -213,7 +213,7 @@ namespace DirectDesktop
                     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
                     int WindowsBuild = _wtoi(WindowsBuildStr);
                     free(WindowsBuildStr);
-                    int blurcolor = fullscreen ? (g_theme ? 0xD3D3D3 : 0x202020) + (alpha << 24) : WindowsBuild < 22523 ? g_theme ? 0xDCE4E4E4 : 0xCA1F1F1F : g_theme ? 0x00F8F8F8 : 0x00303030;
+                    int blurcolor = fullscreen ? (g_ctx.theme ? 0xD3D3D3 : 0x202020) + (alpha << 24) : WindowsBuild < 22523 ? g_ctx.theme ? 0xDCE4E4E4 : 0xCA1F1F1F : g_ctx.theme ? 0x00F8F8F8 : 0x00303030;
                     ACCENT_POLICY policy = { static_cast<DWORD>(ACCENT_STATE::ACCENT_DISABLED), fullscreen ? static_cast<DWORD>(ACCENT_FLAG::ACCENT_NONE) : static_cast<DWORD>(ACCENT_FLAG::ACCENT_ENABLE_BORDER), blurcolor, 0 };
                     WINDOWCOMPOSITIONATTRIBDATA data = { static_cast<DWORD>(WINDOWCOMPOSITIONATTRIBUTE::WCA_ACCENT_POLICY), &policy, sizeof(ACCENT_POLICY) };
                     policy.AccentState = static_cast<DWORD>(blur ? ACCENT_STATE::ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE::ACCENT_DISABLED);

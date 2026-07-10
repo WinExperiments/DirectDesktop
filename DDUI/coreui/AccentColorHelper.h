@@ -2,7 +2,7 @@
 
 #include "ColorHelper.h"
 
-namespace DirectDesktop
+namespace DDUI
 {
     extern COLORREF g_dwAccent;
     extern hsl_t g_hslAccent;

@@ -10,9 +10,7 @@ namespace DirectDesktop
     extern DWORD shutdownReason;
     extern NativeHWNDHost* wnd;
     extern NativeHWNDHost* shutdownwnd;
-    extern int g_dpi, g_dpiLaunch;
     extern bool g_dialogopen;
-    extern bool g_theme;
     extern bool delayedshutdownstatuses[6];
 
     void DisplayShutdownDialog();

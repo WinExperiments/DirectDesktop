@@ -2,8 +2,6 @@
 
 #include "Logger.h"
 
-#include "..\ui\DDControls.h"
-
 using namespace std;
 
 namespace DirectDesktop
@@ -14,7 +12,7 @@ namespace DirectDesktop
     extern int logging;
     extern int localeType;
     extern int g_iconsz;
-    extern vector<LVItem*> pm;
+    extern vector<DDUI::LVItem*> pm;
     extern void InitLayout(bool animation, bool fResetUIState, bool bAlreadyOpen);
     extern void IconThumbHelper(int id);
     extern DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam);
@@ -77,7 +75,7 @@ namespace DirectDesktop
         void SetDestinationDirectory(LPCWSTR pszDest);
         void InitDimensions(RECT* prcDimensions, POINTL* ppt, UINT* pPage);
         void PrepDimensions();
-        void SetTargetLVItem(LVItem* lviTargetDir);
+        void SetTargetLVItem(DDUI::LVItem* lviTargetDir);
 
     private:
         LONG _lRefCount;
@@ -86,7 +84,7 @@ namespace DirectDesktop
         POINTL* _ppt;
         UINT* _pPage;
         vector<LPCWSTR> _pszPending;
-        LVItem* _lviTargetDir;
+        DDUI::LVItem* _lviTargetDir;
         void _PreProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName);
         void _PostProcessItem(DWORD dwFlags, IShellItem* psiItem, IShellItem* psiDestinationFolder, LPCWSTR pszNewName,
                 HRESULT hr, IShellItem* psiNewlyCreated);
@@ -94,13 +92,13 @@ namespace DirectDesktop
 
     extern vector<const wchar_t*> imageExts;
     extern vector<const wchar_t*> advancedIconExts;
-    wstring hideExt(const wstring& filename, bool isEnabled, bool dir, LVItem* shortpm);
+    wstring hideExt(const wstring& filename, bool isEnabled, bool dir, DDUI::LVItem* shortpm);
     void isSpecialProp(const wstring& filename, bool bReset, bool* result, vector<const wchar_t*>* exts);
     wstring GetExplorerTooltipText(const wstring& filePath);
     void StartMonitorFileChanges(const wstring& path);
-    void StartMonitorSubdirChanges(LVItem* lvi);
+    void StartMonitorSubdirChanges(DDUI::LVItem* lvi);
     unsigned short EnumerateFolder_Helper(LPWSTR path);
-    void EnumerateFolder(LPWSTR path, vector<LVItem*>* pm, int* count2 = nullptr, unsigned short limit = 65535);
+    void EnumerateFolder(LPWSTR path, vector<DDUI::LVItem*>* pm, int* count2 = nullptr, unsigned short limit = 65535);
     void EnumerateFolderForThumbnails(LPWSTR path, vector<ThumbIcons>* strs, unsigned short limit);
     void GetPos(bool getSpotlightIcon, int* setSpotlightIcon);
     void GetPos2(bool full);

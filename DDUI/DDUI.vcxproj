@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{bc658225-9934-4a83-823f-932e335059e3}</ProjectGuid>
+    <RootNamespace>DDUI</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\$(BaseIntermediateOutputPath)</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;DDUI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;DDUI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;DDUI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;DDUI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;wtsapi32.lib;powrprof.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="common.h" />
+    <ClInclude Include="coreui\AccentColorHelper.h" />
+    <ClInclude Include="coreui\AnimationHelper.h" />
+    <ClInclude Include="coreui\BitmapHelper.h" />
+    <ClInclude Include="coreui\BlurCore.h" />
+    <ClInclude Include="coreui\cdpa.h" />
+    <ClInclude Include="coreui\ColorHelper.h" />
+    <ClInclude Include="coreui\ImmersiveColor.h" />
+    <ClInclude Include="coreui\StyleModifier.h" />
+    <ClInclude Include="DDControls.h" />
+    <ClInclude Include="DDUI.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="SettingsHelper.h" />
+    <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="common.cpp" />
+    <ClCompile Include="coreui\AccentColorHelper.cpp" />
+    <ClCompile Include="coreui\AnimationHelper.cpp" />
+    <ClCompile Include="coreui\BitmapHelper.cpp" />
+    <ClCompile Include="coreui\ColorHelper.cpp" />
+    <ClCompile Include="coreui\StyleModifier.cpp" />
+    <ClCompile Include="DDControls.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="SettingsHelper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DDUI.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="ImageResources\1015.png" />
+    <Image Include="ImageResources\1016.png" />
+    <Image Include="ImageResources\1017.png" />
+    <Image Include="ImageResources\1018.png" />
+    <Image Include="ImageResources\1019.png" />
+    <Image Include="ImageResources\1020.png" />
+    <Image Include="ImageResources\1021.png" />
+    <Image Include="ImageResources\1029.png" />
+    <Image Include="ImageResources\1030.png" />
+    <Image Include="ImageResources\1031.png" />
+    <Image Include="ImageResources\1032.png" />
+    <Image Include="ImageResources\1033.png" />
+    <Image Include="ImageResources\1034.png" />
+    <Image Include="ImageResources\1035.png" />
+    <Image Include="ImageResources\1036.png" />
+    <Image Include="ImageResources\1037.png" />
+    <Image Include="ImageResources\1038.png" />
+    <Image Include="ImageResources\1039.png" />
+    <Image Include="ImageResources\1040.png" />
+    <Image Include="ImageResources\1041.png" />
+    <Image Include="ImageResources\1042.png" />
+    <Image Include="ImageResources\1043.png" />
+    <Image Include="ImageResources\1044.png" />
+    <Image Include="ImageResources\1045.png" />
+    <Image Include="ImageResources\1046.png" />
+    <Image Include="ImageResources\1047.png" />
+    <Image Include="ImageResources\1048.png" />
+    <Image Include="ImageResources\1049.png" />
+    <Image Include="ImageResources\1050.png" />
+    <Image Include="ImageResources\1051.png" />
+    <Image Include="ImageResources\1052.png" />
+    <Image Include="ImageResources\1053.png" />
+    <Image Include="ImageResources\1054.png" />
+    <Image Include="ImageResources\1055.png" />
+    <Image Include="ImageResources\1056.png" />
+    <Image Include="ImageResources\1057.png" />
+    <Image Include="ImageResources\1058.png" />
+    <Image Include="ImageResources\1059.png" />
+    <Image Include="ImageResources\1060.png" />
+    <Image Include="ImageResources\1061.png" />
+    <Image Include="ImageResources\1062.png" />
+    <Image Include="ImageResources\1063.png" />
+    <Image Include="ImageResources\1064.png" />
+    <Image Include="ImageResources\1065.png" />
+    <Image Include="ImageResources\1066.png" />
+    <Image Include="ImageResources\1067.png" />
+    <Image Include="ImageResources\1068.png" />
+    <Image Include="ImageResources\1069.png" />
+    <Image Include="ImageResources\1070.png" />
+    <Image Include="ImageResources\1071.png" />
+    <Image Include="ImageResources\1072.png" />
+    <Image Include="ImageResources\1073.png" />
+    <Image Include="ImageResources\1074.png" />
+    <Image Include="ImageResources\1075.png" />
+    <Image Include="ImageResources\1076.png" />
+    <Image Include="ImageResources\1077.png" />
+    <Image Include="ImageResources\1078.png" />
+    <Image Include="ImageResources\1079.png" />
+    <Image Include="ImageResources\1080.png" />
+    <Image Include="ImageResources\1081.png" />
+    <Image Include="ImageResources\1082.png" />
+    <Image Include="ImageResources\1083.png" />
+    <Image Include="ImageResources\1084.png" />
+    <Image Include="ImageResources\1085.png" />
+    <Image Include="ImageResources\1086.png" />
+    <Image Include="ImageResources\1087.png" />
+    <Image Include="ImageResources\1088.png" />
+    <Image Include="ImageResources\1089.png" />
+    <Image Include="ImageResources\1090.png" />
+    <Image Include="ImageResources\1091.png" />
+    <Image Include="ImageResources\1092.png" />
+    <Image Include="ImageResources\1093.png" />
+    <Image Include="ImageResources\1094.png" />
+    <Image Include="ImageResources\1095.png" />
+    <Image Include="ImageResources\1096.png" />
+    <Image Include="ImageResources\1097.png" />
+    <Image Include="ImageResources\1098.png" />
+    <Image Include="ImageResources\1099.png" />
+    <Image Include="ImageResources\1100.png" />
+    <Image Include="ImageResources\1101.png" />
+    <Image Include="ImageResources\1102.png" />
+    <Image Include="ImageResources\1103.png" />
+    <Image Include="ImageResources\1104.png" />
+    <Image Include="ImageResources\1105.png" />
+    <Image Include="ImageResources\1106.png" />
+    <Image Include="ImageResources\1107.png" />
+    <Image Include="ImageResources\1108.png" />
+    <Image Include="ImageResources\1109.png" />
+    <Image Include="ImageResources\1110.png" />
+    <Image Include="ImageResources\1111.png" />
+    <Image Include="ImageResources\1112.png" />
+    <Image Include="ImageResources\1113.png" />
+    <Image Include="ImageResources\1114.png" />
+    <Image Include="ImageResources\1115.png" />
+    <Image Include="ImageResources\1116.png" />
+    <Image Include="ImageResources\1117.png" />
+    <Image Include="ImageResources\1118.png" />
+    <Image Include="ImageResources\1119.png" />
+    <Image Include="ImageResources\1120.png" />
+    <Image Include="ImageResources\1121.png" />
+    <Image Include="ImageResources\1122.png" />
+    <Image Include="ImageResources\1123.png" />
+    <Image Include="ImageResources\1124.png" />
+    <Image Include="ImageResources\1125.png" />
+    <Image Include="ImageResources\1126.png" />
+    <Image Include="ImageResources\1127.png" />
+    <Image Include="ImageResources\1128.png" />
+    <Image Include="ImageResources\1129.png" />
+    <Image Include="ImageResources\1130.png" />
+    <Image Include="ImageResources\1131.png" />
+    <Image Include="ImageResources\1132.png" />
+    <Image Include="ImageResources\1133.png" />
+    <Image Include="ImageResources\2015.png" />
+    <Image Include="ImageResources\2016.png" />
+    <Image Include="ImageResources\2017.png" />
+    <Image Include="ImageResources\2018.png" />
+    <Image Include="ImageResources\2019.png" />
+    <Image Include="ImageResources\2020.png" />
+    <Image Include="ImageResources\2021.png" />
+    <Image Include="ImageResources\2029.png" />
+    <Image Include="ImageResources\2030.png" />
+    <Image Include="ImageResources\2031.png" />
+    <Image Include="ImageResources\2032.png" />
+    <Image Include="ImageResources\2033.png" />
+    <Image Include="ImageResources\2034.png" />
+    <Image Include="ImageResources\2035.png" />
+    <Image Include="ImageResources\2036.png" />
+    <Image Include="ImageResources\2037.png" />
+    <Image Include="ImageResources\2038.png" />
+    <Image Include="ImageResources\2039.png" />
+    <Image Include="ImageResources\2040.png" />
+    <Image Include="ImageResources\2041.png" />
+    <Image Include="ImageResources\2042.png" />
+    <Image Include="ImageResources\2043.png" />
+    <Image Include="ImageResources\2044.png" />
+    <Image Include="ImageResources\2045.png" />
+    <Image Include="ImageResources\2046.png" />
+    <Image Include="ImageResources\2047.png" />
+    <Image Include="ImageResources\2048.png" />
+    <Image Include="ImageResources\2049.png" />
+    <Image Include="ImageResources\2050.png" />
+    <Image Include="ImageResources\2051.png" />
+    <Image Include="ImageResources\2052.png" />
+    <Image Include="ImageResources\2053.png" />
+    <Image Include="ImageResources\2054.png" />
+    <Image Include="ImageResources\2055.png" />
+    <Image Include="ImageResources\2056.png" />
+    <Image Include="ImageResources\2057.png" />
+    <Image Include="ImageResources\2058.png" />
+    <Image Include="ImageResources\2059.png" />
+    <Image Include="ImageResources\2060.png" />
+    <Image Include="ImageResources\2061.png" />
+    <Image Include="ImageResources\2062.png" />
+    <Image Include="ImageResources\2063.png" />
+    <Image Include="ImageResources\2064.png" />
+    <Image Include="ImageResources\2065.png" />
+    <Image Include="ImageResources\2066.png" />
+    <Image Include="ImageResources\2067.png" />
+    <Image Include="ImageResources\2068.png" />
+    <Image Include="ImageResources\2069.png" />
+    <Image Include="ImageResources\2070.png" />
+    <Image Include="ImageResources\2071.png" />
+    <Image Include="ImageResources\2072.png" />
+    <Image Include="ImageResources\2073.png" />
+    <Image Include="ImageResources\2074.png" />
+    <Image Include="ImageResources\2075.png" />
+    <Image Include="ImageResources\2076.png" />
+    <Image Include="ImageResources\2077.png" />
+    <Image Include="ImageResources\2078.png" />
+    <Image Include="ImageResources\2079.png" />
+    <Image Include="ImageResources\2080.png" />
+    <Image Include="ImageResources\2081.png" />
+    <Image Include="ImageResources\2082.png" />
+    <Image Include="ImageResources\2083.png" />
+    <Image Include="ImageResources\2084.png" />
+    <Image Include="ImageResources\2085.png" />
+    <Image Include="ImageResources\2086.png" />
+    <Image Include="ImageResources\2087.png" />
+    <Image Include="ImageResources\2088.png" />
+    <Image Include="ImageResources\2089.png" />
+    <Image Include="ImageResources\2090.png" />
+    <Image Include="ImageResources\2091.png" />
+    <Image Include="ImageResources\2092.png" />
+    <Image Include="ImageResources\2093.png" />
+    <Image Include="ImageResources\2094.png" />
+    <Image Include="ImageResources\2095.png" />
+    <Image Include="ImageResources\2096.png" />
+    <Image Include="ImageResources\2097.png" />
+    <Image Include="ImageResources\2098.png" />
+    <Image Include="ImageResources\2099.png" />
+    <Image Include="ImageResources\2100.png" />
+    <Image Include="ImageResources\2101.png" />
+    <Image Include="ImageResources\2102.png" />
+    <Image Include="ImageResources\2103.png" />
+    <Image Include="ImageResources\2104.png" />
+    <Image Include="ImageResources\2105.png" />
+    <Image Include="ImageResources\2106.png" />
+    <Image Include="ImageResources\2107.png" />
+    <Image Include="ImageResources\2108.png" />
+    <Image Include="ImageResources\2109.png" />
+    <Image Include="ImageResources\2110.png" />
+    <Image Include="ImageResources\2111.png" />
+    <Image Include="ImageResources\2112.png" />
+    <Image Include="ImageResources\2113.png" />
+    <Image Include="ImageResources\2114.png" />
+    <Image Include="ImageResources\2115.png" />
+    <Image Include="ImageResources\2116.png" />
+    <Image Include="ImageResources\2117.png" />
+    <Image Include="ImageResources\2118.png" />
+    <Image Include="ImageResources\2119.png" />
+    <Image Include="ImageResources\2120.png" />
+    <Image Include="ImageResources\2121.png" />
+    <Image Include="ImageResources\2122.png" />
+    <Image Include="ImageResources\2123.png" />
+    <Image Include="ImageResources\2124.png" />
+    <Image Include="ImageResources\2125.png" />
+    <Image Include="ImageResources\2126.png" />
+    <Image Include="ImageResources\2127.png" />
+    <Image Include="ImageResources\2128.png" />
+    <Image Include="ImageResources\2129.png" />
+    <Image Include="ImageResources\2130.png" />
+    <Image Include="ImageResources\2131.png" />
+    <Image Include="ImageResources\2132.png" />
+    <Image Include="ImageResources\2133.png" />
+    <Image Include="ImageResources\3031.png" />
+    <Image Include="ImageResources\3032.png" />
+    <Image Include="ImageResources\3033.png" />
+    <Image Include="ImageResources\3034.png" />
+    <Image Include="ImageResources\3035.png" />
+    <Image Include="ImageResources\3036.png" />
+    <Image Include="ImageResources\3037.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="styles.xml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

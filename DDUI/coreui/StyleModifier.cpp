@@ -7,14 +7,10 @@
 #include "AccentColorHelper.h"
 #include "cdpa.h"
 #include "ImmersiveColor.h"
-#include "..\DirectDesktop.h"
+#include "..\common.h"
 
-namespace DirectDesktop
+namespace DDUI
 {
-    COLORREF ImmersiveColor, ImmersiveColorL, ImmersiveColorD, ImmersiveColor2;
-    bool g_theme;
-    bool g_themeOld;
-    const wchar_t* sheetName;
     rgb_t WhiteText;
 
     static COLORREF crBaseL[6] =
@@ -27,7 +23,6 @@ namespace DirectDesktop
         RGB(0, 103, 192), RGB(158, 58, 176), RGB(210, 14, 30),
         RGB(224, 83, 7), RGB(225, 157, 0), RGB(0, 178, 90)
     };
-    COLORREF g_colorPickerPalette[8];
 
     bool IconToBitmap(HICON hIcon, HBITMAP& hBitmap, int x, int y)
     {
@@ -73,31 +68,29 @@ namespace DirectDesktop
         return true;
     }
 
-    void UpdateModeInfo()
+    void UpdateModeInfo(bool fInit)
     {
-        g_theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
-        static bool themeOld = !g_theme;
-        ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
-        ImmersiveColorL = CImmersiveColor::GetColor(IMCLR_SystemAccentLight2);
-        ImmersiveColorD = CImmersiveColor::GetColor(IMCLR_SystemAccentDark1);
-        g_colorPickerPalette[1] = g_theme ? ImmersiveColorD : ImmersiveColorL;
-        if (g_theme != themeOld)
+        g_ctx.theme = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme");
+        g_colors.ImmersiveColor = CImmersiveColor::GetColor(IMCLR_SystemAccent);
+        g_colors.ImmersiveColorL = CImmersiveColor::GetColor(IMCLR_SystemAccentLight2);
+        g_colors.ImmersiveColorD = CImmersiveColor::GetColor(IMCLR_SystemAccentDark1);
+        g_colors.crPalette[1] = g_ctx.theme ? g_colors.ImmersiveColorD : g_colors.ImmersiveColorL;
+        if (g_ctx.theme != g_ctx.themeOld || fInit)
         {
-            g_colorPickerPalette[0] = g_theme ? 0 : -1;
-            g_colorPickerPalette[2] = g_theme ? crBaseD[0] : crBaseL[0];
-            g_colorPickerPalette[3] = g_theme ? crBaseD[1] : crBaseL[1];
-            g_colorPickerPalette[4] = g_theme ? crBaseD[2] : crBaseL[2];
-            g_colorPickerPalette[5] = g_theme ? crBaseD[3] : crBaseL[3];
-            g_colorPickerPalette[6] = g_theme ? crBaseD[4] : crBaseL[4];
-            g_colorPickerPalette[7] = g_theme ? crBaseD[5] : crBaseL[5];
+            g_colors.crPalette[0] = g_ctx.theme ? 0 : -1;
+            g_colors.crPalette[2] = g_ctx.theme ? crBaseD[0] : crBaseL[0];
+            g_colors.crPalette[3] = g_ctx.theme ? crBaseD[1] : crBaseL[1];
+            g_colors.crPalette[4] = g_ctx.theme ? crBaseD[2] : crBaseL[2];
+            g_colors.crPalette[5] = g_ctx.theme ? crBaseD[3] : crBaseL[3];
+            g_colors.crPalette[6] = g_ctx.theme ? crBaseD[4] : crBaseL[4];
+            g_colors.crPalette[7] = g_ctx.theme ? crBaseD[5] : crBaseL[5];
         }
-        if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", ImmersiveColor, false, nullptr);
-        themeOld = g_theme;
+        g_ctx.themeOld = g_ctx.theme;
     }
 
     void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)
     {
-        if (crOpt == NULL) crOpt = ImmersiveColor;
+        if (crOpt == NULL) crOpt = g_colors.ImmersiveColor;
         UpdateAccentColor(crOpt);
         rgb_t rgbVal = { r, g, b };
 
@@ -127,7 +120,7 @@ namespace DirectDesktop
 
     void EnhancedBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)
     {
-        if (crOpt == NULL) crOpt = ImmersiveColor;
+        if (crOpt == NULL) crOpt = g_colors.ImmersiveColor;
         UpdateAccentColor(crOpt);
         rgb_t rgbVal = { r, g, b };
 
@@ -295,112 +288,113 @@ namespace DirectDesktop
 
     COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold)
     {
-        COLORREF outDominantColor = g_isColorized ? IconColorizationColor : g_isDarkIconsEnabled ? RGB(80, 84, 88) : RGB(128, 136, 144);
+        return 0xFF888078;
+    //    COLORREF outDominantColor = g_isColorized ? IconColorizationColor : g_isDarkIconsEnabled ? RGB(80, 84, 88) : RGB(128, 136, 144);
 
-        HDC hMemDC = CreateCompatibleDC(nullptr);
-        HDC hMemDC2 = CreateCompatibleDC(nullptr);
+    //    HDC hMemDC = CreateCompatibleDC(nullptr);
+    //    HDC hMemDC2 = CreateCompatibleDC(nullptr);
 
-        RECT rcIcon;
-        rcIcon.left = 0;
-        rcIcon.top = 0;
-        rcIcon.right = iconsize;
-        rcIcon.bottom = iconsize;
+    //    RECT rcIcon;
+    //    rcIcon.left = 0;
+    //    rcIcon.top = 0;
+    //    rcIcon.right = iconsize;
+    //    rcIcon.bottom = iconsize;
 
-        HDC hdcPaint;
-        HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hMemDC, &rcIcon, BPBF_TOPDOWNDIB, nullptr, &hdcPaint);
-        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC2, hbm);
-        if (hBufferedPaint)
-        {
-            BufferedPaintClear(hBufferedPaint, &rcIcon);
-            BitBlt(hdcPaint, rcIcon.left, rcIcon.top, rcIcon.right, rcIcon.bottom, hMemDC2, 0, 0, SRCCOPY);
+    //    HDC hdcPaint;
+    //    HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hMemDC, &rcIcon, BPBF_TOPDOWNDIB, nullptr, &hdcPaint);
+    //    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC2, hbm);
+    //    if (hBufferedPaint)
+    //    {
+    //        BufferedPaintClear(hBufferedPaint, &rcIcon);
+    //        BitBlt(hdcPaint, rcIcon.left, rcIcon.top, rcIcon.right, rcIcon.bottom, hMemDC2, 0, 0, SRCCOPY);
 
-            RGBQUAD* pbBuffer;
-            int cxRow;
-            GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
+    //        RGBQUAD* pbBuffer;
+    //        int cxRow;
+    //        GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
 
-            constexpr int bucketCoef = 86;
-            constexpr int hitRatioThreshold = 7;
+    //        constexpr int bucketCoef = 86;
+    //        constexpr int hitRatioThreshold = 7;
 
-            constexpr int frac = 0xFF / (bucketCoef - 1);
-            BUCKET rgBucket[
-                (frac * frac) * (0xFF / bucketCoef)
-                + (frac) * (0xFF / bucketCoef)
-                + (0xFF / bucketCoef)
-                + 1
-            ];
-            for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize)
-            {
-                for (int column = 0; column < iconsize; ++column, ++pbBuffer)
-                {
-                    if (pbBuffer->rgbReserved)
-                    {
-                        BYTE maxValue = max(pbBuffer->rgbRed, max(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
-                        BYTE minValue = min(pbBuffer->rgbRed, min(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
-                        if (maxValue - minValue > nonGreyishThreshold)
-                        {
-                            BUCKET* bucket = &rgBucket[
-                                (frac * frac) * (pbBuffer->rgbRed / bucketCoef)
-                                + (frac) * (pbBuffer->rgbGreen / bucketCoef)
-                                + (pbBuffer->rgbBlue / bucketCoef)
-                            ];
-                            bucket->_dpa.AppendPtr(pbBuffer);
-                        }
-                    }
-                }
-            }
+    //        constexpr int frac = 0xFF / (bucketCoef - 1);
+    //        BUCKET rgBucket[
+    //            (frac * frac) * (0xFF / bucketCoef)
+    //            + (frac) * (0xFF / bucketCoef)
+    //            + (0xFF / bucketCoef)
+    //            + 1
+    //        ];
+    //        for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize)
+    //        {
+    //            for (int column = 0; column < iconsize; ++column, ++pbBuffer)
+    //            {
+    //                if (pbBuffer->rgbReserved)
+    //                {
+    //                    BYTE maxValue = max(pbBuffer->rgbRed, max(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
+    //                    BYTE minValue = min(pbBuffer->rgbRed, min(pbBuffer->rgbGreen, pbBuffer->rgbBlue));
+    //                    if (maxValue - minValue > nonGreyishThreshold)
+    //                    {
+    //                        BUCKET* bucket = &rgBucket[
+    //                            (frac * frac) * (pbBuffer->rgbRed / bucketCoef)
+    //                            + (frac) * (pbBuffer->rgbGreen / bucketCoef)
+    //                            + (pbBuffer->rgbBlue / bucketCoef)
+    //                        ];
+    //                        bucket->_dpa.AppendPtr(pbBuffer);
+    //                    }
+    //                }
+    //            }
+    //        }
 
-            SIZE_T bucketWithMostHits = -1;
-            int totalHits = 0;
-            for (SIZE_T bucketIdx = 0; bucketIdx < ARRAYSIZE(rgBucket); ++bucketIdx)
-            {
-                int myHits = rgBucket[bucketIdx]._dpa.GetPtrCount();
-                totalHits += myHits;
-                if (bucketWithMostHits == -1 || myHits > rgBucket[bucketWithMostHits]._dpa.GetPtrCount())
-                {
-                    bucketWithMostHits = bucketIdx;
-                }
-            }
+    //        SIZE_T bucketWithMostHits = -1;
+    //        int totalHits = 0;
+    //        for (SIZE_T bucketIdx = 0; bucketIdx < ARRAYSIZE(rgBucket); ++bucketIdx)
+    //        {
+    //            int myHits = rgBucket[bucketIdx]._dpa.GetPtrCount();
+    //            totalHits += myHits;
+    //            if (bucketWithMostHits == -1 || myHits > rgBucket[bucketWithMostHits]._dpa.GetPtrCount())
+    //            {
+    //                bucketWithMostHits = bucketIdx;
+    //            }
+    //        }
 
-            const BUCKET* bestBucket = &rgBucket[bucketWithMostHits];
-            int denominator = 0;
-            int totalR = 0;
-            int totalG = 0;
-            int totalB = 0;
-            int numBestBucketHits = bestBucket->_dpa.GetPtrCount();
-            if (numBestBucketHits > 0)
-            {
-                denominator = numBestBucketHits;
-                for (int colorIdx = 0; colorIdx < numBestBucketHits; ++colorIdx)
-                {
-                    const RGBQUAD* color = bestBucket->_dpa.FastGetPtr(colorIdx);
-                    totalR += color->rgbRed;
-                    totalG += color->rgbGreen;
-                    totalB += color->rgbBlue;
-                }
-            }
+    //        const BUCKET* bestBucket = &rgBucket[bucketWithMostHits];
+    //        int denominator = 0;
+    //        int totalR = 0;
+    //        int totalG = 0;
+    //        int totalB = 0;
+    //        int numBestBucketHits = bestBucket->_dpa.GetPtrCount();
+    //        if (numBestBucketHits > 0)
+    //        {
+    //            denominator = numBestBucketHits;
+    //            for (int colorIdx = 0; colorIdx < numBestBucketHits; ++colorIdx)
+    //            {
+    //                const RGBQUAD* color = bestBucket->_dpa.FastGetPtr(colorIdx);
+    //                totalR += color->rgbRed;
+    //                totalG += color->rgbGreen;
+    //                totalB += color->rgbBlue;
+    //            }
+    //        }
 
-            if (MulDiv(numBestBucketHits, 100, totalHits) >= hitRatioThreshold)
-            {
-                outDominantColor = RGB(totalR / denominator, totalG / denominator, totalB / denominator);
-            }
-            if (GetRValue(outDominantColor) * 0.299 + GetGValue(outDominantColor) * 0.587 + GetBValue(outDominantColor) * 0.114 > 156)
-            {
-                rgb_t odcTemp1 = { GetRValue(outDominantColor), GetGValue(outDominantColor), GetBValue(outDominantColor) };
-                hsl_t odcTemp2 = rgb2hsl(odcTemp1);
-                double reduced = pow((odcTemp2.l), 0.972);
-                odcTemp2.s *= (1 + (odcTemp2.l - reduced) / 96);
-                odcTemp2.l = reduced;
-                odcTemp1 = hsl2rgb(odcTemp2);
-                outDominantColor = RGB(odcTemp1.r, odcTemp1.g, odcTemp1.b);
-            }
+    //        if (MulDiv(numBestBucketHits, 100, totalHits) >= hitRatioThreshold)
+    //        {
+    //            outDominantColor = RGB(totalR / denominator, totalG / denominator, totalB / denominator);
+    //        }
+    //        if (GetRValue(outDominantColor) * 0.299 + GetGValue(outDominantColor) * 0.587 + GetBValue(outDominantColor) * 0.114 > 156)
+    //        {
+    //            rgb_t odcTemp1 = { GetRValue(outDominantColor), GetGValue(outDominantColor), GetBValue(outDominantColor) };
+    //            hsl_t odcTemp2 = rgb2hsl(odcTemp1);
+    //            double reduced = pow((odcTemp2.l), 0.972);
+    //            odcTemp2.s *= (1 + (odcTemp2.l - reduced) / 96);
+    //            odcTemp2.l = reduced;
+    //            odcTemp1 = hsl2rgb(odcTemp2);
+    //            outDominantColor = RGB(odcTemp1.r, odcTemp1.g, odcTemp1.b);
+    //        }
 
-            EndBufferedPaint(hBufferedPaint, FALSE);
-            DeleteObject(hOldBitmap);
-            DeleteDC(hMemDC);
-            DeleteDC(hMemDC2);
-        }
+    //        EndBufferedPaint(hBufferedPaint, FALSE);
+    //        DeleteObject(hOldBitmap);
+    //        DeleteDC(hMemDC);
+    //        DeleteDC(hMemDC2);
+    //    }
 
-        return outDominantColor;
+    //    return outDominantColor;
     }
 
     COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize)
@@ -427,7 +421,7 @@ namespace DirectDesktop
             RGBQUAD* pbBuffer;
             int cxRow;
             GetBufferedPaintBits(hBufferedPaint, &pbBuffer, &cxRow);
-            vector<BYTE> lightValues;
+            std::vector<BYTE> lightValues;
 
             for (int row = 0; row < iconsize; ++row, pbBuffer += cxRow - iconsize)
             {
@@ -444,7 +438,7 @@ namespace DirectDesktop
                 }
             }
 
-            map<int, int> lightMap = {};
+            std::map<int, int> lightMap = {};
             int lightCount = 0;
             int lightVal = 0;
 
@@ -453,7 +447,7 @@ namespace DirectDesktop
                 lightMap[item] = lightMap.emplace(item, 0).first->second + 1;
                 if (lightMap[item] >= lightCount)
                 {
-                    tie(lightCount, lightVal) = tie(lightMap[item], item);
+                    std::tie(lightCount, lightVal) = std::tie(lightMap[item], item);
                 }
             }
 
@@ -488,7 +482,7 @@ namespace DirectDesktop
 
         BYTE* pPixel;
         int x, y;
-        vector<BYTE> lightValues;
+        std::vector<BYTE> lightValues;
 
         for (y = 0; y < bm.bmHeight; y++)
         {

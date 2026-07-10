@@ -13,6 +13,7 @@
 
 #include "Include\dui70\DirectUI\DirectUI.h"
 #include "Include\dui70\DUser\DUser.h"
+#include "..\DDUI\DDUI.h"
 
 #include <algorithm>
 #include <vector>

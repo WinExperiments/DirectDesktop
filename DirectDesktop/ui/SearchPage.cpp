@@ -2,7 +2,6 @@
 
 #include "SearchPage.h"
 #include "..\DirectDesktop.h"
-#include "..\coreui\BitmapHelper.h"
 #include "..\backend\DirectoryHelper.h"
 
 #ifdef HAS_SEARCH
@@ -11,6 +10,7 @@
 #endif
 
 using namespace DirectUI;
+using namespace DDUI;
 
 namespace DirectDesktop
 {
@@ -56,10 +56,10 @@ namespace DirectDesktop
                     TransitionStoryboardInfo tsbInfo = {};
                     TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
-                    if (g_windowAnim && g_clientAnim)
+                    if (g_pctx->windowAnim && g_pctx->clientAnim)
                     {
                         CSafeElementPtr<Element> pagecontent;
-                        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+                        pagecontent.Assign(regElem(L"pagecontent", pSearch));
                         pagecontent->SetVisible(false);
                         TriggerScaleIn(pagecontent, transDesc, 0, 0.05f, 0.3f, 0.25f, 0.1f, 0.25f, 1.0f, 0.97f, 0.97f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, true, false);
                         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
@@ -111,9 +111,9 @@ namespace DirectDesktop
 
     DWORD WINAPI AnimateSearchWindow(LPVOID lpParam)
     {
-        DWORD animCoef = g_animCoef;
-        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (g_windowAnim && g_clientAnim)
+        DWORD animCoef = g_pctx->animCoef;
+        if (g_pctx->AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        if (g_pctx->windowAnim && g_pctx->clientAnim)
             AnimateWindow(searchwnd->GetHWND(), 150 * (animCoef / 100.0f), AW_BLEND);
         else
             searchwnd->ShowWindow(SW_SHOW);
@@ -123,12 +123,12 @@ namespace DirectDesktop
 
     DWORD WINAPI AnimateSearchWindow2(LPVOID lpParam)
     {
-        DWORD animCoef = g_animCoef;
-        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-        if (!g_windowAnim || !g_clientAnim) animCoef = 0;
+        DWORD animCoef = g_pctx->animCoef;
+        if (g_pctx->AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        if (!g_pctx->windowAnim || !g_pctx->clientAnim) animCoef = 0;
         Sleep(175 * (animCoef / 100.0f));
         SetForegroundWindow(wnd->GetHWND());
-        if (g_windowAnim && g_clientAnim)
+        if (g_pctx->windowAnim && g_pctx->clientAnim)
             AnimateWindow(searchwnd->GetHWND(), 120 * (animCoef / 100.0f), AW_BLEND | AW_HIDE);
         else
             searchwnd->ShowWindow(SW_HIDE);
@@ -168,7 +168,7 @@ namespace DirectDesktop
             //d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
             //StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
             CSafeElementPtr<Element> rescontainer;
-            rescontainer.Assign(regElem<Element*>(L"rescontainer", pSearch));
+            rescontainer.Assign(regElem(L"rescontainer", pSearch));
             //rescontainer->DestroyAll(true);
             //WCHAR* searchquery = new WCHAR[1024];
             //StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
@@ -197,8 +197,8 @@ namespace DirectDesktop
             //	LVItem* SearchResult{};
             //	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResult);
             //	rescontainer->Add((Element**)&SearchResult, 1);
-            //	RichText* name = regElem<RichText*>(L"name", SearchResult);
-            //	RichText* path = regElem<RichText*>(L"path", SearchResult);
+            //	RichText* name = regElem(L"name", SearchResult);
+            //	RichText* path = regElem(L"path", SearchResult);
             //	name->SetContentString(nameStr);
             //	path->SetContentString(pathStr);
             //	SearchResult->SetFilename((wstring)Everything_GetResultPathW(i) + L"\\" + Everything_GetResultFileNameW(i));
@@ -229,7 +229,7 @@ namespace DirectDesktop
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         static IElementListener* pel_DisplayResults, * pel_CloseSearch;
         DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
-        if (DWMActive)
+        if (g_pctx->DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
             dwCreateFlags |= 0x28;
@@ -244,24 +244,24 @@ namespace DirectDesktop
         pSearch->SetVisible(true);
         pSearch->EndDefer(key4);
         CSafeElementPtr<Element> searchbase;
-        searchbase.Assign(regElem<Element*>(L"searchbase", pSearch));
-        LPWSTR sheetName = g_theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
+        searchbase.Assign(regElem(L"searchbase", pSearch));
+        LPWSTR sheetName = g_pctx->theme ? (LPWSTR)L"searchstyle" : (LPWSTR)L"searchstyledark";
         StyleSheet* sheet = pSearch->GetSheet();
         CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
         parserSearch->GetSheet(sheetName, &sheetStorage);
         pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
-        searchbox = regElem<DDScalableTouchEdit*>(L"searchbox", pSearch);
+        searchbox = (DDScalableTouchEdit*)regElem(L"searchbox", pSearch);
         free(pel_DisplayResults), free(pel_CloseSearch);
         CSafeElementPtr<DDScalableTouchButton> searchbutton;
-        searchbutton.Assign(regElem<DDScalableTouchButton*>(L"searchbutton", pSearch));
+        searchbutton.Assign((DDScalableTouchButton*)regElem(L"searchbutton", pSearch));
         pel_DisplayResults = (IElementListener*)assignFn(searchbutton, DisplayResults, true);
         CSafeElementPtr<DDScalableTouchButton> closebutton;
-        closebutton.Assign(regElem<DDScalableTouchButton*>(L"closebutton", pSearch));
+        closebutton.Assign((DDScalableTouchButton*)regElem(L"closebutton", pSearch));
         pel_CloseSearch = (IElementListener*)assignFn(closebutton, CloseSearch, true);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
-        SearchResults.Assign(regElem<TouchScrollViewer*>(L"SearchResults", pSearch));
+        SearchResults.Assign((TouchScrollViewer*)regElem(L"SearchResults", pSearch));
         CSafeElementPtr<Element> pagecontent;
-        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+        pagecontent.Assign(regElem(L"pagecontent", pSearch));
         searchwnd->Host(pSearch);
         searchwnd->ShowWindow(SW_HIDE);
         GTRANS_DESC transDesc[1];
@@ -273,7 +273,7 @@ namespace DirectDesktop
         TriggerScaleIn(pagecontent, transDesc2, 1, 0.05f, 0.72f, 0.1f, 0.9f, 0.2f, 1.0f, 0.75f, 0.75f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, pagecontent->GetDisplayNode(), &tsbInfo);
         MARGINS m = { -1, -1, -1, -1 };
-        if (DWMActive)
+        if (g_pctx->DWMActive)
         {
             AddLayeredRef(searchbase->GetDisplayNode());
             SetGadgetFlags(searchbase->GetDisplayNode(), NULL, NULL);
@@ -294,7 +294,7 @@ namespace DirectDesktop
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         DUI_SetGadgetZOrder(UIContainer, -1);
         CSafeElementPtr<Element> pagecontent;
-        pagecontent.Assign(regElem<Element*>(L"pagecontent", pSearch));
+        pagecontent.Assign(regElem(L"pagecontent", pSearch));
         GTRANS_DESC transDesc2[2];
         TriggerScaleOut(pagecontent, transDesc2, 0, 0.0f, 0.175f, 1.0f, 1.0f, 0.0f, 1.0f, 0.95f, 0.95f, 0.5f, 0.5f, false, false);
         TriggerFade(pagecontent, transDesc2, 1, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);

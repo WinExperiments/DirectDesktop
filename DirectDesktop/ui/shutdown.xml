@@ -62,7 +62,7 @@
 		<DDCombobox id="atom(SETReason)" layoutpos="top" listmaxheight="360rp"/>
 	</Element>
 	<stylesheets>
-		<style resid="shutdownstyle" base="ressheet(31, DDBase)">
+		<style resid="shutdownstyle" base="ressheet(31, library(DDUI.dll), DDBase)">
 			<HWNDElement background="rgb(243,243,243)"/>
 			<if accdesc="Windows 10">
 				<DDScalableElement FirstScaledImage="11101" EnableAccent="false"/>
@@ -126,7 +126,7 @@
 				</if>
 			</if>
 		</style>
-		<style resid="shutdownstyledark" base="ressheet(31, DDBaseDark)">
+		<style resid="shutdownstyledark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
 			<HWNDElement background="rgb(32,32,32)"/>
 			<if accdesc="Windows 10">
 				<DDScalableElement FirstScaledImage="11201" EnableAccent="false"/>

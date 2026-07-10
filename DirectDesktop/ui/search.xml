@@ -26,7 +26,7 @@
 		<RichText id="atom(path)" layoutpos="top" foreground="gray" font="9pt;Normal;None;Segoe UI"/>
 	</LVItem>
 	<stylesheets>
-		<style resid="searchstyle" base="ressheet(31, DDBase)">
+		<style resid="searchstyle" base="ressheet(31, library(DDUI.dll), DDBase)">
 			<if id="atom(searchbase)">
 				<if class="TransparentEnabled">
 					<Element background="argb(0,0,0,0)"/>
@@ -38,7 +38,7 @@
 			<Element foreground="black"/>
 			<DDScalableRichText foreground="black"/>
 		</style>
-		<style resid="searchstyledark" base="ressheet(31, DDBaseDark)">
+		<style resid="searchstyledark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
 			<if id="atom(searchbase)">
 				<if class="TransparentEnabled">
 					<Element background="argb(0,0,0,0)"/>

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "..\ui\DDControls.h"
 
 namespace DirectDesktop
 {
@@ -95,11 +94,11 @@ namespace DirectDesktop
 		MYDDCALLBACK pDropProc;
 		std::wstring _destDir;
 		std::wstring _destDirDispName;
-		LVItem* _lviLastTarget;
+		DDUI::LVItem* _lviLastTarget;
 		BOOL _QueryDataObject();
 		DWORD _DropEffect(DWORD dwKeyState, POINTL pt, DWORD dwAllowed);
 		void _SetDropDescription(DROPIMAGETYPE type, LPCWSTR pszMsg, LPCWSTR pszDest);
-		LVItem* _MapPointToItem(POINTL* ppt);
+		DDUI::LVItem* _MapPointToItem(POINTL* ppt);
 	};
 
 	enum DragImageFlags : DWORD
@@ -187,9 +186,10 @@ namespace DirectDesktop
 	HRESULT DataObj_SetBlobWithIndex(IDataObject* pdtobj, CLIPFORMAT cf, const void* pvData, size_t cbData, LONG lindex);
 	extern DWORD TheDropProc(IDataObject* pDataObject, CLIPFORMAT cf, HGLOBAL hdata, HWND hwnd, DWORD key_state, POINTL pt, std::wstring dest, void* param);
 
+	extern DirectUI::NativeHWNDHost* wnd;
 	extern HANDLE g_hHeap;
 	extern CMinimalDragImage* pMinimal;
-	extern vector<LVItem**> selectedLVItems;
+	extern vector<DDUI::LVItem**> selectedLVItems;
 	extern DirectUI::TouchButton* prevpageMain, *nextpageMain;
 	extern void TriggerPageTransition(int direction, RECT& dimensions);
 	extern void InitNewLVItem(const wstring& filepath, const wstring& filename, POINTL* ppt, const UINT page);

@@ -1,0 +1,123 @@
+//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ generated include file.
+// Used by ShutDownWindows.rc
+//
+#define IDR_UIFILE1                     34
+#define IDS_STRING200                   200
+#define IDS_STRING201                   201
+#define IDS_STRING202                   202
+#define IDS_STRING203                   203
+#define IDS_STRING204                   204
+#define IDS_STRING205                   205
+#define IDS_STRING206                   206
+#define IDS_STRING4001                  4001
+#define IDS_STRING4002                  4002
+#define IDS_STRING4003                  4003
+#define IDS_STRING4004                  4004
+#define IDS_STRING4005                  4005
+#define IDS_STRING4006                  4006
+#define IDS_STRING4007                  4007
+#define IDS_STRING4008                  4008
+#define IDS_STRING4009                  4009
+#define IDS_STRING4010                  4010
+#define IDS_STRING4011                  4011
+#define IDS_STRING4012                  4012
+#define IDS_STRING4013                  4013
+#define IDS_STRING4014                  4014
+#define IDS_STRING4015                  4015
+#define IDS_STRING4016                  4016
+#define IDS_STRING4017                  4017
+#define IDS_STRING4018                  4018
+#define IDS_STRING4019                  4019
+#define IDS_STRING4020                  4020
+#define IDS_STRING4021                  4021
+#define IDS_STRING4022                  4022
+#define IDS_STRING4023                  4023
+#define IDS_STRING4024                  4024
+#define IDS_STRING4025                  4025
+#define IDS_STRING4026                  4026
+#define IDS_STRING4027                  4027
+#define IDS_STRING4028                  4028
+#define IDS_STRING4029                  4029
+#define IDS_STRING4030                  4030
+#define IDS_STRING4031                  4031
+#define IDS_STRING4032                  4032
+#define IDS_STRING4033                  4033
+#define IDS_STRING4034                  4034
+#define IDS_STRING4035                  4035
+#define IDS_STRING4036                  4036
+#define IDS_STRING4037                  4037
+#define IDS_STRING4038                  4038
+#define IDS_STRING4039                  4039
+#define IDS_STRING4040                  4040
+#define IDS_STRING4041                  4041
+#define IDS_STRING4042                  4042
+#define IDS_STRING4043                  4043
+#define IDS_STRING4044                  4044
+#define IDS_STRING4045                  4045
+#define IDS_STRING4046                  4046
+#define IDS_STRING4047                  4047
+#define IDS_STRING4048                  4048
+#define IDS_STRING4049                  4049
+#define IDS_STRING4050                  4050
+#define IDS_STRING4051                  4051
+#define IDS_STRING4052                  4052
+#define IDS_STRING4053                  4053
+#define IDS_STRING4054                  4054
+#define IDS_STRING4055                  4055
+#define IDS_STRING4056                  4056
+#define IDS_STRING4057                  4057
+#define IDS_STRING4058                  4058
+#define IDS_STRING4059                  4059
+#define IDS_STRING4060                  4060
+#define IDS_STRING4061                  4061
+#define IDS_STRING4062                  4062
+#define IDS_STRING4063                  4063
+#define IDS_STRING4064                  4064
+#define IDS_STRING4065                  4065
+#define IDS_STRING4066                  4066
+#define IDS_STRING4067                  4067
+#define IDS_STRING4068                  4068
+#define IDS_STRING4069                  4069
+#define IDS_STRING4070                  4070
+#define IDS_STRING4071                  4071
+#define IDS_STRING4072                  4072
+#define IDS_STRING4073                  4073
+#define IDS_STRING4074                  4074
+#define IDS_STRING4075                  4075
+#define IDS_STRING4076                  4076
+#define IDS_STRING4077                  4077
+#define IDS_STRING4078                  4078
+#define IDS_STRING4079                  4079
+#define IDS_STRING4080                  4080
+#define IDS_STRING4081                  4081
+#define IDS_STRING4082                  4082
+#define IDS_STRING4083                  4083
+#define IDS_STRING4084                  4084
+#define IDS_STRING4085                  4085
+#define IDS_STRING4086                  4086
+#define IDS_STRING4087                  4087
+#define IDS_STRING4088                  4088
+#define IDS_STRING4089                  4089
+#define IDS_STRING4090                  4090
+#define IDS_STRING4091                  4091
+#define IDS_STRING4092                  4092
+#define IDS_STRING4093                  4093
+#define IDS_STRING4094                  4094
+#define IDS_STRING4095                  4095
+#define IDS_STRING4096                  4096
+#define IDS_STRING4097                  4097
+#define IDS_STRING4098                  4098
+#define IDC_STATIC                      -1
+
+// Next default values for new objects
+// 
+#ifdef APSTUDIO_INVOKED
+#ifndef APSTUDIO_READONLY_SYMBOLS
+#define _APS_NO_MFC                     1
+#define _APS_NEXT_RESOURCE_VALUE        946
+#define _APS_NEXT_COMMAND_VALUE         32771
+#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_SYMED_VALUE           110
+#endif
+#endif

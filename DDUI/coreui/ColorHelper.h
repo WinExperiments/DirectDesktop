@@ -1,6 +1,6 @@
 #pragma once
 
-namespace DirectDesktop
+namespace DDUI
 {
     DWORD rgb2bgr(COLORREF rgb);
 

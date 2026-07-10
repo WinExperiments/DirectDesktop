@@ -1,17 +1,18 @@
 #include "pch.h"
 
 #include "DDControls.h"
-#include "..\DirectDesktop.h"
-#include "..\coreui\BitmapHelper.h"
-#include "..\backend\DirectoryHelper.h"
-#include "..\coreui\StyleModifier.h"
+#include "common.h"
+#include "SettingsHelper.h"
+#include "coreui\AnimationHelper.h"
+#include "coreui\BitmapHelper.h"
+#include "coreui\StyleModifier.h"
 #include <wrl.h>
 #include <sstream>
 
 using namespace std;
 using namespace DirectUI;
 
-namespace DirectDesktop
+namespace DDUI
 {
     IClassInfo* DDScalableElement::s_pClassInfo;
     IClassInfo* DDScalableButton::s_pClassInfo;
@@ -45,6 +46,7 @@ namespace DirectDesktop
 
     typedef HWND(WINAPI* pfnSHCreateWorkerWindowW)(WNDPROC, HWND, DWORD, DWORD, LPVOID);
 
+    DDMenu* g_menu;
     vector<DDNotificationBanner*> g_nwnds{};
 
     WNDPROC WndProcNotification;
@@ -130,17 +132,29 @@ namespace DirectDesktop
     template <typename T>
     void RedrawImageCore(T* pe)
     {
+        HMODULE hCaller = HINST_THISCOMPONENT;
+        // 0.6 M1: Will be replaced with proper library loading later
+        bool repeat = true;
+    TEMP_ALTLOAD1:
         int scaleInterval = GetCurrentScaleInterval();
         int scaleIntervalImage = pe->GetScaledImageIntervals();
         if (scaleInterval > scaleIntervalImage - 1)
             scaleInterval = scaleIntervalImage - 1;
         int imageID = pe->GetFirstScaledImage() + scaleInterval;
 
-        HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-        if (newImage == nullptr)
+        HBITMAP newImage = (HBITMAP)LoadImageW(hCaller, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+        if (!newImage)
         {
-            LoadPNGAsBitmap(newImage, imageID);
+            if (!repeat) hCaller = nullptr;
+            LoadPNGAsBitmap(hCaller, newImage, imageID);
             IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
+        }
+
+        if (!newImage && repeat)
+        {
+            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN, (LPCWSTR)_ReturnAddress(), &hCaller);
+            repeat = false;
+            goto TEMP_ALTLOAD1;
         }
 
         if (newImage)
@@ -166,7 +180,7 @@ namespace DirectDesktop
                 if ((crAssoc != 0 && crAssoc != 0xFFFFFFFF) || vAssoc->GetType() == (int)ValueType::Int)
                     IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
                 else if (pe->GetEnableAccent())
-                    IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, ImmersiveColor);
+                    IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, g_colors.ImmersiveColor);
                 //else if (pe->GetDDCPIntensity() != 255)
                 //    pe->SetAlpha(pe->GetDDCPIntensity()); // 0.5.8.2: Temporarily disabled
                 vAssoc->Release();
@@ -222,14 +236,14 @@ namespace DirectDesktop
                 wstring fontIntermediate = fontOld.substr(0, modifier + 1);
                 wstring fontIntermediate2 = fontOld.substr(modifier + 1, modifier2);
                 wstring fontIntermediate3 = fontOld.substr(modifier2, wcslen(fontOld.c_str()));
-                int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_dpi / static_cast<float>(g_dpiLaunch);
+                int newFontSize = _wtoi(fontIntermediate2.c_str()) * g_ctx.dpi / static_cast<float>(g_ctx.dpiLaunch);
                 wstring fontNew = fontIntermediate + to_wstring(newFontSize) + fontIntermediate3;
                 pe->SetFont(fontNew.c_str());
                 if (result) *result = false;
             }
             else if (pe->GetFontSize() > 0)
             {
-                pe->SetFontSize(pe->GetFontSize() * g_flScaleFactor);
+                pe->SetFontSize(pe->GetFontSize() * g_ctx.flScaleFactor);
             }
         }
     }
@@ -294,7 +308,7 @@ namespace DirectDesktop
         return 0;
     }
 
-    static const int vvimpFirstScaledImageProp[] = { 1, -1 };
+    static const int vvimpFirstScaledImageProp[] = { 1, 5, -1 };
     static PropertyInfoData dataimpFirstScaledImageProp;
     static const PropertyInfo impFirstScaledImageProp =
     {
@@ -550,7 +564,7 @@ namespace DirectDesktop
     void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
         CSafeElementPtr<DDScalableTouchButton> peThumbInner;
-        peThumbInner.Assign(regElem<DDScalableTouchButton*>(L"DDS_ThumbInner", elem));
+        peThumbInner.Assign((DDScalableTouchButton*)regElem(L"DDS_ThumbInner", elem));
         GTRANS_DESC transDesc[2];
         TransitionStoryboardInfo tsbInfo = {};
         float alpha1 = 1.0f;
@@ -635,7 +649,7 @@ namespace DirectDesktop
         //        RedrawBorderCore<DDScalableElement>(this);
         //}
         //GetGadgetRect(this->GetDisplayNode(), &rcOld, 0x8);
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && g_ctx.DWMActive)
         {
             if (this->IsHosted())
                 RedrawBorderCore<DDScalableElement>(this);
@@ -814,7 +828,7 @@ namespace DirectDesktop
     COLORREF DDScalableElement::GetAssociatedColor()
     {
         if (this->IsDestroyed()) return 0;
-        COLORREF crAssoc;
+        COLORREF crAssoc{};
         Value* pv = GetValue(AssociatedColorProp, 2, nullptr);
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
@@ -962,7 +976,7 @@ namespace DirectDesktop
         //        RedrawBorderCore<DDScalableButton>(this);
         //}
         //GetGadgetRect(this->GetDisplayNode(), &rcOld, 0x8);
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && g_ctx.DWMActive)
         {
             if (this->IsHosted())
                 RedrawBorderCore<DDScalableButton>(this);
@@ -1141,7 +1155,7 @@ namespace DirectDesktop
     COLORREF DDScalableButton::GetAssociatedColor()
     {
         if (this->IsDestroyed()) return 0;
-        COLORREF crAssoc;
+        COLORREF crAssoc{};
         Value* pv = GetValue(AssociatedColorProp, 2, nullptr);
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
@@ -1331,12 +1345,12 @@ namespace DirectDesktop
         {
             CValuePtr v;
             const WCHAR* fontFace = this->GetFontFace(&v);
-            this->SetAliasedRendering((!g_fontsmoothing || this->GetFontQuality() == 3) &&
+            this->SetAliasedRendering((!g_ctx.fontsmoothing || this->GetFontQuality() == 3) &&
                 wcscmp(fontFace, L"Segoe UI Symbol") != 0 &&
                 wcscmp(fontFace, L"Segoe MDL2 Assets") != 0 &&
                 wcscmp(fontFace, L"Segoe Fluent Icons") != 0);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && g_ctx.DWMActive)
         {
             if (this->IsHosted())
                 RedrawBorderCore<DDScalableRichText>(this);
@@ -1523,7 +1537,7 @@ namespace DirectDesktop
     COLORREF DDScalableRichText::GetAssociatedColor()
     {
         if (this->IsDestroyed()) return 0;
-        COLORREF crAssoc;
+        COLORREF crAssoc{};
         Value* pv = GetValue(AssociatedColorProp, 2, nullptr);
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
@@ -1654,12 +1668,12 @@ namespace DirectDesktop
         {
             CValuePtr v;
             const WCHAR* fontFace = this->GetFontFace(&v);
-            this->SetAliasedRendering((!g_fontsmoothing || this->GetFontQuality() == 3) &&
+            this->SetAliasedRendering((!g_ctx.fontsmoothing || this->GetFontQuality() == 3) &&
                 wcscmp(fontFace, L"Segoe UI Symbol") != 0 &&
                 wcscmp(fontFace, L"Segoe MDL2 Assets") != 0 &&
                 wcscmp(fontFace, L"Segoe Fluent Icons") != 0);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && DWMActive)
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && g_ctx.DWMActive)
         {
             if (this->IsHosted())
                 RedrawBorderCore<DDScalableTouchButton>(this);
@@ -1846,7 +1860,7 @@ namespace DirectDesktop
     COLORREF DDScalableTouchButton::GetAssociatedColor()
     {
         if (this->IsDestroyed()) return 0;
-        COLORREF crAssoc;
+        COLORREF crAssoc{};
         Value* pv = GetValue(AssociatedColorProp, 2, nullptr);
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
@@ -2426,7 +2440,8 @@ namespace DirectDesktop
                 GetAsyncKeyState(VK_RIGHT) & 0x8000 || GetAsyncKeyState(VK_DOWN) & 0x8000 ||
                 (GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState('A') & 0x8000) ||
                 GetAsyncKeyState(VK_SHIFT) & 0x8000);
-            if (!g_touchmode && g_labelshadow && ((!elem->GetMouseWithin() && pProp == Element::SelectedProp()) ||
+            DWORD flags = ((LVCommon*)elem->GetParent()->GetParent())->GetFlags();
+            if (!(flags & LVCF_TOUCH) && g_ctx.labelshadow && ((!elem->GetMouseWithin() && pProp == Element::SelectedProp()) ||
                 (!elem->GetSelected() && pProp == Element::MouseWithinProp())))
             {
                 CSafeElementPtr<Element> innerElem;
@@ -2460,7 +2475,7 @@ namespace DirectDesktop
                 }
                 ////////////////////////////////////
             }
-            if (g_showcheckboxes == 1 && checkboxElem)
+            if (g_ctx.showcheckboxes == 1 && checkboxElem)
                 checkboxElem->SetVisible(elem->GetMouseWithin() || elem->GetSelected());
         }
         if (pProp == LVItem::CapturedProp())
@@ -2682,7 +2697,7 @@ namespace DirectDesktop
                         _peSelector->SetID(L"selector");
                         _peSelector->SetLayoutPos(-2);
                         _peSelector->SetVisible(false);
-                        _peSelector->SetClass(g_selectionrect ? L"selectoralpha" : L"selectornoalpha");
+                        _peSelector->SetClass(g_ctx.selectionrect ? L"selectoralpha" : L"selectornoalpha");
                         WCHAR* cxDragStr{}, * cyDragStr{};
                         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragWidth", &cxDragStr);
                         GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"DragHeight", &cyDragStr);
@@ -3022,8 +3037,8 @@ namespace DirectDesktop
                 }
                 iMaxIdx = i;
             }
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             _dwSafeRemove = animCoef * 2;
             if (!(_flags & LVCF_ANIMATEPARTIAL))
             {
@@ -3106,8 +3121,8 @@ namespace DirectDesktop
                         LVItem* toSelect = _rgYItems[0];
                         while (_rgYPos[indexY] == yBase)
                         {
-                            if (((localeType != 1 && _rgYItems[indexY]->GetX() < toSelect->GetX()) ||
-                                (localeType == 1 && _rgYItems[indexY]->GetX() > toSelect->GetX())) && _rgYItems[indexY]->GetVisible())
+                            if (((g_ctx.localeType != 1 && _rgYItems[indexY]->GetX() < toSelect->GetX()) ||
+                                (g_ctx.localeType == 1 && _rgYItems[indexY]->GetX() > toSelect->GetX())) && _rgYItems[indexY]->GetVisible())
                                 toSelect = _rgYItems[indexY];
                             indexY++;
                         }
@@ -3320,8 +3335,8 @@ namespace DirectDesktop
                 }
                 else if (pInput->nCode == GMOUSE_DOWN)
                 {
-                    DWORD animCoef = g_animCoef;
-                    if (g_AnimShiftKey && !(shiftKey & 0x8000)) animCoef = 100;
+                    DWORD animCoef = g_ctx.animCoef;
+                    if (g_ctx.AnimShiftKey && !(shiftKey & 0x8000)) animCoef = 100;
                     DWORD dwTickDelay = 3 * animCoef - (GetTickCount64() - ullTick);
                     if (dwTickDelay > 0x7FFFFFFF) dwTickDelay = 0;
                     SetWindowLongPtrW(_hWorker, GWLP_USERDATA, (LONG_PTR)this);
@@ -3411,12 +3426,14 @@ namespace DirectDesktop
         GetWindowRect(hShowDesktop, &rcShow);
         POINT pt;
         GetCursorPos(&pt);
-        if (!peTo && (hwndForeground == g_hSHELLDLL_DefView ||
-            pt.x >= rcShow.left && pt.x <= rcShow.right && pt.y >= rcShow.top && pt.y <= rcShow.bottom))
-        {
-            SetFocus(wnd->GetHWND());
-            peTo = _peWhitespace;
-        }
+
+        //if (!peTo && (hwndForeground == g_hSHELLDLL_DefView ||
+        //    pt.x >= rcShow.left && pt.x <= rcShow.right && pt.y >= rcShow.top && pt.y <= rcShow.bottom))
+        //{
+        //    SetFocus(wnd->GetHWND());
+        //    peTo = _peWhitespace;
+        //}
+        
         //GetClassNameW(hwndForeground, className, 64);
         //StringCchPrintfW(elementinfo, 160, L"peFrom: %x\npeTo: %x\npeSelected: %x\nActive window: %s",
         //    peFrom, peTo, _peSelected, className);
@@ -3631,20 +3648,20 @@ namespace DirectDesktop
             indexY = _SearchArrayExact(&_rgYPos, prcPivot->top);
             if (prcPivot->bottom + halfHeight >= prcTo->bottom)
             {
-                start = (localeType == 1) ? rightOneRow : leftOneRow;
-                end = (localeType == 1) ? leftOneRow : rightOneRow;
+                start = (g_ctx.localeType == 1) ? rightOneRow : leftOneRow;
+                end = (g_ctx.localeType == 1) ? leftOneRow : rightOneRow;
             }
             else
             {
-                start = (localeType == 1) ? prcPivot->right : prcPivot->left;
-                end = (localeType == 1) ? prcTo->left : prcTo->right;
+                start = (g_ctx.localeType == 1) ? prcPivot->right : prcPivot->left;
+                end = (g_ctx.localeType == 1) ? prcTo->left : prcTo->right;
             }
         }
         else
         {
             indexY = _SearchArrayExact(&_rgYPos, prcTo->top);
-            start = (localeType == 1) ? prcTo->right : prcTo->left;
-            end = (localeType == 1) ? prcPivot->left : prcPivot->right;
+            start = (g_ctx.localeType == 1) ? prcTo->right : prcTo->left;
+            end = (g_ctx.localeType == 1) ? prcPivot->left : prcPivot->right;
         }
         int top = min(prcPivot->top, prcTo->top);
         int bottom = max(prcPivot->top, prcTo->top);
@@ -3659,17 +3676,17 @@ namespace DirectDesktop
                 GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
                 if (_rgYPos[indexY] >= bottom - halfHeight)
                 {
-                    if ((localeType != 1 && (rcCurrent.left >= start && rcCurrent.right <= end)) ||
-                        (localeType == 1 && (rcCurrent.right <= start && rcCurrent.left >= end)))
+                    if ((g_ctx.localeType != 1 && (rcCurrent.left >= start && rcCurrent.right <= end)) ||
+                        (g_ctx.localeType == 1 && (rcCurrent.right <= start && rcCurrent.left >= end)))
                         _rgYItems[indexY]->SetSelected(true);
                 }
-                else if ((localeType != 1 && rcCurrent.left >= start) || (localeType == 1 && rcCurrent.right <= start))
+                else if ((g_ctx.localeType != 1 && rcCurrent.left >= start) || (g_ctx.localeType == 1 && rcCurrent.right <= start))
                     _rgYItems[indexY]->SetSelected(true);
             }
             else if (_rgYPos[indexY] >= bottom - halfHeight)
             {
                 GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
-                if ((localeType != 1 && rcCurrent.right <= end) || (localeType == 1 && rcCurrent.left >= end))
+                if ((g_ctx.localeType != 1 && rcCurrent.right <= end) || (g_ctx.localeType == 1 && rcCurrent.left >= end))
                     _rgYItems[indexY]->SetSelected(true);
             }
             else _rgYItems[indexY]->SetSelected(true);
@@ -3867,8 +3884,8 @@ namespace DirectDesktop
                 }
             }
         }
-        DWORD animCoef = g_animCoef;
-        if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        DWORD animCoef = g_ctx.animCoef;
+        if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
         _dwSafeRemove = animCoef * 2;
     }
 
@@ -4092,13 +4109,13 @@ namespace DirectDesktop
                             RECT rcItem;
                             GetGadgetRect(child->GetDisplayNode(), &rcItem, 0xC);
                             if ((rcItem.top > prcGadget[iMaxIdx].top || (rcItem.top >= prcGadget[iMaxIdx].top &&
-                                ((localeType != 1 && rcItem.left > prcGadget[iMaxIdx].left) || (localeType == 1 && rcItem.right < prcGadget[iMaxIdx].right)))) &&
+                                ((g_ctx.localeType != 1 && rcItem.left > prcGadget[iMaxIdx].left) || (g_ctx.localeType == 1 && rcItem.right < prcGadget[iMaxIdx].right)))) &&
                                 prcNext->right > rcLVHost.left && prcNext->bottom > rcLVHost.top && prcNext->left < rcLVHost.right && prcNext->top < rcLVHost.bottom)
                             {
                                 if (i > cCount)
                                     GetGadgetRect(rgList->GetItem(i - cCount)->GetDisplayNode(), prcNext, 0xC);
                                 if (prcNext->top - rcItem.top == 0 ||
-                                    (localeType != 1 && prcNext->left - rcItem.left <= 0) || (localeType == 1 && prcNext->right - rcItem.right >= 0))
+                                    (g_ctx.localeType != 1 && prcNext->left - rcItem.left <= 0) || (g_ctx.localeType == 1 && prcNext->right - rcItem.right >= 0))
                                 {
                                     TriggerTranslate(child, transDesc, 0, 0.0f, 0.367f, 0.75f, 0.0f, 0.0f, 1.0f,
                                         prcNext->left - rcItem.left, prcNext->top - rcItem.top, 0, 0, false, false, true);
@@ -4192,8 +4209,8 @@ namespace DirectDesktop
                 }
                 iMaxIdx = i;
             }
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             _dwSafeRemove = animCoef * 2;
             if (!(_flags & LVCF_ANIMATEPARTIAL))
             {
@@ -4210,7 +4227,7 @@ namespace DirectDesktop
                             RECT rcItem;
                             GetGadgetRect(child->GetDisplayNode(), &rcItem, 0xC);
                             if ((rcItem.top > prcGadget[0].top || (rcItem.top >= prcGadget[0].top &&
-                                ((localeType != 1 && rcItem.left >= prcGadget[0].left) || (localeType == 1 && rcItem.right <= prcGadget[0].right)))) &&
+                                ((g_ctx.localeType != 1 && rcItem.left >= prcGadget[0].left) || (g_ctx.localeType == 1 && rcItem.right <= prcGadget[0].right)))) &&
                                 rcItem.right > rcLVHost.left && rcItem.bottom > rcLVHost.top && rcItem.left < rcLVHost.right && rcItem.top < rcLVHost.bottom)
                             {
                                 int idx = cCount * 2 + i - cSize; // Why is cCount doubled? To compensate for the added animating clones.
@@ -4218,7 +4235,7 @@ namespace DirectDesktop
                                 if (i < cSize - cCount && rgList->GetItem(i + cCount)->GetLayoutPos() != -2)
                                     GetGadgetRect(rgList->GetItem(i + cCount)->GetDisplayNode(), prcNext, 0xC);
                                 if (prcNext[idx].top - rcItem.top == 0 ||
-                                    (localeType != 1 && prcNext[idx].left - rcItem.left >= 0) || (localeType == 1 && prcNext[idx].right - rcItem.right <= 0))
+                                    (g_ctx.localeType != 1 && prcNext[idx].left - rcItem.left >= 0) || (g_ctx.localeType == 1 && prcNext[idx].right - rcItem.right <= 0))
                                 {   
                                     TriggerTranslate(child, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
                                         0, 0, prcNext[idx].left - rcItem.left, prcNext[idx].top - rcItem.top, false, false, true);
@@ -4686,11 +4703,11 @@ namespace DirectDesktop
 
     void LVItemTouchGrid::_RefreshLVItemPositions(BYTE index)
     {
-        short localeDirection = (localeType == 1) ? -1 : 1;
+        short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
         for (int i = index; i < _itemCount; i++)
         {
-            int finaldestX = _xFirstTile + ((i & 1) * (g_touchSizeX + DESKPADDING_TOUCH) / 2 * localeDirection);
-            int finaldestY = _yFirstTile + (i / 2) * (g_touchSizeY + DESKPADDING_TOUCH) / 2; 
+            int finaldestX = _xFirstTile + ((i & 1) * (_cxTile + _cxPadding) / 2 * localeDirection);
+            int finaldestY = _yFirstTile + (i / 2) * (_cyTile + _cyPadding) / 2; 
             _items[i]->SetMemXPos(finaldestX);
             _items[i]->SetX(finaldestX);
             _items[i]->SetMemYPos(finaldestY);
@@ -5104,7 +5121,7 @@ namespace DirectDesktop
                     TransitionStoryboardInfo tsbInfo = {};
                     float scaleRelease = (this->GetPressed()) ? 0.75f : 1.0f;
                     CSafeElementPtr<DDScalableElement> indicator;
-                    indicator.Assign(regElem<DDScalableElement*>(L"DDCMB_SelectionIndicator", this));
+                    indicator.Assign((DDScalableElement*)regElem(L"DDCMB_SelectionIndicator", this));
                     TriggerScaleOut(indicator, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, scaleRelease, 0.5f, 0.5f, false, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                 }
@@ -5116,7 +5133,7 @@ namespace DirectDesktop
             if (wcscmp(className, L"cmbsel") == 0)
             {
                 CSafeElementPtr<DDScalableElement> indicator;
-                indicator.Assign(regElem<DDScalableElement*>(L"DDCMB_SelectionIndicator", this));
+                indicator.Assign((DDScalableElement*)regElem(L"DDCMB_SelectionIndicator", this));
                 indicator->SetVisible(this->GetSelected());
             }
         }
@@ -5126,7 +5143,7 @@ namespace DirectDesktop
             if (wcscmp(className, L"cmbsel") == 0)
             {
                 CSafeElementPtr<DDScalableRichText> text;
-                text.Assign(regElem<DDScalableRichText*>(L"DDCMB_SelectionText", this));
+                text.Assign((DDScalableRichText*)regElem(L"DDCMB_SelectionText", this));
                 ElementSetValue(text, ppi, pvNew, this);
             }
         }
@@ -5176,14 +5193,14 @@ namespace DirectDesktop
                 {
                     dwAlphaDiff = dwTickDiff * 2.5f;
                     dwAlphaThreshold = 255;
-                    if (!g_comboAnim)
+                    if (!g_ctx.comboAnim)
                         dwAlphaDiff = 256;
                 }
                 else
                 {
                     dwAlphaDiff = 255 - dwTickDiff * 3.3f;
                     dwAlphaThreshold = 0;
-                    if (!g_comboAnim)
+                    if (!g_ctx.comboAnim)
                         dwAlphaDiff = -1;
                 }
                 if (dwAlphaDiff <= dwAlphaThreshold && wParam == 2)
@@ -5358,7 +5375,7 @@ namespace DirectDesktop
         _peSelections[index]->SetSelected(true);
         CValuePtr v;
         CSafeElementPtr<DDScalableRichText> text;
-        text.Assign(regElem<DDScalableRichText*>(L"DDCMB_SelectionText", _peSelections[index]));
+        text.Assign((DDScalableRichText*)regElem(L"DDCMB_SelectionText", _peSelections[index]));
         this->SetContentString(text->GetContentString(&v));
         if (index != _selID)
         {
@@ -5374,7 +5391,7 @@ namespace DirectDesktop
     {
         if (IsWindowVisible(_wndSelectionMenu->GetHWND()) || fForceHide)
         {
-            if (DWMActive)
+            if (g_ctx.DWMActive)
             {
                 if (!_fDone)
                 {
@@ -5425,7 +5442,7 @@ namespace DirectDesktop
             }
             SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, _rcDest.left, _rcDest.top, _rcDest.right, _rcDest.bottom, NULL);
             _wndSelectionMenu->ShowWindow(SW_SHOW);
-            if (DWMActive)
+            if (g_ctx.DWMActive)
             {
                 SetLayeredWindowAttributes(_wndSelectionMenu->GetHWND(), NULL, 0, LWA_ALPHA);
                 SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
@@ -5461,7 +5478,7 @@ namespace DirectDesktop
             this->Add((Element**)&_peDropDownGlyph, 1);
             _peDropDownGlyph->SetID(L"DDCMB_DropDownGlyph");
             DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
-            if (DWMActive)
+            if (g_ctx.DWMActive)
             {
                 dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
                 dwCreateFlags |= 0x28;
@@ -5477,7 +5494,7 @@ namespace DirectDesktop
                 _peSelectionMenu->EndDefer(keyC);
                 _wndSelectionMenu->Host(_peSelectionMenu);
 
-                if (DWMActive)
+                if (g_ctx.DWMActive)
                 {
                     WCHAR* WindowsBuildStr;
                     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
@@ -5493,7 +5510,7 @@ namespace DirectDesktop
 
                 FillLayout::Create(0, nullptr, &spvLayout);
                 _peSelectionMenu->SetValue(Element::LayoutProp, 1, spvLayout);
-                LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
+                LPWSTR sheetName = g_ctx.theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
                 StyleSheet* sheet = _peSelectionMenu->GetSheet();
                 CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
                 g_parser->GetSheet(sheetName, &sheetStorage);
@@ -5526,7 +5543,7 @@ namespace DirectDesktop
                             GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
                             int WindowsBuild = _wtoi(WindowsBuildStr);
                             free(WindowsBuildStr);
-                            if (DWMActive && WindowsBuild >= 16299)
+                            if (g_ctx.DWMActive && WindowsBuild >= 16299)
                             {
                                 BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
                                 AddLayeredRef(_tsvSelectionMenu->GetDisplayNode());
@@ -5650,20 +5667,20 @@ namespace DirectDesktop
                 }
                 else
                 {
-                    static short localeDirection = (localeType == 1) ? -1 : 1;
+                    static short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
                     int sliderSize = this->GetWidth() - this->GetTextWidth();
                     if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                     sLeft = GetAsyncKeyState(VK_LEFT);
                     sRight = GetAsyncKeyState(VK_RIGHT);
                     if (sLeft & 1 || sLeft & 0x8000)
                     {
-                        if (localeType == 1) width = _peTrackBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        if (g_ctx.localeType == 1) width = _peTrackBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
                         else width = _peFillBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
                         canMove = true;
                     }
                     else if (sRight & 1 || sRight & 0x8000)
                     {
-                        if (localeType == 1) width = _peTrackBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
+                        if (g_ctx.localeType == 1) width = _peTrackBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
                         else width = _peFillBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
                         canMove = true;
                     }
@@ -5673,10 +5690,10 @@ namespace DirectDesktop
                     int fillwidth = sliderSize - width;
                     if (canMove)
                     {
-                        _peTrackBase->SetWidth((localeType == 1) ? width : fillwidth);
-                        _peFillBase->SetWidth((localeType == 1) ? fillwidth : width);
+                        _peTrackBase->SetWidth((g_ctx.localeType == 1) ? width : fillwidth);
+                        _peFillBase->SetWidth((g_ctx.localeType == 1) ? fillwidth : width);
                         _peThumb->SetX(width - _peThumb->GetWidth() / 2);
-                        percentage = static_cast<float>(((localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2) / (sliderSize - _peThumb->GetWidth());
+                        percentage = static_cast<float>(((g_ctx.localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2) / (sliderSize - _peThumb->GetWidth());
                     }
                 }
                 if (canMove)
@@ -5853,9 +5870,9 @@ namespace DirectDesktop
         {
             bool vertical = this->GetIsVertical();
             CSafeElementPtr<TouchButton> peFill;
-            peFill.Assign(regElem<TouchButton*>(L"DDS_FillBase", this));
+            peFill.Assign((TouchButton*)regElem(L"DDS_FillBase", this));
             CSafeElementPtr<TouchButton> peThumb;
-            peThumb.Assign(regElem<TouchButton*>(L"DDS_Thumb", this));
+            peThumb.Assign((TouchButton*)regElem(L"DDS_Thumb", this));
             int thumbOffset = vertical ? peThumb->GetHeight() : peThumb->GetWidth();
             int sliderSize = vertical ? this->GetHeight() - this->GetTextHeight() : this->GetWidth() - this->GetTextWidth();
             float percentage{};
@@ -5870,7 +5887,7 @@ namespace DirectDesktop
             RegKeyValue rkv = this->GetRegKeyValue();
             if (rkv.GetValueToFind())
                 SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), assocVal * _coef, false, nullptr);
-            g_atleastonesetting = true;
+            g_ctx.atleastonesetting = true;
             _currValue = assocVal;
         }
         else _RedrawSlider();
@@ -6016,7 +6033,7 @@ namespace DirectDesktop
             _peTrackHolder->SetWidth(width);
             _peTrackBase->SetWidth(round(width * (1 - (relCurrValue / relMaxValue)) - (0.5f - (relCurrValue / relMaxValue)) * _peThumb->GetWidth()));
             _peFillBase->SetWidth(round(width * (relCurrValue / relMaxValue) + (0.5f - (relCurrValue / relMaxValue)) * _peThumb->GetWidth()));
-            _peThumb->SetX(((localeType == 1) ? round(_peTrackBase->GetWidth()) : round(_peFillBase->GetWidth())) - _peThumb->GetWidth() / 2.0f);
+            _peThumb->SetX(((g_ctx.localeType == 1) ? round(_peTrackBase->GetWidth()) : round(_peFillBase->GetWidth())) - _peThumb->GetWidth() / 2.0f);
             _peThumb->SetY(floor((this->GetHeight() - _peThumb->GetHeight()) / 2.0f));
             float padding = (this->GetHeight() - _peTrack->GetHeight()) / 2.0f;
             _peTrackBase->SetPadding(0, floor(padding), 0, ceil(padding));
@@ -6049,7 +6066,7 @@ namespace DirectDesktop
         if (PropNotify::IsEqual(ppi, iIndex, Element::MouseFocusedProp))
         {
             CSafeElementPtr<DDScalableElement> DDCPHC;
-            DDCPHC.Assign(regElem<DDScalableElement*>(L"DDColorPicker_HoverCircle", this->GetParent()));
+            DDCPHC.Assign((DDScalableElement*)regElem(L"DDColorPicker_HoverCircle", this->GetParent()));
             if (DDCPHC)
             {
                 ElementSetValue(DDCPHC, Element::VisibleProp(), pvNew, this);
@@ -6128,7 +6145,7 @@ namespace DirectDesktop
         {
             if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
             {
-                static short localeDirection = (localeType == 1) ? -1 : 1;
+                static short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
                 static POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
@@ -6151,13 +6168,13 @@ namespace DirectDesktop
                     _currentColorID += localeDirection;
                     canMove = true;
                 }
-                else _currentColorID = (localeType == 1) ? (this->GetWidth() - width) / spacedWidth : width / spacedWidth;
+                else _currentColorID = (g_ctx.localeType == 1) ? (this->GetWidth() - width) / spacedWidth : width / spacedWidth;
                 if (_currentColorID < 0) _currentColorID = 0;
                 if (_currentColorID > 7) _currentColorID = 7;
                 if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
                 if (_currentColorID != oldColorID && canMove)
                 {
-                    _peOverlayCheck->SetX((localeType == 1) ? this->GetWidth() - _btnWidth - _currentColorID * spacedWidth : _currentColorID * spacedWidth);
+                    _peOverlayCheck->SetX((g_ctx.localeType == 1) ? this->GetWidth() - _btnWidth - _currentColorID * spacedWidth : _currentColorID * spacedWidth);
                     _peOverlayHover->SetX(-9999);
                     if (_rkv.GetHKeyName() != nullptr)
                     {
@@ -6181,16 +6198,31 @@ namespace DirectDesktop
         if (PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDColorPicker::FirstScaledImageProp))
         {
+            HMODULE hCaller = HINST_THISCOMPONENT;
+            // 0.6 M1: Will be replaced with proper library loading later
+            bool repeat = true;
+        TEMP_ALTLOAD2:
             int scaleInterval = GetCurrentScaleInterval();
             int scaleIntervalImage = this->GetScaledImageIntervals();
-            if (scaleInterval > scaleIntervalImage - 1) scaleInterval = scaleIntervalImage - 1;
+            if (scaleInterval > scaleIntervalImage - 1)
+                scaleInterval = scaleIntervalImage - 1;
             int imageID = this->GetFirstScaledImage() + scaleInterval;
-            HBITMAP newImage = (HBITMAP)LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-            if (newImage == nullptr)
+
+            HBITMAP newImage = (HBITMAP)LoadImageW(hCaller, MAKEINTRESOURCE(imageID), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+            if (!newImage)
             {
-                LoadPNGAsBitmap(newImage, imageID);
+                if (!repeat) hCaller = nullptr;
+                LoadPNGAsBitmap(hCaller, newImage, imageID);
                 IterateBitmap(newImage, UndoPremultiplication, 1, 0, 1, NULL);
             }
+
+            if (!newImage && repeat)
+            {
+                GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN, (LPCWSTR)_ReturnAddress(), &hCaller);
+                repeat = false;
+                goto TEMP_ALTLOAD2;
+            }
+
             BITMAP bm{};
             GetObject(newImage, sizeof(BITMAP), &bm);
             _btnWidth = bm.bmWidth / 8;
@@ -6204,12 +6236,12 @@ namespace DirectDesktop
             SelectObject(hdcSrc, newImage);
             for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
             {
-                int xPos = (localeType == 1) ? this->GetWidth() - i * _btnX - _btnWidth : i * _btnX;
+                int xPos = (g_ctx.localeType == 1) ? this->GetWidth() - i * _btnX - _btnWidth : i * _btnX;
                 HBITMAP hbmPickerBtn = CreateCompatibleBitmap(hdc, _btnWidth, btnHeight);
                 SelectObject(hdcDst, hbmPickerBtn);
                 BitBlt(hdcDst, 0, 0, _btnWidth, btnHeight, hdcSrc, i * _btnWidth, 0, SRCCOPY);
                 if (i == 1)
-                    IterateBitmap(hbmPickerBtn, StandardBitmapPixelHandler, 1, 0, 1.0f, ImmersiveColor);
+                    IterateBitmap(hbmPickerBtn, StandardBitmapPixelHandler, 1, 0, 1.0f, g_colors.ImmersiveColor);
                 _rgpeColorButtons[i]->SetX(xPos);
                 _rgpeColorButtons[i]->SetY(btnY);
                 _rgpeColorButtons[i]->SetWidth(bm.bmWidth / 8);
@@ -6381,7 +6413,7 @@ namespace DirectDesktop
     {
         _rkv = rkvNew;
         int order = (_rkv.GetHKeyName()) ? GetRegistryValues(_rkv.GetHKeyName(), _rkv.GetPath(), _rkv.GetValueToFind()) * _btnX : _rkv.GetDwValue() * _btnX;
-        int checkedBtnX = (localeType == 1) ? this->GetWidth() - order - _btnWidth : order;
+        int checkedBtnX = (g_ctx.localeType == 1) ? this->GetWidth() - order - _btnWidth : order;
         _currentColorID = order / (this->GetWidth() / 8);
         _peOverlayCheck->SetX(checkedBtnX);
     }
@@ -6404,17 +6436,17 @@ namespace DirectDesktop
     void DDColorPicker::SetThemeAwareness(bool ta)
     {
         _themeAwareness = ta;
-        COLORREF* pImmersiveColor = this->GetThemeAwareness() ? g_theme ? &ImmersiveColorL : &ImmersiveColorD : &ImmersiveColor;
+        COLORREF* pImmersiveColor = this->GetThemeAwareness() ? g_ctx.theme ? &(g_colors.ImmersiveColorL) : &(g_colors.ImmersiveColorD) : &(g_colors.ImmersiveColor);
         COLORREF colorPickerPalette[8] =
         {
             this->GetDefaultColor(),
             *pImmersiveColor,
-            _themeAwareness ? g_theme ? RGB(76, 194, 255) : RGB(0, 103, 192) : RGB(0, 120, 215),
-            _themeAwareness ? g_theme ? RGB(216, 141, 225) : RGB(158, 58, 176) : RGB(177, 70, 194),
-            _themeAwareness ? g_theme ? RGB(244, 103, 98) : RGB(210, 14, 30) : RGB(232, 17, 35),
-            _themeAwareness ? g_theme ? RGB(251, 154, 68) : RGB(224, 83, 7) : RGB(247, 99, 12),
-            _themeAwareness ? g_theme ? RGB(255, 213, 42) : RGB(225, 157, 0) : RGB(255, 185, 0),
-            _themeAwareness ? g_theme ? RGB(38, 255, 142) : RGB(0, 178, 90) : RGB(0, 204, 106)
+            _themeAwareness ? g_ctx.theme ? RGB(76, 194, 255) : RGB(0, 103, 192) : RGB(0, 120, 215),
+            _themeAwareness ? g_ctx.theme ? RGB(216, 141, 225) : RGB(158, 58, 176) : RGB(177, 70, 194),
+            _themeAwareness ? g_ctx.theme ? RGB(244, 103, 98) : RGB(210, 14, 30) : RGB(232, 17, 35),
+            _themeAwareness ? g_ctx.theme ? RGB(251, 154, 68) : RGB(224, 83, 7) : RGB(247, 99, 12),
+            _themeAwareness ? g_ctx.theme ? RGB(255, 213, 42) : RGB(225, 157, 0) : RGB(255, 185, 0),
+            _themeAwareness ? g_ctx.theme ? RGB(38, 255, 142) : RGB(0, 178, 90) : RGB(0, 204, 106)
         };
         for (int i = 0; i < ARRAYSIZE(_rgpeColorButtons); i++)
             _rgpeColorButtons[i]->SetAssociatedColor(colorPickerPalette[i]);
@@ -6508,7 +6540,7 @@ namespace DirectDesktop
                     static GTRANS_DESC transDesc[2];
                     static TransitionStoryboardInfo tsbInfo = {};
                     static short sLeft, sRight;
-                    static short localeDirection = (localeType == 1) ? -1 : 1;
+                    static short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
                     sLeft = GetAsyncKeyState(VK_LEFT);
                     sRight = GetAsyncKeyState(VK_RIGHT);
                     if ((sLeft & 1 || sLeft & 0x8000))
@@ -6518,10 +6550,10 @@ namespace DirectDesktop
                         else
                         {
                             CSafeElementPtr<Element> peEdge;
-                            LPCWSTR peResID = (localeType == 1) ? _pszPageIDs[_pageSize - 1] : _pszPageIDs[0];
-                            peEdge.Assign(regElem<Element*>(peResID, _peSubUIContainer));
-                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, 40.0f * g_flScaleFactor, 0.0f, false, false, false);
-                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
+                            LPCWSTR peResID = (g_ctx.localeType == 1) ? _pszPageIDs[_pageSize - 1] : _pszPageIDs[0];
+                            peEdge.Assign(regElem(peResID, _peSubUIContainer));
+                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, 40.0f * g_ctx.flScaleFactor, 0.0f, false, false, false);
+                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 40.0f * g_ctx.flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
                         }
                     }
@@ -6532,10 +6564,10 @@ namespace DirectDesktop
                         else
                         {
                             CSafeElementPtr<Element> peEdge;
-                            LPCWSTR peResID = (localeType == 1) ? _pszPageIDs[0] : _pszPageIDs[_pageSize - 1];
-                            peEdge.Assign(regElem<Element*>(peResID, _peSubUIContainer));
-                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, -40.0f * g_flScaleFactor, 0.0f, false, false, false);
-                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, -40.0f * g_flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
+                            LPCWSTR peResID = (g_ctx.localeType == 1) ? _pszPageIDs[0] : _pszPageIDs[_pageSize - 1];
+                            peEdge.Assign(regElem(peResID, _peSubUIContainer));
+                            TriggerTranslate(peEdge, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 0.0f, 0.0f, -40.0f * g_ctx.flScaleFactor, 0.0f, false, false, false);
+                            TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, -40.0f * g_ctx.flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
                         }
                     }
@@ -6650,9 +6682,9 @@ namespace DirectDesktop
             _peSubUIContainer->Add(&peSettingsPage, 1);
             _pfnTabs[index](peSettingsPage);
             GTRANS_DESC transDesc2[3];
-            TriggerTranslate(_peSubUIContainer, transDesc2, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_flScaleFactor, 0.0f, 0.0f, false, false, true);
+            TriggerTranslate(_peSubUIContainer, transDesc2, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_ctx.flScaleFactor, 0.0f, 0.0f, false, false, true);
             TriggerFade(_peSubUIContainer, transDesc2, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerClip(_peSubUIContainer, transDesc2, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+            TriggerClip(_peSubUIContainer, transDesc2, 2, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 0.0f, 1.0f, (rcList.bottom - rcList.top - 100 * g_ctx.flScaleFactor) / (rcList.bottom - rcList.top), 0.0f, 0.0f, 1.0f, 1.0f, false, false);
             TransitionStoryboardInfo tsbInfo = {};
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc2, _peSubUIContainer->GetDisplayNode(), &tsbInfo);
         }
@@ -6672,20 +6704,20 @@ namespace DirectDesktop
                 }
                 if (fAnimate)
                 {
-                    if ((localeType != 1 && index < _pageID) || (localeType == 1 && index > _pageID))
+                    if ((g_ctx.localeType != 1 && index < _pageID) || (g_ctx.localeType == 1 && index > _pageID))
                     {
                         TriggerTranslate(child, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, rcList.right - rcList.left, 0.0f, false, false, true);
                         TriggerClip(child, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, false, true);
                     }
-                    else if ((localeType != 1 && index > _pageID) || (localeType == 1 && index < _pageID))
+                    else if ((g_ctx.localeType != 1 && index > _pageID) || (g_ctx.localeType == 1 && index < _pageID))
                     {
                         TriggerTranslate(child, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (rcList.right - rcList.left) * -1, 0.0f, false, false, true);
                         TriggerClip(child, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, false, true);
                     }
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                     _vecAnimating.push_back(child);
-                    DWORD animCoef = g_animCoef;
-                    if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                    DWORD animCoef = g_ctx.animCoef;
+                    if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
                     yValuePtrs* yV = new yValuePtrs{ &_vecAnimating, child, static_cast<DWORD>(3.3f * animCoef) };
                     HANDLE hRemoveFromVec = CreateThread(nullptr, 0, s_RemoveFromVec, yV, NULL, nullptr);
                     if (hRemoveFromVec) CloseHandle(hRemoveFromVec);
@@ -6696,12 +6728,12 @@ namespace DirectDesktop
             _peSubUIContainer->Add(&peSettingsPage, 1);
             if (peSettingsPage)
             {
-                if ((localeType != 1 && index < _pageID) || (localeType == 1 && index > _pageID))
+                if ((g_ctx.localeType != 1 && index < _pageID) || (g_ctx.localeType == 1 && index > _pageID))
                 {
                     TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, (rcList.right - rcList.left) * -1, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
                 }
-                else if ((localeType != 1 && index > _pageID) || (localeType == 1 && index < _pageID))
+                else if ((g_ctx.localeType != 1 && index > _pageID) || (g_ctx.localeType == 1 && index < _pageID))
                 {
                     TriggerTranslate(peSettingsPage, transDesc, 0, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, rcList.right - rcList.left, 0.0f, 0.0f, 0.0f, false, false, true);
                     TriggerClip(peSettingsPage, transDesc, 1, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
@@ -7011,7 +7043,7 @@ namespace DirectDesktop
                     dwAlphaDiff = dwTickDiff * 2.25f;
                     dwAlphaThreshold = 255;
                     if (menu->_uTrackFlags & 0x3C00) dwAlphaDiff /= 3.0f;
-                    if (!g_menuAnim)
+                    if (!g_ctx.menuAnim)
                         dwAlphaDiff = 256;
                 }
                 else
@@ -7020,7 +7052,7 @@ namespace DirectDesktop
                     dwAlphaThreshold = 0;
                     if (menu->_uTrackFlags & 0x3C00 && wParam != 6) dwAlphaDiff /= 1.25f;
                     dwAlphaDiff = 255 - dwAlphaDiff;
-                    if (!g_menuAnim)
+                    if (!g_ctx.menuAnim)
                         dwAlphaDiff = -1;
                 }
                 if (((dwAlphaDiff <= dwAlphaThreshold && wParam == 2) || (dwAlphaDiff >= dwAlphaThreshold && wParam != 2))
@@ -7039,13 +7071,13 @@ namespace DirectDesktop
                         else
                             progression = -menu->_scbi->GetProgression((255 - dwAlphaDiff) / 255.0);
                         if (menu->_uTrackFlags & TPM_HORPOSANIMATION)
-                            rcAnim.left += ceil(progression * g_flScaleFactor * 32) * localeDirection;
+                            rcAnim.left += ceil(progression * g_ctx.flScaleFactor * 32) * localeDirection;
                         else if (menu->_uTrackFlags & TPM_HORNEGANIMATION)
-                            rcAnim.left -= progression * g_flScaleFactor * 32 * localeDirection;
+                            rcAnim.left -= progression * g_ctx.flScaleFactor * 32 * localeDirection;
                         if (menu->_uTrackFlags & TPM_VERPOSANIMATION)
-                            rcAnim.top += ceil(progression * g_flScaleFactor * 32);
+                            rcAnim.top += ceil(progression * g_ctx.flScaleFactor * 32);
                         else if (menu->_uTrackFlags & TPM_VERNEGANIMATION)
-                            rcAnim.top -= progression * g_flScaleFactor * 32;
+                            rcAnim.top -= progression * g_ctx.flScaleFactor * 32;
                         if (menu->_uTrackFlags & 0x3C00)
                             SetWindowPos(menu->_wndSelectionMenu->GetHWND(), NULL, rcAnim.left, rcAnim.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
                     }
@@ -7290,7 +7322,7 @@ namespace DirectDesktop
             DWORD keyM{};
             CValuePtr spvLayout;
             DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
-            if (DWMActive)
+            if (g_ctx.DWMActive)
             {
                 dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
                 dwCreateFlags |= 0x28;
@@ -7305,7 +7337,7 @@ namespace DirectDesktop
                 _peSelectionMenu->SetVisible(true);
                 _peSelectionMenu->EndDefer(keyM);
 
-                if (DWMActive)
+                if (g_ctx.DWMActive)
                 {
                     WCHAR* WindowsBuildStr;
                     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
@@ -7321,7 +7353,7 @@ namespace DirectDesktop
 
                 FillLayout::Create(0, nullptr, &spvLayout);
                 _peSelectionMenu->SetValue(Element::LayoutProp, 1, spvLayout);
-                LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
+                LPWSTR sheetName = g_ctx.theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
                 StyleSheet* sheet = _peSelectionMenu->GetSheet();
                 CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
                 g_parser->GetSheet(sheetName, &sheetStorage);
@@ -7354,7 +7386,7 @@ namespace DirectDesktop
                             GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
                             int WindowsBuild = _wtoi(WindowsBuildStr);
                             free(WindowsBuildStr);
-                            if (DWMActive && WindowsBuild >= 16299)
+                            if (g_ctx.DWMActive && WindowsBuild >= 16299)
                             {
                                 BlurBackground(_wndSelectionMenu->GetHWND(), true, false, -1, nullptr);
                                 AddLayeredRef(_tsvSelectionMenu->GetDisplayNode());
@@ -7871,7 +7903,7 @@ namespace DirectDesktop
             GetWindowRect(_wndSelectionMenu->GetHWND(), &rcParentMenu);
             _peSelections[0]->MapElementPoint(_peHostInner, &ptZero, &ptVisible);
             _peSelectionMenu->MapElementPoint(button, &ptVisible, &ptSelection);
-            int x = (_uTrackFlags & TPM_LAYOUTRTL) ? rcParentMenu.left + round(g_flScaleFactor) : rcParentMenu.right - round(g_flScaleFactor);
+            int x = (_uTrackFlags & TPM_LAYOUTRTL) ? rcParentMenu.left + round(g_ctx.flScaleFactor) : rcParentMenu.right - round(g_ctx.flScaleFactor);
             if (_uTrackFlags & TPM_RIGHTBUTTON)
                 button->_submenu->_uTrackFlags |= TPM_RIGHTBUTTON;
             if (_uTrackFlags & TPM_LAYOUTRTL)
@@ -7975,7 +8007,7 @@ namespace DirectDesktop
                 if (menu)
                 {
                     menu->GetMenuRect(&rcParent);
-                    x -= rcParent.right + rcHost.right + 4 - 2 * round(g_flScaleFactor);
+                    x -= rcParent.right + rcHost.right + 4 - 2 * round(g_ctx.flScaleFactor);
                     if (menu->_uTrackFlags & DDM_ANIMATESUBMENUS)
                     {
                         this->_uTrackFlags &= (0x3FFFF - TPM_HORPOSANIMATION);
@@ -8018,13 +8050,13 @@ namespace DirectDesktop
         {
             _scbi->SetCurve(0.1, 0.9, 0.2, 1.0);
             if (_uTrackFlags & TPM_HORPOSANIMATION)
-                x -= 32 * g_flScaleFactor * localeDirection;
+                x -= 32 * g_ctx.flScaleFactor * localeDirection;
             else if (_uTrackFlags & TPM_HORNEGANIMATION)
-                x += 32 * g_flScaleFactor * localeDirection;
+                x += 32 * g_ctx.flScaleFactor * localeDirection;
             if (_uTrackFlags & TPM_VERPOSANIMATION)
-                y -= 32 * g_flScaleFactor;
+                y -= 32 * g_ctx.flScaleFactor;
             else if (_uTrackFlags & TPM_VERNEGANIMATION)
-                y += 32 * g_flScaleFactor;
+                y += 32 * g_ctx.flScaleFactor;
             SetWindowPos(_wndSelectionMenu->GetHWND(), HWND_TOPMOST, x, y, width, height, NULL);
         }
 
@@ -8032,7 +8064,7 @@ namespace DirectDesktop
         {
             if (_peSelections[0])
                 _peSelections[0]->SetKeyFocus();
-            if (DWMActive)
+            if (g_ctx.DWMActive)
                 SetLayeredWindowAttributes(_wndSelectionMenu->GetHWND(), NULL, 0, LWA_ALPHA);
             SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
             SetTimer(_hTimer, 1, menu && !fInstant ? 300 : 0, nullptr);
@@ -8061,8 +8093,8 @@ namespace DirectDesktop
             {
                 KillTimer(hWnd, wParam);
                 KillTimer(hWnd, wParam + 1);
-                animCoef = g_animCoef;
-                if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                animCoef = g_ctx.animCoef;
+                if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
                 nb->_tick = GetTickCount64();
                 if (wParam == 1)
                     nb->_wnd->ShowWindow(SW_SHOWNOACTIVATE);
@@ -8088,7 +8120,7 @@ namespace DirectDesktop
                     dwDistThreshold = cy;
                     dwDistDiff = cy * progression;
                 }
-                if (g_windowAnim && progression < 1)
+                if (g_ctx.windowAnim && progression < 1)
                 {
                     SetWindowPos(nb->_wnd->GetHWND(), NULL, nb->_rcWindow.left, nb->_rcWindow.top - dwDistDiff, NULL, NULL,
                         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
@@ -8114,7 +8146,7 @@ namespace DirectDesktop
                 LONGLONG dwAlphaDiff{}, dwAlphaThreshold;
                 dwAlphaDiff = 255 - dwTickDiff * 2.5f;
                 dwAlphaThreshold = 0;
-                if (!g_windowAnim)
+                if (!g_ctx.windowAnim)
                     dwAlphaDiff = -1;
                 if (dwAlphaDiff >= dwAlphaThreshold)
                     SetLayeredWindowAttributes(nb->_wnd->GetHWND(), 0, dwAlphaDiff, LWA_ALPHA);
@@ -8228,7 +8260,7 @@ namespace DirectDesktop
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
         DWORD dwExStyle = WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, dwCreateFlags = 0x10;
-        if (DWMActive)
+        if (g_ctx.DWMActive)
         {
             dwExStyle |= WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP;
             dwCreateFlags |= 0x28;
@@ -8238,7 +8270,7 @@ namespace DirectDesktop
         Element::Create(0, _pDDNB, nullptr, &pHostElement);
         _pDDNB->Add(&pHostElement, 1);
 
-        LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
+        LPWSTR sheetName = g_ctx.theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
         StyleSheet* sheet = pHostElement->GetSheet();
         CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
         g_parser->GetSheet(sheetName, &sheetStorage);
@@ -8255,7 +8287,7 @@ namespace DirectDesktop
         int WindowsBuild = _wtoi(WindowsBuildStr);
         free(WindowsBuildStr);
         int WindowsRev = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\BuildLayers\\ShellCommon", L"BuildQfe");
-        if (DWMActive)
+        if (g_ctx.DWMActive)
         {
             AddLayeredRef(_pDDNB->GetDisplayNode());
             SetGadgetFlags(_pDDNB->GetDisplayNode(), NULL, NULL);
@@ -8282,19 +8314,19 @@ namespace DirectDesktop
         switch (type)
         {
             case DDNT_SUCCESS:
-                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(217).c_str());
+                if (!title) LoadStrFromRes(_titleStr, 64, 217);
                 _icon->SetClass(L"DDNB_Icon_Success");
                 break;
             case DDNT_INFO:
-                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(218).c_str());
+                if (!title) LoadStrFromRes(_titleStr, 64, 218);
                 _icon->SetClass(L"DDNB_Icon_Info");
                 break;
             case DDNT_WARNING:
-                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(219).c_str());
+                if (!title) LoadStrFromRes(_titleStr, 64, 219);
                 _icon->SetClass(L"DDNB_Icon_Warning");
                 break;
             case DDNT_ERROR:
-                if (!title) StringCchPrintfW(_titleStr, 64, L"%s", LoadStrFromRes(220).c_str());
+                if (!title) LoadStrFromRes(_titleStr, 64, 220);
                 _icon->SetClass(L"DDNB_Icon_Error");
                 break;
         }
@@ -8320,7 +8352,7 @@ namespace DirectDesktop
         int cx{}, cy{};
         RECT hostpadding = *(pHostElement->GetPadding(&v));
         RECT titlepadding = *(_title->GetPadding(&v));
-        cx += (hostpadding.left + hostpadding.right + _icon->GetWidth() + 2 * g_flScaleFactor);
+        cx += (hostpadding.left + hostpadding.right + _icon->GetWidth() + 2 * g_ctx.flScaleFactor);
         cy += (hostpadding.top + hostpadding.bottom);
 
         SIZE szText{}, szText2{};
@@ -8348,10 +8380,10 @@ namespace DirectDesktop
                     (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
                 _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
             }
-            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_flScaleFactor, cx, cy, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+            SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_ctx.flScaleFactor, cx, cy, SWP_FRAMECHANGED | SWP_NOACTIVATE);
             SetLayeredWindowAttributes(_wnd->GetHWND(), 0, 255, LWA_ALPHA);
             g_nwnds.push_back(this);
-            DDNotificationBanner::s_RepositionBanners(false, dimensions.top + 16 * g_flScaleFactor + cy, 0);
+            DDNotificationBanner::s_RepositionBanners(false, dimensions.top + 16 * g_ctx.flScaleFactor + cy, 0);
             _scbi = new SimpleCubicBezierInterpolator();
             _scbi->SetCurve(0.0, 0.0, 0.0, 1.0);
             if (timeout > 0)
@@ -8367,13 +8399,13 @@ namespace DirectDesktop
     {
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        int offset = dimensions.top + 40 * g_flScaleFactor;
+        int offset = dimensions.top + 40 * g_ctx.flScaleFactor;
         for (int i = g_nwnds.size() - 1; i >= 0; i--)
         {
             RECT windowRect{};
             GetClientRect(g_nwnds[i]->_wnd->GetHWND(), &windowRect);
             g_nwnds[i]->_iDeltaY = fReverse ? iDeltaY * -1 : iDeltaY;
-            if (g_windowAnim && iDeltaY && g_nwnds[i]->_rcWindow.top >= iBoundY)
+            if (g_ctx.windowAnim && iDeltaY && g_nwnds[i]->_rcWindow.top >= iBoundY)
             {
                 GetWindowRect(g_nwnds[i]->_wnd->GetHWND(), &g_nwnds[i]->_rcWindow);
                 g_nwnds[i]->_rcWindow.left = (dimensions.left + dimensions.right - windowRect.right) / 2;
@@ -8389,7 +8421,7 @@ namespace DirectDesktop
                     NULL, NULL, SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
                 GetWindowRect(g_nwnds[i]->_wnd->GetHWND(), &g_nwnds[i]->_rcWindow);
             }
-            offset += windowRect.bottom + 16 * g_flScaleFactor;
+            offset += windowRect.bottom + 16 * g_ctx.flScaleFactor;
         }
     }
 
@@ -8402,8 +8434,8 @@ namespace DirectDesktop
             auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), this);
             g_nwnds.erase(toRemove);
             DDNotificationBanner::s_RepositionBanners(true, this->_rcWindow.bottom - this->_rcWindow.top, this->_rcWindow.bottom);
-            DWORD animCoef = g_animCoef;
-            if (g_AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            DWORD animCoef = g_ctx.animCoef;
+            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
             _scbi->SetCurve(1.0, 0.0, 1.0, 1.0);
             this->_iDeltaY = this->_rcWindow.bottom - this->_rcWindow.top;
             SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
@@ -8444,7 +8476,7 @@ namespace DirectDesktop
                 Element::Create(0, _pDDNB, nullptr, &_peButtonSection);
                 _pDDNB->Add(&_peButtonSection, 1);
 
-                LPWSTR sheetName = g_theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
+                LPWSTR sheetName = g_ctx.theme ? (LPWSTR)L"DDBase" : (LPWSTR)L"DDBaseDark";
                 StyleSheet* sheet = _peButtonSection->GetSheet();
                 CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
                 g_parser->GetSheet(sheetName, &sheetStorage);
@@ -8466,8 +8498,8 @@ namespace DirectDesktop
             DDScalableButton::Create(_peButtonSection, nullptr, (Element**)&pBtn);
             pBtn->SetNeedsFontResize(false);
             pBtn->SetClass(L"pushbuttonsecondary");
-            pBtn->SetHeight(32 * g_flScaleFactor);
-            pBtn->SetMargin(8 * g_flScaleFactor, 0, 0, 0);
+            pBtn->SetHeight(32 * g_ctx.flScaleFactor);
+            pBtn->SetMargin(8 * g_ctx.flScaleFactor, 0, 0, 0);
             pBtn->SetContentString(szButtonText);
             _peButtonSection->Add((Element**)&pBtn, 1);
             if (pListener) assignFn(pBtn, pListener);
