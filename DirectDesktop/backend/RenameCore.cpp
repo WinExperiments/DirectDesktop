@@ -254,7 +254,7 @@ namespace DirectDesktop
                             LoadStrFromRes(pszContent, 128, 4109, L"shell32.dll");
                             MessageBeep(MB_OK);
                             DDNotificationBanner* ddnb = new DDNotificationBanner();
-                            ddnb->CreateBanner(DDNT_WARNING, nullptr, pszContent, 5);
+                            ddnb->CreateBanner(DDNT_WARNING, nullptr, pszContent, 5, nullptr);
                             break;
                         }
                         case 3:
@@ -325,7 +325,7 @@ namespace DirectDesktop
                     LoadStrFromRes(pszContent, 96, 4041);
                     MessageBeep(MB_OK);
                     DDNotificationBanner* ddnb = new DDNotificationBanner();
-                    ddnb->CreateBanner(DDNT_ERROR, nullptr, pszContent, 3);
+                    ddnb->CreateBanner(DDNT_ERROR, nullptr, pszContent, 3, nullptr);
                     break;
                 }
                 itemID = items;

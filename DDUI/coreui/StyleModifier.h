@@ -29,7 +29,7 @@ namespace DDUI
     DDUIAPI void InvertConstHue(int& r, int& g, int& b, int& a, COLORREF& crOpt);
     DDUIAPI void IncreaseBrightness(COLORREF& cr);
     DDUIAPI COLORREF GetColorFromPixel(HDC hdc, POINT pt);
-    DDUIAPI COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold);
+    DDUIAPI COLORREF GetDominantColorFromIcon(HBITMAP hbm, int iconsize, int nonGreyishThreshold, DWORD dwBits);
     DDUIAPI COLORREF GetMostFrequentLightnessFromIcon(HBITMAP hbm, int iconsize);
     DDUIAPI COLORREF GetLightestPixel(HBITMAP hbm);
     DDUIAPI COLORREF CreateGlowColor(COLORREF cr);

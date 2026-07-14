@@ -252,9 +252,15 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<DDScalableTouchEdit foreground="rgb(0,0,0)"/>
+			<DDScalableTouchEdit foreground="rgb(0,0,0)" FirstScaledImage="1043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)"/>
+			<if mousewithin="true">
+				<DDScalableTouchEdit ImageIndex="2"/>
+			</if>
 			<if Enabled="false">
-				<DDScalableTouchEdit foreground="rgb(160,160,160)"/>
+				<DDScalableTouchEdit ImageIndex="3" foreground="rgb(160,160,160)" />
+			</if>
+			<if selected="true">
+				<DDScalableTouchEdit ImageIndex="4" EnableAccent="true"/>
 			</if>
 			<if id="atom(TE_EditBox)">
 				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0"/>
@@ -266,18 +272,6 @@
 				<Element background="white" padding="rect(0,0,0,0)"/>
 			</if>
 			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
-			<if id="atom(TE_Background)">
-				<DDScalableElement FirstScaledImage="1043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
-				<if overhang="true">
-					<DDScalableElement ImageIndex="2"/>
-				</if>
-				<if Enabled="false">
-					<DDScalableElement ImageIndex="3"/>
-				</if>
-				<if selected="true">
-					<DDScalableElement ImageIndex="4" EnableAccent="true"/>
-				</if>
-			</if>
 			<if id="atom(TE_Preview)">
 				<DDScalableElement visible="false" layoutpos="left" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 				<if class="prompttext">
@@ -788,6 +782,16 @@
 			<if Enabled="false">
 				<DDScalableTouchEdit foreground="rgb(96,96,96)"/>
 			</if>
+			<DDScalableTouchEdit foreground="rgb(255,255,255)" FirstScaledImage="2043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)"/>
+			<if mousewithin="true">
+				<DDScalableTouchEdit ImageIndex="2"/>
+			</if>
+			<if Enabled="false">
+				<DDScalableTouchEdit ImageIndex="3" foreground="rgb(96,96,96)"/>
+			</if>
+			<if selected="true">
+				<DDScalableTouchEdit ImageIndex="4" EnableAccent="true"/>
+			</if>
 			<if id="atom(TE_EditBox)">
 				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0"/>
 				<if keywithin="true">
@@ -798,18 +802,6 @@
 				<Element background="rgb(32,32,32)" padding="rect(0,0,0,0)"/>
 			</if>
 			<TouchEditInner background="argb(0,0,0,0)" padding="rect(0,0,0,0)"/>
-			<if id="atom(TE_Background)">
-				<DDScalableElement FirstScaledImage="2043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)" overhang="false"/>
-				<if overhang="true">
-					<DDScalableElement ImageIndex="2"/>
-				</if>
-				<if Enabled="false">
-					<DDScalableElement ImageIndex="3"/>
-				</if>
-				<if selected="true">
-					<DDScalableElement ImageIndex="4" EnableAccent="true"/>
-				</if>
-			</if>
 			<if id="atom(TE_Preview)">
 				<DDScalableElement visible="false" layoutpos="left" padding="rect(2rp,1rp,2rp,0)" contentalign="middleleft" compositedtext="true" textglowsize="0"/>
 				<if class="prompttext">

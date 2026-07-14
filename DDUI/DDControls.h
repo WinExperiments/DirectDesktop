@@ -172,6 +172,7 @@ namespace DDUI
     {
     public:
         DDUIAPI DDScalableRichText()
+            : _gc(0)
         {
         }
 
@@ -213,8 +214,11 @@ namespace DDUI
         DDUIAPI void SetAssociatedColor(COLORREF crAssociatedColor);
         DDUIAPI void SetDDCPIntensity(int intensity);
         DDUIAPI void SetBorderRadius(int l, int t, int r, int b);
+        DDUIAPI unsigned short GetGroupColor();
+        DDUIAPI void SetGroupColor(unsigned short sGC);
 
     protected:
+        unsigned short _gc;
         DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         DDUIAPI void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -304,13 +308,14 @@ namespace DDUI
         static IClassInfo* s_pClassInfo;
     };
 
-    class DDScalableTouchEdit final : public Element
+    class DDScalableTouchEdit final : public DDScalableElement
     {
     public:
         DDUIAPI DDScalableTouchEdit()
             : _peBackground(nullptr)
             , _peEdit(nullptr)
             , _pePreview(nullptr)
+            , _fContextMenu(false)
         {
         }
 
@@ -318,26 +323,25 @@ namespace DDUI
         DDUIAPI static IClassInfo* GetClassInfoPtr();
         DDUIAPI static void SetClassInfoPtr(DirectUI::IClassInfo* pClass);
         DDUIAPI IClassInfo* GetClassInfoW() override;
+        DDUIAPI void OnInput(InputEvent* pInput) override;
         DDUIAPI bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         DDUIAPI void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
         DDUIAPI static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
         DDUIAPI HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
         DDUIAPI static HRESULT Register();
         DDUIAPI static const PropertyInfo* WINAPI PromptTextProp();
-        DDUIAPI static const PropertyInfo* WINAPI NeedsFontResizeProp();
         DDUIAPI const WCHAR* GetPromptText(Value** ppv);
         DDUIAPI const WCHAR* GetContentString(Value** ppv);
-        DDUIAPI bool GetNeedsFontResize();
-        DDUIAPI void SetNeedsFontResize(bool bNeedsFontResize);
         DDUIAPI void SetKeyFocus() override;
+        DDUIAPI void SetContextMenu(bool fEnabled);
 
     private:
         static IClassInfo* s_pClassInfo;
         DDScalableElement* _peBackground;
         TouchEdit2* _peEdit;
         DDScalableElement* _pePreview;
-        DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
-        DDUIAPI void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
+        BehaviorEngineHelper _behaviorHelper;
+        bool _fContextMenu;
         DDUIAPI HRESULT _CreateTEVisual();
     };
 
@@ -423,7 +427,9 @@ namespace DDUI
         {
         }
 
-        DDUIAPI ~LVCommon();
+        DDUIAPI ~LVCommon()
+        {
+        }
         DDUIAPI static IClassInfo* GetClassInfoPtr();
         DDUIAPI static void SetClassInfoPtr(IClassInfo* pClass);
         DDUIAPI IClassInfo* GetClassInfoW() override;
@@ -1402,6 +1408,13 @@ namespace DDUI
         DDNT_ERROR = 3
     };
 
+    struct DDNotificationParams
+    {
+        HWND hWnd;
+        POINT pt;
+        DWORD dwFlags;
+    };
+
     class DDNotificationBanner
     {
     public:
@@ -1427,7 +1440,7 @@ namespace DDUI
         }
 
         DDUIAPI ~DDNotificationBanner();
-        DDUIAPI void CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout);
+        DDUIAPI void CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout, DDNotificationParams* pnp);
         DDUIAPI static void s_RepositionBanners(bool fReverse, int iDeltaY, int iBoundY);
         DDUIAPI void DestroyBanner();
         DDUIAPI static void s_DestroyBannerByButton(Element* elem, Event* iev);

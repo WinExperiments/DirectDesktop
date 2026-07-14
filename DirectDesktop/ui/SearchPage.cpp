@@ -187,7 +187,7 @@ namespace DirectDesktop
             //StringCchPrintfW(resultc, 64, L"%d items", Everything_GetNumResults());
             MessageBeep(MB_OK);
             DDNotificationBanner* ddnb = new DDNotificationBanner();
-            ddnb->CreateBanner(DDNT_INFO, nullptr, L"Search will be available by version 0.6", 5);
+            ddnb->CreateBanner(DDNT_INFO, nullptr, L"Search will be available by version 0.6", 5, nullptr);
             //rescontainer->SetHeight(Everything_GetNumResults() * SearchResultPlaceholder->GetHeight() + 40);
             //for (int i = 0; i < Everything_GetNumResults(); i++) {
             //	WCHAR* nameStr = new WCHAR[256];
@@ -227,7 +227,6 @@ namespace DirectDesktop
         unsigned long key4 = 0;
         RECT dimensions;
         SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
-        static IElementListener* pel_DisplayResults, * pel_CloseSearch;
         DWORD dwExStyle = WS_EX_TOOLWINDOW, dwCreateFlags = 0x10;
         if (g_pctx->DWMActive)
         {
@@ -251,13 +250,13 @@ namespace DirectDesktop
         parserSearch->GetSheet(sheetName, &sheetStorage);
         pSearch->SetValue(Element::SheetProp, 1, sheetStorage);
         searchbox = (DDScalableTouchEdit*)regElem(L"searchbox", pSearch);
-        free(pel_DisplayResults), free(pel_CloseSearch);
+        searchbox->SetContextMenu(true);
         CSafeElementPtr<DDScalableTouchButton> searchbutton;
         searchbutton.Assign((DDScalableTouchButton*)regElem(L"searchbutton", pSearch));
-        pel_DisplayResults = (IElementListener*)assignFn(searchbutton, DisplayResults, true);
+        assignFn(searchbutton, DisplayResults);
         CSafeElementPtr<DDScalableTouchButton> closebutton;
         closebutton.Assign((DDScalableTouchButton*)regElem(L"closebutton", pSearch));
-        pel_CloseSearch = (IElementListener*)assignFn(closebutton, CloseSearch, true);
+        assignFn(closebutton, CloseSearch);
         CSafeElementPtr<TouchScrollViewer> SearchResults;
         SearchResults.Assign((TouchScrollViewer*)regElem(L"SearchResults", pSearch));
         CSafeElementPtr<Element> pagecontent;

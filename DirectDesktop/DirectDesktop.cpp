@@ -551,7 +551,7 @@ namespace DirectDesktop
                 LoadStrFromRes(notice, 256, 4097);
             DDNotificationBanner* ddnb = new DDNotificationBanner();
             LoadStrFromRes(buf, 64, 4096);
-            ddnb->CreateBanner(DDNT_INFO, buf, notice, 10);
+            ddnb->CreateBanner(DDNT_INFO, buf, notice, 10, nullptr);
             LoadStrFromRes(buf, 64, 4240, L"comctl32.dll");
             ddnb->AppendButton(buf, SetDefaultRes, true);
             LoadStrFromRes(buf, 64, 4241, L"comctl32.dll");
@@ -562,13 +562,6 @@ namespace DirectDesktop
 
     LRESULT CALLBACK SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-        RECT dimensions;
-        GetClientRect(wnd->GetHWND(), &dimensions);
-        int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_pctx->dpi) + (g_iconsz - 48) * g_pctx->flScaleFactor;
-        int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_pctx->dpi) + (g_iconsz - 48) * g_pctx->flScaleFactor - textm.tmHeight;
-        int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, g_pctx->dpi) - 48 * g_pctx->flScaleFactor) / 2;
-        int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, g_pctx->dpi) - 48 * g_pctx->flScaleFactor) / 2;
-        int i = 20002;
         switch (uMsg)
         {
             case WM_NCHITTEST:
@@ -832,6 +825,8 @@ namespace DirectDesktop
                         }
                         else
                         {
+                            RECT dimensions;
+                            GetClientRect(wnd->GetHWND(), &dimensions);
                             Children = mainContainer->GetChildren(&v);
                             for (int i = 0; i < Children->GetSize(); i++)
                             {
@@ -873,6 +868,9 @@ namespace DirectDesktop
                         g_canRefreshMain = false;
                         break;
                     case 11:
+                    {
+                        RECT dimensions;
+                        GetClientRect(wnd->GetHWND(), &dimensions);
                         lastWidth = g_lastWidth, lastHeight = g_lastHeight;
                         g_lastWidth = 0, g_lastHeight = 0;
                         if (dimensions.right - dimensions.left != lastWidth || dimensions.bottom - dimensions.top != lastHeight)
@@ -883,6 +881,7 @@ namespace DirectDesktop
                             g_lastHeight = dimensions.bottom - dimensions.top;
                         }
                         break;
+                    }
                     case 12:
                         g_setcolors = true;
                         break;
@@ -963,6 +962,8 @@ namespace DirectDesktop
             }
             case WM_USER + 1:
             {
+                RECT dimensions;
+                GetClientRect(wnd->GetHWND(), &dimensions);
                 bool moved = false;
                 for (LVItem*& lvi : pm)
                 {
@@ -1050,6 +1051,10 @@ namespace DirectDesktop
             }
             case WM_USER + 3:
             {
+                int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_pctx->dpi) + (g_iconsz - 48) * g_pctx->flScaleFactor;
+                int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_pctx->dpi) + (g_iconsz - 48) * g_pctx->flScaleFactor - textm.tmHeight;
+                int iconPaddingX = (GetSystemMetricsForDpi(SM_CXICONSPACING, g_pctx->dpi) - 48 * g_pctx->flScaleFactor) / 2;
+                int iconPaddingY = (GetSystemMetricsForDpi(SM_CYICONSPACING, g_pctx->dpi) - 48 * g_pctx->flScaleFactor) / 2;
                 int lines_basedOnEllipsis{};
                 pm[lParam]->ClearAllListeners();
                 vector<IElementListener*> v_pels;
@@ -1339,6 +1344,8 @@ namespace DirectDesktop
             }
             case WM_USER + 17:
             {
+                RECT dimensions;
+                GetClientRect(wnd->GetHWND(), &dimensions);
                 POINT ppt;
                 GetCursorPos(&ppt);
                 ScreenToClient(wnd->GetHWND(), &ppt);
@@ -1376,6 +1383,8 @@ namespace DirectDesktop
                             DWORD dwDEA = (g_pctx->DWMActive && g_pctx->clientAnim) ? 400 * (animCoef / 100.0f) : 0;
                             if (*internalselectedLVItems[0] && (*internalselectedLVItems[0])->GetFlags() & LVIF_DRAG)
                             {
+                                RECT dimensions;
+                                GetClientRect(wnd->GetHWND(), &dimensions);
                                 POINT ppt;
                                 CValuePtr v;
                                 GetCursorPos(&ppt);
@@ -1598,7 +1607,7 @@ namespace DirectDesktop
                         LoadStrFromRes(title, 64, 4044);
                         LoadStrFromRes(content, 128, 4045);
                         LoadStrFromRes(btn, 32, 4010);
-                        ddnb->CreateBanner(DDNT_INFO, title, content, 5);
+                        ddnb->CreateBanner(DDNT_INFO, title, content, 5, nullptr);
                         ddnb->AppendButton(btn, ShowSettings, true);
                         break;
                     }
@@ -2071,10 +2080,15 @@ namespace DirectDesktop
                     for (LVItem* lviChild : *(lvi->GetChildItems()))
                         lviChild->AddFlags(LVIF_REFRESH);
                 }
-                yValueEx* yV = new yValueEx{ static_cast<int>(lvi->GetChildItems()->size()), NULL, NULL, lvi->GetChildItems(), nullptr, (Element*)&pm[icon2] };
-                DWORD animThread2;
-                HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
-                if (animThreadHandle2) CloseHandle(animThreadHandle2);
+                if (pm[icon2]->GetChildItems() && pm[icon2]->GetChildItems()->size() > 0)
+                {
+                    RECT rcItem{};
+                    GetGadgetRect((*lvi->GetChildItems())[0]->GetDisplayNode(), &rcItem, 0x4);
+                    yValueEx* yV = new yValueEx{ static_cast<int>(lvi->GetChildItems()->size()), static_cast<float>(rcItem.right), NULL, lvi->GetChildItems(), nullptr, (Element*)&pm[icon2] };
+                    DWORD animThread2;
+                    HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
+                    if (animThreadHandle2) CloseHandle(animThreadHandle2);
+                }
             }
             if (emptyview) emptyview->SetVisible(true);
             Group_BackContainer->SetLayoutPos(-3);
@@ -2100,7 +2114,7 @@ namespace DirectDesktop
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - 2, transDesc, More->GetDisplayNode(), &tsbInfo);
             TriggerTranslate(groupdirlist, transDesc, 0, 0.1f, 0.6f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, -100.0f * g_pctx->flScaleFactor, 0.0f, 0.0f, false, false, false);
             TriggerFade(groupdirlist, transDesc, 1, 0.1f, 0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TriggerClip(groupdirlist, transDesc, 2, 0.1f, 0.6f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100 * g_pctx->flScaleFactor / (rcList.bottom - rcList.top), 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+            TriggerClip(groupdirlist, transDesc, 2, 0.1f, 0.6f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100 * g_pctx->flScaleFactor / max(rcList.bottom - rcList.top, 1), 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, groupdirlist->GetDisplayNode(), &tsbInfo);
 
             if (customizegroup)
@@ -2787,7 +2801,13 @@ namespace DirectDesktop
                 di->crDominantTile = GetColorFromPixel(hdc, iconmidpoint);
                 ReleaseDC(nullptr, hdc);
             }
-            else if (!g_isGlass) di->crDominantTile = GetDominantColorFromIcon(bmpForeground, g_iconsz, 48);
+            else if (!g_isGlass)
+            {
+                DWORD dwBits = IconColorizationColor & 0x00FFFFFF;
+                if (g_isColorized) dwBits |= 0x1000000;
+                if (g_isDarkIconsEnabled) dwBits |= 0x2000000;
+                di->crDominantTile = GetDominantColorFromIcon(bmpForeground, g_iconsz, 48, dwBits);
+            }
         }
 
         if ((!g_isGlass || pmLVItem == &pm) && !(lviFlags & LVIF_HIDDEN))
@@ -2934,7 +2954,7 @@ namespace DirectDesktop
 
                     CSafeElementPtr<Element> groupdirlist;
                     groupdirlist.Assign(regElem(L"groupdirlist", peListParent));
-                    if (pm[icon2]->GetChildItems() && groupdirlist && groupdirlist->GetVisible())
+                    if (pm[icon2]->GetChildItems() && pm[icon2]->GetChildItems()->size() > 0 && groupdirlist && groupdirlist->GetVisible())
                     {
                         if (g_isColorized || g_pctx->theme != g_pctx->themeOld)
                             for (LVItem* lviChild : *(pm[icon2]->GetChildItems()))
@@ -2944,7 +2964,9 @@ namespace DirectDesktop
                                     lviChild->AddFlags(LVIF_TEXTONLY);
                             }
                     
-                        yValueEx* yV = new yValueEx{ static_cast<int>(pm[icon2]->GetChildItems()->size()), NULL, NULL,
+                        RECT rcItem{};
+                        GetGadgetRect((*pm[icon2]->GetChildItems())[0]->GetDisplayNode(), &rcItem, 0x4);
+                        yValueEx* yV = new yValueEx{ static_cast<int>(pm[icon2]->GetChildItems()->size()), static_cast<float>(rcItem.right), NULL,
                             pm[icon2]->GetChildItems(), nullptr, (Element*)&pm[icon2] };
                         DWORD animThread2;
                         HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
@@ -2987,11 +3009,27 @@ namespace DirectDesktop
         groupdirectory->SetHeight(lvi->GetIcon()->GetHeight());
         CSafeElementPtr<TouchScrollViewer> groupdirlist;
         groupdirlist.Assign((TouchScrollViewer*)regElem(L"groupdirlist", groupdirectory));
-        CSafeElementPtr<DDScalableElement> lvi_SubUIContainer;
-        lvi_SubUIContainer.Assign((DDScalableElement*)regElem(L"SubUIContainer", groupdirlist));
+        CSafeElementPtr<LVTiles> lvi_SubUIContainer;
+        lvi_SubUIContainer.Assign((LVTiles*)regElem(L"SubUIContainer", groupdirlist));
         lvi_SubUIContainer->SetVisible(true);
         if (lviCount > 0)
         {
+            short desktoppadding = g_pctx->flScaleFactor * (g_touchmode ? DESKPADDING_TOUCH : DESKPADDING_NORMAL);
+            int innerSizeX = GetSystemMetricsForDpi(SM_CXICONSPACING, g_pctx->dpi) + (g_iconsz - 48) * g_pctx->flScaleFactor;
+            int innerSizeY = GetSystemMetricsForDpi(SM_CYICONSPACING, g_pctx->dpi) + (g_iconsz - 22) * g_pctx->flScaleFactor - desktoppadding;
+            lvi_SubUIContainer->SetItemMinWidth(1);
+            lvi_SubUIContainer->AddFlags(LVCF_NOASSIGNFUNC);
+            if (g_touchmode)
+            {
+                lvi_SubUIContainer->SetItemMinWidth(g_touchSizeX);
+                lvi_SubUIContainer->SetItemHeight(g_touchSizeY);
+                lvi_SubUIContainer->AddFlags(LVCF_TOUCH);
+            }
+            else
+            {
+                lvi_SubUIContainer->SetItemMinWidth(innerSizeX);
+                lvi_SubUIContainer->SetItemHeight(innerSizeY);
+            }
             vector<IElementListener*> v_pels;
             vector<LVItem*>* d_subpm{};
             if (fNew)
@@ -3014,6 +3052,8 @@ namespace DirectDesktop
                     outerElemGrouped->SetShortcutArrow(regElem(L"shortcutElem", outerElemGrouped));
                     outerElemGrouped->SetText((RichText*)regElem(L"textElem", outerElemGrouped));
                     outerElemGrouped->SetItemCountElement((DDScalableRichText*)regElem(L"folderItemsElem", outerElemGrouped));
+                    outerElemGrouped->SetLayoutPos(1);
+                    outerElemGrouped->SetMargin(0, 0, desktoppadding, desktoppadding);
                     d_subpm->push_back(outerElemGrouped);
                 }
             }
@@ -3043,29 +3083,6 @@ namespace DirectDesktop
                     v_pels.clear();
                     if (!g_touchmode) (*d_subpm)[j]->SetClass(L"singleclicked");
                 }
-                int xRender = (g_pctx->localeType == 1) ? (lvi->GetWidth() - (dimensions.left + dimensions.right + outerSizeX)) - x : x;
-                (*d_subpm)[j]->SetX(xRender), (*d_subpm)[j]->SetY(y);
-                x += outerSizeX;
-                xRuns++;
-                if (x > lvi->GetWidth() - (dimensions.left + dimensions.right + outerSizeX + GetSystemMetricsForDpi(SM_CXVSCROLL, g_pctx->dpi)))
-                {
-                    maxX = xRuns;
-                    xRuns = 0;
-                    x = 0;
-                    y += outerSizeY;
-                }
-            }
-            x -= outerSizeX;
-            if (maxX != 0 && xRuns % maxX != 0) y += outerSizeY;
-            lvi_SubUIContainer->SetHeight(y);
-            CSafeElementPtr<Element> dirtitle;
-            dirtitle.Assign(regElem(L"dirtitle", groupdirectory));
-            RECT rcList;
-            groupdirlist->GetVisibleRect(&rcList);
-            for (int j = 0; j < lviCount; j++)
-            {
-                if (g_pctx->localeType == 1 && y > rcList.bottom - rcList.top)
-                    (*d_subpm)[j]->SetX((*d_subpm)[j]->GetX() - GetSystemMetricsForDpi(SM_CXVSCROLL, g_pctx->dpi));
             }
             if (fNew)
             {
@@ -3074,8 +3091,10 @@ namespace DirectDesktop
                 PendingContainer.Assign((LVItem*)regElem(L"PendingContainer", groupdirectory));
                 PendingContainer->SetVisible(true);
                 lvi->SetChildItems(d_subpm);
+                RECT rcItem{};
+                GetGadgetRect((*d_subpm)[0]->GetDisplayNode(), &rcItem, 0x4);
+                yValueEx* yV = new yValueEx{ lviCount, static_cast<float>(rcItem.right), NULL, d_subpm, PendingContainer, (Element*)pplvi };
                 DWORD animThread2;
-                yValueEx* yV = new yValueEx{ lviCount, NULL, NULL, d_subpm, PendingContainer, (Element*)pplvi };
                 HANDLE animThreadHandle2 = CreateThread(nullptr, 0, subfastin, (LPVOID)yV, 0, &animThread2);
                 if (animThreadHandle2) CloseHandle(animThreadHandle2);
             }
@@ -3120,7 +3139,7 @@ namespace DirectDesktop
             WCHAR itemCount[32], temp[32];
             LoadStrFromRes(temp, 32, 4032);
             if (lviCount == 1) LoadStrFromRes(itemCount, 32, 4031);
-            else StringCchPrintfW(itemCount, 64, temp, lviCount);
+            else StringCchPrintfW(itemCount, 32, temp, lviCount);
             dirdetails->SetContentString(itemCount);
             if (lviCount == 0) dirdetails->SetContentString(L"");
             CSafeElementPtr<Element> tasks;
@@ -4214,15 +4233,9 @@ namespace DirectDesktop
             }
         }
         if (pel_MarqueeSelector)
-        {
             emptyspace->RemoveListener(pel_MarqueeSelector);
-            free(pel_MarqueeSelector);
-        }
         if (pel_DesktopRightClick)
-        {
             emptyspace->RemoveListener(pel_DesktopRightClick);
-            free(pel_DesktopRightClick);
-        }
         pel_MarqueeSelector = assignExtendedFn(emptyspace, MarqueeSelector, true);
         pel_DesktopRightClick = assignFn(emptyspace, DesktopRightClick, true);
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 6 of 6 complete: Arranged the icons according to your icon placements.");
@@ -4385,7 +4398,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 98");
+            peTemp[1]->SetContentString(L"Build 99");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -4988,7 +5001,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion %s\nBuilt on %s", GetExeVersion().c_str(), BUILD_DATE);
 
     DDNotificationBanner* ddnb = new DDNotificationBanner();
-    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M1", prerelNotice, 10);
+    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M2", prerelNotice, 10, nullptr);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.\n\nLogging is now complete.");
 
@@ -5000,7 +5013,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         LoadStrFromRes(btn1, 32, 4160, L"comctl32.dll");
         LoadStrFromRes(btn2, 32, 4240, L"comctl32.dll");
         DDNotificationBanner* ddnb = new DDNotificationBanner();
-        ddnb->CreateBanner(DDNT_SUCCESS, title, content, NULL);
+        ddnb->CreateBanner(DDNT_SUCCESS, title, content, NULL, nullptr);
         ddnb->AppendButton(btn1, ExitThenOpenLog, true);
         ddnb->AppendButton(btn2, nullptr, true);
         logging = IDNO;

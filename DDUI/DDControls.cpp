@@ -624,6 +624,7 @@ namespace DDUI
     void DDScalableElement::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageCountProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
@@ -951,6 +952,7 @@ namespace DDUI
     void DDScalableButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageCountProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
@@ -1327,6 +1329,7 @@ namespace DDUI
     void DDScalableRichText::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageCountProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
@@ -1617,6 +1620,16 @@ namespace DDUI
         }
     }
 
+    unsigned short DDScalableRichText::GetGroupColor()
+    {
+        return _gc;
+    }
+
+    void DDScalableRichText::SetGroupColor(unsigned short sGC)
+    {
+        _gc = sGC;
+    }
+
     DDScalableTouchButton::~DDScalableTouchButton()
     {
         this->DestroyAll(true);
@@ -1650,6 +1663,7 @@ namespace DDUI
     void DDScalableTouchButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageCountProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
@@ -2018,6 +2032,11 @@ namespace DDUI
         return s_pClassInfo;
     }
 
+    void DDScalableTouchEdit::OnInput(InputEvent* pInput)
+    {
+        Element::OnInput(pInput);
+    }
+
     bool DDScalableTouchEdit::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
     {
         bool result{};
@@ -2056,6 +2075,7 @@ namespace DDUI
             _pePreview->SetClass(L"");
             _pePreview->SetVisible(!_peEdit->GetKeyWithin());
             _pePreview->SetContentString(_peEdit->GetContentString(&v));
+            this->SetSelected(_peEdit->GetKeyWithin());
             if (!_peEdit->GetContentString(&v))
             {
                 if (_peEdit->GetPromptText(&v))
@@ -2067,10 +2087,46 @@ namespace DDUI
             }
             ElementSetValue(_peBackground, Element::SelectedProp(), pvNew, this);
         }
-        if (PropNotify::IsEqual(ppi, iIndex, Element::MouseWithinProp))
-            ElementSetValue(_peBackground, Element::OverhangProp(), pvNew, this);
-        if (PropNotify::IsEqual(ppi, iIndex, Element::EnabledProp))
+        if (PropNotify::IsEqual(ppi, iIndex, Element::BorderThicknessProp))
+        {
+            const RECT* rcBorder = pvNew->GetRect();
+            _peBackground->SetBorderThickness(rcBorder->left, rcBorder->top, rcBorder->right, rcBorder->bottom);
+            this->SetPadding(-rcBorder->left, -rcBorder->top, -rcBorder->right, -rcBorder->bottom);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::EnabledProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageCountProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::AssociatedColorProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DDCPIntensityProp))
+        {
             ElementSetValue(_peBackground, ppi, pvNew, this);
+        }
+        //static RECT rcOld, rcCurrent;
+        //GetGadgetRect(this->GetDisplayNode(), &rcCurrent, 0x8);
+        //if ((rcOld.right - rcOld.left != rcCurrent.right - rcCurrent.left || rcOld.bottom - rcOld.top != rcCurrent.bottom - rcCurrent.top) &&
+        //    this->IsHosted() && DWMActive)
+        //{
+        //    CValuePtr v;
+        //    RECT rcRadius = *(this->GetBorderRadius(&v));
+        //    if (rcRadius.left != 0 || rcRadius.top != 0 || rcRadius.right != 0 || rcRadius.bottom != 0)
+        //        RedrawBorderCore<DDScalableElement>(this);
+        //}
+        //GetGadgetRect(this->GetDisplayNode(), &rcOld, 0x8);
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::BorderRadiusProp) && g_ctx.DWMActive)
+        {
+            if (this->IsHosted())
+                RedrawBorderCore<DDScalableElement>(this);
+            else
+            {
+                DDScalableElement* ptr = this;
+                DelayedElementActions* dea = new DelayedElementActions{ static_cast<DWORD>(25), nullptr, (Element**)&ptr };
+                HANDLE hRedraw = CreateThread(nullptr, 0, RedrawBorderCoreDelayed, dea, NULL, nullptr);
+                if (hRedraw) CloseHandle(hRedraw);
+            }
+        }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
         {
             RedrawFontCore<TouchEdit2>(_peEdit, nullptr, this->GetNeedsFontResize());
@@ -2098,37 +2154,12 @@ namespace DDUI
             TouchEdit2::PromptTextProp(),
             &impNeedsFontResizeProp
         };
-        return ClassInfo<DDScalableTouchEdit, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
-    }
-
-    auto DDScalableTouchEdit::GetPropCommon(const PropertyProcT pPropertyProc, bool useInt)
-    {
-        if (this->IsDestroyed()) return -1;
-        Value* pv = GetValue(pPropertyProc, 2, nullptr);
-        auto v = useInt ? pv->GetInt() : pv->GetBool();
-        pv->Release();
-        return v;
-    }
-
-    void DDScalableTouchEdit::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt)
-    {
-        Value* pv = useInt ? Value::CreateInt(iCreateInt) : Value::CreateBool(iCreateInt);
-        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
-        if (SUCCEEDED(hr))
-        {
-            hr = SetValue(pPropertyProc, 1, pv);
-            pv->Release();
-        }
+        return ClassInfo<DDScalableTouchEdit, DDScalableElement>::RegisterGlobal(HINST_THISCOMPONENT, L"DDScalableTouchEdit", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
 
     const PropertyInfo* WINAPI DDScalableTouchEdit::PromptTextProp()
     {
         return TouchEdit2::PromptTextProp();
-    }
-
-    const PropertyInfo* WINAPI DDScalableTouchEdit::NeedsFontResizeProp()
-    {
-        return &impNeedsFontResizeProp;
     }
 
     const WCHAR* DDScalableTouchEdit::GetPromptText(Value** ppv)
@@ -2143,20 +2174,24 @@ namespace DDUI
         else return nullptr;
     }
 
-    bool DDScalableTouchEdit::GetNeedsFontResize()
-    {
-        return this->GetPropCommon(NeedsFontResizeProp, false);
-    }
-
-    void DDScalableTouchEdit::SetNeedsFontResize(bool bNeedsFontResize)
-    {
-        this->SetPropCommon(NeedsFontResizeProp, bNeedsFontResize, false);
-    }
-
     void DDScalableTouchEdit::SetKeyFocus()
     {
         _peEdit->SetKeyFocus();
         Element::SetKeyFocus();
+    }
+
+    void DDScalableTouchEdit::SetContextMenu(bool fEnabled)
+    {
+        if (_fContextMenu != fEnabled)
+        {
+            _fContextMenu = fEnabled;
+            if (fEnabled)
+            {
+                Microsoft::WRL::ComPtr<IDuiBehavior> spBehavior;
+                if (SUCCEEDED(_behaviorHelper.CreateBehavior(L"Windows.UI.Popups", L"TouchEditContextMenu", nullptr, &spBehavior)))
+                    _peEdit->AddBehavior(spBehavior.Get());
+            }
+        }
     }
 
     HRESULT DDScalableTouchEdit::_CreateTEVisual()
@@ -2172,7 +2207,6 @@ namespace DDUI
         {
             this->Add((Element**)&_peBackground, 1);
             _peBackground->SetID(L"TE_Background");
-            _peBackground->SetEnabled(this->GetEnabled());;
             hr = TouchEdit2::Create(this, nullptr, (Element**)&_peEdit);
             if (SUCCEEDED(hr))
             {
@@ -2207,11 +2241,6 @@ namespace DDUI
     LVItemFlags operator|(LVItemFlags lhs, LVItemFlags rhs)
     {
         return static_cast<LVItemFlags>(static_cast<DWORD>(lhs) | static_cast<DWORD>(rhs));
-    }
-
-    LVCommon::~LVCommon()
-    {
-        free(_pelMarqueeSelector);
     }
 
     IClassInfo* LVCommon::GetClassInfoPtr()
@@ -2440,40 +2469,43 @@ namespace DDUI
                 GetAsyncKeyState(VK_RIGHT) & 0x8000 || GetAsyncKeyState(VK_DOWN) & 0x8000 ||
                 (GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState('A') & 0x8000) ||
                 GetAsyncKeyState(VK_SHIFT) & 0x8000);
-            DWORD flags = ((LVCommon*)elem->GetParent()->GetParent())->GetFlags();
-            if (!(flags & LVCF_TOUCH) && g_ctx.labelshadow && ((!elem->GetMouseWithin() && pProp == Element::SelectedProp()) ||
-                (!elem->GetSelected() && pProp == Element::MouseWithinProp())))
+            if (elem->GetParent())
             {
-                CSafeElementPtr<Element> innerElem;
-                innerElem.Assign(((LVItem*)elem)->GetInnerElement());
-                GTRANS_DESC transDesc[1];
-                TransitionStoryboardInfo tsbInfo = {};
-                if (innerElem)
+                DWORD flags = ((LVCommon*)elem->GetParent()->GetParent())->GetFlags();
+                if (!(flags & LVCF_TOUCH) && g_ctx.labelshadow && ((!elem->GetMouseWithin() && pProp == Element::SelectedProp()) ||
+                    (!elem->GetSelected() && pProp == Element::MouseWithinProp())))
                 {
-                    float initialFade = elem->GetSelected() ? 1.0f : elem->GetMouseWithin() ? 0.0f : 1.0f;
-                    float finalFade = elem->GetMouseWithin() || elem->GetSelected() ? 1.0f : 0.0f;
-                    innerElem->SetVisible(!fKeyboard || finalFade == 1.0f);
-                    if (!fKeyboard)
+                    CSafeElementPtr<Element> innerElem;
+                    innerElem.Assign(((LVItem*)elem)->GetInnerElement());
+                    GTRANS_DESC transDesc[1];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    if (innerElem)
                     {
-                        TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, (finalFade == 0.0f), false, false);
-                        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                        float initialFade = elem->GetSelected() ? 1.0f : elem->GetMouseWithin() ? 0.0f : 1.0f;
+                        float finalFade = elem->GetMouseWithin() || elem->GetSelected() ? 1.0f : 0.0f;
+                        innerElem->SetVisible(!fKeyboard || finalFade == 1.0f);
+                        if (!fKeyboard)
+                        {
+                            TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, (finalFade == 0.0f), false, false);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                        }
                     }
-                }
-                // Apparently this needs to be done otherwise there will be ugly overlays...
-                ////////////////////////////////////
-                CValuePtr v;
-                DynamicArray<Element*>* pel = elem->GetChildren(&v);
-                if (pel && !fKeyboard)
-                {
-                    for (int id = 0; id < pel->GetSize(); id++)
+                    // Apparently this needs to be done otherwise there will be ugly overlays...
+                    ////////////////////////////////////
+                    CValuePtr v;
+                    DynamicArray<Element*>* pel = elem->GetChildren(&v);
+                    if (pel && !fKeyboard)
                     {
-                        Element* child = pel->GetItem(id);
-                        if (child == innerElem) continue;
-                        TriggerFade(child, transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
-                        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                        for (int id = 0; id < pel->GetSize(); id++)
+                        {
+                            Element* child = pel->GetItem(id);
+                            if (child == innerElem) continue;
+                            TriggerFade(child, transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
+                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                        }
                     }
+                    ////////////////////////////////////
                 }
-                ////////////////////////////////////
             }
             if (g_ctx.showcheckboxes == 1 && checkboxElem)
                 checkboxElem->SetVisible(elem->GetMouseWithin() || elem->GetSelected());
@@ -2682,7 +2714,7 @@ namespace DDUI
             {
                 Element::Insert((Element**)&_peWhitespace, 1, 0);
                 _peWhitespace->SetID(L"whitespace");
-                _pelMarqueeSelector = assignExtendedFn(_peWhitespace, _MarqueeSelector, true);
+                assignExtendedFn(_peWhitespace, _MarqueeSelector, true);
                 if (SUCCEEDED(hr))
                 {
                     if (this->GetClassInfoW() == LVCommon::GetClassInfoPtr())
@@ -2912,11 +2944,10 @@ namespace DDUI
             ((LVItem*)ppe[i])->SetShowKeyFocus(false);
             if (!(_flags & LVCF_NOASSIGNFUNC))
             {
-                vector<IElementListener*>* pv_pels = ((LVItem*)ppe[i])->GetListeners();
-                pv_pels->push_back(assignFn(ppe[i], SelectItemBase, true));
-                pv_pels->push_back(assignExtendedFn(ppe[i], RefineSelections, true));
+                assignFn(ppe[i], SelectItemBase);
+                assignExtendedFn(ppe[i], RefineSelections);
                 if (((LVItem*)ppe[i])->GetCheckbox())
-                    pv_pels->push_back(assignExtendedFn(((LVItem*)ppe[i])->GetCheckbox(), CheckboxHandler, true));
+                    assignExtendedFn(((LVItem*)ppe[i])->GetCheckbox(), CheckboxHandler);
             }
             iMaxIdx = i;
         }
@@ -3768,11 +3799,10 @@ namespace DDUI
             _rgYItems.insert(_rgYItems.begin() + ptIndex.y, (LVItem*)ppe[i]);
             if (!(_flags & LVCF_NOASSIGNFUNC))
             {
-                vector<IElementListener*>* pv_pels = ((LVItem*)ppe[i])->GetListeners();
-                pv_pels->push_back(assignFn(ppe[i], SelectItemBase, true));
-                pv_pels->push_back(assignExtendedFn(ppe[i], RefineSelections, true));
+                assignFn(ppe[i], SelectItemBase);
+                assignExtendedFn(ppe[i], RefineSelections);
                 if (((LVItem*)ppe[i])->GetCheckbox())
-                    pv_pels->push_back(assignExtendedFn(((LVItem*)ppe[i])->GetCheckbox(), CheckboxHandler, true));
+                    assignExtendedFn(((LVItem*)ppe[i])->GetCheckbox(), CheckboxHandler);
             }
             if (!(_flags & LVCF_NOANIMATE))
             {
@@ -4057,11 +4087,10 @@ namespace DDUI
             GetGadgetRect(ppe[i]->GetDisplayNode(), &prcGadget[i], 0xC);
             if (!(_flags & LVCF_NOASSIGNFUNC))
             {
-                vector<IElementListener*>* pv_pels = ((LVItem*)ppe[i])->GetListeners();
-                pv_pels->push_back(assignFn(ppe[i], SelectItemBase, true));
-                pv_pels->push_back(assignExtendedFn(ppe[i], RefineSelections, true));
+                assignFn(ppe[i], SelectItemBase);
+                assignExtendedFn(ppe[i], RefineSelections);
                 if (((LVItem*)ppe[i])->GetCheckbox())
-                    pv_pels->push_back(assignExtendedFn(((LVItem*)ppe[i])->GetCheckbox(), CheckboxHandler, true));
+                    assignExtendedFn(((LVItem*)ppe[i])->GetCheckbox(), CheckboxHandler);
             }
             iMaxIdx = i;
         }
@@ -4276,12 +4305,6 @@ namespace DDUI
         {
             _childItemss->clear();
             _childItemss = nullptr;
-        }
-        if (_pels.size() > 0)
-        {
-            for (auto pel : _pels)
-                delete pel;
-            _pels.clear();
         }
         if (_touchGrid) if (_touchGrid->GetItemCount() == 0) delete _touchGrid;
         this->StopListening();
@@ -4627,7 +4650,6 @@ namespace DDUI
             if (_peIcon) _peIcon->RemoveListener(pel);
             if (_peCheckbox) _peCheckbox->RemoveListener(pel);
             this->RemoveListener(pel);
-            delete pel;
         }
     }
 
@@ -8220,7 +8242,7 @@ namespace DDUI
         _wnd = nullptr;
     }
 
-    void DDNotificationBanner::CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout)
+    void DDNotificationBanner::CreateBanner(DDNotificationType type, LPCWSTR title, LPCWSTR content, short timeout, DDNotificationParams* pnp)
     {
         if (g_nwnds.size())
         {

@@ -44,23 +44,22 @@ namespace DDUI
     class DDUIAPI EventListener : public CSafeElementListenerCB
     {
     public:
-        EventListener(void (*func)(Element*, Event*));
-        bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2);
+        EventListener(bool (*funcChanging)(Element*, const PropertyInfo*, int, Value*, Value*));
+        EventListener(void (*funcChanged)(Element*, const PropertyInfo*, int, Value*, Value*));
+        EventListener(void (*funcInput)(Element*, InputEvent*));
+        EventListener(void (*funcEvent)(Element*, Event*));
+        void OnListenerDetach(Element* elem) override;
+        bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override;
+        void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2) override;
+        void OnListenedInput(Element* elem, InputEvent* ev) override;
         void OnListenedEvent(Element* elem, Event* iev) override;
 
     private:
-        void (*f)(Element*, Event*);
-    };
-
-    class DDUIAPI EventListener2 : public CSafeElementListenerCB
-    {
-    public:
-        EventListener2(void (*func)(Element*, const PropertyInfo*, int, Value*, Value*));
-        bool OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2);
-        void OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2);
-
-    private:
-        void (*f)(Element*, const PropertyInfo*, int, Value*, Value*);
+        bool (*fChanging)(Element*, const PropertyInfo*, int, Value*, Value*);
+        void (*fChanged)(Element*, const PropertyInfo*, int, Value*, Value*);
+        void (*fInput)(Element*, InputEvent*);
+        void (*fEvent)(Element*, Event*);
+        BYTE _bType;
     };
 
     // Common functions
@@ -91,7 +90,7 @@ namespace DDUI
 
     DDUIAPI Element* regElem(const wchar_t* elemName, Element* peParent);
     DDUIAPI EventListener* assignFn(Element* elemName, void (*fnName)(Element* elem, Event* iev), bool fReturn = false);
-    DDUIAPI EventListener2* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
+    DDUIAPI EventListener* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
 
     inline HRESULT ResultFromWin32(__in DWORD dwErr)
     {

@@ -16,36 +16,72 @@ namespace DDUI
     DDUICtx g_ctx;
     DDUIColors g_colors;
 
-    EventListener::EventListener(void (*func)(Element*, Event*))
+    EventListener::EventListener(bool (*funcChanging)(Element*, const PropertyInfo*, int, Value*, Value*))
     {
-        f = func;
+        fChanging = funcChanging;
+        fChanged = nullptr;
+        fInput = nullptr;
+        fEvent = nullptr;
+        _bType = 1;
     }
 
-    bool EventListener::OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2)
+    EventListener::EventListener(void (*funcChanged)(Element*, const PropertyInfo*, int, Value*, Value*))
     {
+        fChanging = nullptr;
+        fChanged = funcChanged;
+        fInput = nullptr;
+        fEvent = nullptr;
+        _bType = 2;
+    }
+
+    EventListener::EventListener(void (*funcInput)(Element*, InputEvent*))
+    {
+        fChanging = nullptr;
+        fChanged = nullptr;
+        fInput = funcInput;
+        fEvent = nullptr;
+        _bType = 3;
+    }
+
+    EventListener::EventListener(void (*funcEvent)(Element*, Event*))
+    {
+        fChanging = nullptr;
+        fChanged = nullptr;
+        fInput = nullptr;
+        fEvent = funcEvent;
+        _bType = 4;
+    }
+
+    void EventListener::OnListenerDetach(Element* elem)
+    {
+        delete this;
+    }
+
+    bool EventListener::OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2)
+    {
+        if (_bType == 1)
+            return fChanging(elem, prop, type, v1, v2);
         return true;
     }
 
-    void EventListener::OnListenedEvent(Element* elem, struct Event* iev)
+    void EventListener::OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2)
     {
-        f(elem, iev);
+        if (_bType == 2)
+            fChanged(elem, prop, type, v1, v2);
     }
 
-
-    EventListener2::EventListener2(void (*func)(Element*, const PropertyInfo*, int, Value*, Value*))
+    void EventListener::OnListenedInput(Element* elem, InputEvent* ev)
     {
-        f = func;
+        if (_bType == 3)
+            fInput(elem, ev);
     }
 
-    bool EventListener2::OnListenedPropertyChanging(Element* elem, const PropertyInfo* prop, int unk, Value* v1, Value* v2)
+    void EventListener::OnListenedEvent(Element* elem, Event* iev)
     {
-        return true;
+        if (_bType == 4)
+            fEvent(elem, iev);
     }
 
-    void EventListener2::OnListenedPropertyChanged(Element* elem, const PropertyInfo* prop, int type, Value* v1, Value* v2)
-    {
-        f(elem, prop, type, v1, v2);
-    }
 
     HRESULT LoadStrFromRes(LPWSTR pszOut, UINT cSize, UINT id, LPCWSTR dllName)
     {
@@ -428,9 +464,9 @@ namespace DDUI
         return nullptr;
     }
 
-    EventListener2* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn)
+    EventListener* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn)
     {
-        EventListener2* pel = new EventListener2(fnName);
+        EventListener* pel = new EventListener(fnName);
         elemName->AddListener(pel);
         if (fReturn) return pel;
         return nullptr;
@@ -592,33 +628,6 @@ namespace DDUI
                     if (peSrcChildren->GetItem(i)->GetID() == peDstChildren->GetItem(i)->GetID())
                         InitializePreviewComponent(peSrcChildren->GetItem(i), peDstChildren->GetItem(i), true, true);
     }
-
-    //wstring GetExeVersion()
-    //{
-    //    WCHAR path[MAX_PATH];
-    //    GetModuleFileNameW(nullptr, path, MAX_PATH);
-
-    //    DWORD size = GetFileVersionInfoSizeW(path, nullptr);
-    //    if (size == 0) return L"";
-
-    //    vector<BYTE> buffer(size);
-    //    if (!GetFileVersionInfoW(path, 0, size, buffer.data()))
-    //        return L"";
-
-    //    VS_FIXEDFILEINFO* pFileInfo = nullptr;
-    //    UINT len = 0;
-    //    if (VerQueryValueW(buffer.data(), L"\\", (LPVOID*)&pFileInfo, &len)) {
-    //        int edition = HIWORD(pFileInfo->dwFileVersionMS);
-    //        int major = LOWORD(pFileInfo->dwFileVersionMS);
-    //        int minor = HIWORD(pFileInfo->dwFileVersionLS);
-    //        int rev = LOWORD(pFileInfo->dwFileVersionLS);
-
-    //        WCHAR ver[16];
-    //        StringCchPrintfW(ver, 16, L"%d.%d.%d.%d", edition, major, minor, rev);
-    //        return ver;
-    //    }
-    //    return L"";
-    //}
 
     HWND InitializeCallbackWindow()
     {

@@ -99,7 +99,7 @@ namespace DirectDesktop
                                         StringCchPrintfW(errorcontent, 256, errorBuf, g_maxPageID);
                                         DDNotificationBanner* ddnb = new DDNotificationBanner();
                                         LoadStrFromRes(errorTitle, 64, 4060);
-                                        ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5);
+                                        ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5, nullptr);
                                         return 0;
                                     }
                                     for (int i = 0; i <= g_maxPageID; i++)
@@ -117,7 +117,7 @@ namespace DirectDesktop
                                             LoadStrFromRes(infotitle, 64, 4062);
                                             LoadStrFromRes(infocontent, 192, 4063);
                                             DDNotificationBanner* ddnb = new DDNotificationBanner();
-                                            ddnb->CreateBanner(DDNT_INFO, infotitle, infocontent, 5);
+                                            ddnb->CreateBanner(DDNT_INFO, infotitle, infocontent, 5, nullptr);
                                             return 0;
                                         }
                                     }
@@ -126,7 +126,7 @@ namespace DirectDesktop
                                 {
                                     MessageBeep(MB_OK);
                                     DDNotificationBanner* ddnb = new DDNotificationBanner();
-                                    ddnb->CreateBanner(DDNT_ERROR, nullptr, nullptr, 3);
+                                    ddnb->CreateBanner(DDNT_ERROR, nullptr, nullptr, 3, nullptr);
                                     return 0;
                                 }
                             }
@@ -185,7 +185,7 @@ namespace DirectDesktop
                                         StringCchPrintfW(errorcontent, 256, errorBuf, g_maxPageID);
                                         DDNotificationBanner* ddnb = new DDNotificationBanner();
                                         LoadStrFromRes(errorTitle, 64, 4060);
-                                        ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5);
+                                        ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5, nullptr);
                                         return 0;
                                     }
                                 }
@@ -193,7 +193,7 @@ namespace DirectDesktop
                                 {
                                     MessageBeep(MB_OK);
                                     DDNotificationBanner* ddnb = new DDNotificationBanner();
-                                    ddnb->CreateBanner(DDNT_ERROR, nullptr, nullptr, 3);
+                                    ddnb->CreateBanner(DDNT_ERROR, nullptr, nullptr, 3, nullptr);
                                     return 0;
                                 }
                             }
@@ -594,9 +594,7 @@ namespace DirectDesktop
         //SetPopupSize(fullscreeninnerE, width, height);
         fullscreenpopupbaseE->SetVisible(true);
         fullscreeninnerE->SetVisible(true);
-        static IElementListener* pel;
-        free(pel);
-        pel = assignFn(fullscreeninnerE, TriggerHSV, true);
+        assignFn(fullscreeninnerE, TriggerHSV, true);
     }
 
     void fullscreenAnimation4()
@@ -710,7 +708,7 @@ namespace DirectDesktop
             case 2005:
             case 2006:
                 delayedshutdownstatuses[uID - 2001] = true; // Used by shutdown dialog
-                SendMessageW(wnd->GetHWND(), WM_USER + 19, NULL, uID - 2000);
+                SendMessageW(shutdownwnd->GetHWND(), WM_USER + 2, NULL, uID - 2000);
                 break;
             case 2007:
                 DisplayShutdownDialog();
@@ -966,7 +964,7 @@ namespace DirectDesktop
                 StringCchPrintfW(errorcontent, 256, errorBuf, g_maxPageID);
                 DDNotificationBanner* ddnb = new DDNotificationBanner();
                 LoadStrFromRes(errorTitle, 64, 4060);
-                ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5);
+                ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5, nullptr);
                 return;
             }
             ((LVItem*)elem)->SetPage(page);
@@ -1580,8 +1578,6 @@ namespace DirectDesktop
             g_editavailable = false;
             g_animatePVEnter = true;
             if (!g_invokedpagechange) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
-            static IElementListener* pel_GoToPrevPage, *pel_GoToNextPage, *pel_GoToPrevPage2, *pel_GoToNextPage2,
-                *pel_ShowShutdownDialog, *pel_ShowSearchUI, *pel_ShowSettings, *pel_ShowPageViewer, *pel_ExitWindow;
             RECT dimensions;
             POINT topLeftMon = GetTopLeftMonitor();
             SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
@@ -1643,17 +1639,15 @@ namespace DirectDesktop
             SimpleViewNextPage = (TouchButton*)regElem(L"SimpleViewNextPage", pEdit);
             pageinfo = (DDScalableRichText*)regElem(L"pageinfo", pEdit);
 
-            free(pel_GoToPrevPage), free(pel_GoToNextPage), free(pel_GoToPrevPage2), free(pel_GoToNextPage2),
-                free(pel_ShowShutdownDialog), free(pel_ShowSearchUI), free(pel_ShowSettings), free(pel_ShowPageViewer), free(pel_ExitWindow);
-            pel_GoToPrevPage = (IElementListener*)assignFn(prevpage, GoToPrevPage, true);
-            pel_GoToNextPage = (IElementListener*)assignFn(nextpage, GoToNextPage, true);
-            pel_GoToPrevPage2 = (IElementListener*)assignFn(SimpleViewPrevPage, GoToPrevPage, true);
-            pel_GoToNextPage2 = (IElementListener*)assignFn(SimpleViewNextPage, GoToNextPage, true);
-            pel_ShowShutdownDialog = (IElementListener*)assignFn(SimpleViewPower, ShowShutdownDialog, true);
-            pel_ShowSearchUI = (IElementListener*)assignFn(SimpleViewSearch, ShowSearchUI, true);
-            pel_ShowSettings = (IElementListener*)assignFn(SimpleViewSettings, ShowSettings, true);
-            pel_ShowPageViewer = (IElementListener*)assignFn(SimpleViewPages, ShowPageViewer, true);
-            pel_ExitWindow = (IElementListener*)assignFn(SimpleViewClose, ExitWindow, true);
+            assignFn(prevpage, GoToPrevPage);
+            assignFn(nextpage, GoToNextPage);
+            assignFn(SimpleViewPrevPage, GoToPrevPage);
+            assignFn(SimpleViewNextPage, GoToNextPage);
+            assignFn(SimpleViewPower, ShowShutdownDialog);
+            assignFn(SimpleViewSearch, ShowSearchUI);
+            assignFn(SimpleViewSettings, ShowSettings);
+            assignFn(SimpleViewPages, ShowPageViewer);
+            assignFn(SimpleViewClose, ExitWindow);
 
             SimpleViewClose->SetLayoutPos(g_enableexit ? -1 : -3);
 

@@ -2142,7 +2142,7 @@ namespace DirectDesktop
 		if (cf == RegisterClipboardFormatW(CFSTR_FILEDESCRIPTOR) || cf == RegisterClipboardFormatW(CFSTR_FILECONTENTS))
 		{
 			DDNotificationBanner* ddnb = new DDNotificationBanner();
-			ddnb->CreateBanner(DDNT_ERROR, L"Not Implemented", nullptr, 3);
+			ddnb->CreateBanner(DDNT_ERROR, L"Not Implemented", nullptr, 3, nullptr);
 		}
 		/* Default reaction is to do nothing: */
 		return DROPEFFECT_NONE;
