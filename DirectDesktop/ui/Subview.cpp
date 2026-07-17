@@ -276,6 +276,9 @@ namespace DirectDesktop
                 {
                     groupdirlist->SetVisible(true);
                     dirtitle->SetVisible(true);
+                    CSafeElementPtr<LVTiles> lvi_SubUIContainer;
+                    lvi_SubUIContainer.Assign((LVTiles*)regElem(L"SubUIContainer", groupdirlist));
+                    lvi_SubUIContainer->RemoveFlags(LVCF_NOANIMATE);
                 }
 
                 DWORD dwFlags = NULL;
@@ -430,15 +433,30 @@ namespace DirectDesktop
             {
                 CSafeElementPtr<Element> dirtitle;
                 CSafeElementPtr<Element> emptyview;
+                CSafeElementPtr<DDScalableElement> emptygraphic;
                 CSafeElementPtr<DDScalableRichText> emptytitle;
                 CSafeElementPtr<DDScalableRichText> emptysubtitle;
                 dirtitle.Assign(regElem(L"dirtitle", yV->peOptionalTarget1->GetParent()));
                 emptyview.Assign(regElem(L"emptyview", yV->peOptionalTarget1->GetParent()));
+                emptygraphic.Assign((DDScalableElement*)regElem(L"emptygraphic", emptyview));
                 emptytitle.Assign((DDScalableRichText*)regElem(L"emptytitle", emptyview));
                 emptysubtitle.Assign((DDScalableRichText*)regElem(L"emptysubtitle", emptyview));
                 emptyview->SetVisible(true);
+
+                DDScalableTouchButton* lvi = (DDScalableTouchButton*)yV->peOptionalTarget1->GetParent()->GetParent();
+                if (lvi->GetClassInfoW() == LVItem::GetClassInfoPtr())
+                {
+                    lvi = (DDScalableTouchButton*)((LVItem*)lvi)->GetIcon();
+                }
+                if (emptygraphic && lvi && lvi->GetClassInfoW() == DDScalableTouchButton::GetClassInfoPtr())
+                {
+                    if (lvi->GetGroupColor() > 0) emptygraphic->SetAssociatedColor(g_pColors->crPalette[lvi->GetGroupColor()]);
+                    else emptygraphic->SetAssociatedColor(-1);
+                }
+
                 emptytitle->SetContentString(L"Failed to load folder");
                 emptysubtitle->SetContentString(L"Refresh the folder or close it.");
+                emptysubtitle->SetLayoutPos(0);
                 dirtitle->SetVisible(false);
                 GTRANS_DESC transDesc[1];
                 TransitionStoryboardInfo tsbInfo = {};
@@ -713,7 +731,7 @@ namespace DirectDesktop
         return hr;
     }
 
-    void fullscreenAnimation(int width, int height, float animstartscale, float desktopanimstartscale, POINT peIconOrigin, Element** ppeAnimateFrom)
+    void fullscreenAnimation(int width, int height, float animstartscale, float desktopanimstartscale, POINT peIconOrigin, Element** ppeAnimateFrom, bool fClean)
     {
         CValuePtr v;
         RECT dimensions;
@@ -789,9 +807,15 @@ namespace DirectDesktop
             animstartscaleX, animstartscaleY, flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
         if (hasOrigin) TriggerRotate3D(fullscreeninner, transDesc, 2, flScaleStart, flScaleDuration, 0.8f, 0.0f, 0.0f, 1.0f, flX3D, flY3D, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
-        GTRANS_DESC transDesc2[1];
+        float flBackFade = 1.0f;
+        SYSTEM_POWER_STATUS sps;
+        GetSystemPowerStatus(&sps);
+        if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") != 1 || sps.SystemStatusFlag)
+            flBackFade = 0.33f;
+        GTRANS_DESC transDesc2[2];
         TriggerScaleOut(UIContainer, transDesc2, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, desktopanimstartscale, desktopanimstartscale, 0.5f, 0.5f, false, false);
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
+        if (fClean) TriggerFade(UIContainer, transDesc2, 1, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flBackFade, false, false, true);
+        ScheduleGadgetTransitions_DWMCheck(0, fClean ? 2 : 1, transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
         SetTimer(wnd->GetHWND(), 7, 100, nullptr);
         g_issubviewopen = true;
         DWORD dwMillis = (g_pctx->windowAnim && g_pctx->clientAnim) ? 50 : 0;
@@ -863,8 +887,14 @@ namespace DirectDesktop
                 if (hasOrigin) TriggerRotate3D(fullscreeninner, transDesc, 2, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 1.0f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
             }
-            GTRANS_DESC transDesc2[1];
+            float flBackFade = 1.0f;
+            SYSTEM_POWER_STATUS sps;
+            GetSystemPowerStatus(&sps);
+            if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") != 1 || sps.SystemStatusFlag)
+                flBackFade = 0.33f;
+            GTRANS_DESC transDesc2[2];
             TriggerScaleOut(UIContainer, transDesc2, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+            TriggerFade(UIContainer, transDesc2, 1, 0.175f, 0.375f, 0.0f, 0.0f, 1.0f, 1.0f, flBackFade, 1.0f, false, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
             DUI_SetGadgetZOrder(UIContainer, -1);
         }
@@ -886,7 +916,7 @@ namespace DirectDesktop
             ptIcon.x += (rcIcon.right - rcIcon.left) / 2;
             ptIcon.y += (rcIcon.bottom - rcIcon.top) / 2;
         }
-        fullscreenAnimation(800 * g_pctx->flScaleFactor, 480 * g_pctx->flScaleFactor, 0.8, 0.92, ptIcon, ppeAnimateFrom);
+        fullscreenAnimation(800 * g_pctx->flScaleFactor, 480 * g_pctx->flScaleFactor, 0.8, 0.92, ptIcon, ppeAnimateFrom, !g_issubviewopen && !g_editmode);
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
         BlurBackground(subviewwnd->GetHWND(), true, true, 0x33, fullscreenpopupbg);
@@ -943,10 +973,14 @@ namespace DirectDesktop
         // It would involve waiting until we get a signal that the folder is ready.
         // While this is a rare occurrence and the icon loading CAN terminate itself if the user exist too early,
         // it would still be a good improvement for stability.
-        if (fNoRefresh) fullscreenAnimation2(ppeAnimateTo);
+        if (fNoRefresh)
+        {
+            fullscreenAnimation2(ppeAnimateTo);
+            g_issubviewopen = false;
+        }
         else
             centered->DestroyAll(true);
-        g_issubviewopen = false;
+        if (fNoRefresh)
         g_issettingsopen = false;
         g_pctx->atleastonesetting = false;
     }
@@ -967,7 +1001,14 @@ namespace DirectDesktop
             GTRANS_DESC transDesc[1];
             TransitionStoryboardInfo tsbInfo = {};
             float coef{};
-            if (pProp == TouchButton::PressedProp())
+            if (pProp == TouchButton::SelectedProp())
+            {
+                CSafeElementPtr<DDScalableElement> selectionElem;
+                selectionElem.Assign((DDScalableElement*)regElem(L"selectionElem", elem));
+                if (selectionElem)
+                    selectionElem->SetVisible(elem->GetSelected());
+            }
+            if (pProp == TouchButton::PressedProp() && (elem->GetMouseWithin() || elem->GetKeyFocused()))
             {
                 ((LVItem*)elem)->GetInnerElement()->SetEnabled(!((LVItem*)elem)->GetPressed());
                 coef = ((LVItem*)elem)->GetPressed() ? 0.9325f : 1.0f;
@@ -1029,6 +1070,8 @@ namespace DirectDesktop
             }
             vector<IElementListener*> v_pels;
             vector<LVItem*>* subpm = new vector<LVItem*>;
+            lvi_SubUIContainer->AddFlags(LVCF_NOANIMATE);
+            fullscreeninner->SetGroupColor(lvi->GetIcon()->GetGroupColor());
             StyleSheet* sheet = pSubview->GetSheet();
             CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
             parser->GetSheet(g_pctx->theme ? L"default" : L"defaultdark", &sheetStorage);
@@ -1597,11 +1640,10 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::Click || iev->uidType == Button::Click)
         {
-            HideSimpleView(false);
-            g_editmode = false;
             ShowPopupCore(nullptr);
-            SetFocus(subviewwnd->GetHWND());
+            HideSimpleView(false);
             g_issettingsopen = true;
+            SetFocus(subviewwnd->GetHWND());
             Element* settingsview{};
             parserSubview->CreateElement(L"settingsview", nullptr, nullptr, nullptr, (Element**)&settingsview);
             CSafeElementPtr<DDScalableTouchButton> fullscreeninner; fullscreeninner.Assign((DDScalableTouchButton*)regElem(L"fullscreeninner", centered));

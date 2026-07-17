@@ -590,52 +590,13 @@ namespace DirectDesktop
                     AdjustWindowSizes(false);
                     SetTimer(hWnd, 11, 100, nullptr);
                 }
-                if (wParam == SPI_SETFONTSMOOTHING)
-                {
-                    WCHAR* fontsmoothingStr;
-                    GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
-                    g_pctx->fontsmoothing = _wtoi(fontsmoothingStr);
-                    free(fontsmoothingStr);
-                }
-                BOOL bTemp;
-                switch (wParam)
-                {
-                case SPI_SETANIMATION:
-                {
-                    ANIMATIONINFO animInfo;
-                    animInfo.cbSize = sizeof(animInfo);
-                    SystemParametersInfoW(SPI_GETANIMATION, sizeof(animInfo), &animInfo, NULL);
-                    g_pctx->windowAnim = animInfo.iMinAnimate;
-                    break;
-                }
-                case SPI_SETCLIENTAREAANIMATION:
-                    SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, NULL, &bTemp, NULL);
-                    g_pctx->clientAnim = bTemp;
-                    break;
-                case SPI_SETCOMBOBOXANIMATION:
-                    SystemParametersInfoW(SPI_GETCOMBOBOXANIMATION, NULL, &bTemp, NULL);
-                    g_pctx->comboAnim = bTemp;
-                    break;
-                case SPI_SETMENUANIMATION:
-                    SystemParametersInfoW(SPI_GETMENUANIMATION, NULL, &bTemp, NULL);
-                    g_pctx->menuAnim = bTemp;
-                    break;
-                case SPI_SETTOOLTIPANIMATION:
-                    SystemParametersInfoW(SPI_GETTOOLTIPANIMATION, NULL, &bTemp, NULL);
-                    g_pctx->tooltipAnim = bTemp;
-                    break;
-                }
-                g_pctx->selectionrect = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ListviewAlphaSelect");
-                g_pctx->labelshadow = GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"ListviewShadow");
                 if (lParam && wcscmp((LPCWSTR)lParam, L"ShellState") == 0)
                 {
                     RegKeyValue DDKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL);
-                    g_pctx->showcheckboxes = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoCheckSelect");
                     g_showHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"Hidden");
                     g_showSuperHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ShowSuperHidden");
                     g_hideFileExt = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"HideFileExt");
                     g_isThumbnailHidden = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"IconsOnly");
-                    g_pctx->iconunderline = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
                     free(shellstate);
                     GetRegistryBinValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"ShellState", &shellstate);
                     if (g_canRefreshMain)
@@ -646,7 +607,6 @@ namespace DirectDesktop
                 }
                 if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0)
                 {
-                    UpdateModeInfo(false);
                     if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", g_pColors->ImmersiveColor, false, nullptr);
                     // This message is sent 4-5 times upon changing accent color so this mitigation is applied
                     // 0.4.5.2 test case: seems to be sent 3-4 times. Maybe dependent on Windows install?
@@ -3038,6 +2998,7 @@ namespace DirectDesktop
                 d_subpm = lvi->GetChildItems();
             if (fNew)
             {
+                lvi_SubUIContainer->AddFlags(LVCF_NOANIMATE);
                 sheet = pMain->GetSheet();
                 CValuePtr sheetStorage2 = DirectUI::Value::CreateStyleSheet(sheet);
                 parser->GetSheet(g_pctx->theme ? L"default" : L"defaultdark", &sheetStorage2);
@@ -3331,11 +3292,13 @@ namespace DirectDesktop
             GTRANS_DESC transDesc[1];
             TransitionStoryboardInfo tsbInfo = {};
             float coef{};
-            CSafeElementPtr<DDScalableElement> selectionElem;
-            selectionElem.Assign((DDScalableElement*)regElem(L"selectionElem", elem));
-            if (selectionElem)
-                selectionElem->SetVisible(!(g_treatdirasgroup && ((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL) && elem->GetSelected());
-
+            if (pProp == TouchButton::SelectedProp())
+            {
+                CSafeElementPtr<DDScalableElement> selectionElem;
+                selectionElem.Assign((DDScalableElement*)regElem(L"selectionElem", elem));
+                if (selectionElem)
+                    selectionElem->SetVisible(!(g_treatdirasgroup && ((LVItem*)elem)->GetGroupSize() != LVIGS_NORMAL) && elem->GetSelected());
+            }
             if (pProp == TouchButton::PressedProp() && (elem->GetMouseWithin() || elem->GetKeyFocused()))
             {
                 ((LVItem*)elem)->GetInnerElement()->SetEnabled(!((LVItem*)elem)->GetPressed());
@@ -4398,7 +4361,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 99");
+            peTemp[1]->SetContentString(L"Build 100");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -4478,6 +4441,15 @@ namespace DirectDesktop
             }
             if (activity & 0x5)
             {
+                if (pKeyInfo->vkCode == VK_F1)
+                {
+                    if (!keyHold[pKeyInfo->vkCode])
+                    {
+                        ShowPopupCore(nullptr);
+                        fullscreeninner->SetContentString(L"[Help]");
+                        keyHold[pKeyInfo->vkCode] = true;
+                    }
+                }
                 if (pKeyInfo->vkCode == VK_F2)
                 {
                     if (!keyHold[pKeyInfo->vkCode] && !g_renameactive && !(UIContainer->GetFlags() & LVCF_ITEMPRESSED))
@@ -5001,7 +4973,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion %s\nBuilt on %s", GetExeVersion().c_str(), BUILD_DATE);
 
     DDNotificationBanner* ddnb = new DDNotificationBanner();
-    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M2", prerelNotice, 10, nullptr);
+    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M3", prerelNotice, 10, nullptr);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.\n\nLogging is now complete.");
 

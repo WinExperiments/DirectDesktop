@@ -722,8 +722,8 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::Click)
         {
-            HideSimpleView(false);
             CreateSearchPage(false);
+            HideSimpleView(false);
         }
     }
 

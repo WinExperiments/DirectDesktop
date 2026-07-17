@@ -5,7 +5,7 @@
 #include "..\backend\DirectoryHelper.h"
 
 #ifdef HAS_SEARCH
-#include "EverythingSearch/Everything.h"
+#include "..\backend\EverythingSearch/Everything.h"
 #pragma comment (lib, "Everything64.lib")
 #endif
 
@@ -263,10 +263,16 @@ namespace DirectDesktop
         pagecontent.Assign(regElem(L"pagecontent", pSearch));
         searchwnd->Host(pSearch);
         searchwnd->ShowWindow(SW_HIDE);
-        GTRANS_DESC transDesc[1];
+        float flBackFade = 1.0f;
+        SYSTEM_POWER_STATUS sps;
+        GetSystemPowerStatus(&sps);
+        if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") != 1 || sps.SystemStatusFlag)
+            flBackFade = 0.33f;
+        GTRANS_DESC transDesc[2];
         TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
+        if (g_editmode) TriggerFade(UIContainer, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flBackFade, false, false, true);
         TransitionStoryboardInfo tsbInfo = {};
-        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, g_editmode ? 2 : 1, transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         GTRANS_DESC transDesc2[2];
         TriggerFade(pagecontent, transDesc2, 0, 0.05f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
         TriggerScaleIn(pagecontent, transDesc2, 1, 0.05f, 0.72f, 0.1f, 0.9f, 0.2f, 1.0f, 0.75f, 0.75f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
@@ -287,8 +293,14 @@ namespace DirectDesktop
 
     void DestroySearchPage()
     {
-        GTRANS_DESC transDesc[1];
+        float flBackFade = 1.0f;
+        SYSTEM_POWER_STATUS sps;
+        GetSystemPowerStatus(&sps);
+        if (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") != 1 || sps.SystemStatusFlag)
+            flBackFade = 0.33f;
+        GTRANS_DESC transDesc[2];
         TriggerScaleOut(UIContainer, transDesc, 0, 0.175f, 0.675f, 0.1f, 0.9f, 0.2f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
+        TriggerFade(UIContainer, transDesc, 1, 0.175f, 0.375f, 0.0f, 0.0f, 1.0f, 1.0f, flBackFade, 1.0f, false, false, false);
         TransitionStoryboardInfo tsbInfo = {};
         ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         DUI_SetGadgetZOrder(UIContainer, -1);

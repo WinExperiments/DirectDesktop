@@ -476,6 +476,57 @@ namespace DDUI
     {
         switch (uMsg)
         {
+        case WM_SETTINGCHANGE:
+        {
+            if (wParam == SPI_SETFONTSMOOTHING)
+            {
+                WCHAR* fontsmoothingStr;
+                GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"FontSmoothing", &fontsmoothingStr);
+                g_ctx.fontsmoothing = _wtoi(fontsmoothingStr);
+                free(fontsmoothingStr);
+            }
+            BOOL bTemp;
+            switch (wParam)
+            {
+            case SPI_SETANIMATION:
+            {
+                ANIMATIONINFO animInfo;
+                animInfo.cbSize = sizeof(animInfo);
+                SystemParametersInfoW(SPI_GETANIMATION, sizeof(animInfo), &animInfo, NULL);
+                g_ctx.windowAnim = animInfo.iMinAnimate;
+                break;
+            }
+            case SPI_SETCLIENTAREAANIMATION:
+                SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, NULL, &bTemp, NULL);
+                g_ctx.clientAnim = bTemp;
+                break;
+            case SPI_SETCOMBOBOXANIMATION:
+                SystemParametersInfoW(SPI_GETCOMBOBOXANIMATION, NULL, &bTemp, NULL);
+                g_ctx.comboAnim = bTemp;
+                break;
+            case SPI_SETMENUANIMATION:
+                SystemParametersInfoW(SPI_GETMENUANIMATION, NULL, &bTemp, NULL);
+                g_ctx.menuAnim = bTemp;
+                break;
+            case SPI_SETTOOLTIPANIMATION:
+                SystemParametersInfoW(SPI_GETTOOLTIPANIMATION, NULL, &bTemp, NULL);
+                g_ctx.tooltipAnim = bTemp;
+                break;
+            }
+            RegKeyValue DDKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", nullptr, NULL);
+            g_ctx.selectionrect = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ListviewAlphaSelect");
+            g_ctx.labelshadow = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ListviewShadow");
+            if (lParam && wcscmp((LPCWSTR)lParam, L"ShellState") == 0)
+            {
+                g_ctx.showcheckboxes = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AutoCheckSelect");
+                g_ctx.iconunderline = GetRegistryValues(DDKey.GetHKeyName(), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer", L"IconUnderline");
+            }
+            if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0)
+            {
+                UpdateModeInfo(false);
+            }
+            break;
+        }
         case WM_USER + 1:
         {
             break;

@@ -229,7 +229,7 @@ namespace DirectDesktop
         int id = dv->buttonID;
         if (seconds > 0) TimerThread = CreateThread(nullptr, 0, ShowTimerStatus, dv, NULL, nullptr);
         Sleep(seconds * 1000);
-        SendMessageW(wnd->GetHWND(), WM_USER + 19, NULL, id);
+        SendMessageW(shutdownwnd->GetHWND(), WM_USER + 2, NULL, id);
         return 0;
     }
 

@@ -85,7 +85,7 @@ namespace DDUI
             g_colors.crPalette[6] = g_ctx.theme ? crBaseD[4] : crBaseL[4];
             g_colors.crPalette[7] = g_ctx.theme ? crBaseD[5] : crBaseL[5];
         }
-        g_ctx.themeOld = g_ctx.theme;
+        //g_ctx.themeOld = g_ctx.theme; // 0.6 M3: to be added later with a defer cycle or something
     }
 
     void StandardBitmapPixelHandler(int& r, int& g, int& b, int& a, COLORREF& crOpt)

@@ -2821,7 +2821,7 @@ namespace DDUI
                 Element* selector = listview->_peSelector;
                 TriggerFade(selector, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
-                DUI_SetGadgetZOrder(selector, -1);
+                DUI_SetGadgetZOrder(selector, 1);
                 selector->SetWidth(0);
                 selector->SetHeight(0);
                 selector->SetX(listview->_ptOrigin.x);
@@ -8128,21 +8128,24 @@ namespace DDUI
             {
                 LONGLONG dwTickDiff = GetTickCount64() - nb->_tick;
                 LONGLONG dwDistDiff{}, dwDistThreshold;
+                double time;
                 double progression;
                 int cy = nb->_iDeltaY;
                 if (wParam == 2)
                 {
-                    progression = nb->_scbi->GetProgression(dwTickDiff / (3.0 * animCoef));
+                    time = dwTickDiff / (4.0 * animCoef);
+                    progression = nb->_scbi->GetProgression(time);
                     dwDistThreshold = 0;
                     dwDistDiff = cy - cy * progression;
                 }
                 else
                 {
-                    progression = nb->_scbi->GetProgression(dwTickDiff / (2.0 * animCoef));
+                    time = dwTickDiff / (2.0 * animCoef);
+                    progression = nb->_scbi->GetProgression(time);
                     dwDistThreshold = cy;
                     dwDistDiff = cy * progression;
                 }
-                if (g_ctx.windowAnim && progression < 1)
+                if (g_ctx.windowAnim && time <= 1)
                 {
                     SetWindowPos(nb->_wnd->GetHWND(), NULL, nb->_rcWindow.left, nb->_rcWindow.top - dwDistDiff, NULL, NULL,
                         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
@@ -8407,7 +8410,7 @@ namespace DDUI
             g_nwnds.push_back(this);
             DDNotificationBanner::s_RepositionBanners(false, dimensions.top + 16 * g_ctx.flScaleFactor + cy, 0);
             _scbi = new SimpleCubicBezierInterpolator();
-            _scbi->SetCurve(0.0, 0.0, 0.0, 1.0);
+            _scbi->SetCurve(0.1, 1.5, 1.0, 1.0);
             if (timeout > 0)
             {
                 SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);

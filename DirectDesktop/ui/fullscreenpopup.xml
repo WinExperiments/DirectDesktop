@@ -12,7 +12,7 @@
 		<Element id="atom(emptyview)" visible="false" layoutpos="client" layout="verticalflowlayout(0,2,2,2)" padding="rect(0,24rp,0,0)">
 			<DDScalableElement id="atom(emptygraphic)" FirstScaledImage="3045" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr"/>
 			<DDScalableRichText id="atom(emptytitle)" content="resstr(4029)" font="iconfont;133%;semibold" class="popuptext" contentalign="middlecenter"/>
-			<DDScalableRichText id="atom(emptysubtitle)" font="iconfont;100%" class="popupsubtext" contentalign="middlecenter" margin="rect(0,4rp,0,0)"/>
+			<DDScalableRichText id="atom(emptysubtitle)" layoutpos="none" font="iconfont;100%" class="popupsubtext" contentalign="middlecenter" margin="rect(0,4rp,0,0)"/>
 		</Element>
 		<Element layout="borderlayout()" layoutpos="client">
 			<Element id="atom(dirtitle)" layout="borderlayout()" layoutpos="top" padding="rect(0,16rp,0,16rp)" visible="false">
