@@ -561,35 +561,6 @@ namespace DDUI
         &dataimpItemHeightProp
     };
 
-    void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
-    {
-        CSafeElementPtr<DDScalableTouchButton> peThumbInner;
-        peThumbInner.Assign((DDScalableTouchButton*)regElem(L"DDS_ThumbInner", elem));
-        GTRANS_DESC transDesc[2];
-        TransitionStoryboardInfo tsbInfo = {};
-        float alpha1 = 1.0f;
-        float alpha2 = 1.0f;
-        float scaleRelease{};
-        if (pProp == Element::MouseWithinProp())
-        {
-            scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
-            goto THUMBANIMATE;
-        }
-        if (pProp == TouchButton::CapturedProp())
-        {
-            alpha1 = (((TouchButton*)elem)->GetCaptured() || type == 5) ? 1.0f : 0.8f;
-            alpha2 = (((TouchButton*)elem)->GetCaptured() || type == 5) ? 0.8f : 1.0f;
-            scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
-        THUMBANIMATE:
-            if (((TouchButton*)elem)->GetCaptured() || type == 5)
-                TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 0.83f, 0.83f, 0.5f, 0.5f, false, false);
-            else
-                TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
-            TriggerFade(peThumbInner, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, alpha1, alpha2, false, false, ((Button*)elem)->GetCaptured());
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
-        }
-    }
-
     DDScalableElement::~DDScalableElement()
     {
         this->DestroyAll(true);
@@ -834,14 +805,7 @@ namespace DDUI
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
             int color = pv->GetInt();
-            if (color < 140)
-                crAssoc = GetStdColorI(color);
-            else if (color >= 10000 && color <= 10030)
-                crAssoc = GetSysColor(color - 10000);
-            else if (color >= 20000)
-                crAssoc = GetDUIImmersiveColor(color);
-            else
-                crAssoc = 0xFFFFFFFF;
+            crAssoc = GetDUIImmersiveColor(color);
         }
         else if (pv->GetType() == (int)ValueType::Color)
         {
@@ -1162,14 +1126,7 @@ namespace DDUI
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
             int color = pv->GetInt();
-            if (color < 140)
-                crAssoc = GetStdColorI(color);
-            else if (color >= 10000 && color <= 10030)
-                crAssoc = GetSysColor(color - 10000);
-            else if (color >= 20000)
-                crAssoc = GetDUIImmersiveColor(color);
-            else
-                crAssoc = 0xFFFFFFFF;
+            crAssoc = GetDUIImmersiveColor(color);
         }
         else if (pv->GetType() == (int)ValueType::Color)
         {
@@ -1545,14 +1502,7 @@ namespace DDUI
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
             int color = pv->GetInt();
-            if (color < 140)
-                crAssoc = GetStdColorI(color);
-            else if (color >= 10000 && color <= 10030)
-                crAssoc = GetSysColor(color - 10000);
-            else if (color >= 20000)
-                crAssoc = GetDUIImmersiveColor(color);
-            else
-                crAssoc = 0xFFFFFFFF;
+            crAssoc = GetDUIImmersiveColor(color);
         }
         else if (pv->GetType() == (int)ValueType::Color)
         {
@@ -1879,14 +1829,7 @@ namespace DDUI
         if (pv->GetType() == (int)ValueType::Int || pv->GetType() == (int)ValueType::Unset)
         {
             int color = pv->GetInt();
-            if (color < 140)
-                crAssoc = GetStdColorI(color);
-            else if (color >= 10000 && color <= 10030)
-                crAssoc = GetSysColor(color - 10000);
-            else if (color >= 20000)
-                crAssoc = GetDUIImmersiveColor(color);
-            else
-                crAssoc = 0xFFFFFFFF;
+            crAssoc = GetDUIImmersiveColor(color);
         }
         else if (pv->GetType() == (int)ValueType::Color)
         {
@@ -2262,11 +2205,12 @@ namespace DDUI
     {
         if (pInput->nCode == GMOUSE_MOVE && pInput->nDevice == GINPUT_KEYBOARD)
         {
-            static BYTE sCtrl, sAKey;
-            sCtrl = GetKeyState(VK_CONTROL);
-            sAKey = GetKeyState('A');
-            if ((sCtrl & 0x80) && (sAKey & 0x80))
+            short sCtrl, sAKey;
+            sCtrl = GetAsyncKeyState(VK_CONTROL);
+            sAKey = GetAsyncKeyState('A');
+            if ((sCtrl & 0x8000) && (sAKey & 0x8000) && !(_flags & LVCF_CTRLA))
             {
+                this->AddFlags(LVCF_CTRLA);
                 CValuePtr v;
                 DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
                 if (rgList)
@@ -2277,6 +2221,8 @@ namespace DDUI
                 }
             }
         }
+        if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice == GINPUT_KEYBOARD)
+            this->RemoveFlags(LVCF_CTRLA);
         Element::OnInput(pInput);
     }
 
@@ -2691,6 +2637,7 @@ namespace DDUI
 
     HRESULT LVCommon::Destroy(bool fDelayed)
     {
+        DestroyWindow(_hWorker);
         return Element::Destroy(fDelayed);
     }
 
@@ -3122,28 +3069,26 @@ namespace DDUI
 
     void LVGrid::OnInput(InputEvent* pInput)
     {
-        BYTE keyState = 0;
-        static Element* peFocusedOld;
-        static short ctrlKey, shiftKey;
-        static ULONGLONG ullTick = 0;
+        BYTE ctrlKey, shiftKey;
         CValuePtr v;
         DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
-        if ((pInput->nCode == GMOUSE_MOVE || pInput->nCode == GMOUSE_DOWN) && pInput->nDevice == GINPUT_KEYBOARD && _fAllowNav)
+        if ((pInput->nCode == GMOUSE_MOVE || pInput->nCode == GMOUSE_DOWN) && pInput->nDevice == GINPUT_KEYBOARD && _keyState & 0x20)
         {
             short sLeft, sUp, sRight, sDown;
             sLeft = GetAsyncKeyState(VK_LEFT);
             sUp = GetAsyncKeyState(VK_UP);
             sRight = GetAsyncKeyState(VK_RIGHT);
             sDown = GetAsyncKeyState(VK_DOWN);
-            ctrlKey = GetAsyncKeyState(VK_CONTROL);
-            shiftKey = GetAsyncKeyState(VK_SHIFT);
-            keyState = ((BYTE)((sLeft & 0x8000) && (sLeft & 1))) + ((BYTE)((sUp & 0x8000) && (sUp & 1)) << 1) +
+            ctrlKey = GetKeyState(VK_CONTROL);
+            shiftKey = GetKeyState(VK_SHIFT);
+            _keyState |= ((BYTE)((sLeft & 0x8000) && (sLeft & 1))) + ((BYTE)((sUp & 0x8000) && (sUp & 1)) << 1) +
                 ((BYTE)((sRight & 0x8000) && (sRight & 1)) << 2) + ((BYTE)((sDown & 0x8000) && (sDown & 1)) << 3);
             if (pInput->nCode == GMOUSE_DOWN)
-                _fKeyDown = false;
-            if (!_fKeyDown || keyState != _keyStateOld)
+                _keyState &= 0xEF;
+
+            if (!(_keyState & 0x10) || _keyState != _keyStateOld)
             {
-                if (keyState & 0xF)
+                if (_keyState & 0xF)
                 {
                     if (!_peFocused || !_peFocused->GetVisible())
                     {
@@ -3161,24 +3106,24 @@ namespace DDUI
                         toSelect->SetKeyFocus();
                         _peSelected = toSelect;
                         _peFocused = toSelect;
-                        if (!(shiftKey & 0x8000) || !_pePivot)
+                        if (!(shiftKey & 0x80) || !_pePivot)
                             _pePivot = _peSelected;
                         LVCommon::OnInput(pInput);
                         return;
                     }
-                    RECT rcFocused{}, rcToBeFocused{}, rcPivot{};
+                    RECT rcFocused{}, rcToBeFocused{};
                     GetGadgetRect(_peFocused->GetDisplayNode(), &rcFocused, 0xC);
                     int indexX = _SearchArrayExact(&_rgXPos, rcFocused.left);
                     int indexY = _SearchArrayExact(&_rgYPos, rcFocused.top);
                     bool foundItem = true;
-                    bool animatebound = (_peFocused != peFocusedOld || keyState != _keyStateOld);
-                    if (keyState & 0x5)
+                    bool animatebound = (_peFocused != _peFocusedOld || _keyState != _keyStateOld);
+                    if (_keyState & 0x5)
                     {
                         while (_rgXPos[indexX] == rcFocused.left)
                         {
-                            if (keyState & 0x1)
+                            if (_keyState & 0x1)
                                 indexX--;
-                            else if (keyState & 0x4)
+                            else if (_keyState & 0x4)
                                 indexX++;
                             if (indexX < 0 || indexX >= _rgXItems.size())
                             {
@@ -3195,9 +3140,9 @@ namespace DDUI
                             while (rcShort->top < rcLong->top - halfHeight || rcShort->bottom > rcLong->bottom + halfHeight ||
                                 !_rgXItems[indexX]->GetVisible() || _rgXItems[indexX] == _peFocused)
                             {
-                                if (keyState & 0x1)
+                                if (_keyState & 0x1)
                                     indexX--;
-                                else if (keyState & 0x4)
+                                else if (_keyState & 0x4)
                                     indexX++;
                                 if (indexX < 0 || indexX >= _rgXItems.size())
                                 {
@@ -3213,8 +3158,8 @@ namespace DDUI
                             }
                             if (foundItem && _rgXItems[indexX]->GetVisible())
                             {
-                                peFocusedOld = _peFocused;
-                                if (!(ctrlKey & 0x8000))
+                                _peFocusedOld = _peFocused;
+                                if (!(ctrlKey & 0x80))
                                 {
                                     _peSelected = _rgXItems[indexX];
                                     _peSelected->SetSelected(true);
@@ -3228,13 +3173,13 @@ namespace DDUI
                         else if (animatebound)
                             goto ELEMNOTFOUND;
                     }
-                    else if (keyState & 0xA)
+                    else if (_keyState & 0xA)
                     {
                         while (_rgYPos[indexY] == rcFocused.top)
                         {
-                            if (keyState & 0x2)
+                            if (_keyState & 0x2)
                                 indexY--;
-                            else if (keyState & 0x8)
+                            else if (_keyState & 0x8)
                                 indexY++;
                             if (indexY < 0 || indexY >= _rgYItems.size())
                             {
@@ -3251,9 +3196,9 @@ namespace DDUI
                             while (rcNarrow->left < rcWide->left - halfWidth || rcNarrow->right > rcWide->right + halfWidth ||
                                 !_rgYItems[indexY]->GetVisible() || _rgYItems[indexY] == _peFocused)
                             {
-                                if (keyState & 0x2)
+                                if (_keyState & 0x2)
                                     indexY--;
-                                else if (keyState & 0x8)
+                                else if (_keyState & 0x8)
                                     indexY++;
                                 if (indexY < 0 || indexY >= _rgYItems.size())
                                 {
@@ -3269,8 +3214,8 @@ namespace DDUI
                             }
                             if (foundItem && _rgYItems[indexY]->GetVisible())
                             {
-                                peFocusedOld = _peFocused;
-                                if (!(ctrlKey & 0x8000))
+                                _peFocusedOld = _peFocused;
+                                if (!(ctrlKey & 0x80))
                                 {
                                     _peSelected = _rgYItems[indexY];
                                     _peSelected->SetSelected(true);
@@ -3284,7 +3229,7 @@ namespace DDUI
                         else if (animatebound)
                             goto ELEMNOTFOUND;
                     }
-                    if (rgList && !(ctrlKey & 0x8000))
+                    if (rgList && !((ctrlKey & 0x80) || (shiftKey & 0x80)))
                     {
                         for (int items = 0; items < rgList->GetSize(); items++)
                         {
@@ -3292,13 +3237,12 @@ namespace DDUI
                                 rgList->GetItem(items)->SetSelected(false);
                         }
                     }
-                    if (shiftKey & 0x8000 && _pePivot)
+                    if (shiftKey & 0x80 && _pePivot)
                     {
-                        GetGadgetRect(_pePivot->GetDisplayNode(), &rcPivot, 0xC);
-                        _ShiftSelectionHelper(&rcPivot, &rcToBeFocused);
+                        _ShiftSelectionHelper(&rcToBeFocused, &rcToBeFocused);
                     }
-                    else if (!(ctrlKey & 0x8000)) _pePivot = _peSelected;
-                    _keyStateOld = keyState;
+                    else if (!(ctrlKey & 0x80)) _pePivot = _peSelected;
+                    _keyStateOld = _keyState;
                 }
                 else if (_peAnimating && _peSelected != _peAnimating)
                 {
@@ -3306,17 +3250,17 @@ namespace DDUI
                     TransitionStoryboardInfo tsbInfo = {};
                     TriggerScaleOut(_peAnimating, transDesc, 0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peAnimating->GetDisplayNode(), &tsbInfo);
-                    if (pInput->nCode == GMOUSE_DOWN && keyState == 0 && _keyStateOld != 0 && _peFocused == peFocusedOld)
+                    if (pInput->nCode == GMOUSE_DOWN && !(_keyState & 0xF) && _keyStateOld != 0 && _peFocused == _peFocusedOld)
                         goto ELEMNOTFOUND;
                 }
-                else if (pInput->nCode == GMOUSE_DOWN && keyState == 0 && _keyStateOld != 0 && _peFocused == peFocusedOld)
+                else if (pInput->nCode == GMOUSE_DOWN && !(_keyState & 0xF) && _keyStateOld != 0 && _peFocused == _peFocusedOld)
                     goto ELEMNOTFOUND;
             }
         }
         else if (false)
         {
         ELEMNOTFOUND:
-            if (!(ctrlKey & 0x8000) && _peSelected)
+            if (!(ctrlKey & 0x80) && _peSelected)
             {
                 if (_peAnimating && _peSelected != _peAnimating)
                 {
@@ -3326,27 +3270,27 @@ namespace DDUI
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peAnimating->GetDisplayNode(), &tsbInfo);
                 }
                 float flOriginX, flOriginY, flScaleX, flScaleY;
-                if (keyState & 0x5)
+                if (_keyState & 0x5)
                 {
                     flScaleX = 1.071f;
                     flScaleY = 0.933f;
-                    if (keyState & 0x1) flOriginX = 2.0f;
-                    else if (keyState & 0x5) flOriginX = -1.0f;
+                    if (_keyState & 0x1) flOriginX = 2.0f;
+                    else if (_keyState & 0x5) flOriginX = -1.0f;
                     flOriginY = 0.5f;
                 }
-                if (keyState & 0xA)
+                if (_keyState & 0xA)
                 {
                     flScaleX = 0.933f;
                     flScaleY = 1.071f;
                     flOriginX = 0.5f;
-                    if (keyState & 0x2) flOriginY = 2.0f;
-                    else if (keyState & 0x8) flOriginY = -1.0f;
+                    if (_keyState & 0x2) flOriginY = 2.0f;
+                    else if (_keyState & 0x8) flOriginY = -1.0f;
                 }
                 if (_peFocused != _peSelected)
                 {
                     _peSelected->SetSelected(false);
                     _peSelected = _peFocused;
-                    if (!(shiftKey & 0x8000) || !_pePivot)
+                    if (!(shiftKey & 0x80) || !_pePivot)
                         _pePivot = _peSelected;
                 }
                 _peSelected->SetSelected(true);
@@ -3354,30 +3298,31 @@ namespace DDUI
                 {
                     KillTimer(_hWorker, 1);
                     _peAnimating = _peSelected;
-                    _fKeyDown = true;
+                    _keyState |= 0x10;
                     GTRANS_DESC transDesc[1];
                     TransitionStoryboardInfo tsbInfo = {};
-                    ullTick = GetTickCount64();
+                    _ullOverflowTick = GetTickCount64();
                     TriggerScaleIn(_peSelected, transDesc, 0, 0.0f, 0.25f, 0.11f, 0.6f, 0.23f, 0.97f, 1.0f, 1.0f,
                         flOriginX, flOriginY, flScaleX, flScaleY, flOriginX, flOriginY, false, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, _peSelected->GetDisplayNode(), &tsbInfo);
                     DUI_SetGadgetZOrder(_peSelected, -1);
-                    _keyStateOld2 = keyState;
+                    _keyStateOld2 = _keyState;
                 }
                 else if (pInput->nCode == GMOUSE_DOWN)
                 {
                     DWORD animCoef = g_ctx.animCoef;
-                    if (g_ctx.AnimShiftKey && !(shiftKey & 0x8000)) animCoef = 100;
-                    DWORD dwTickDelay = 3 * animCoef - (GetTickCount64() - ullTick);
+                    if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                    DWORD dwTickDelay = 3 * animCoef - (GetTickCount64() - _ullOverflowTick);
                     if (dwTickDelay > 0x7FFFFFFF) dwTickDelay = 0;
                     SetWindowLongPtrW(_hWorker, GWLP_USERDATA, (LONG_PTR)this);
                     KillTimer(_hWorker, 1);
                     SetTimer(_hWorker, 1, dwTickDelay, nullptr);
                 }
-                peFocusedOld = _peFocused;
-                _keyStateOld = keyState;
+                _peFocusedOld = _peFocused;
+                _keyStateOld = _keyState;
             }
         }
+        _keyState &= 0xF0;
         LVCommon::OnInput(pInput);
     }
 
@@ -3385,12 +3330,15 @@ namespace DDUI
     {
         CValuePtr v;
         DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
-        short ctrlKey = GetAsyncKeyState(VK_CONTROL);
-        short shiftKey = GetAsyncKeyState(VK_SHIFT);
+        BYTE ctrlKey = GetKeyState(VK_CONTROL);
+        BYTE shiftKey = GetKeyState(VK_SHIFT);
         if (peTo)
         {
-            _fAllowNav = (peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() || peTo == _peWhitespace);
-            bool fKeyboard = (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000 || GetAsyncKeyState(VK_RBUTTON) & 0x8000));
+            if (peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() || peTo == _peWhitespace)
+                _keyState |= 0x20;
+            else
+                _keyState &= 0xDF;
+            bool fKeyboard = (!(GetKeyState(VK_LBUTTON) & 0x80 || GetKeyState(VK_RBUTTON) & 0x80));
             // Handling checkboxes in LVItems (requires setting the LVItem's checkbox first)
             if (peTo->GetClassInfoW() != LVItem::GetClassInfoPtr())
             {
@@ -3403,19 +3351,19 @@ namespace DDUI
                 }
                 if (peParent->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo == ((LVItem*)peParent)->GetCheckbox())
                 {
-                    _fAllowNav = true;
+                    _keyState |= 0x20;
                     peTo = peParent;
                 }
             }
             ////////////////////////////////////////////////////////////////////////////////
             if (peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo->GetParent() == _peWhitespace)
             {
-                if ((!(ctrlKey & 0x8000) || (peFrom && peFrom->GetParent() != _peWhitespace)))
+                if ((!(ctrlKey & 0x80) || (peFrom && peFrom->GetParent() != _peWhitespace)))
                 {
                     _peSelected = peTo;
-                    if (!(shiftKey & 0x8000) || !_pePivot)
+                    if (!(shiftKey & 0x80) || !_pePivot)
                         _pePivot = peTo;
-                    else
+                    else/* if (!fKeyboard)*/ // 0.6 M4: incomplete
                     {
                         if (rgList)
                         {
@@ -3472,7 +3420,7 @@ namespace DDUI
         //ddnb->CreateBanner(DDNT_INFO, nullptr, elementinfo, 8);
         ///////////////////////////////////////////////////////////////////////////
 
-        if (!(shiftKey & 0x8000) && _pePivot != _peSelected)
+        if (!(shiftKey & 0x80) && _pePivot != _peSelected)
             _pePivot = _peSelected;
         Element::OnKeyFocusMoved(peFrom, peTo);
     }
@@ -3665,17 +3613,24 @@ namespace DDUI
         return index;
     }
 
-    void LVGrid::_ShiftSelectionHelper(RECT* prcPivot, RECT* prcTo)
+    // 0.6 M4: incomplete
+    void LVGrid::_ShiftSelectionHelper(RECT* prcFrom, RECT* prcTo)
     {
         int indexY;
+        RECT rcPivot{};
+        GetGadgetRect(_pePivot->GetDisplayNode(), &rcPivot, 0xC);
+        RECT* prcPivot = &rcPivot;
         RECT* rcLong = (prcPivot->bottom - prcPivot->top > prcTo->bottom - prcTo->top) ? prcPivot : prcTo;
         RECT* rcShort = (rcLong == prcTo) ? prcPivot : prcTo;
         int halfHeight = (rcShort->bottom - rcShort->top) / 2;
         int start, end;
         int leftOneRow = min(prcPivot->left, prcTo->left);
         int rightOneRow = max(prcPivot->right, prcTo->right);
+        bool selectmode{};
         if (prcPivot->top - halfHeight <= prcTo->top)
         {
+            if (prcFrom->top <= prcTo->top)
+                selectmode = true;
             indexY = _SearchArrayExact(&_rgYPos, prcPivot->top);
             if (prcPivot->bottom + halfHeight >= prcTo->bottom)
             {
@@ -3690,6 +3645,8 @@ namespace DDUI
         }
         else
         {
+            if (prcFrom->top >= prcTo->top)
+                selectmode = true;
             indexY = _SearchArrayExact(&_rgYPos, prcTo->top);
             start = (g_ctx.localeType == 1) ? prcTo->right : prcTo->left;
             end = (g_ctx.localeType == 1) ? prcPivot->left : prcPivot->right;
@@ -5631,7 +5588,6 @@ namespace DDUI
         TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
-    // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDSlider::OnInput(InputEvent* pInput)
     {
         if (pInput->nCode == GMOUSE_MOVE)
@@ -5647,94 +5603,97 @@ namespace DDUI
             _peSliderInner->MapElementPoint(this->GetRoot(), &ptRoot, &_ptOnClick);
             s_AnimateThumb(_peThumb, TouchButton::CapturedProp(), 5, nullptr, nullptr);
         }
-        if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG)
+        if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG || (pInput->nCode == GMOUSE_MOVE && pInput->nDevice == GINPUT_KEYBOARD))
         {
-            if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
+            POINT ppt;
+            GetCursorPos(&ppt);
+            ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
+            bool vertical = this->GetIsVertical();
+            bool canMove{};
+            float percentage{}, assocVal{};
+            BYTE sLeft, sUp, sRight, sDown;
+            int width{}, height{};
+            if (vertical)
             {
-                static POINT ppt;
-                GetCursorPos(&ppt);
-                ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
-                static bool vertical = this->GetIsVertical();
-                static bool canMove{};
-                static float percentage{}, assocVal{};
-                static short sLeft, sUp, sRight, sDown;
-                static int width{}, height{};
-                if (vertical)
+                int sliderSize = this->GetHeight() - this->GetTextHeight();
+                if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
+                sUp = GetKeyState(VK_UP);
+                sDown = GetKeyState(VK_DOWN);
+                _keyState |= ((BYTE)(static_cast<bool>(sUp & 0x80)) << 1) + ((BYTE)(static_cast<bool>(sDown & 0x80)) << 3);
+                float flDelta = (_keyState != _keyStateOld) ? (_maxValue - _minValue) / _tickValue : min((_maxValue - _minValue) / _tickValue, 50.0f);
+                if (sUp & 0x80)
                 {
-                    int sliderSize = this->GetHeight() - this->GetTextHeight();
-                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
-                    sUp = GetAsyncKeyState(VK_UP);
-                    sDown = GetAsyncKeyState(VK_DOWN);
-                    if (sUp & 1 || sUp & 0x8000)
-                    {
-                        height = _peFillBase->GetHeight() + round((sliderSize - _peThumb->GetHeight() / 2) / 10);
-                        canMove = true;
-                    }
-                    else if (sDown & 1 || sDown & 0x8000)
-                    {
-                        height = _peFillBase->GetHeight() - round((sliderSize - _peThumb->GetHeight() / 2) / 10);
-                        canMove = true;
-                    }
-                    else height = ppt.y - _ptBeforeClick.y + _ptOnClick.y;
-                    if (height < _peThumb->GetHeight() / 2) height = _peThumb->GetHeight() / 2;
-                    if (height > sliderSize - _peThumb->GetHeight() / 2) height = sliderSize - _peThumb->GetHeight() / 2;
-                    int fillheight = sliderSize - height;
-                    if (canMove)
-                    {
-                        _peTrackBase->SetHeight(height);
-                        _peFillBase->SetHeight(fillheight);
-                        _peThumb->SetY(height - _peThumb->GetHeight() / 2);
-                        percentage = static_cast<float>(fillheight - _peThumb->GetHeight() / 2) / (sliderSize - _peThumb->GetHeight());
-                    }
+                    height = _peFillBase->GetHeight() + round((sliderSize - _peThumb->GetHeight() / 2) / flDelta);
+                    canMove = true;
                 }
-                else
+                else if (sDown & 0x80)
                 {
-                    static short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
-                    int sliderSize = this->GetWidth() - this->GetTextWidth();
-                    if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
-                    sLeft = GetAsyncKeyState(VK_LEFT);
-                    sRight = GetAsyncKeyState(VK_RIGHT);
-                    if (sLeft & 1 || sLeft & 0x8000)
-                    {
-                        if (g_ctx.localeType == 1) width = _peTrackBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
-                        else width = _peFillBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / 10);
-                        canMove = true;
-                    }
-                    else if (sRight & 1 || sRight & 0x8000)
-                    {
-                        if (g_ctx.localeType == 1) width = _peTrackBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
-                        else width = _peFillBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / 10);
-                        canMove = true;
-                    }
-                    else width = ppt.x - _ptBeforeClick.x + _ptOnClick.x;
-                    if (width < _peThumb->GetWidth() / 2) width = _peThumb->GetWidth() / 2;
-                    if (width > sliderSize - _peThumb->GetWidth() / 2) width = sliderSize - _peThumb->GetWidth() / 2;
-                    int fillwidth = sliderSize - width;
-                    if (canMove)
-                    {
-                        _peTrackBase->SetWidth((g_ctx.localeType == 1) ? width : fillwidth);
-                        _peFillBase->SetWidth((g_ctx.localeType == 1) ? fillwidth : width);
-                        _peThumb->SetX(width - _peThumb->GetWidth() / 2);
-                        percentage = static_cast<float>(((g_ctx.localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2) / (sliderSize - _peThumb->GetWidth());
-                    }
+                    height = _peFillBase->GetHeight() - round((sliderSize - _peThumb->GetHeight() / 2) / flDelta);
+                    canMove = true;
                 }
+                else height = ppt.y - _ptBeforeClick.y + _ptOnClick.y;
+                if (height < _peThumb->GetHeight() / 2) height = _peThumb->GetHeight() / 2;
+                if (height > sliderSize - _peThumb->GetHeight() / 2) height = sliderSize - _peThumb->GetHeight() / 2;
+                int fillheight = sliderSize - height;
                 if (canMove)
                 {
-                    if (percentage < 0) percentage = 0;
-                    if (percentage > 1) percentage = 1;
-                    assocVal = _minValue + (_maxValue - _minValue) * percentage;
-                    if (_tickValue > 0) assocVal = round(assocVal / _tickValue) * _tickValue;
-                    WCHAR formattedNum[8];
-                    StringCchPrintfW(formattedNum, 8, _szFormatted, assocVal);
-                    _peText->SetContentString(formattedNum);
+                    _peTrackBase->SetHeight(height);
+                    _peFillBase->SetHeight(fillheight);
+                    _peThumb->SetY(height - _peThumb->GetHeight() / 2);
+                    percentage = static_cast<float>(fillheight - _peThumb->GetHeight() / 2) / (sliderSize - _peThumb->GetHeight());
                 }
-                if (pInput->nDevice == GINPUT_KEYBOARD)
+            }
+            else
+            {
+                short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
+                int sliderSize = this->GetWidth() - this->GetTextWidth();
+                if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
+                sLeft = GetKeyState(VK_LEFT);
+                sRight = GetKeyState(VK_RIGHT);
+                _keyState |= ((BYTE)(static_cast<bool>(sLeft & 0x80))) + ((BYTE)(static_cast<bool>(sRight & 0x80)) << 2);
+                float flDelta = (_keyState != _keyStateOld) ? (_maxValue - _minValue) / _tickValue : min((_maxValue - _minValue) / _tickValue, 50.0f);
+                if (sLeft & 0x80)
                 {
-                    this->SetCurrentValue(NULL, true);
-                    _peThumb->SetKeyFocus();
+                    if (g_ctx.localeType == 1) width = _peTrackBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / flDelta);
+                    else width = _peFillBase->GetWidth() - round((sliderSize - _peThumb->GetWidth() / 2) / flDelta);
+                    canMove = true;
                 }
-                sLeft = 0, sUp = 0, sRight = 0, sDown = 0;
-                canMove = false;
+                else if (sRight & 0x80)
+                {
+                    if (g_ctx.localeType == 1) width = _peTrackBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / flDelta);
+                    else width = _peFillBase->GetWidth() + round((sliderSize - _peThumb->GetWidth() / 2) / flDelta);
+                    canMove = true;
+                }
+                else width = ppt.x - _ptBeforeClick.x + _ptOnClick.x;
+                if (width < _peThumb->GetWidth() / 2) width = _peThumb->GetWidth() / 2;
+                if (width > sliderSize - _peThumb->GetWidth() / 2) width = sliderSize - _peThumb->GetWidth() / 2;
+                int fillwidth = sliderSize - width;
+                if (canMove)
+                {
+                    _peTrackBase->SetWidth((g_ctx.localeType == 1) ? width : fillwidth);
+                    _peFillBase->SetWidth((g_ctx.localeType == 1) ? fillwidth : width);
+                    _peThumb->SetX(width - _peThumb->GetWidth() / 2);
+                    percentage = static_cast<float>(((g_ctx.localeType == 1) ? fillwidth : width) - _peThumb->GetWidth() / 2) / (sliderSize - _peThumb->GetWidth());
+                }
+            }
+            if (canMove)
+            {
+                if (percentage < 0) percentage = 0;
+                if (percentage > 1) percentage = 1;
+                assocVal = _minValue + (_maxValue - _minValue) * percentage;
+                if (_tickValue > 0) assocVal = round(assocVal / _tickValue) * _tickValue;
+                WCHAR formattedNum[8];
+                StringCchPrintfW(formattedNum, 8, _szFormatted, assocVal);
+                _peText->SetContentString(formattedNum);
+            }
+            if (pInput->nDevice == GINPUT_KEYBOARD)
+            {
+                this->SetCurrentValue(NULL, true);
+                _peThumb->SetKeyFocus();
+                _keyStateOld = _keyState;
+                _keyState &= 0xF0;
+                if (pInput->nCode == GMOUSE_DOWN)
+                    _keyStateOld |= 0x10;
             }
         }
         if (pInput->nCode == GMOUSE_UP)
@@ -6063,6 +6022,35 @@ namespace DDUI
         }
     }
 
+    void DDSlider::s_AnimateThumb(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        CSafeElementPtr<DDScalableTouchButton> peThumbInner;
+        peThumbInner.Assign((DDScalableTouchButton*)regElem(L"DDS_ThumbInner", elem));
+        GTRANS_DESC transDesc[2];
+        TransitionStoryboardInfo tsbInfo = {};
+        float alpha1 = 1.0f;
+        float alpha2 = 1.0f;
+        float scaleRelease{};
+        if (pProp == Element::MouseWithinProp())
+        {
+            scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
+            goto THUMBANIMATE;
+        }
+        if (pProp == TouchButton::CapturedProp())
+        {
+            alpha1 = (((TouchButton*)elem)->GetCaptured() || type == 5) ? 1.0f : 0.8f;
+            alpha2 = (((TouchButton*)elem)->GetCaptured() || type == 5) ? 0.8f : 1.0f;
+            scaleRelease = (elem->GetMouseWithin()) ? 1.33f : 1.0f;
+        THUMBANIMATE:
+            if (((TouchButton*)elem)->GetCaptured() || type == 5)
+                TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, 0.83f, 0.83f, 0.5f, 0.5f, false, false);
+            else
+                TriggerScaleOut(peThumbInner, transDesc, 0, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, scaleRelease, scaleRelease, 0.5f, 0.5f, false, false);
+            TriggerFade(peThumbInner, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 1.0f, alpha1, alpha2, false, false, ((Button*)elem)->GetCaptured());
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peThumbInner->GetDisplayNode(), &tsbInfo);
+        }
+    }
+
     DDColorPickerButton::~DDColorPickerButton()
     {
         this->DestroyAll(true);
@@ -6148,7 +6136,6 @@ namespace DDUI
         return s_pClassInfo;
     }
 
-    // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDColorPicker::OnInput(InputEvent* pInput)
     {
         if (pInput->nCode == GMOUSE_MOVE)
@@ -6163,54 +6150,58 @@ namespace DDUI
             ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ptRoot);
             this->MapElementPoint(this->GetRoot(), &ptRoot, &_ptOnClick);
         }
-        if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG)
+        if (pInput->nCode == GMOUSE_DOWN || pInput->nCode == GMOUSE_DRAG || (pInput->nCode == GMOUSE_MOVE && pInput->nDevice == GINPUT_KEYBOARD))
         {
-            if ((pInput->uModifiers == 0 && pInput->nStage == GMF_BUBBLED) || pInput->nDevice != GINPUT_KEYBOARD)
-            {
-                static short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
-                static POINT ppt;
-                GetCursorPos(&ppt);
-                ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
-                static bool canMove{};
-                static short sLeft, sRight;
-                static int width{};
-                static short oldColorID{};
+            short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
+            POINT ppt;
+            GetCursorPos(&ppt);
+            ScreenToClient(((HWNDElement*)this->GetRoot())->GetHWND(), &ppt);
+            bool canMove{};
+            BYTE sLeft, sRight;
+            int width{};
 
-                short spacedWidth = this->GetWidth() / 8;
-                width = ppt.x - _ptBeforeClick.x + _ptOnClick.x + (spacedWidth - _btnWidth) / 2 * localeDirection;
-                sLeft = GetAsyncKeyState(VK_LEFT);
-                sRight = GetAsyncKeyState(VK_RIGHT);
-                if (sLeft & 1 || sLeft & 0x8000)
-                {
-                    _currentColorID -= localeDirection;
-                    canMove = true;
-                }
-                else if (sRight & 1 || sRight & 0x8000)
-                {
-                    _currentColorID += localeDirection;
-                    canMove = true;
-                }
-                else _currentColorID = (g_ctx.localeType == 1) ? (this->GetWidth() - width) / spacedWidth : width / spacedWidth;
-                if (_currentColorID < 0) _currentColorID = 0;
-                if (_currentColorID > 7) _currentColorID = 7;
-                if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
-                if (_currentColorID != oldColorID && canMove)
-                {
-                    _peOverlayCheck->SetX((g_ctx.localeType == 1) ? this->GetWidth() - _btnWidth - _currentColorID * spacedWidth : _currentColorID * spacedWidth);
-                    _peOverlayHover->SetX(-9999);
-                    if (_rkv.GetHKeyName() != nullptr)
-                    {
-                        _rkv.SetValue(_rgpeColorButtons[_currentColorID]->GetOrder());
-                        SetRegistryValues(_rkv.GetHKeyName(), _rkv.GetPath(), _rkv.GetValueToFind(), _rkv.GetDwValue(), false, nullptr);
-                    }
-                    _ColorizeAssociatedItems<DDScalableElement>(_targetElems);
-                    _ColorizeAssociatedItems<DDScalableButton>(_targetBtns);
-                    _ColorizeAssociatedItems<DDScalableTouchButton>(_targetTouchBtns);
-                }
-                oldColorID = _currentColorID;
-                sLeft = 0, sRight = 0;
-                canMove = false;
+            short spacedWidth = this->GetWidth() / 8;
+            width = ppt.x - _ptBeforeClick.x + _ptOnClick.x + (spacedWidth - _btnWidth) / 2 * localeDirection;
+            sLeft = GetKeyState(VK_LEFT);
+            sRight = GetKeyState(VK_RIGHT);
+            _keyState |= ((BYTE)(static_cast<bool>(sLeft & 0x80))) + ((BYTE)(static_cast<bool>(sRight & 0x80)) << 2);
+            short timeCoef = 600;
+            if (_keyState != _keyStateOld)
+                timeCoef = 50;
+            if (sLeft & 0x80 && (_ullTick < GetTickCount64() - timeCoef))
+            {
+                _currentColorID -= localeDirection;
+                _ullTick = GetTickCount64();
+                canMove = true;
             }
+            else if (sRight & 0x80 && (_ullTick < GetTickCount64() - timeCoef))
+            {
+                _currentColorID += localeDirection;
+                _ullTick = GetTickCount64();
+                canMove = true;
+            }
+            else if (pInput->nDevice != GINPUT_KEYBOARD) _currentColorID = (g_ctx.localeType == 1) ? (this->GetWidth() - width) / spacedWidth : width / spacedWidth;
+            if (_currentColorID < 0) _currentColorID = 0;
+            if (_currentColorID > 7) _currentColorID = 7;
+            if (pInput->nDevice != GINPUT_KEYBOARD) canMove = true;
+            if (_currentColorID != _oldColorID && canMove)
+            {
+                _peOverlayCheck->SetX((g_ctx.localeType == 1) ? this->GetWidth() - _btnWidth - _currentColorID * spacedWidth : _currentColorID * spacedWidth);
+                _peOverlayHover->SetX(-9999);
+                if (_rkv.GetHKeyName() != nullptr)
+                {
+                    _rkv.SetValue(_rgpeColorButtons[_currentColorID]->GetOrder());
+                    SetRegistryValues(_rkv.GetHKeyName(), _rkv.GetPath(), _rkv.GetValueToFind(), _rkv.GetDwValue(), false, nullptr);
+                }
+                _ColorizeAssociatedItems<DDScalableElement>(_targetElems);
+                _ColorizeAssociatedItems<DDScalableButton>(_targetBtns);
+                _ColorizeAssociatedItems<DDScalableTouchButton>(_targetTouchBtns);
+            }
+            _oldColorID = _currentColorID;
+            _keyStateOld = _keyState;
+            _keyState &= 0xF0;
+            if (pInput->nDevice == GINPUT_KEYBOARD && pInput->nCode == GMOUSE_DOWN)
+                _keyStateOld |= 0x10;
         }
         Element::OnInput(pInput);
     }
@@ -6437,6 +6428,7 @@ namespace DDUI
         int order = (_rkv.GetHKeyName()) ? GetRegistryValues(_rkv.GetHKeyName(), _rkv.GetPath(), _rkv.GetValueToFind()) * _btnX : _rkv.GetDwValue() * _btnX;
         int checkedBtnX = (g_ctx.localeType == 1) ? this->GetWidth() - order - _btnWidth : order;
         _currentColorID = order / (this->GetWidth() / 8);
+        _oldColorID = _currentColorID;
         _peOverlayCheck->SetX(checkedBtnX);
     }
 
@@ -6552,20 +6544,24 @@ namespace DDUI
     // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDTabbedPages::OnInput(InputEvent* pInput)
     {
-        if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice == GINPUT_KEYBOARD)
+        if (pInput->nCode == GMOUSE_MOVE && pInput->nDevice == GINPUT_KEYBOARD)
         {
             CValuePtr v;
             if (pInput->peTarget->GetClass(&v))
             {
                 if (wcscmp(_peTabs[_pageID]->GetClass(&v), pInput->peTarget->GetClass(&v)) == 0)
                 {
-                    static GTRANS_DESC transDesc[2];
-                    static TransitionStoryboardInfo tsbInfo = {};
-                    static short sLeft, sRight;
-                    static short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
-                    sLeft = GetAsyncKeyState(VK_LEFT);
-                    sRight = GetAsyncKeyState(VK_RIGHT);
-                    if ((sLeft & 1 || sLeft & 0x8000))
+                    GTRANS_DESC transDesc[2];
+                    TransitionStoryboardInfo tsbInfo = {};
+                    short localeDirection = (g_ctx.localeType == 1) ? -1 : 1;
+                    BYTE sLeft, sRight;
+                    sLeft = GetKeyState(VK_LEFT);
+                    sRight = GetKeyState(VK_RIGHT);
+                    _keyState |= ((BYTE)(static_cast<bool>(sLeft & 0x80))) + ((BYTE)(static_cast<bool>(sRight & 0x80)) << 2);
+                    short timeCoef = 600;
+                    if (_keyState != _keyStateOld)
+                        timeCoef = 50;
+                    if (_keyState & 0x1 && (_ullTick < GetTickCount64() - timeCoef))
                     {
                         if ((_pageID > 0 && localeDirection == 1) || (_pageID < _pageSize - 1 && localeDirection == -1))
                             this->TraversePage(_pageID - localeDirection);
@@ -6578,8 +6574,9 @@ namespace DDUI
                             TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, 40.0f * g_ctx.flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
                         }
+                        _ullTick = GetTickCount64();
                     }
-                    if ((sRight & 1 || sRight & 0x8000))
+                    if (_keyState & 0x4 && (_ullTick < GetTickCount64() - timeCoef))
                     {
                         if ((_pageID < _pageSize - 1 && localeDirection == 1) || (_pageID > 0 && localeDirection == -1))
                             this->TraversePage(_pageID + localeDirection);
@@ -6592,11 +6589,15 @@ namespace DDUI
                             TriggerTranslate(peEdge, transDesc, 1, 0.3f, 0.5f, 0.11f, 0.6f, 0.23f, 0.97f, -40.0f * g_ctx.flScaleFactor, 0.0f, 0.0f, 0.0f, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peEdge->GetDisplayNode(), &tsbInfo);
                         }
+                        _ullTick = GetTickCount64();
                     }
-                    sLeft = 0, sRight = 0;
+                    _keyStateOld = _keyState;
+                    _keyState &= 0xF0;
                 }
             }
         }
+        if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice == GINPUT_KEYBOARD)
+            _keyStateOld |= 0x10;
         Element::OnInput(pInput);
     }
 
@@ -6859,7 +6860,7 @@ namespace DDUI
     {
         if (pInput->nCode == GMOUSE_DOWN && pInput->nDevice == GINPUT_KEYBOARD)
         {
-            static short sLeft, sRight;
+            short sLeft, sRight;
             sLeft = GetAsyncKeyState(VK_LEFT);
             sRight = GetAsyncKeyState(VK_RIGHT);
             bool rtl = ((DDMenu*)_peLinked)->_uTrackFlags & TPM_LAYOUTRTL;

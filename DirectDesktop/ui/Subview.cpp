@@ -1072,6 +1072,13 @@ namespace DirectDesktop
             vector<LVItem*>* subpm = new vector<LVItem*>;
             lvi_SubUIContainer->AddFlags(LVCF_NOANIMATE);
             fullscreeninner->SetGroupColor(lvi->GetIcon()->GetGroupColor());
+            Element* selector = lvi_SubUIContainer->GetSelectionElement();
+            if (lvi->GetIcon()->GetGroupColor() != 0)
+            {
+                COLORREF crSpecial = g_pColors->crPalette[lvi->GetIcon()->GetGroupColor()];
+                selector->SetBackgroundColor((crSpecial | 0xFF000000) & 0x66FFFFFF);
+                selector->SetBorderColor(crSpecial | 0xFF000000);
+            }
             StyleSheet* sheet = pSubview->GetSheet();
             CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
             parser->GetSheet(g_pctx->theme ? L"default" : L"defaultdark", &sheetStorage);

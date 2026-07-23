@@ -4,16 +4,26 @@
 #include "..\DirectDesktop.h"
 #include "..\backend\DirectoryHelper.h"
 
-#ifdef HAS_SEARCH
-#include "..\backend\EverythingSearch/Everything.h"
-#pragma comment (lib, "Everything64.lib")
-#endif
 
 using namespace DirectUI;
 using namespace DDUI;
 
 namespace DirectDesktop
 {
+    typedef void (WINAPI* pfnE_SetSearchW)(LPCWSTR lpSearchString);
+    typedef BOOL(WINAPI* pfnE_QueryW)(BOOL bWait);
+    typedef DWORD(WINAPI* pfnE_GetNumResults)(void);
+    typedef LPCWSTR(WINAPI* pfnE_GetResultFileNameW)(DWORD index);
+    typedef LPCWSTR(WINAPI* pfnE_GetResultPathW)(DWORD index);
+    typedef DWORD(WINAPI* pfnE_GetLastError)(void);
+    pfnE_SetSearchW Everything_SetSearchW = nullptr;
+    pfnE_QueryW Everything_QueryW = nullptr;
+    pfnE_GetNumResults Everything_GetNumResults = nullptr;
+    pfnE_GetResultFileNameW Everything_GetResultFileNameW = nullptr;
+    pfnE_GetResultPathW Everything_GetResultPathW = nullptr;
+    pfnE_GetLastError Everything_GetLastError = nullptr;
+
+    HMODULE g_EverythingDLL;
     NativeHWNDHost* searchwnd;
     DUIXmlParser* parserSearch;
     HWNDElement* parentSearch;
@@ -139,15 +149,27 @@ namespace DirectDesktop
 
     void LaunchSearchResult(Element* elem, Event* iev)
     {
-        if (iev->uidType == TouchButton::Click)
+        short ctrlKey = GetAsyncKeyState(VK_CONTROL);
+        short shiftKey = GetAsyncKeyState(VK_SHIFT);
+        short enterKey = GetAsyncKeyState(VK_RETURN);
+        if (iev->uidType == LVItem::Click)
         {
-            wstring temp = ((LVItem*)elem)->GetFilename();
-            SHELLEXECUTEINFOW execInfo = {};
-            execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-            execInfo.lpVerb = L"open";
-            execInfo.nShow = SW_SHOWNORMAL;
-            execInfo.lpFile = temp.c_str();
-            ShellExecuteExW(&execInfo);
+            if (!(shellstate[4] & 0x20) || enterKey)
+                goto CLICKACTION;
+        }
+        if (iev->uidType == LVItem::MultipleClick && shellstate[4] & 0x20)
+        {
+        CLICKACTION:
+            if (!(ctrlKey & 0x8000))
+            {
+                wstring temp = ((LVItem*)elem)->GetFilename();
+                SHELLEXECUTEINFOW execInfo = {};
+                execInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+                execInfo.lpVerb = L"open";
+                execInfo.nShow = SW_SHOWNORMAL;
+                execInfo.lpFile = temp.c_str();
+                ShellExecuteExW(&execInfo);
+            }
         }
     }
 
@@ -157,63 +179,77 @@ namespace DirectDesktop
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
         if (iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick)
         {
-            MessageBeep(MB_OK);
-            //CValuePtr v;
+            CValuePtr v;
+            if (!searchbox->GetContentString(&v))
+            {
+                MessageBeep(MB_OK);
+                DDNotificationBanner* ddnb = new DDNotificationBanner();
+                ddnb->CreateBanner(DDNT_INFO, nullptr, L"Type in the search box to search.", 5, nullptr);
+                return;
+            }
+            v->Release();
             //if (wcslen(searchbox->GetContentString(&v)) < 2) return;
-            //WCHAR* PublicPath = new WCHAR[260];
-            //WCHAR* OneDrivePath = new WCHAR[260];
-            //WCHAR* cBuffer = new WCHAR[260];
-            //DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
-            //StringCchPrintfW(PublicPath, 260, L"%s\\Desktop", cBuffer);
-            //d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
-            //StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
+            WCHAR* PublicPath = new WCHAR[260];
+            WCHAR* OneDrivePath = new WCHAR[260];
+            WCHAR* cBuffer = new WCHAR[260];
+            DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
+            StringCchPrintfW(PublicPath, 260, L"%s\\Desktop", cBuffer);
+            d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
+            StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
             CSafeElementPtr<Element> rescontainer;
             rescontainer.Assign(regElem(L"rescontainer", pSearch));
-            //rescontainer->DestroyAll(true);
-            //WCHAR* searchquery = new WCHAR[1024];
-            //StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
-            //Everything_SetSearchW(searchquery);
-            //Everything_QueryW(TRUE);
-            //delete[] searchquery;
-            //delete[] cBuffer;
-            //delete[] PublicPath;
-            //delete[] OneDrivePath;
-            //LVItem* SearchResultPlaceholder{};
-            //parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
-            RichText* ResultCount{};
-            parserSearch->CreateElement(L"ResultCount", nullptr, nullptr, nullptr, (Element**)&ResultCount);
-            rescontainer->Add((Element**)&ResultCount, 1);
-            //WCHAR* resultc = new WCHAR[64];
-            //StringCchPrintfW(resultc, 64, L"%d items", Everything_GetNumResults());
-            MessageBeep(MB_OK);
-            DDNotificationBanner* ddnb = new DDNotificationBanner();
-            ddnb->CreateBanner(DDNT_INFO, nullptr, L"Search will be available by version 0.6", 5, nullptr);
-            //rescontainer->SetHeight(Everything_GetNumResults() * SearchResultPlaceholder->GetHeight() + 40);
-            //for (int i = 0; i < Everything_GetNumResults(); i++) {
-            //	WCHAR* nameStr = new WCHAR[256];
-            //	WCHAR* pathStr = new WCHAR[256];
-            //	StringCchPrintfW(nameStr, 256, L"NAME: %s", Everything_GetResultFileNameW(i));
-            //	StringCchPrintfW(pathStr, 256, L"PATH: %s", Everything_GetResultPathW(i));
-            //	LVItem* SearchResult{};
-            //	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResult);
-            //	rescontainer->Add((Element**)&SearchResult, 1);
-            //	RichText* name = regElem(L"name", SearchResult);
-            //	RichText* path = regElem(L"path", SearchResult);
-            //	name->SetContentString(nameStr);
-            //	path->SetContentString(pathStr);
-            //	SearchResult->SetFilename((wstring)Everything_GetResultPathW(i) + L"\\" + Everything_GetResultFileNameW(i));
-            //	assignFn(SearchResult, LaunchSearchResult);
-            //	delete[] nameStr;
-            //	delete[] pathStr;
-            //}
-            //delete[] resultc;
-            //free(SearchResultPlaceholder);
+            CSafeElementPtr<LVCommon> LVSearchResults;
+            LVSearchResults.Assign((LVCommon*)regElem(L"LVSearchResults", pSearch));
+
+            rescontainer->DestroyAll(true);
+            LVSearchResults->DestroyAll(true);
+            WCHAR* searchquery = new WCHAR[1024];
+            StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
+            Everything_SetSearchW(searchquery);
+            Everything_QueryW(TRUE);
+            delete[] searchquery;
+            delete[] cBuffer;
+            delete[] PublicPath;
+            delete[] OneDrivePath;
+            LVItem* SearchResultPlaceholder{};
+            parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
+
+            CSafeElementPtr<DDScalableRichText> ResultCount;
+            ResultCount.Assign((DDScalableRichText*)regElem(L"ResultCount", pSearch));
+            int rescount = Everything_GetNumResults();
+            WCHAR resultc[64];
+            if (rescount <= 150)
+                StringCchPrintfW(resultc, 64, L"%d items", rescount);
+            else
+                StringCchPrintfW(resultc, 64, L"1-150 of %d items", rescount);
+            ResultCount->SetLayoutPos(1);
+            ResultCount->SetContentString(resultc);
+            
+            for (int i = 0; i < min(rescount, 150); i++) {
+            	WCHAR* nameStr = new WCHAR[256];
+            	WCHAR* pathStr = new WCHAR[256];
+            	StringCchPrintfW(nameStr, 256, L"%s", Everything_GetResultFileNameW(i));
+            	StringCchPrintfW(pathStr, 256, L"Path: %s", Everything_GetResultPathW(i));
+            	LVItem* SearchResult{};
+            	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResult);
+            	LVSearchResults->Add((Element**)&SearchResult, 1);
+            	DDScalableRichText* name = (DDScalableRichText*)regElem(L"name", SearchResult);
+                DDScalableRichText* path = (DDScalableRichText*)regElem(L"path", SearchResult);
+            	name->SetContentString(nameStr);
+            	path->SetContentString(pathStr);
+            	SearchResult->SetFilename((wstring)Everything_GetResultPathW(i) + L"\\" + Everything_GetResultFileNameW(i));
+            	assignFn(SearchResult, LaunchSearchResult);
+            	delete[] nameStr;
+            	delete[] pathStr;
+            }
+            SearchResultPlaceholder->DestroyAll(true);
+            SearchResultPlaceholder->Destroy(true);
         }
     }
 
     void CloseSearch(Element* elem, Event* iev)
     {
-        if (iev->uidType == TouchButton::Click)
+        if (iev->uidType == Button::Click || iev->uidType == TouchButton::Click)
         {
             SetTimer(searchwnd->GetHWND(), 1, 50, nullptr);
         }
@@ -270,9 +306,9 @@ namespace DirectDesktop
             flBackFade = 0.33f;
         GTRANS_DESC transDesc[2];
         TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
-        if (g_editmode) TriggerFade(UIContainer, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flBackFade, false, false, true);
+        if (!g_editmode) TriggerFade(UIContainer, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flBackFade, false, false, true);
         TransitionStoryboardInfo tsbInfo = {};
-        ScheduleGadgetTransitions_DWMCheck(0, g_editmode ? 2 : 1, transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, g_editmode ? 1 : 2, transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         GTRANS_DESC transDesc2[2];
         TriggerFade(pagecontent, transDesc2, 0, 0.05f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
         TriggerScaleIn(pagecontent, transDesc2, 1, 0.05f, 0.72f, 0.1f, 0.9f, 0.2f, 1.0f, 0.75f, 0.75f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, false, false);
@@ -289,10 +325,51 @@ namespace DirectDesktop
         HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateSearchWindow, nullptr, NULL, nullptr);
         if (AnimHandle) CloseHandle(AnimHandle);
         BlurBackground(searchwnd->GetHWND(), true, true, 0x99, searchbase);
+
+        g_EverythingDLL = LoadLibraryW(L"Everything64.dll");
+
+        if (!g_EverythingDLL)
+        {
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
+            ddnb->CreateBanner(DDNT_ERROR, nullptr, L"Failed to load Everything64.dll.", 5, nullptr);
+            WCHAR closeText[32];
+            LoadStrFromRes(closeText, 32, 4160, L"comctl32.dll");
+            ddnb->AppendButton(closeText, CloseSearch, true);
+            searchbutton->SetEnabled(false);
+            searchbox->SetEnabled(false);
+            // 0.6 M4: Replace with DDScalableTouchEdit::SetPromptText when implemented 
+            CValuePtr v = Value::CreateString(L" ", nullptr);
+            searchbox->SetValue(DDScalableTouchEdit::PromptTextProp, 1, v);
+            return;
+        }
+
+        Everything_SetSearchW = (pfnE_SetSearchW)GetProcAddress(g_EverythingDLL, "Everything_SetSearchW");
+        Everything_QueryW = (pfnE_QueryW)GetProcAddress(g_EverythingDLL, "Everything_QueryW");
+        Everything_GetNumResults = (pfnE_GetNumResults)GetProcAddress(g_EverythingDLL, "Everything_GetNumResults");
+        Everything_GetResultFileNameW = (pfnE_GetResultFileNameW)GetProcAddress(g_EverythingDLL, "Everything_GetResultFileNameW");
+        Everything_GetResultPathW = (pfnE_GetResultPathW)GetProcAddress(g_EverythingDLL, "Everything_GetResultPathW");
+        Everything_GetLastError = (pfnE_GetLastError)GetProcAddress(g_EverythingDLL, "Everything_GetLastError");
+
+        if (!(Everything_SetSearchW && Everything_QueryW && Everything_GetNumResults &&
+            Everything_GetResultFileNameW && Everything_GetResultPathW && Everything_GetLastError))
+        {
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
+            ddnb->CreateBanner(DDNT_ERROR, nullptr, L"Failed to load Everything64.dll.", 5, nullptr);
+            WCHAR closeText[32];
+            LoadStrFromRes(closeText, 32, 4160, L"comctl32.dll");
+            ddnb->AppendButton(closeText, CloseSearch, true);
+            searchbutton->SetEnabled(false);
+            searchbox->SetEnabled(false);
+            // 0.6 M4: Replace with DDScalableTouchEdit::SetPromptText when implemented 
+            CValuePtr v = Value::CreateString(L" ", nullptr);
+            searchbox->SetValue(DDScalableTouchEdit::PromptTextProp, 1, v);
+            return;
+        }
     }
 
     void DestroySearchPage()
     {
+        FreeLibrary(g_EverythingDLL);
         float flBackFade = 1.0f;
         SYSTEM_POWER_STATUS sps;
         GetSystemPowerStatus(&sps);

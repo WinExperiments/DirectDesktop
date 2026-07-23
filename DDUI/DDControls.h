@@ -232,10 +232,10 @@ namespace DDUI
         DDUIAPI DDScalableTouchButton()
             : _rkv{}
             , _assocFn(nullptr)
+            , _assocSetting(nullptr)
             , _fnb1(false)
             , _fnb2(false)
             , _fnb3(false)
-            , _assocSetting(nullptr)
             , _gc(0)
             , _shellinteraction(false)
         {
@@ -295,10 +295,10 @@ namespace DDUI
     protected:
         RegKeyValue _rkv;
         void (*_assocFn)(bool, bool, bool);
+        void* _assocSetting;
         bool _fnb1;
         bool _fnb2;
         bool _fnb3;
-        void* _assocSetting;
         unsigned short _gc;
         bool _shellinteraction;
         DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
@@ -354,7 +354,8 @@ namespace DDUI
         LVCF_NOANIMATE = 0x00000008,
         LVCF_ANIMATEPARTIAL = 0x00000010,
         LVCF_NOASSIGNFUNC = 0x00000020,
-        LVCF_TOUCH = 0x00000040
+        LVCF_TOUCH = 0x00000040,
+        LVCF_CTRLA = 0x00000080
     };
 
     enum LVItemGroupSize
@@ -422,8 +423,8 @@ namespace DDUI
             , _szDrag{}
             , _rcGadget{}
             , _flags(LVCF_NONE)
-            , _dwSafeRemove(0)
             , _ullRemoveTick(0)
+            , _dwSafeRemove(0)
         {
         }
 
@@ -477,8 +478,9 @@ namespace DDUI
         SIZE _szDrag;
         RECT _rcGadget;
         LVCommonFlags _flags;
-        DWORD _dwSafeRemove;
         ULONGLONG _ullRemoveTick;
+        DWORD _dwSafeRemove;
+
         DDUIAPI HRESULT _CreateLVVisual();
         DDUIAPI static HRESULT _CreateAnimatingClone(Element** ppeOrig, RECT* prcOrig, Element** ppeClone, UINT cCount);
         DDUIAPI void _RemoveStuckClones(DynamicArray<Element*>* rgList);
@@ -502,10 +504,11 @@ namespace DDUI
             , _rgYPos{}
             , _rgXItems{}
             , _rgYItems{}
+            , _peFocusedOld(nullptr)
             , _pePivot(nullptr)
             , _peAnimating(nullptr)
-            , _fAllowNav(true)
-            , _fKeyDown(false)
+            , _ullOverflowTick(0)
+            , _keyState(32)
             , _keyStateOld(0)
             , _keyStateOld2(0)
         {
@@ -532,15 +535,16 @@ namespace DDUI
         vector<int> _rgYPos;
         vector<LVItem*> _rgXItems;
         vector<LVItem*> _rgYItems;
+        Element* _peFocusedOld;
         Element* _pePivot;
         Element* _peAnimating;
-        bool _fAllowNav;
-        bool _fKeyDown;
+        ULONGLONG _ullOverflowTick;
+        BYTE _keyState;
         BYTE _keyStateOld;
         BYTE _keyStateOld2;
         DDUIAPI int _SearchArray(vector<int>* rgPos, int iCloseValue);
         DDUIAPI int _SearchArrayExact(vector<int>* rgPos, int iTargetValue);
-        DDUIAPI void _ShiftSelectionHelper(RECT* prcPivot, RECT* prcTo);
+        DDUIAPI void _ShiftSelectionHelper(RECT* prcFrom, RECT* prcTo);
         DDUIAPI static LRESULT CALLBACK s_LVGridProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     private:
@@ -942,11 +946,11 @@ namespace DDUI
     {
     public:
         DDUIAPI DDCombobox()
-            : _selID(0)
+            : _fDone(false)
+            , _selID(0)
             , _selSize(0)
             , _hTimer(nullptr)
             , _tick(0)
-            , _fDone(false)
             , _peDropDownGlyph(nullptr)
             , _wndSelectionMenu(nullptr)
             , _peSelectionMenu(nullptr)
@@ -978,11 +982,11 @@ namespace DDUI
 
     private:
         static IClassInfo* s_pClassInfo;
+        bool _fDone;
         BYTE _selID;
         BYTE _selSize;
         HWND _hTimer;
         LONGLONG _tick;
-        bool _fDone;
         DDScalableRichText* _peDropDownGlyph;
         NativeHWNDHost* _wndSelectionMenu;
         HWNDElement* _peSelectionMenu;
@@ -1008,6 +1012,8 @@ namespace DDUI
             , _ptOnClick{}
             , _assocVal(nullptr)
             , _coef(1)
+            , _keyState(0)
+            , _keyStateOld(0)
             , _szFormatted(nullptr)
             , _peTrackBase(nullptr)
             , _peFillBase(nullptr)
@@ -1065,6 +1071,8 @@ namespace DDUI
         POINT _ptOnClick;
         int* _assocVal;
         int _coef;
+        BYTE _keyState;
+        BYTE _keyStateOld;
         LPCWSTR _szFormatted;
         TouchButton* _peTrackBase;
         TouchButton* _peFillBase;
@@ -1086,8 +1094,8 @@ namespace DDUI
     {
     public:
         DDUIAPI DDColorPickerButton()
-            : _assocCR(0)
-            , _order(0)
+            : _order(0)
+            , _assocCR(0)
         {
         }
 
@@ -1105,8 +1113,8 @@ namespace DDUI
 
     private:
         static IClassInfo* s_pClassInfo;
-        COLORREF _assocCR;
         BYTE _order;
+        COLORREF _assocCR;
     };
 
     class DDColorPicker final : public Element
@@ -1115,7 +1123,6 @@ namespace DDUI
         DDUIAPI DDColorPicker()
             : _btnX(0)
             , _btnWidth(0)
-            , _currentColorID(0)
             , _ptBeforeClick{}
             , _ptOnClick{}
             , _rkv{}
@@ -1125,6 +1132,11 @@ namespace DDUI
             , _targetElems{}
             , _targetBtns{}
             , _targetTouchBtns{}
+            , _ullTick(0)
+            , _currentColorID(0)
+            , _oldColorID(0)
+            , _keyState(0)
+            , _keyStateOld(0)
             , _themeAwareness(false)
         {
         }
@@ -1165,7 +1177,6 @@ namespace DDUI
         static IClassInfo* s_pClassInfo;
         int _btnX;
         int _btnWidth;
-        short _currentColorID;
         POINT _ptBeforeClick;
         POINT _ptOnClick;
         RegKeyValue _rkv;
@@ -1175,6 +1186,11 @@ namespace DDUI
         vector<DDScalableElement*> _targetElems;
         vector<DDScalableButton*> _targetBtns;
         vector<DDScalableTouchButton*> _targetTouchBtns;
+        ULONGLONG _ullTick;
+        short _currentColorID;
+        short _oldColorID;
+        BYTE _keyState;
+        BYTE _keyStateOld;
         bool _themeAwareness;
         int GetPropCommon(const PropertyProcT pPropertyProc);
         void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
@@ -1198,6 +1214,10 @@ namespace DDUI
             , _pfnTabs{}
             , _pageID(0)
             , _pageSize(0)
+            , _keyState(0)
+            , _keyStateOld(0)
+            , _ullTick(0)
+            , _vecAnimating{}
         {
         }
 
@@ -1229,6 +1249,9 @@ namespace DDUI
         GenericTabFunction _pfnTabs[MAX_TABPAGES];
         BYTE _pageID;
         BYTE _pageSize;
+        BYTE _keyState;
+        BYTE _keyStateOld;
+        ULONGLONG _ullTick;
         vector<Element*> _vecAnimating;
         HRESULT _CreateTPVisual();
         static DWORD WINAPI s_RemoveFromVec(LPVOID lpParam);
@@ -1423,18 +1446,18 @@ namespace DDUI
             , _wnd(nullptr)
             , _notificationType(DDNT_INFO)
             , _titleStr{}
+            , _stackCount(0)
+            , _btnCount(0)
+            , _fStartedAnim(false)
             , _pDDNB(nullptr)
             , _icon(nullptr)
             , _title(nullptr)
             , _content(nullptr)
             , _stackIndicator(nullptr)
-            , _stackCount(0)
             , _peButtonSection(nullptr)
-            , _btnCount(0)
             , _tick(0)
             , _rcWindow{}
             , _iDeltaY(0)
-            , _fStartedAnim(false)
             , _scbi(nullptr)
         {
         }
@@ -1452,18 +1475,18 @@ namespace DDUI
         NativeHWNDHost* _wnd;
         DDNotificationType _notificationType;
         WCHAR _titleStr[64];
+        BYTE _stackCount;
+        BYTE _btnCount;
+        bool _fStartedAnim;
         HWNDElement* _pDDNB;
         DDScalableElement* _icon;
         DDScalableElement* _title;
         DDScalableElement* _content;
         DDScalableElement* _stackIndicator;
-        BYTE _stackCount;
         Element* _peButtonSection;
-        BYTE _btnCount;
         LONGLONG _tick;
         RECT _rcWindow;
         int _iDeltaY;
-        bool _fStartedAnim;
         SimpleCubicBezierInterpolator* _scbi;
         static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         static LRESULT CALLBACK s_NotificationProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);

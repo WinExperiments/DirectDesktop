@@ -527,6 +527,13 @@ namespace DDUI
 
     COLORREF GetDUIImmersiveColor(int iDuiColor)
     {
-        return (COLORREF)CImmersiveColor::GetColor(static_cast<IMMERSIVE_COLOR_TYPE>(iDuiColor - 20001));
+        COLORREF cr = 0xFFFFFFFF;
+        if (iDuiColor < 140)
+            cr = GetStdColorI(iDuiColor);
+        else if (iDuiColor >= 10000 && iDuiColor <= 10030)
+            cr = GetSysColor(iDuiColor - 10000);
+        else if (iDuiColor >= 20000)
+            cr = (COLORREF)CImmersiveColor::GetColor(static_cast<IMMERSIVE_COLOR_TYPE>(iDuiColor - 20001));
+        return cr;
     }
 }

@@ -2894,6 +2894,37 @@ namespace DirectDesktop
                 }
                 else peItemCount->SetAssociatedColor(0xFF000000 | g_pColors->crPalette[((DDScalableElement*)elem)->GetGroupColor()]);
 
+                CSafeElementPtr<LVTiles> lvi_SubUIContainer;
+                if (pm[icon2]->GetOpenDirState() == LVIODS_FULLSCREEN)
+                    lvi_SubUIContainer.Assign((LVTiles*)regElem(L"SubUIContainer", fullscreeninner));
+                else if (pm[icon2]->GetOpenDirState() == LVIODS_PINNED)
+                    lvi_SubUIContainer.Assign((LVTiles*)regElem(L"SubUIContainer", pm[icon2]->GetIcon()));
+                if (lvi_SubUIContainer && g_pctx->selectionrect)
+                {
+                    Element* selector = lvi_SubUIContainer->GetSelectionElement();
+                    if (((DDScalableElement*)elem)->GetGroupColor() == 0)
+                    {
+                        CValuePtr v;
+                        Element* selectorTemp = UIContainer->GetSelectionElement();
+                        const Fill* pfBackground = selectorTemp->GetBackgroundColor(&v);
+                        v->Release();
+                        const Fill* pfBorder = selectorTemp->GetBorderColor(&v);
+                        if (pfBackground->ref.cr)
+                            selector->SetBackgroundColor(pfBackground->ref.cr);
+                        else
+                            selector->SetBackgroundColor(GetDUIImmersiveColor(selectorTemp->GetBackgroundStdColor()));
+                        if (pfBorder->ref.cr)
+                            selector->SetBorderColor(pfBorder->ref.cr);
+                        else
+                            selector->SetBorderColor(GetDUIImmersiveColor(selectorTemp->GetBorderStdColor()));
+                    }
+                    else
+                    {
+                        COLORREF crSpecial = g_pColors->crPalette[pm[icon2]->GetIcon()->GetGroupColor()];
+                        selector->SetBackgroundColor((crSpecial | 0xFF000000) & 0x66FFFFFF);
+                        selector->SetBorderColor(crSpecial | 0xFF000000);
+                    }
+                }
                 if (((DDScalableElement*)elem)->GetGroupColor() < 2)
                 {
                     Element* peListParent{};
@@ -2999,6 +3030,13 @@ namespace DirectDesktop
             if (fNew)
             {
                 lvi_SubUIContainer->AddFlags(LVCF_NOANIMATE);
+                Element* selector = lvi_SubUIContainer->GetSelectionElement();
+                if (lvi->GetIcon()->GetGroupColor() != 0)
+                {
+                    COLORREF crSpecial = g_pColors->crPalette[lvi->GetIcon()->GetGroupColor()];
+                    selector->SetBackgroundColor((crSpecial | 0xFF000000) & 0x66FFFFFF);
+                    selector->SetBorderColor(crSpecial | 0xFF000000);
+                }
                 sheet = pMain->GetSheet();
                 CValuePtr sheetStorage2 = DirectUI::Value::CreateStyleSheet(sheet);
                 parser->GetSheet(g_pctx->theme ? L"default" : L"defaultdark", &sheetStorage2);
@@ -4361,7 +4399,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 100");
+            peTemp[1]->SetContentString(L"Build 101");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -4973,7 +5011,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion %s\nBuilt on %s", GetExeVersion().c_str(), BUILD_DATE);
 
     DDNotificationBanner* ddnb = new DDNotificationBanner();
-    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M3", prerelNotice, 10, nullptr);
+    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M4", prerelNotice, 10, nullptr);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.\n\nLogging is now complete.");
 

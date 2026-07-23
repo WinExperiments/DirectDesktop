@@ -39,7 +39,7 @@
 			</Element>
 			<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 				<TouchScrollViewer id="atom(groupdirlist)" visible="false" active="mouse|pointer|keyboard" layoutpos="top" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
-					<LVTiles id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" background="argb(0,0,0,0)" font="iconfont;100%"/>
+					<LVTiles id="atom(SubUIContainer)" layoutpos="client" layout="filllayout()" background="argb(0,0,0,0)" font="iconfont;100%" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()"/>
 				</TouchScrollViewer>
 			</Element>
 		</Element>

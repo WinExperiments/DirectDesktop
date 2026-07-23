@@ -6,6 +6,7 @@ namespace DirectDesktop
     extern bool g_editmode;
     extern bool g_searchopen;
     extern bool g_peek;
+    extern BYTE* shellstate;
     extern DirectUI::DUIXmlParser* parser;
 
     extern DirectUI::NativeHWNDHost* wnd;
