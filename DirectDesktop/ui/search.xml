@@ -10,7 +10,7 @@
 					<DDScalableTouchButton id="atom(searchbutton)" shortcut="83" layoutpos="right" font="messagefont;133%" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" content="Search" padding="rect(8rp,0,8rp,0)"/>
 					<DDScalableTouchEdit id="atom(searchbox)" layoutpos="client" background="argb(0,0,0,0)" prompttext="Type here to search" NeedsFontResize="true"/>
 				</Element>
-				<DDScalableRichText id="atom(ResultCount)" layoutpos="none" font="36pt;Normal;None;Segoe UI" contentalign="wrapleft" padding="rect(0,0,0,16rp)"/>
+				<DDScalableRichText id="atom(ResultCount)" layoutpos="none" font="16pt;Semibold;None;Segoe UI" contentalign="wrapleft" padding="rect(0,0,0,16rp)"/>
 				<TouchScrollViewer id="atom(SearchResults)" background="argb(0,0,0,0)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
 					<Element layout="filllayout()" background="argb(0,0,0,0)">
 						<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
@@ -24,7 +24,8 @@
 			</Element>
 		</Element>
 	</HWNDElement>
-	<LVItem resid="SearchResult" class="searchentry" layout="borderlayout()" layoutpos="top" height="48rp" margin="rect(0,0,0,8rp)">
+	<LVItem resid="SearchResult" class="searchentry" layout="borderlayout()" layoutpos="top" minsize="size(0,48rp)" margin="rect(0,0,0,8rp)">
+		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="middlecenter" layoutpos="left" DrawType="1"/>
 		<DDScalableRichText id="atom(name)" background="argb(0,0,0,0)" layoutpos="top" font="12pt;Normal;None;Segoe UI"/>
 		<DDScalableRichText id="atom(path)" background="argb(0,0,0,0)" class="subtext" layoutpos="top" font="9pt;Normal;None;Segoe UI"/>
 	</LVItem>

@@ -22,6 +22,7 @@
 				<Element id="atom(tasks)" layoutpos="right" layout="flowlayout(0,2,1,0)">
 					<DDLVActionButton id="atom(Smaller)" font="resstr(146)" content="resstr(151)" tooltip="true" accdesc="resstr(4050)" class="popupbuttonicon"/>
 					<DDLVActionButton id="atom(Larger)" font="resstr(146)" content="resstr(152)" tooltip="true" accdesc="resstr(4051)" class="popupbuttonicon"/>
+					<DDLVActionButton id="atom(Search)" font="resstr(146)" content="resstr(145)" tooltip="true" accdesc="Search" class="popupbuttonicon"/>
 					<Element layout="filllayout()">
 						<DDLVActionButton id="atom(Pin)" layoutpos="client" font="resstr(146)" content="resstr(149)" tooltip="true" accdesc="resstr(4052)" class="popupbuttonicon"/>
 						<DDLVActionButton id="atom(Unpin)" layoutpos="client" font="resstr(146)" content="resstr(150)" tooltip="true" accdesc="resstr(4053)" class="popupbuttonicon"/>

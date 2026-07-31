@@ -2458,7 +2458,8 @@ namespace DDUI
         }
         if (pProp == LVItem::CapturedProp())
         {
-            if (((LVItem*)elem)->GetCaptured() && elem->GetMouseWithin() && !elem->GetSelected() && !(GetAsyncKeyState(VK_CONTROL) & 0x8000))
+            if (((LVItem*)elem)->GetCaptured() && elem->GetMouseWithin() && !elem->GetSelected() &&
+                !(GetAsyncKeyState(VK_CONTROL) & 0x8000) && !(GetAsyncKeyState(VK_SHIFT) & 0x8000))
             {
                 CValuePtr v;
                 DynamicArray<Element*>* rgList = elem->GetParent()->GetChildren(&v);
@@ -3239,7 +3240,7 @@ namespace DDUI
                     }
                     if (shiftKey & 0x80 && _pePivot)
                     {
-                        _ShiftSelectionHelper(&rcToBeFocused, &rcToBeFocused);
+                        _ShiftSelectionHelper(&rcFocused, &rcToBeFocused);
                     }
                     else if (!(ctrlKey & 0x80)) _pePivot = _peSelected;
                     _keyStateOld = _keyState;
@@ -3363,13 +3364,13 @@ namespace DDUI
                     _peSelected = peTo;
                     if (!(shiftKey & 0x80) || !_pePivot)
                         _pePivot = peTo;
-                    else/* if (!fKeyboard)*/ // 0.6 M4: incomplete
+                    else if (!fKeyboard) // 0.6 M4: incomplete
                     {
                         if (rgList)
                         {
                             for (int items = 0; items < rgList->GetSize(); items++)
                             {
-                                if (rgList->GetItem(items)->GetSelected())
+                                if (rgList->GetItem(items) != _pePivot && rgList->GetItem(items)->GetSelected())
                                     rgList->GetItem(items)->SetSelected(false);
                             }
                         }
@@ -3593,15 +3594,15 @@ namespace DDUI
         int step = size / 2;
         if (step == 0) step = 1;
         unsigned short runs = 0; // Preventive measure for launch/refresh animation, which causes no exact match and an infinite loop
-        while (index < size && (*rgPos)[index] != iTargetValue && runs < 0xFF00)
+        while (index < size && (*rgPos)[index] != iTargetValue && runs < 0xFFF0)
         {
-            while (index < size && (*rgPos)[index] < iTargetValue && runs < 0xFF00)
+            while (index < size && (*rgPos)[index] < iTargetValue && runs < 0xFFF0)
             {
                 runs++;
                 index += step;
                 if (step > 1) step /= 2;
             }
-            while (index > 0 && (*rgPos)[index] > iTargetValue && runs < 0xFF00)
+            while (index > 0 && (*rgPos)[index] > iTargetValue && runs < 0xFFF0)
             {
                 runs++;
                 index -= step;
@@ -3609,11 +3610,10 @@ namespace DDUI
             }
             runs++;
         }
-        if (runs >= 0xFF00) return 0;
+        if (runs >= 0xFFF0) return 0;
         return index;
     }
 
-    // 0.6 M4: incomplete
     void LVGrid::_ShiftSelectionHelper(RECT* prcFrom, RECT* prcTo)
     {
         int indexY;
@@ -3624,60 +3624,87 @@ namespace DDUI
         RECT* rcShort = (rcLong == prcTo) ? prcPivot : prcTo;
         int halfHeight = (rcShort->bottom - rcShort->top) / 2;
         int start, end;
-        int leftOneRow = min(prcPivot->left, prcTo->left);
-        int rightOneRow = max(prcPivot->right, prcTo->right);
+        int leftOneRow = min(prcFrom->left, prcTo->left);
+        int rightOneRow = max(prcFrom->right, prcTo->right);
         bool selectmode{};
-        if (prcPivot->top - halfHeight <= prcTo->top)
+        DWORD flags{};
+        if (prcFrom->top - halfHeight <= prcTo->top && prcFrom->bottom + halfHeight >= prcTo->bottom)
         {
-            if (prcFrom->top <= prcTo->top)
+            bool fRelative = (g_ctx.localeType != 1 && prcFrom->left <= prcTo->left) || (g_ctx.localeType == 1 && prcFrom->right >= prcTo->right);
+            bool fPivot = !(prcPivot->top - halfHeight <= prcTo->top && (!(prcPivot->bottom + halfHeight >= prcTo->bottom) || 
+                (g_ctx.localeType != 1 && prcPivot->left <= prcFrom->left) || (g_ctx.localeType == 1 && prcPivot->right >= prcFrom->right)));
+            selectmode = fRelative ^ fPivot;
+            flags |= 0x10;
+            start = (g_ctx.localeType == 1) ? rightOneRow : leftOneRow;
+            end = (g_ctx.localeType == 1) ? leftOneRow : rightOneRow;
+        }
+        else if (prcPivot->top - halfHeight <= prcTo->top)
+        {
+            flags |= 0x1;
+            if (prcFrom->top - halfHeight <= prcTo->top)
+            {
                 selectmode = true;
-            indexY = _SearchArrayExact(&_rgYPos, prcPivot->top);
+                flags |= 0x2;
+            }
             if (prcPivot->bottom + halfHeight >= prcTo->bottom)
             {
-                start = (g_ctx.localeType == 1) ? rightOneRow : leftOneRow;
-                end = (g_ctx.localeType == 1) ? leftOneRow : rightOneRow;
+                selectmode = false;
+                flags |= 0x4;
             }
-            else
-            {
-                start = (g_ctx.localeType == 1) ? prcPivot->right : prcPivot->left;
-                end = (g_ctx.localeType == 1) ? prcTo->left : prcTo->right;
-            }
+            start = (g_ctx.localeType == 1) ? prcFrom->right : prcFrom->left;
+            end = (g_ctx.localeType == 1) ? prcTo->left : prcTo->right;
         }
         else
         {
-            if (prcFrom->top >= prcTo->top)
-                selectmode = true;
-            indexY = _SearchArrayExact(&_rgYPos, prcTo->top);
+            if (prcPivot->top - halfHeight <= prcTo->top && prcPivot->bottom + halfHeight >= prcTo->bottom)
+                ;
+            else if (prcFrom->top - halfHeight >= prcTo->top)
+            {
+                selectmode = true;  
+                flags |= 0x8;
+            }
             start = (g_ctx.localeType == 1) ? prcTo->right : prcTo->left;
-            end = (g_ctx.localeType == 1) ? prcPivot->left : prcPivot->right;
+            end = (g_ctx.localeType == 1) ? prcFrom->left : prcFrom->right;
         }
-        int top = min(prcPivot->top, prcTo->top);
-        int bottom = max(prcPivot->top, prcTo->top);
-        while (_rgYPos[indexY] >= top - halfHeight && indexY >= 0)
+        int idxStart = min(prcFrom->top, prcTo->top);
+        indexY = _SearchArrayExact(&_rgYPos, idxStart);
+        int top = min(prcFrom->top, prcTo->top);
+        int bottom = max(prcFrom->top, prcTo->top);
+        while (indexY >= 0 && _rgYPos[indexY] >= top - halfHeight)
             indexY--;
         indexY++;
         RECT rcCurrent{};
         while (indexY < _rgYPos.size() && _rgYPos[indexY] <= bottom + halfHeight)
         {
-            if (_rgYPos[indexY] <= top + halfHeight)
+            if (_rgYItems[indexY] != _pePivot)
             {
-                GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
-                if (_rgYPos[indexY] >= bottom - halfHeight)
+                bool cond{};
+                if (_rgYPos[indexY] <= top + halfHeight)
                 {
-                    if ((g_ctx.localeType != 1 && (rcCurrent.left >= start && rcCurrent.right <= end)) ||
-                        (g_ctx.localeType == 1 && (rcCurrent.right <= start && rcCurrent.left >= end)))
-                        _rgYItems[indexY]->SetSelected(true);
+                    GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
+                    if (flags & 0xE && prcPivot->top - halfHeight <= rcCurrent.top && prcPivot->bottom + halfHeight >= rcCurrent.bottom)
+                        cond = (g_ctx.localeType != 1 && rcCurrent.right < rcPivot.right) || (g_ctx.localeType == 1 && rcCurrent.left > rcPivot.left);
+                    if (_rgYPos[indexY] >= bottom - halfHeight)
+                    {
+                        cond = (g_ctx.localeType != 1 && rcCurrent.right < rcPivot.right) || (g_ctx.localeType == 1 && rcCurrent.left > rcPivot.left);
+                        if ((g_ctx.localeType != 1 && (rcCurrent.left >= start && rcCurrent.right <= end)) ||
+                            (g_ctx.localeType == 1 && (rcCurrent.right <= start && rcCurrent.left >= end)))
+                            _rgYItems[indexY]->SetSelected(selectmode ^ cond);
+                    }
+                    else if ((g_ctx.localeType != 1 && rcCurrent.left >= start) || (g_ctx.localeType == 1 && rcCurrent.right <= start))
+                        _rgYItems[indexY]->SetSelected(selectmode^ cond);
                 }
-                else if ((g_ctx.localeType != 1 && rcCurrent.left >= start) || (g_ctx.localeType == 1 && rcCurrent.right <= start))
-                    _rgYItems[indexY]->SetSelected(true);
+                else if (_rgYPos[indexY] >= bottom - halfHeight)
+                {
+                    GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
+                    if (flags & 0xE && prcPivot->top - halfHeight <= rcCurrent.top && prcPivot->bottom + halfHeight >= rcCurrent.bottom)
+                        cond = (g_ctx.localeType != 1 && rcCurrent.right > rcPivot.right) || (g_ctx.localeType == 1 && rcCurrent.left < rcPivot.left);
+                    if ((g_ctx.localeType != 1 && rcCurrent.right <= end) || (g_ctx.localeType == 1 && rcCurrent.left >= end))
+                        _rgYItems[indexY]->SetSelected(selectmode ^ cond);
+                }
+                else
+                    _rgYItems[indexY]->SetSelected(selectmode);
             }
-            else if (_rgYPos[indexY] >= bottom - halfHeight)
-            {
-                GetGadgetRect(_rgYItems[indexY]->GetDisplayNode(), &rcCurrent, 0xC);
-                if ((g_ctx.localeType != 1 && rcCurrent.right <= end) || (g_ctx.localeType == 1 && rcCurrent.left >= end))
-                    _rgYItems[indexY]->SetSelected(true);
-            }
-            else _rgYItems[indexY]->SetSelected(true);
             indexY++;
         }
     }
@@ -8105,7 +8132,6 @@ namespace DDUI
             {
             case 7:
                 KillTimer(hWnd, wParam);
-                DestroyWindow(hWnd);
                 delete nb;
                 nb = nullptr;
                 break;
@@ -8240,6 +8266,8 @@ namespace DDUI
     
     DDNotificationBanner::~DDNotificationBanner()
     {
+        DestroyWindow(_hTimer);
+        _hTimer = nullptr;
         _wnd->GetElement()->DestroyAll(true);
         _wnd->GetElement()->Destroy(true);
         _wnd->DestroyWindow();
@@ -8409,7 +8437,7 @@ namespace DDUI
             SetWindowPos(_wnd->GetHWND(), HWND_TOPMOST, (dimensions.left + dimensions.right - cx) / 2, dimensions.top + 40 * g_ctx.flScaleFactor, cx, cy, SWP_FRAMECHANGED | SWP_NOACTIVATE);
             SetLayeredWindowAttributes(_wnd->GetHWND(), 0, 255, LWA_ALPHA);
             g_nwnds.push_back(this);
-            DDNotificationBanner::s_RepositionBanners(false, dimensions.top + 16 * g_ctx.flScaleFactor + cy, 0);
+            DDNotificationBanner::s_RepositionBanners(false, 16 * g_ctx.flScaleFactor + cy, 0);
             _scbi = new SimpleCubicBezierInterpolator();
             _scbi->SetCurve(0.1, 1.5, 1.0, 1.0);
             if (timeout > 0)

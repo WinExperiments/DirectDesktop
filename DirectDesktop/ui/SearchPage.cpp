@@ -30,6 +30,7 @@ namespace DirectDesktop
     Element* pSearch;
     DDScalableTouchEdit* searchbox;
     WNDPROC WndProcSearch;
+    SearchParams g_sp;
 
     DWORD WINAPI AnimateSearchWindow(LPVOID lpParam);
     void DestroySearchPage();
@@ -189,13 +190,25 @@ namespace DirectDesktop
             }
             v->Release();
             //if (wcslen(searchbox->GetContentString(&v)) < 2) return;
-            WCHAR* PublicPath = new WCHAR[260];
-            WCHAR* OneDrivePath = new WCHAR[260];
-            WCHAR* cBuffer = new WCHAR[260];
-            DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
-            StringCchPrintfW(PublicPath, 260, L"%s\\Desktop", cBuffer);
-            d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
-            StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
+            WCHAR* searchquery = new WCHAR[1024];
+            if (g_sp.flags & 0x2)
+            {
+                StringCchPrintfW(searchquery, 1024, L"%s %s", g_sp.path, searchbox->GetContentString(&v));
+            }
+            else
+            {
+                WCHAR* PublicPath = new WCHAR[260];
+                WCHAR* OneDrivePath = new WCHAR[260];
+                WCHAR* cBuffer = new WCHAR[260];
+                DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
+                StringCchPrintfW(PublicPath, 260, L"%s\\Desktop", cBuffer);
+                d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
+                StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
+                StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
+                delete[] cBuffer;
+                delete[] PublicPath;
+                delete[] OneDrivePath;
+            }
             CSafeElementPtr<Element> rescontainer;
             rescontainer.Assign(regElem(L"rescontainer", pSearch));
             CSafeElementPtr<LVCommon> LVSearchResults;
@@ -203,14 +216,9 @@ namespace DirectDesktop
 
             rescontainer->DestroyAll(true);
             LVSearchResults->DestroyAll(true);
-            WCHAR* searchquery = new WCHAR[1024];
-            StringCchPrintfW(searchquery, 1024, L"%s | %s | %s %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
             Everything_SetSearchW(searchquery);
             Everything_QueryW(TRUE);
             delete[] searchquery;
-            delete[] cBuffer;
-            delete[] PublicPath;
-            delete[] OneDrivePath;
             LVItem* SearchResultPlaceholder{};
             parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
 
@@ -225,23 +233,27 @@ namespace DirectDesktop
             ResultCount->SetLayoutPos(1);
             ResultCount->SetContentString(resultc);
             
-            for (int i = 0; i < min(rescount, 150); i++) {
-            	WCHAR* nameStr = new WCHAR[256];
-            	WCHAR* pathStr = new WCHAR[256];
-            	StringCchPrintfW(nameStr, 256, L"%s", Everything_GetResultFileNameW(i));
-            	StringCchPrintfW(pathStr, 256, L"Path: %s", Everything_GetResultPathW(i));
-            	LVItem* SearchResult{};
-            	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResult);
-            	LVSearchResults->Add((Element**)&SearchResult, 1);
-            	DDScalableRichText* name = (DDScalableRichText*)regElem(L"name", SearchResult);
-                DDScalableRichText* path = (DDScalableRichText*)regElem(L"path", SearchResult);
-            	name->SetContentString(nameStr);
-            	path->SetContentString(pathStr);
-            	SearchResult->SetFilename((wstring)Everything_GetResultPathW(i) + L"\\" + Everything_GetResultFileNameW(i));
-            	assignFn(SearchResult, LaunchSearchResult);
-            	delete[] nameStr;
-            	delete[] pathStr;
+            vector<LVItem*> spm;
+            spm.resize(min(rescount, 150));
+            for (int i = 0; i < min(rescount, 150); i++)
+            {
+            	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&spm[i]);
+            	DDScalableRichText* name = (DDScalableRichText*)regElem(L"name", spm[i]);
+                DDScalableRichText* path = (DDScalableRichText*)regElem(L"path", spm[i]);
+                DDScalableElement* iconElem = (DDScalableElement*)regElem(L"iconElem", spm[i]);
+            	name->SetContentString(Everything_GetResultFileNameW(i));
+            	path->SetContentString(Everything_GetResultPathW(i));
+            	spm[i]->SetFilename((wstring)Everything_GetResultPathW(i) + L"\\" + Everything_GetResultFileNameW(i));
+            	spm[i]->SetIcon(iconElem);
+            	assignFn(spm[i], LaunchSearchResult);
+                DesktopIcon di;
+                ApplyIcons(&spm, &di, false, i, 1, -1);
+                HBITMAP iconbmp = di.icon;
+                CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
+                if (spvBitmap) iconElem->SetValue(Element::ContentProp, 1, spvBitmap);
+                DeleteObject(iconbmp);
             }
+            LVSearchResults->Add((Element**)&spm[0], min(rescount, 150));
             SearchResultPlaceholder->DestroyAll(true);
             SearchResultPlaceholder->Destroy(true);
         }
@@ -255,10 +267,22 @@ namespace DirectDesktop
         }
     }
 
-    void CreateSearchPage(bool WinAltQ)
+    void CreateSearchPage(SearchParams* psp)
     {
         if (g_searchopen) return;
-        if (WinAltQ) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
+        if (psp)
+        {
+            g_sp.flags = psp->flags;
+            if (psp->flags & 0x1) SendMessageW(g_hWndTaskbar, WM_COMMAND, 419, 0);
+            if (psp->flags & 0x2)
+            {
+                if (g_sp.path)
+                    delete g_sp.path;
+                g_sp.path = new WCHAR[260];
+                if (psp->path)
+                    StringCchPrintfW(g_sp.path, 260, L"%s", psp->path);
+            }
+        }
         g_searchopen = true;
         unsigned long key4 = 0;
         RECT dimensions;

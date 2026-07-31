@@ -850,9 +850,12 @@ namespace DirectDesktop
                         break;
                     case 14:
                     case 15:
+                    {
+                        SearchParams sp = { wParam - 14, nullptr };
                         if (g_editmode) HideSimpleView(false);
-                        CreateSearchPage(wParam - 14);
+                        CreateSearchPage(&sp);
                         break;
+                    }
                     case 16:
                         InitLayout(true, false, false);
                         g_canRefreshMain = false;
@@ -2291,6 +2294,15 @@ namespace DirectDesktop
         }
     }
 
+    void OpenSearchWithArgs(Element* elem, Event* iev)
+    {
+        if (iev->uidType == DDLVActionButton::Click)
+        {
+            SearchParams sp = { 2, (LPWSTR)((DDLVActionButton*)elem)->GetAssociatedItem()->GetFilename().c_str() };
+            CreateSearchPage(&sp);
+        }
+    }
+
     DWORD WINAPI AutoHideMoreOptions(LPVOID lpParam)
     {
         CSafeElementPtr<Element> tasksOld;
@@ -3122,6 +3134,8 @@ namespace DirectDesktop
         Smaller.Assign((DDLVActionButton*)regElem(L"Smaller", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Larger;
         Larger.Assign((DDLVActionButton*)regElem(L"Larger", groupdirectory));
+        CSafeElementPtr<DDLVActionButton> Search;
+        Search.Assign((DDLVActionButton*)regElem(L"Search", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Unpin;
         Unpin.Assign((DDLVActionButton*)regElem(L"Unpin", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Customize;
@@ -3145,13 +3159,15 @@ namespace DirectDesktop
             tasks.Assign(regElem(L"tasks", groupdirectory));
             tasks->SetLayoutPos(-3);
             More->SetLayoutPos(2);
-            Smaller->SetVisible(true), Larger->SetVisible(true), Unpin->SetVisible(true), Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
+            Smaller->SetVisible(true), Larger->SetVisible(true), Search->SetVisible(true),
+                Unpin->SetVisible(true), Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
             assignFn(More, ShowMoreOptions);
             assignFn(Smaller, AdjustGroupSize);
             assignFn(Larger, AdjustGroupSize);
             assignFn(OpenInExplorer, OpenGroupInExplorer);
             assignFn(Customize, OpenCustomizePage);
             assignFn(Unpin, PinGroup);
+            assignFn(Search, OpenSearchWithArgs);
         }
         assignFn(Group_Back, CloseCustomizePage);
         Smaller->SetEnabled(true);
@@ -3165,6 +3181,7 @@ namespace DirectDesktop
         OpenInExplorer->SetAssociatedItem(lvi);
         Customize->SetAssociatedItem(lvi);
         Unpin->SetAssociatedItem(lvi);
+        Search->SetAssociatedItem(lvi);
     }
 
     bool fileopened{};
@@ -4399,7 +4416,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 101");
+            peTemp[1]->SetContentString(L"Build 102");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -5011,7 +5028,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion %s\nBuilt on %s", GetExeVersion().c_str(), BUILD_DATE);
 
     DDNotificationBanner* ddnb = new DDNotificationBanner();
-    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M4", prerelNotice, 10, nullptr);
+    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M5", prerelNotice, 10, nullptr);
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.\n\nLogging is now complete.");
 

@@ -30,6 +30,7 @@ namespace DirectDesktop
 	extern void CloseCustomizePage(Element* elem, Event* iev);
 	extern void OpenCustomizePage(Element* elem, Event* iev);
 	extern void PinGroup(Element* elem, Event* iev);
+	extern void OpenSearchWithArgs(Element* elem, Event* iev);
 	extern void UpdateIconColorizationColor(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
 
 	extern NativeHWNDHost* wnd;

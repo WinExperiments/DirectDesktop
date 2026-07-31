@@ -429,7 +429,7 @@ namespace DirectDesktop
         case WM_USER + 7:
         {
             yValueEx* yV = (yValueEx*)lParam;
-            if (yV->peOptionalTarget1)
+            if (yV->peOptionalTarget1 && yV->peOptionalTarget1->GetParent())
             {
                 CSafeElementPtr<Element> dirtitle;
                 CSafeElementPtr<Element> emptyview;
@@ -483,14 +483,17 @@ namespace DirectDesktop
         yValueEx* yV = (yValueEx*)lpParam;
         vector<LVItem*>* l_pm = yV->vpm;
         int num = yV->fl1;
-        bool initCom = (*l_pm)[num]->GetFlags() & LVIF_ADVANCEDICON;
-        if (initCom)
-            CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-        COLORREF crSubdir = (COLORREF)yV->num;
-        DesktopIcon* di = (DesktopIcon*)yV->peOptionalTarget1;
-        ApplyIcons(l_pm, di, true, num, 1, crSubdir);
-        if (initCom)
-            CoUninitialize();
+        if ((*l_pm)[num])
+        {
+            bool initCom = (*l_pm)[num]->GetFlags() & LVIF_ADVANCEDICON;
+            if (initCom)
+                CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+            COLORREF crSubdir = (COLORREF)yV->num;
+            DesktopIcon* di = (DesktopIcon*)yV->peOptionalTarget1;
+            ApplyIcons(l_pm, di, true, num, 1, crSubdir);
+            if (initCom)
+                CoUninitialize();
+        }
         return 0;
     }
 
@@ -1159,21 +1162,25 @@ namespace DirectDesktop
         tasks.Assign(regElem(L"tasks", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Group_Back;
         Group_Back.Assign((DDLVActionButton*)regElem(L"Group_Back", groupdirectory));
+        CSafeElementPtr<DDLVActionButton> Search;
+        Search.Assign((DDLVActionButton*)regElem(L"Search", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Pin;
         Pin.Assign((DDLVActionButton*)regElem(L"Pin", groupdirectory));
         CSafeElementPtr<DDLVActionButton> Customize;
         Customize.Assign((DDLVActionButton*)regElem(L"Customize", groupdirectory));
         CSafeElementPtr<DDLVActionButton> OpenInExplorer;
         OpenInExplorer.Assign((DDLVActionButton*)regElem(L"OpenInExplorer", groupdirectory));
-        Pin->SetVisible(true), Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
+        Search->SetVisible(true), Pin->SetVisible(true), Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
         Pin->SetEnabled(isDefaultRes());
         assignFn(Group_Back, CloseCustomizePage);
         assignFn(OpenInExplorer, OpenGroupInExplorer);
         assignFn(Customize, OpenCustomizePage);
         assignFn(Pin, PinGroup);
+        assignFn(Search, OpenSearchWithArgs);
         OpenInExplorer->SetAssociatedItem(lvi);
         Customize->SetAssociatedItem(lvi);
         Pin->SetAssociatedItem(lvi);
+        Search->SetAssociatedItem(lvi);
     }
 
     void DisableColorPicker(Element* elem, Event* iev)
