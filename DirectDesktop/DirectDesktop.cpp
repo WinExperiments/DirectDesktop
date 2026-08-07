@@ -66,6 +66,24 @@ namespace DirectDesktop
     bool g_overridefilelistener;
     bool g_newfolder;
 
+    // 0.6 M6: Will be moved to DDUI later
+    EventListener* assignInputFn(Element* elemName, void (*fnName)(Element* elem, InputEvent* ev), bool fReturn)
+    {
+        EventListener* pel = new EventListener(fnName);
+        elemName->AddListener(pel);
+        if (fReturn) return pel;
+        return nullptr;
+    }
+
+    EventListener* assignExtendedFn2(Element* elemName, bool (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn)
+    {
+        EventListener* pel = new EventListener(fnName);
+        elemName->AddListener(pel);
+        if (fReturn) return pel;
+        return nullptr;
+    }
+    ///////////////////////////////////////
+
     wstring RemoveQuotes(const wstring& input)
     {
         if (input.size() >= 2 && input.front() == L'\"' && input.back() == L'\"')
@@ -136,7 +154,7 @@ namespace DirectDesktop
     bool g_pageviewer = false;
     bool g_searchopen = false;
     void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
-    void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
+    void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir, bool fShadow);
     void IconThumbHelper(int id);
     DWORD WINAPI CreateIndividualThumbnail(LPVOID lpParam);
     DWORD WINAPI SetVisibleIfPageMismatch(LPVOID lpParam);
@@ -224,8 +242,12 @@ namespace DirectDesktop
         RECT rc = { 0, 0, 100, 100 };
         HDC hdcBuffer = CreateCompatibleDC(nullptr);
         SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_pctx->dpi);
-        DrawTextW(hdcBuffer, L" ", -1, &rc, DT_CENTER);
+        HFONT hFont = CreateFontIndirectW(&lf);
+        HFONT hOldFont = (HFONT)SelectObject(hdcBuffer, hFont);
+        DrawTextW(hdcBuffer, L"Mq", -1, &rc, DT_CENTER);
         GetTextMetricsW(hdcBuffer, &textm);
+        DeleteObject(hFont);
+        SelectObject(hdcBuffer, hOldFont);
         DeleteDC(hdcBuffer);
     }
 
@@ -607,7 +629,7 @@ namespace DirectDesktop
                 }
                 if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0)
                 {
-                    if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", g_pColors->ImmersiveColor, false, nullptr);
+                    //if (iconColorID == 1) SetRegistryValues(HKEY_CURRENT_USER, L"Software\\DirectDesktop", L"IconColorizationColor", g_pColors->ImmersiveColor, false, nullptr);
                     // This message is sent 4-5 times upon changing accent color so this mitigation is applied
                     // 0.4.5.2 test case: seems to be sent 3-4 times. Maybe dependent on Windows install?
                     static int messagemitigation{};
@@ -851,7 +873,7 @@ namespace DirectDesktop
                     case 14:
                     case 15:
                     {
-                        SearchParams sp = { wParam - 14, nullptr };
+                        SearchParams sp = { wParam - 14, nullptr, nullptr };
                         if (g_editmode) HideSimpleView(false);
                         CreateSearchPage(&sp);
                         break;
@@ -965,6 +987,7 @@ namespace DirectDesktop
                                     float scaling = lvi->GetMemIconSize() / static_cast<float>(g_iconsz);
                                     TriggerScaleIn(icon, transDesc, 0, 0.0f, 0.4f, 0.75f, 0.45f, 0.0f, 1.0f, scaling, scaling, scaleOrigX, scaleOrigY, 1.0f, 1.0f, scaleOrigX, scaleOrigY, false, false);
                                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                                    DUI_SetGadgetZOrder(icon, -1);
                                     DUI_SetGadgetZOrder(lvi->GetShortcutArrow(), 0);
                                     DUI_SetGadgetZOrder(lvi->GetText(), 0);
                                     DUI_SetGadgetZOrder(lvi->GetItemCountElement(), 0);
@@ -999,6 +1022,8 @@ namespace DirectDesktop
                     SetTimer(hWnd, 26, dwDEA, nullptr);
                 }
                 if (g_launch) g_launch = false;
+                UIContainer->RemoveFlags(LVCF_NOANIMATE);
+                UIContainer->AddFlags(LVCF_ANIMATEPARTIAL);
                 break;
             }
             case WM_USER + 2:
@@ -1212,25 +1237,25 @@ namespace DirectDesktop
             }
             case WM_USER + 5:
             {
-                DelayedElementActions* dea = (DelayedElementActions*)wParam;
-                Element* pe;
-                if (dea->ppe)
-                    pe = *(dea->ppe);
-                else
-                    pe = dea->pe;
-                if (pe)
-                {
-                    if (!pe->IsDestroyed())
-                    {
-                        switch (lParam)
-                        {
-                        case 1:
-                            if (((LVItem*)pe)->GetMemPage() != g_currentPageID)
-                                pe->SetVisible(!pe->GetVisible());
-                            break;
-                        }
-                    }
-                }
+                //DelayedElementActions* dea = (DelayedElementActions*)wParam;
+                //Element* pe;
+                //if (dea->ppe)
+                //    pe = *(dea->ppe);
+                //else
+                //    pe = dea->pe;
+                //if (pe)
+                //{
+                //    if (!pe->IsDestroyed())
+                //    {
+                //        switch (lParam)
+                //        {
+                //        case 1:
+                //            if (((LVItem*)pe)->GetMemPage() != g_currentPageID)
+                //                pe->SetVisible(!pe->GetVisible());
+                //            break;
+                //        }
+                //    }
+                //}
                 break;
             }
             case WM_USER + 6:
@@ -1799,7 +1824,7 @@ namespace DirectDesktop
             if (g_launch)
                 dwMillis += 70;
             Sleep(dwMillis);
-            ApplyIcons(&pm, &di, false, yV->num, 1, -1);
+            ApplyIcons(&pm, &di, false, yV->num, 1, -1, true);
             if (g_touchmode)
             {
                 int lines_basedOnEllipsis{};
@@ -2188,7 +2213,16 @@ namespace DirectDesktop
             lviTarget->RemoveFlags(LVIF_GROUPEX);
             int i = lviTarget->GetItemIndex();
             if (lviTarget->GetGroupSize() == LVIGS_NORMAL)
+            {
                 lviTarget->SetGroupSize(LVIGS_MEDIUM);
+                if (g_touchmode)
+                {
+                    CSafeElementPtr<DDScalableElement> selectionElem;
+                    selectionElem.Assign((DDScalableElement*)regElem(L"selectionElem", lviTarget));
+                    if (selectionElem)
+                        selectionElem->SetVisible(false);
+                }
+            }
             else
             {
                 lviTarget->SetGroupSize(LVIGS_NORMAL);
@@ -2298,7 +2332,8 @@ namespace DirectDesktop
     {
         if (iev->uidType == DDLVActionButton::Click)
         {
-            SearchParams sp = { 2, (LPWSTR)((DDLVActionButton*)elem)->GetAssociatedItem()->GetFilename().c_str() };
+            SearchParams sp = { 0x6, (LPWSTR)((DDLVActionButton*)elem)->GetAssociatedItem()->GetFilename().c_str(),
+                (LPWSTR)((DDLVActionButton*)elem)->GetAssociatedItem()->GetSimpleFilename().c_str() };
             CreateSearchPage(&sp);
         }
     }
@@ -2626,7 +2661,7 @@ namespace DirectDesktop
         return 0;
     }
 
-    void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir)
+    void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir, bool fShadow)
     {
         if (id >= (*pmLVItem).size() || !((*pmLVItem)[id])) return;
         DWORD lviFlags = (*pmLVItem)[id]->GetFlags();
@@ -2782,7 +2817,7 @@ namespace DirectDesktop
             }
         }
 
-        if ((!g_isGlass || pmLVItem == &pm) && !(lviFlags & LVIF_HIDDEN))
+        if (!(lviFlags & LVIF_HIDDEN) && fShadow)
         {
             HBITMAP bmpBuf{};
             if (g_touchmode) AddPaddingToBitmap(bmpForeground, bmpBuf, shadowSpace, shadowSpace, shadowSpace, shadowSpace);
@@ -3062,6 +3097,7 @@ namespace DirectDesktop
                     outerElemGrouped->SetIcon((DDScalableElement*)regElem(L"iconElem", outerElemGrouped));
                     outerElemGrouped->SetShortcutArrow(regElem(L"shortcutElem", outerElemGrouped));
                     outerElemGrouped->SetText((RichText*)regElem(L"textElem", outerElemGrouped));
+                    outerElemGrouped->SetCheckbox((TouchButton*)regElem(L"checkboxElem", outerElemGrouped));
                     outerElemGrouped->SetItemCountElement((DDScalableRichText*)regElem(L"folderItemsElem", outerElemGrouped));
                     outerElemGrouped->SetLayoutPos(1);
                     outerElemGrouped->SetMargin(0, 0, desktoppadding, desktoppadding);
@@ -3090,6 +3126,7 @@ namespace DirectDesktop
                     v_pels.push_back(assignFn((*d_subpm)[j], ItemRightClick, true));
                     v_pels.push_back(assignExtendedFn((*d_subpm)[j], SelectSubItemListener, true));
                     v_pels.push_back(assignExtendedFn((*d_subpm)[j], LVCommon::RefineSelections, true));
+                    v_pels.push_back(assignExtendedFn((*d_subpm)[j]->GetCheckbox(), LVCommon::CheckboxHandler, true));
                     (*d_subpm)[j]->SetListeners(v_pels);
                     v_pels.clear();
                     if (!g_touchmode) (*d_subpm)[j]->SetClass(L"singleclicked");
@@ -3175,6 +3212,7 @@ namespace DirectDesktop
         if (lvi->GetGroupSize() == LVIGS_SMALL) Smaller->SetEnabled(false);
         if (lvi->GetGroupSize() == LVIGS_LARGE) Larger->SetEnabled(false);
         Unpin->SetEnabled(isDefaultRes());
+        Search->SetEnabled(lviCount > 0);
         More->SetAssociatedItem(lvi);
         Smaller->SetAssociatedItem(lvi);
         Larger->SetAssociatedItem(lvi);
@@ -3235,7 +3273,7 @@ namespace DirectDesktop
         if (iev->uidType == LVItem::MultipleClick && shellstate[4] & 0x20 && !g_touchmode)
         {
         CLICKACTION:
-            if (!(ctrlKey & 0x8000))
+            if (!(ctrlKey & 0x8000 || shiftKey & 0x8000))
             {
                 TouchButton* checkbox = ((LVItem*)elem)->GetCheckbox();
                 DWORD lviFlags = ((LVItem*)elem)->GetFlags();
@@ -4144,7 +4182,7 @@ namespace DirectDesktop
         }
         static IElementListener *pel_MarqueeSelector, *pel_DesktopRightClick;
         parser->CreateElement(elemname, nullptr, nullptr, nullptr, (Element**)&g_outerElem);
-        if (bAlreadyOpen && isDefaultRes()) SetPos(true);
+        if (bAlreadyOpen) SetPos(isDefaultRes());
         for (int i = 0; i < pm.size(); i++)
         {
             pm[i]->RemoveFlags(LVIF_DIR);
@@ -4197,8 +4235,6 @@ namespace DirectDesktop
             outerElem->SetItemCountElement((DDScalableRichText*)regElem(L"folderItemsElem", outerElem));
             pm.push_back(outerElem);
         }
-        UIContainer->RemoveFlags(LVCF_NOANIMATE);
-        UIContainer->AddFlags(LVCF_ANIMATEPARTIAL);
         if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialization: 3 of 6 complete: Created elements, preparing to enumerate desktop folders.");
         EnumerateFolder((LPWSTR)L"InternalCodeForNamespace", &pm, &count2, lviCount);
         DWORD d = GetEnvironmentVariableW(L"PUBLIC", cBuffer, 260);
@@ -4416,7 +4452,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 102");
+            peTemp[1]->SetContentString(L"Build 103");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -4719,6 +4755,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                       _In_ LPWSTR lpCmdLine,
                       _In_ int nCmdShow)
 {
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     WCHAR* WindowsBuildStr;
     GetRegistryStrValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", &WindowsBuildStr);
     int WindowsBuild = _wtoi(WindowsBuildStr);
@@ -4965,12 +5003,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode", 0, true, nullptr);
     g_pctx->debugmode = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode");
-    while (*lpCmdLine && iswspace(*lpCmdLine)) {
-        ++lpCmdLine;
-    }
 
-    if (wcsstr(lpCmdLine, L"-d") || wcsstr(lpCmdLine, L"/d")) {
-        g_pctx->debugmode = true;
+    if (argv)
+    {
+        for (int i = 1; i < argc; i++)
+        {
+            if (wcscmp(argv[i], L"-d") == 0 || wcscmp(argv[i], L"/d") == 0)
+                g_pctx->debugmode = true;
+        }
     }
 
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"AnimationSpeed", 100, true, nullptr);
@@ -5028,7 +5068,45 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion %s\nBuilt on %s", GetExeVersion().c_str(), BUILD_DATE);
 
     DDNotificationBanner* ddnb = new DDNotificationBanner();
-    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M5", prerelNotice, 10, nullptr);
+    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M6", prerelNotice, 10, nullptr);
+
+    if (argv)
+    {
+        for (int i = 1; i < argc; i++)
+        {
+            if ((wcscmp(argv[i], L"-c") == 0 || wcscmp(argv[i], L"/c") == 0) && argc > i + 1)
+            {
+                DWORD oldExit = wcstoul(argv[i + 1], nullptr, 10);
+                if (oldExit > 1)
+                {
+                    WCHAR crashReason[128];
+                    switch (oldExit)
+                    {
+                    case 0xC0000005:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: Read/write access violation", oldExit);
+                        break;
+                    case 0xC0000094:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: Integer division by zero", oldExit);
+                        break;
+                    case 0xC00000FD:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: A new guard page for the stack cannot be created", oldExit);
+                        break;
+                    case 0xC0000374:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: A heap has been corrupted", oldExit);
+                        break;
+                    case 0xC000041D:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: Unhandled exception occurred during a user callback", oldExit);
+                        break;
+                    default:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Unknown", oldExit);
+                        break;
+                    }
+                    DDNotificationBanner* ddnb = new DDNotificationBanner();
+                    ddnb->CreateBanner(DDNT_INFO, L"DirectDesktop has recovered from an error", crashReason, 7, nullptr);
+                }
+            }
+        }
+    }
 
     if (logging == IDYES) MainLogger.WriteLine(L"Information: Initialized layout successfully.\n\nLogging is now complete.");
 

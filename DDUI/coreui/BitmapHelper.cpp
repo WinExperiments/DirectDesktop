@@ -128,8 +128,6 @@ namespace DDUI
         return true;
     }
 
-    TEXTMETRICW textm;
-
     bool CreateTextBitmap(HBITMAP& hBitmap, LPCWSTR text, int width, int height, DWORD ellipsisType, bool touch, DWORD dwFontStyle)
     {
         if (hBitmap) DeleteObject(hBitmap);
@@ -184,7 +182,6 @@ namespace DDUI
                 pPixel[3] = 255;
             }
         }
-        GetTextMetricsW(hdcMem, &textm);
         SelectObject(hdcMem, hOldFont);
         SelectObject(hdcMem, hOldBitmap);
         DeleteObject(hFont);

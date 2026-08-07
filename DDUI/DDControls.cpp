@@ -177,8 +177,11 @@ namespace DDUI
                 COLORREF crAssoc;
                 Value* vAssoc = pe->GetValue(DDScalableElement::AssociatedColorProp(), 1, nullptr);
                 crAssoc = pe->GetAssociatedColor();
+                double alpha = (pe->GetAssociatedColor() >> 24) / 255.0;
+                if ((pe->GetAssociatedColor() >> 24) == 0)
+                    alpha = 1.0;
                 if ((crAssoc != 0 && crAssoc != 0xFFFFFFFF) || vAssoc->GetType() == (int)ValueType::Int)
-                    IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 3, 0, pe->GetDDCPIntensity() / 255.0, pe->GetAssociatedColor());
+                    IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 3, 0, (pe->GetDDCPIntensity() / 255.0) * alpha, pe->GetAssociatedColor());
                 else if (pe->GetEnableAccent())
                     IterateBitmap(hbmIndexed, StandardBitmapPixelHandler, 1, 0, pe->GetDDCPIntensity() / 255.0, g_colors.ImmersiveColor);
                 //else if (pe->GetDDCPIntensity() != 255)
@@ -226,6 +229,7 @@ namespace DDUI
                 if (result) *result = true;
                 return;
             }
+            v->Release();
             wstring fontOld = pe->GetFont(&v);
             wregex fontRegex(L".*font;.*\%.*");
             bool isSysmetricFont = regex_match(fontOld, fontRegex);
@@ -303,6 +307,19 @@ namespace DDUI
         if (*(dea->ppe))
         {
             SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 5);
+        }
+        else delete dea;
+        return 0;
+    }
+
+    DWORD WINAPI SetVisibleBySelectionDelayed(LPVOID lpParam)
+    {
+        DelayedElementActions* dea = (DelayedElementActions*)lpParam;
+        Sleep(dea->dwMillis);
+        dea = (DelayedElementActions*)lpParam;
+        if (dea->pe)
+        {
+            SendMessageW(g_msgwnd, WM_USER + 5, (WPARAM)dea, 6);
         }
         else delete dea;
         return 0;
@@ -1984,6 +2001,13 @@ namespace DDUI
     {
         bool result{};
         result = Element::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::FontProp))
+        {
+            _pePreview->SetValue(Element::FontProp, 1, pvNew);
+            _peEdit->SetValue(Element::FontProp, 1, pvNew);
+            RedrawFontCore<DDScalableElement>(_pePreview, &result, this->GetNeedsFontResize());
+            RedrawFontCore<TouchEdit2>(_peEdit, &result, this->GetNeedsFontResize());
+        }
         if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp) || PropNotify::IsEqual(ppi, iIndex, TouchEdit2::PromptTextProp))
         {
             result = false;
@@ -2038,6 +2062,7 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, Element::EnabledProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::FirstScaledImageProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ScaledImageIntervalsProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageCountProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::ImageIndexProp) ||
             PropNotify::IsEqual(ppi, iIndex, DDScalableElement::DrawTypeProp) ||
@@ -2072,6 +2097,7 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
         {
+            RedrawFontCore<DDScalableElement>(_pePreview, nullptr, this->GetNeedsFontResize());
             RedrawFontCore<TouchEdit2>(_peEdit, nullptr, this->GetNeedsFontResize());
         }
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
@@ -2230,9 +2256,9 @@ namespace DDUI
     {
         CValuePtr v;
         DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
-        short ctrlKey = GetAsyncKeyState(VK_CONTROL);
-        short shiftKey = GetAsyncKeyState(VK_SHIFT);
-        bool fKeyboardOrShift = (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000 || GetAsyncKeyState(VK_RBUTTON) & 0x8000) || shiftKey & 0x8000);
+        BYTE ctrlKey = GetKeyState(VK_CONTROL);
+        BYTE shiftKey = GetKeyState(VK_SHIFT);
+        bool fKeyboardOrShift = (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000 || GetAsyncKeyState(VK_RBUTTON) & 0x8000) || shiftKey & 0x80);
         if (peTo == _peWhitespace && rgList && peFrom && peFrom->GetParent() != _peWhitespace)
         {
             if (!_peFocused)
@@ -2248,7 +2274,7 @@ namespace DDUI
         }
         if (peTo && peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo->GetParent() == _peWhitespace)
         {
-            if ((!(ctrlKey & 0x8000) || (peFrom && peFrom->GetParent() != _peWhitespace)))
+            if (peFrom && !(ctrlKey & 0x80))
             {
                 if (rgList)
                 {
@@ -2258,7 +2284,7 @@ namespace DDUI
                         if (rgList->GetItem(items) == peTo)
                         {
                             idCurrentItem = items;
-                            if (!(shiftKey & 0x8000)) _idSelectedPivot = idCurrentItem;
+                            if (!(shiftKey & 0x80)) _idSelectedPivot = idCurrentItem;
                         }
                         idFirstItem = _idSelectedPivot;
                         idLastItem = idCurrentItem;
@@ -2272,8 +2298,8 @@ namespace DDUI
                     {
                         for (int items = 0; items < rgList->GetSize(); items++)
                         {
-                            bool withinShiftRange = ((shiftKey & 0x8000) && items >= idFirstItem && items <= idLastItem);
-                            if (rgList->GetItem(items) != peTo && !withinShiftRange && !(ctrlKey & 0x8000))
+                            bool withinShiftRange = ((shiftKey & 0x80) && items >= idFirstItem && items <= idLastItem);
+                            if (rgList->GetItem(items) != peTo && !withinShiftRange && !(ctrlKey & 0x80))
                                 rgList->GetItem(items)->SetSelected(false);
                             if (withinShiftRange)
                                 rgList->GetItem(items)->SetSelected(true);
@@ -2432,22 +2458,30 @@ namespace DDUI
                         innerElem->SetVisible(!fKeyboard || finalFade == 1.0f);
                         if (!fKeyboard)
                         {
-                            TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, (finalFade == 0.0f), false, false);
+                            TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, false, false, false);
                             ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                            DWORD animCoef = g_ctx.animCoef;
+                            if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+                            DelayedElementActions* dea = new DelayedElementActions{ animCoef, innerElem , nullptr };
+                            HANDLE hFadeHelper = CreateThread(nullptr, 0, SetVisibleBySelectionDelayed, dea, NULL, nullptr);
+                            if (hFadeHelper) CloseHandle(hFadeHelper);
                         }
                     }
                     // Apparently this needs to be done otherwise there will be ugly overlays...
                     ////////////////////////////////////
-                    CValuePtr v;
-                    DynamicArray<Element*>* pel = elem->GetChildren(&v);
-                    if (pel && !fKeyboard)
+                    if (innerElem)
                     {
-                        for (int id = 0; id < pel->GetSize(); id++)
+                        CValuePtr v;
+                        DynamicArray<Element*>* pel = elem->GetChildren(&v);
+                        if (pel && !fKeyboard)
                         {
-                            Element* child = pel->GetItem(id);
-                            if (child == innerElem) continue;
-                            TriggerFade(child, transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                            for (int id = 0; id < pel->GetSize(); id++)
+                            {
+                                Element* child = pel->GetItem(id);
+                                if (child == innerElem) continue;
+                                TriggerFade(child, transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                            }
                         }
                     }
                     ////////////////////////////////////
@@ -2592,6 +2626,8 @@ namespace DDUI
 
     HRESULT LVCommon::RemoveAll()
     {
+        _peSelected = nullptr;
+        _peFocused = nullptr;
         this->_OnRemoveAll();
         return _peWhitespace->RemoveAll();
     }
@@ -3359,7 +3395,7 @@ namespace DDUI
             ////////////////////////////////////////////////////////////////////////////////
             if (peTo->GetClassInfoW() == LVItem::GetClassInfoPtr() && peTo->GetParent() == _peWhitespace)
             {
-                if ((!(ctrlKey & 0x80) || (peFrom && peFrom->GetParent() != _peWhitespace)))
+                if (peFrom && !(ctrlKey & 0x80))
                 {
                     _peSelected = peTo;
                     if (!(shiftKey & 0x80) || !_pePivot)
@@ -3594,24 +3630,48 @@ namespace DDUI
         int step = size / 2;
         if (step == 0) step = 1;
         unsigned short runs = 0; // Preventive measure for launch/refresh animation, which causes no exact match and an infinite loop
+        int prev = 0;
+        int prevprev = 0;
         while (index < size && (*rgPos)[index] != iTargetValue && runs < 0xFFF0)
         {
+            bool nomatch = false;
             while (index < size && (*rgPos)[index] < iTargetValue && runs < 0xFFF0)
             {
                 runs++;
                 index += step;
                 if (step > 1) step /= 2;
+                else
+                {
+                    if (index == prevprev)
+                    {
+                        nomatch = true;
+                        break;
+                    }
+                    prevprev = prev;
+                    prev = index;
+                }
             }
             while (index > 0 && (*rgPos)[index] > iTargetValue && runs < 0xFFF0)
             {
                 runs++;
                 index -= step;
                 if (step > 1) step /= 2;
+                else
+                {
+                    if (index == prevprev)
+                    {
+                        nomatch = true;
+                        break;
+                    }
+                    prevprev = prev;
+                    prev = index;
+                }
             }
+            if (nomatch || (index == 0 && (*rgPos)[0] > iTargetValue)) break;
             runs++;
         }
-        if (runs >= 0xFFF0) return 0;
-        return index;
+        if (index < size && (*rgPos)[index] == iTargetValue) return index;
+        return 0;
     }
 
     void LVGrid::_ShiftSelectionHelper(RECT* prcFrom, RECT* prcTo)
@@ -3686,7 +3746,9 @@ namespace DDUI
                         cond = (g_ctx.localeType != 1 && rcCurrent.right < rcPivot.right) || (g_ctx.localeType == 1 && rcCurrent.left > rcPivot.left);
                     if (_rgYPos[indexY] >= bottom - halfHeight)
                     {
-                        cond = (g_ctx.localeType != 1 && rcCurrent.right < rcPivot.right) || (g_ctx.localeType == 1 && rcCurrent.left > rcPivot.left);
+                        if (prcFrom->left == prcPivot->left && prcFrom->top == prcPivot->top &&
+                            prcFrom->right == prcPivot->right && prcFrom->bottom == prcPivot->bottom)
+                            cond = (g_ctx.localeType != 1 && rcCurrent.right < rcPivot.right) || (g_ctx.localeType == 1 && rcCurrent.left > rcPivot.left);
                         if ((g_ctx.localeType != 1 && (rcCurrent.left >= start && rcCurrent.right <= end)) ||
                             (g_ctx.localeType == 1 && (rcCurrent.right <= start && rcCurrent.left >= end)))
                             _rgYItems[indexY]->SetSelected(selectmode ^ cond);
@@ -3905,8 +3967,9 @@ namespace DDUI
 
     void LVGrid::_OnRemoveAll()
     {
-        _peSelected = nullptr;
-        _peFocused = nullptr;
+        _peFocusedOld = nullptr;
+        _pePivot = nullptr;
+        _peAnimating = nullptr;
         _rgXPos.clear();
         _rgYPos.clear();
         _rgXItems.clear();
@@ -4809,6 +4872,16 @@ namespace DDUI
         if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp) || PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp))
         {
             if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp)) ElementSetValue(_peIcon, ppi, pvNew, this);
+            ElementSetValue(_peContent, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::FontProp))
+        {
+            ElementSetValue(_peContent, Element::FontProp(), pvNew, this);
+            RedrawFontCore<DDScalableRichText>(_peContent, nullptr, this->GetNeedsFontResize());
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ForegroundProp) || PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
+        {
+            ElementSetValue(_peIcon, ppi, pvNew, this);
             ElementSetValue(_peContent, ppi, pvNew, this);
         }
         DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
@@ -8305,7 +8378,8 @@ namespace DDUI
                     SetWindowPos(g_nwnds.back()->_wnd->GetHWND(), NULL, NULL, NULL, windowRect.right - windowRect.left, cy, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
                     DDNotificationBanner::s_RepositionBanners(false, cy - windowRect.bottom + windowRect.top, windowRect.bottom);
                 }
-                SetTimer(g_nwnds.back()->_wnd->GetHWND(), (UINT_PTR)this, timeout * 1000, nullptr);
+                if (timeout > 0)
+                    SetTimer(g_nwnds.back()->_wnd->GetHWND(), (UINT_PTR)this, timeout * 1000, nullptr);
                 return;
             }
         }
@@ -8440,11 +8514,9 @@ namespace DDUI
             DDNotificationBanner::s_RepositionBanners(false, 16 * g_ctx.flScaleFactor + cy, 0);
             _scbi = new SimpleCubicBezierInterpolator();
             _scbi->SetCurve(0.1, 1.5, 1.0, 1.0);
+            SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
             if (timeout > 0)
-            {
-                SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
                 SetTimer(_wnd->GetHWND(), (UINT_PTR)this, timeout * 1000, nullptr);
-            }
             SetTimer(_hTimer, 1, 50, nullptr);
         }
     }

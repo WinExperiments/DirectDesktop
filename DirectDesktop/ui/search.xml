@@ -5,18 +5,24 @@
 		</Element>
 		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 			<Element id="atom(pagecontent)" layout="borderlayout()" padding="rect(48rp,48rp,48rp,48rp)" layoutpos="client" visible="false">
-				<Element layout="borderlayout()" layoutpos="top" font="messagefont;133%" margin="rect(0,0,0,16rp)" height="40rp" background="argb(0,0,0,0)">
-					<DDScalableTouchButton id="atom(closebutton)" layoutpos="right" font="messagefont;133%" margin="rect(16rp,0,0,0)" class="pushbuttonsecondary" content="X" padding="rect(8rp,0,8rp,0)"/>
-					<DDScalableTouchButton id="atom(searchbutton)" shortcut="83" layoutpos="right" font="messagefont;133%" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" content="Search" padding="rect(8rp,0,8rp,0)"/>
-					<DDScalableTouchEdit id="atom(searchbox)" layoutpos="client" background="argb(0,0,0,0)" prompttext="Type here to search" NeedsFontResize="true"/>
+				<Element layout="borderlayout()" layoutpos="top" margin="rect(0,0,0,16rp)" height="40rp" background="argb(0,0,0,0)">
+					<DDScalableTouchButton id="atom(closebutton)" layoutpos="right" font="resstr(146)" margin="rect(16rp,0,0,0)" class="pushbuttonsecondary" content="resstr(138)" padding="rect(5rp,0,5rp,0)"/>
+					<DDScalableTouchButton id="atom(searchbutton)" layoutpos="right" font="resstr(146)" margin="rect(16rp,0,0,0)" class="pushbuttonprimary" content="resstr(145)" padding="rect(5rp,0,5rp,0)"/>
+					<DDScalableTouchEdit id="atom(searchbox)" font="messagefont;133%" layoutpos="client" background="argb(0,0,0,0)" prompttext="Type here to search" NeedsFontResize="true"/>
 				</Element>
-				<DDScalableRichText id="atom(ResultCount)" layoutpos="none" font="16pt;Semibold;None;Segoe UI" contentalign="wrapleft" padding="rect(0,0,0,16rp)"/>
+				<Element id="atom(SearchFilters)" layoutpos="top" layout="flowlayout(1,0,0,2)" padding="rect(0,0,0,8rp)"/>
+				<Element id="atom(ResultInfo)" layoutpos="none" layout="flowlayout(0,0,0,2)" padding="rect(0,0,0,16rp)">
+					<DDScalableRichText id="atom(ResultCount)" font="16pt;Semibold;None;Segoe UI" margin="rect(0,0,16rp,0)"/>
+					<DDScalableTouchButton id="atom(PreviousResults)" visible="false" class="pushbuttonsecondary" content="resstr(140)" font="resstr(146)" margin="rect(0,0,8rp,0)" padding="rect(0,0,0,0)" width="24rp" height="24rp"/>
+					<DDScalableRichText id="atom(CurrentResults)" font="11pt;Normal;None;Segoe UI" class="subtext" margin="rect(0,0,8rp,0)"/>
+					<DDScalableTouchButton id="atom(NextResults)" visible="false" class="pushbuttonsecondary" content="resstr(141)" font="resstr(146)" padding="rect(0,0,0,0)" width="24rp" height="24rp"/>
+				</Element>
 				<TouchScrollViewer id="atom(SearchResults)" background="argb(0,0,0,0)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="false" yscrollable="true" xbarvisibility="never" ybarvisibility="asneeded" behaviors="PVL::AnimationTrap()">
 					<Element layout="filllayout()" background="argb(0,0,0,0)">
 						<Element id="atom(rescontainer)" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
 							<DDScalableElement FirstScaledImage="3059" ScaledImageIntervals="7" DrawType="2" EnableAccent="true" direction="ltr" margin="rect(0,0,0,12rp)"/>
 							<DDScalableRichText content="Search" font="iconfont;133%;semibold"/>
-							<DDScalableRichText content="Start typing to search for files and folders." font="iconfont;100%" foreground="rgb(160,160,160)"/>
+							<DDScalableRichText content="Start typing to search for files and folders." font="iconfont;100%" class="subtext"/>
 						</Element>
 						<LVCommon id="atom(LVSearchResults)" layoutpos="client" padding="rect(0,0,32rp,0)" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()"/>
 					</Element>
@@ -24,9 +30,17 @@
 			</Element>
 		</Element>
 	</HWNDElement>
-	<LVItem resid="SearchResult" class="searchentry" layout="borderlayout()" layoutpos="top" minsize="size(0,48rp)" margin="rect(0,0,0,8rp)">
-		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="middlecenter" layoutpos="left" DrawType="1"/>
-		<DDScalableRichText id="atom(name)" background="argb(0,0,0,0)" layoutpos="top" font="12pt;Normal;None;Segoe UI"/>
+	<Element resid="SearchFilter" layout="flowlayout(0,0,0,2)">
+		<DDScalableRichText id="atom(SFPrefix)" class="subtext" font="messagefont;115%" NeedsFontResize="true"/>
+		<DDIconButton id="atom(SFInfo)" layout="flowlayout(0,2,2,2)" class="searchfilter" NeedsFontResize="true" margin="rect(2rp,0,2rp,10rp)"/>
+		<DDScalableRichText id="atom(SFSuffix)" class="subtext" font="messagefont;115%" NeedsFontResize="true"/>
+	</Element>
+	<LVItem resid="SearchResult" class="searchentry" layout="borderlayout()" layoutpos="top" minsize="size(0,54rp)" margin="rect(0,0,0,8rp)">
+		<Element layout="filllayout()" layoutpos="left" background="argb(0,0,0,0)" padding="rect(11rp,11rp,6rp,11rp)">
+			<DDScalableElement id="atom(iconElem)" contentalign="middlecenter" DrawType="1" minsize="size(32rp,32rp)"/>
+			<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" minsize="size(32rp,32rp)" contentalign="bottomleft"/>
+		</Element>
+		<DDScalableRichText id="atom(name)" background="argb(0,0,0,0)" layoutpos="top" font="12pt;Normal;None;Segoe UI" padding="rect(0,6rp,0,0)"/>
 		<DDScalableRichText id="atom(path)" background="argb(0,0,0,0)" class="subtext" layoutpos="top" font="9pt;Normal;None;Segoe UI"/>
 	</LVItem>
 	<stylesheets>
@@ -54,6 +68,19 @@
 			<if class="subtext">
 				<DDScalableRichText foreground="rgb(128,128,128)"/>
 			</if>
+			<if class="searchfilter">
+				<DDIconButton FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" AssociatedColor="argb(16,0,0,0)"
+							  borderthickness="rect(8rp,8rp,8rp,8rp)" iconfont="resstr(146)" font="messagefont;115%;semibold" foreground="20007"/>
+				<if mousefocused="true">
+					<DDIconButton AssociatedColor="argb(32,0,0,0)" foreground="20008"/>
+				</if>
+				<if Pressed="true">
+					<DDIconButton AssociatedColor="argb(24,0,0,0)" foreground="20006"/>
+				</if>
+				<if id="atom(DDIB_Icon)">
+					<DDScalableRichText padding="rect(0,0,4rp,0)"/>
+				</if>
+			</if>
 		</style>
 		<style resid="searchstyledark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
 			<if id="atom(searchbase)">
@@ -78,6 +105,19 @@
 			</if>
 			<if class="subtext">
 				<DDScalableRichText foreground="rgb(176,176,176)"/>
+			</if>
+			<if class="searchfilter">
+				<DDIconButton FirstScaledImage="3003" ScaledImageIntervals="7" DrawType="1" AssociatedColor="argb(16,255,255,255)"
+							  borderthickness="rect(8rp,8rp,8rp,8rp)" iconfont="resstr(146)" font="messagefont;115%;semibold" foreground="20003"/>
+				<if mousefocused="true">
+					<DDIconButton AssociatedColor="argb(32,255,255,255)" foreground="20002"/>
+				</if>
+				<if Pressed="true">
+					<DDIconButton AssociatedColor="argb(24,255,255,255)" foreground="20004"/>
+				</if>
+				<if id="atom(DDIB_Icon)">
+					<DDScalableRichText padding="rect(0,0,4rp,0)"/>
+				</if>
 			</if>
 		</style>
 	</stylesheets>

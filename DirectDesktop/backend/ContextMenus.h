@@ -14,6 +14,7 @@ namespace DirectDesktop
     extern bool g_hiddenIcons;
     extern bool g_touchmode;
     extern bool g_menu;
+    extern bool g_searchopen;
     extern NativeHWNDHost* wnd;
     extern std::vector<LVItem**> selectedLVItems;
 

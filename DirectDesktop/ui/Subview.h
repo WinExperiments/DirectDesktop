@@ -21,9 +21,10 @@ namespace DirectDesktop
 	extern bool g_issettingsopen;
 	extern BYTE* shellstate;
 
+	extern void GetFontHeight();
 	extern void AdjustWindowSizes(bool firsttime);
 	extern void CalcDesktopIconInfo(yValue* yV, int* lines_basedOnEllipsis, DWORD* alignment, bool subdirectory, vector<LVItem*>* pmLVItem);
-	extern void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
+	extern void ApplyIcons(vector<LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir, bool fShadow);
 	extern void ShowDebugInfoOnDesktop(bool bUnused1, bool bUnused2, bool bUnused3);
 
 	extern void OpenGroupInExplorer(Element* elem, Event* iev);

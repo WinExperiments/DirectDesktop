@@ -44,7 +44,7 @@ namespace DirectDesktop
         case WM_DPICHANGED:
         {
             g_lastDpiChangeTick = GetTickCount64();
-            UpdateScale();
+            GetFontHeight();
             SetTimer(wnd->GetHWND(), 10, 1000, nullptr);
             break;
         }
@@ -92,7 +92,7 @@ namespace DirectDesktop
                 if (g_pctx->windowAnim && g_pctx->clientAnim)
                 {
                     centered->SetVisible(false);
-                    TriggerScaleIn(centered, transDesc, 0, 0.05f, 0.3f, 0.25f, 0.1f, 0.25f, 1.0f, 0.97f, 0.97f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, true, false);
+                    TriggerScaleIn(centered, transDesc, 0, 0.05f, 0.3f, 0.25f, 0.1f, 0.25f, 1.0f, 0.98f, 0.98f, 0.5f, 0.5f, 1.0f, 1.0f, 0.5f, 0.5f, true, false);
                     ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                     AnimateWindow(hWnd, 10, AW_BLEND | AW_HIDE);
                     HANDLE AnimHandle = CreateThread(nullptr, 0, AnimateWindowWrapper2, nullptr, NULL, nullptr);
@@ -205,7 +205,7 @@ namespace DirectDesktop
                     if (peIcon)
                     {
                         short shadedSize{}, /*shadedX{},*/ shadedY{};
-                        if (!(lviFlags & LVIF_HIDDEN || g_isGlass))
+                        if (!(lviFlags & LVIF_HIDDEN))
                         {
                             shadedSize = 16;
                             //shadedX = 8 * g_pctx->flScaleFactor;
@@ -257,7 +257,7 @@ namespace DirectDesktop
                             else peItemCount->SetForegroundColor(0xFFFFFFFF);
                         }
                     }
-                    if (lviFlags & LVIF_HIDDEN || g_isGlass)
+                    if (lviFlags & LVIF_HIDDEN)
                     {
                         short iconspace = 8 * g_pctx->flScaleFactor;
                         peIcon->SetPadding(iconspace, iconspace, iconspace, iconspace);
@@ -360,7 +360,7 @@ namespace DirectDesktop
                     {
                         DWORD lviFlags = (*l_pm)[num]->GetFlags();
                         short shadedSize{};
-                        if (!(lviFlags & LVIF_HIDDEN || g_isGlass))
+                        if (!(lviFlags & LVIF_HIDDEN))
                             shadedSize = 16;
                         RECT rcItem{};
                         GetGadgetRect((*l_pm)[num]->GetDisplayNode(), &rcItem, 0x4);
@@ -490,7 +490,7 @@ namespace DirectDesktop
                 CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
             COLORREF crSubdir = (COLORREF)yV->num;
             DesktopIcon* di = (DesktopIcon*)yV->peOptionalTarget1;
-            ApplyIcons(l_pm, di, true, num, 1, crSubdir);
+            ApplyIcons(l_pm, di, true, num, 1, crSubdir, !g_isGlass);
             if (initCom)
                 CoUninitialize();
         }
@@ -990,11 +990,22 @@ namespace DirectDesktop
 
     void SelectSubItem(Element* elem, Event* iev)
     {
-        if (iev->uidType == LVItem::Click)
+        short ctrlKey = GetAsyncKeyState(VK_CONTROL);
+        short shiftKey = GetAsyncKeyState(VK_SHIFT);
+        if (iev->uidType == LVItem::Click || iev->uidType == LVItem::MultipleClick)
         {
-            wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
-            LaunchItem(temp.c_str());
+            if (!(ctrlKey & 0x8000 || shiftKey & 0x8000))
+            {
+                TouchButton* checkbox = ((LVItem*)elem)->GetCheckbox();
+                DWORD lviFlags = ((LVItem*)elem)->GetFlags();
+                if (checkbox->GetMouseFocused() == false && !(lviFlags & LVIF_DRAG))
+                {
+                    wstring temp = RemoveQuotes(((LVItem*)elem)->GetFilename());
+                    LaunchItem(temp.c_str());
+                }
+            }
         }
+        LVCommon::SelectItemBase(elem, iev);
     }
 
     void SelectSubItemListener(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
@@ -1095,6 +1106,7 @@ namespace DirectDesktop
                 outerElemGrouped->SetIcon((DDScalableElement*)regElem(L"iconElem", outerElemGrouped));
                 outerElemGrouped->SetShortcutArrow(regElem(L"shortcutElem", outerElemGrouped));
                 outerElemGrouped->SetText((RichText*)regElem(L"textElem", outerElemGrouped));
+                outerElemGrouped->SetCheckbox((TouchButton*)regElem(L"checkboxElem", outerElemGrouped));
                 outerElemGrouped->SetItemCountElement((DDScalableRichText*)regElem(L"folderItemsElem", outerElemGrouped));
                 outerElemGrouped->SetLayoutPos(1);
                 outerElemGrouped->SetMargin(0, 0, desktoppadding, desktoppadding);
@@ -1121,6 +1133,7 @@ namespace DirectDesktop
                 v_pels.push_back(assignFn((*subpm)[j], ItemRightClick, true));
                 v_pels.push_back(assignExtendedFn((*subpm)[j], SelectSubItemListener, true));
                 v_pels.push_back(assignExtendedFn((*subpm)[j], LVCommon::RefineSelections, true));
+                v_pels.push_back(assignExtendedFn((*subpm)[j]->GetCheckbox(), LVCommon::CheckboxHandler, true));
                 (*subpm)[j]->SetListeners(v_pels);
                 v_pels.clear();
                 if (!g_touchmode) (*subpm)[j]->SetClass(L"singleclicked");
@@ -1172,6 +1185,7 @@ namespace DirectDesktop
         OpenInExplorer.Assign((DDLVActionButton*)regElem(L"OpenInExplorer", groupdirectory));
         Search->SetVisible(true), Pin->SetVisible(true), Customize->SetVisible(true), OpenInExplorer->SetVisible(true);
         Pin->SetEnabled(isDefaultRes());
+        Search->SetEnabled(lviCount > 0);
         assignFn(Group_Back, CloseCustomizePage);
         assignFn(OpenInExplorer, OpenGroupInExplorer);
         assignFn(Customize, OpenCustomizePage);

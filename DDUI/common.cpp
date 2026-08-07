@@ -415,7 +415,7 @@ namespace DDUI
     void UpdateScale()
     {
         g_ctx.dpiOld = g_ctx.dpi;
-        g_ctx.dpi = GetDpiForWindow(GetShellWindow());
+        g_ctx.dpi = GetDpiForWindow(g_msgwnd);
         g_isDpiPreviouslyChanged = true;
         g_ctx.flScaleFactor = g_ctx.dpi / 96.0;
     }
@@ -476,6 +476,11 @@ namespace DDUI
     {
         switch (uMsg)
         {
+        case WM_DPICHANGED:
+        {
+            UpdateScale();
+            break;
+        }
         case WM_SETTINGCHANGE:
         {
             if (wParam == SPI_SETFONTSMOOTHING)
@@ -574,6 +579,9 @@ namespace DDUI
                         break;
                     case 5:
                         RedrawBorderCore<DDScalableElement>((DDScalableElement*)(pe));
+                        break;
+                    case 6:
+                        pe->SetVisible(pe->GetSelected() || pe->GetMouseFocused());
                         break;
                     }
                 }

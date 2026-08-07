@@ -116,9 +116,9 @@ namespace DDUI
                 BYTE regSetter = ddtb->GetCheckedState();
 
                 // 0.6: TODO: Move these to main DD project and make them more flexible
-                if (rkv.GetValueToFind() == L"Hidden") regSetter = (!ddtb->GetCheckedState() + 1);
-                if (rkv.GetValueToFind() == L"Logging") regSetter = (!ddtb->GetCheckedState() + 6);
-                if (rkv.GetValueToFind() == L"IconUnderline") regSetter = (!ddtb->GetCheckedState() + 2);
+                if (wcscmp(rkv.GetValueToFind(), L"Hidden") == 0) regSetter = (!ddtb->GetCheckedState() + 1);
+                if (wcscmp(rkv.GetValueToFind(), L"Logging") == 0) regSetter = (!ddtb->GetCheckedState() + 6);
+                if (wcscmp(rkv.GetValueToFind(), L"IconUnderline") == 0) regSetter = (!ddtb->GetCheckedState() + 2);
 
                 if (rkv.GetHKeyName() != nullptr) SetRegistryValues(rkv.GetHKeyName(), rkv.GetPath(), rkv.GetValueToFind(), regSetter, false, nullptr);
                 if (ddtb->GetShellInteraction())

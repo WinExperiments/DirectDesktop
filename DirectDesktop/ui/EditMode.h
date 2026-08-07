@@ -24,7 +24,7 @@ namespace DirectDesktop
     extern Element* PageViewer;
     extern int g_currentPageID, g_maxPageID;
     extern void TogglePage(Element* pageElem, float offsetL, float offsetT, float offsetR, float offsetB);
-    extern void ApplyIcons(std::vector<DDUI::LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
+    extern void ApplyIcons(std::vector<DDUI::LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir, bool fShadow);
     extern TouchButton *nextpageMain, *prevpageMain;
     extern DDScalableTouchButton *nextpage, *prevpage;
     extern DDScalableRichText* pageinfo;

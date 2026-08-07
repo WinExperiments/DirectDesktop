@@ -510,35 +510,36 @@ namespace DirectDesktop
         ppFolder->Release();
     }
 
-    // 0.5.8: may need revision in the future
     void ItemRightClick(Element* elem, Event* iev)
     {
         if (iev->uidType == LVItem::RightClick)
         {
-            bool checkselections = true;
             selectedLVItems.clear();
-            if (!elem->GetSelected() || (elem->GetParent()->GetParent()->GetClassInfoW() != LVGrid::GetClassInfoPtr()))
+            IClassInfo* pClass = elem->GetParent()->GetParent()->GetClassInfoW();
+            if (pClass == LVCommon::GetClassInfoPtr() || pClass == LVGrid::GetClassInfoPtr() || pClass == LVTiles::GetClassInfoPtr())
             {
-                bool main = false;
-                checkselections = false;
-                for (int items = 0; items < pm.size(); items++)
+                bool fHasClicked = false;
+                CValuePtr v;
+                DynamicArray<Element*>* rgList = elem->GetParent()->GetChildren(&v);
+                for (int items = 0; items < rgList->GetSize(); items++)
                 {
-                    pm[items]->SetSelected(false);
-                    if (pm[items] == elem)
-                    {
-                        main = true;
-                        pm[items]->SetSelected(true);
-                        selectedLVItems.push_back(&pm[items]);
-                    }
+                    if (rgList->GetItem(items) == elem && rgList->GetItem(items)->GetSelected())
+                        fHasClicked = true;
                 }
-                if (!main) selectedLVItems.push_back((LVItem**)&elem);
-            }
-            if (!g_issubviewopen && checkselections) // 0.5.6.4: temporary hack until selected lvitems is extended to subview
-            {
-                for (int items = 0; items < pm.size(); items++)
+                for (int items = 0; items < rgList->GetSize(); items++)
                 {
-                    if (pm[items] != elem && pm[items]->GetSelected()) selectedLVItems.push_back(&pm[items]);
-                    else if (pm[items] == elem) selectedLVItems.insert(selectedLVItems.begin(), &pm[items]);
+                    if (rgList->GetItem(items) == elem)
+                    {
+                        rgList->GetItem(items)->SetSelected(true);
+                        selectedLVItems.insert(selectedLVItems.begin(), (LVItem**)rgList->GetItemPtr(items));
+                    }
+                    else if (rgList->GetItem(items)->GetSelected())
+                    {
+                        if (fHasClicked)
+                            selectedLVItems.push_back((LVItem**)rgList->GetItemPtr(items));
+                        else
+                            rgList->GetItem(items)->SetSelected(false);
+                    }
                 }
             }
             if (elem->GetMouseFocused() && selectedLVItems.size() > 0)

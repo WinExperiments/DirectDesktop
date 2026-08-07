@@ -103,6 +103,8 @@ namespace DirectDesktop
     //};
 
     // Common functions
+    EventListener* assignInputFn(Element* elemName, void (*fnName)(Element* elem, InputEvent* ev), bool fReturn = false);
+    EventListener* assignExtendedFn2(Element* elemName, bool (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
     std::wstring RemoveQuotes(const std::wstring& input);
     extern HRESULT CloakWindow(HWND hwnd, bool fCloak);
     extern float CalcAnimOrigin(float flOriginFrom, float flOriginTo, float flScaleFrom, float flScaleTo);

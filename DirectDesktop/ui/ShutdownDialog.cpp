@@ -433,13 +433,10 @@ namespace DirectDesktop
         NativeHWNDHost::Create(L"DD_ShutdownHost", caption, nullptr, nullptr, (dimensions.left + dimensions.right - sizeX) / 2, (dimensions.bottom - sizeY) / 3 + dimensions.top / 1.33, sizeX, sizeY, NULL, WS_POPUP | WS_BORDER, nullptr, 0x43, &shutdownwnd);
         HWNDElement::Create(shutdownwnd->GetHWND(), true, 0x10, nullptr, &key3, (Element**)&parentShutdown);
         Microsoft::WRL::ComPtr<ITaskbarList> pTaskbarList = nullptr;
-        if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
-            IID_ITaskbarList, (void**)&pTaskbarList)))
+        if (SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList, (void**)&pTaskbarList)))
         {
             if (SUCCEEDED(pTaskbarList->HrInit()))
-            {
                 pTaskbarList->DeleteTab(shutdownwnd->GetHWND());
-            }
         }
         parserShutdown->CreateElement(L"ShutDownWindows", parentShutdown, nullptr, nullptr, &pShutdown);
         WndProcShutdown = (WNDPROC)SetWindowLongPtrW(shutdownwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)ShutdownWindowProc);

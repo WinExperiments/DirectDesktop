@@ -263,7 +263,7 @@
 				<DDScalableTouchEdit ImageIndex="4" EnableAccent="true"/>
 			</if>
 			<if id="atom(TE_EditBox)">
-				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0"/>
+				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0" selectionbackgroundcolor="20005" selectionforegroundcolor="rgb(255,255,255)"/>
 				<if keywithin="true">
 					<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
 				</if>
@@ -778,10 +778,6 @@
 					<Thumb height="2rp" minsize="size(16rp,0)" margin="rect(0,7rp,0,0)"/>
 				</if>
 			</if>
-			<DDScalableTouchEdit foreground="rgb(255,255,255)"/>
-			<if Enabled="false">
-				<DDScalableTouchEdit foreground="rgb(96,96,96)"/>
-			</if>
 			<DDScalableTouchEdit foreground="rgb(255,255,255)" FirstScaledImage="2043" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" EnableAccent="false" borderthickness="rect(4rp,4rp,4rp,4rp)"/>
 			<if mousewithin="true">
 				<DDScalableTouchEdit ImageIndex="2"/>
@@ -793,7 +789,7 @@
 				<DDScalableTouchEdit ImageIndex="4" EnableAccent="true"/>
 			</if>
 			<if id="atom(TE_EditBox)">
-				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0"/>
+				<TouchEdit2 padding="rect(0,999rp,0,999rp)" cursor="ibeam" alpha="0" selectionbackgroundcolor="20005" selectionforegroundcolor="rgb(255,255,255)"/>
 				<if keywithin="true">
 					<TouchEdit2 padding="rect(4rp,4rp,4rp,4rp)"/>
 				</if>

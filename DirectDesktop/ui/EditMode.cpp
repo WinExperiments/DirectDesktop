@@ -548,7 +548,7 @@ namespace DirectDesktop
             DWORD lviFlags = pm[yV->num]->GetFlags();
             if (lviFlags & LVIF_ADVANCEDICON)
                 HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-            ApplyIcons(&pm, &di, false, yV->num, yV->fl1, -1);
+            ApplyIcons(&pm, &di, false, yV->num, yV->fl1, -1, true);
             SendMessageW(editwnd->GetHWND(), WM_USER + 1, (WPARAM)&di, (LPARAM)yV);
             if (lviFlags & LVIF_ADVANCEDICON)
                 CoUninitialize();
@@ -722,7 +722,7 @@ namespace DirectDesktop
     {
         if (iev->uidType == TouchButton::Click)
         {
-            SearchParams sp = { 0, nullptr };
+            SearchParams sp = { 0, nullptr, nullptr };
             CreateSearchPage(&sp);
             HideSimpleView(false);
         }

@@ -53,10 +53,13 @@
 	</Element>
 	<Element resid="customizegroup" id="atom(customizegroup)" layoutpos="top" layout="borderlayout()" background="argb(0,0,0,0)">
 		<TouchScrollViewer id="atom(svOptions)" active="mouse|pointer|keyboard" layoutpos="client" xscrollable="true" yscrollable="false" xbarvisibility="asneeded" ybarvisibility="never" behaviors="PVL::AnimationTrap()">
-			<TouchButton id="atom(content)" layout="verticalflowlayout(0,0,0,0)" layoutpos="top">
-				<DDScalableElement content="resstr(4046)" class="settingslabeltext" minsize="size(0,0)" height="24rp" contentalign="topleft"/>
-				<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
-			</TouchButton>
+			<DDScalableElement class="LoneSection" layout="borderlayout()" padding="rect(-4rp,12rp,12rp,12rp)">
+				<RichText class="SettingsIcon" content="resstr(147)"/>
+				<TouchButton id="atom(content)" layout="verticalflowlayout(0,0,0,0)" layoutpos="top" background="argb(0,0,0,0)">
+					<DDScalableElement content="resstr(4046)" class="settingslabeltext" minsize="size(0,0)" contentalign="topleft" padding="rect(0,0,0,6rp)"/>
+					<DDColorPicker id="atom(DDCP_Group)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="208" width="352rp" height="32rp"/>
+				</TouchButton>
+			</DDScalableElement>
 		</TouchScrollViewer>
 	</Element>
 	<Element resid="settingsview" layoutpos="client" layout="borderlayout()" padding="rect(16rp,0,16rp,16rp)" background="argb(0,0,0,0)">
@@ -137,7 +140,7 @@
 		</DDScalableElement>
 		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="bottom" background="argb(0,0,0,0)" padding="rect(0,0,0,16rp)">
-				<DDScalableElement content="resstr(4047)" class="settingslabeltext"/>
+				<DDScalableElement content="resstr(4047)" class="settingslabeltext" minsize="size(0,0)" contentalign="topleft" padding="rect(0,12rp,0,6rp)"/>
 				<DDColorPicker id="atom(DDCP_Icons)" FirstScaledImage="3031" ScaledImageIntervals="7" ColorIntensity="255" DefaultColor="rgb(144,144,144)" height="32rp" width="352rp"/>
 			</Element>
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">

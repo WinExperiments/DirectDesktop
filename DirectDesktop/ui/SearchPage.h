@@ -7,6 +7,7 @@ namespace DirectDesktop
     {
         DWORD flags;
         LPWSTR path;
+        LPWSTR displaypath;
     };
 
     extern HWND g_hWndTaskbar;
@@ -17,7 +18,7 @@ namespace DirectDesktop
     extern DirectUI::DUIXmlParser* parser;
     extern DirectUI::NativeHWNDHost* wnd;
     extern DirectUI::NativeHWNDHost* searchwnd;
-    extern void ApplyIcons(vector<DDUI::LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir);
+    extern void ApplyIcons(vector<DDUI::LVItem*>* pmLVItem, DesktopIcon* di, bool subdirectory, int id, float scale, COLORREF crSubdir, bool fShadow);
 
     void CreateSearchPage(SearchParams* psp);
     void DestroySearchPage();
