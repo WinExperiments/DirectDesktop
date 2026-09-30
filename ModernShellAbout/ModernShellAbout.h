@@ -1,5 +1,8 @@
 #pragma once
 
+#include "framework.h"
+#include "resource.h"
+
 #ifdef MODERNSHELLABOUT_EXPORTS
 #define MOSHELLABOUTAPI __declspec(dllexport)
 #else

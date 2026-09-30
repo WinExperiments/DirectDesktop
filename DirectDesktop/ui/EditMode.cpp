@@ -6,6 +6,7 @@
 #include "..\backend\SettingsHelper.h"
 #include "SearchPage.h"
 #include "..\backend\DirectoryHelper.h"
+#include "..\..\DDUI\DDUI.h"
 
 using namespace DirectUI;
 using namespace DDUI;
@@ -66,11 +67,18 @@ namespace DirectDesktop
                 SetTimer(hWnd, 3, 150, nullptr);
                 break;
             case WM_CLOSE:
-                HideSimpleView(true);
-                SetTimer(wnd->GetHWND(), 4, 100, nullptr);
+                if (g_editmode)
+                {
+                    HideSimpleView(true);
+                    SetTimer(wnd->GetHWND(), 4, 100, nullptr);
+                }
                 return 0;
             case WM_DESTROY:
                 return 0;
+            case WM_ACTIVATE:
+                if (!g_editmode)
+                    return 0;
+                break;
             case WM_TIMER:
             {
                 KillTimer(hWnd, wParam);
@@ -325,6 +333,19 @@ namespace DirectDesktop
                 if (spvBitmapShortcut != nullptr && lviFlags & LVIF_SHORTCUT) PV_IconShortcutPreview->SetValue(Element::ContentProp, 1, spvBitmapShortcut);
                 break;
             }
+            case WM_USER + 2:
+            {
+                KillTimer(edit_hWorker, 1);
+                DestroyWindow(edit_hWorker);
+                pEdit->DestroyAll(true);
+                pEdit->Destroy(true);
+                editwnd->DestroyWindow();
+                //pEditBG->DestroyAll(true);
+                //editbgwnd->DestroyWindow();
+                g_memTaskbarState = 255;
+                g_animateSVLaunch = true;
+                break;
+            }
         }
         return CallWindowProc(WndProcEdit, hWnd, uMsg, wParam, lParam);
     }
@@ -352,7 +373,7 @@ namespace DirectDesktop
         {
         case WM_TIMER:
         {
-            static ULONGLONG ullTick;
+            static ULONGLONG ullTick = GetTickCount64();
             static BYTE taskbarState = 0;
             static RECT rc, rcOld, rcOld2, dimensions;
             static bool hiddentaskbarOld = false;
@@ -574,14 +595,7 @@ namespace DirectDesktop
         DWORD animCoef = g_pctx->animCoef;
         if (g_pctx->AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
         Sleep(400 * (animCoef / 100.0f));
-        //pEdit->DestroyAll(true);
-        editwnd->DestroyWindow();
-        //pEditBG->DestroyAll(true);
-        //editbgwnd->DestroyWindow();
-        KillTimer(edit_hWorker, 1);
-        DestroyWindow(edit_hWorker);
-        g_memTaskbarState = 255;
-        g_animateSVLaunch = true;
+        SendMessageW(editwnd->GetHWND(), WM_USER + 2, NULL, NULL);
         return 0;
     }
 
@@ -613,11 +627,9 @@ namespace DirectDesktop
             g_invokedpagechange = false;
             if (g_touchmode) g_iconsz = 32;
             UIContainer->SetVisible(true);
-            if (fullanimate)
-            {
-                SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);
-                SetFocus(wnd->GetHWND());
-            }
+            SetFocus(wnd->GetHWND());
+            if (fullanimate)           
+                SendMessageW(g_hWndTaskbar, WM_COMMAND, 416, 0);           
             if (!fullscreenpopupbaseE->IsDestroyed())
             {
                 GTRANS_DESC transDesc[8];
@@ -626,7 +638,12 @@ namespace DirectDesktop
                 float scaleFinal2 = fullanimate ? 1.4285f : 1.3143f;
                 float timeCoef = fullanimate ? 1.0f : 1.5f;
                 float delay = fullanimate ? 0.0f : 0.033f;
-                TriggerFade(UIContainer, transDesc, 0, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+                float flBackFade = 1.0f;
+                SYSTEM_POWER_STATUS sps;
+                GetSystemPowerStatus(&sps);
+                if (!fullanimate && (GetRegistryValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency") != 1 || sps.SystemStatusFlag))
+                    flBackFade = 0.33f;
+                TriggerFade(UIContainer, transDesc, 0, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, flBackFade, false, false, false);
                 TriggerScaleOut(UIContainer, transDesc, 1, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal, scaleFinal, 0.5f, 0.5f, false, false);
                 TriggerFade(fullscreenpopupbaseE, transDesc, 2, delay, delay + 0.167f * timeCoef, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
                 TriggerScaleOut(fullscreenpopupbaseE, transDesc, 3, delay, delay + 0.33f * timeCoef, 0.1f, 0.9f, 0.2f, 1.0f, scaleFinal2, scaleFinal2, 0.5f, 0.5f, false, false);
@@ -1651,6 +1668,7 @@ namespace DirectDesktop
             assignFn(SimpleViewClose, ExitWindow);
 
             SimpleViewClose->SetLayoutPos(g_enableexit ? -1 : -3);
+            SimpleViewClose->SetEnabled(g_enableexit);
 
             WndProcEdit = (WNDPROC)SetWindowLongPtrW(editwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeWindowProc);
             //WndProcEditBG = (WNDPROC)SetWindowLongPtrW(editbgwnd->GetHWND(), GWLP_WNDPROC, (LONG_PTR)EditModeBGWindowProc);

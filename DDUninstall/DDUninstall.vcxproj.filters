@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\7z">
+      <UniqueIdentifier>{0e9153b3-fdc2-4dd0-9a01-88641a58ae16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\res">
+      <UniqueIdentifier>{f7788950-ec3f-4bdd-bdbd-98ffe05be9ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\7z">
+      <UniqueIdentifier>{4b6dcbc5-ba47-453d-b402-1e07dea015ea}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="7z\7zAlloc.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\7zBuf.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\7zCrc.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\7zFile.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\7zTypes.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\CpuArch.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\LzmaDec.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\7z.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\Precomp.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\Compiler.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\7zWindows.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\Bcj2.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\Bra.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\Delta.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\Lzma2Dec.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+    <ClInclude Include="7z\RotateDefs.h">
+      <Filter>Header Files\7z</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="7z\7zAlloc.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zArcIn.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zBuf.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zCrc.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zCrcOpt.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zDec.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zFile.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\CpuArch.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\LzmaDec.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\7zStream.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="DDUninstall.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\Bcj2.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\Bra.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\Delta.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+    <ClCompile Include="7z\Lzma2Dec.c">
+      <Filter>Source Files\7z</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\payload.7z">
+      <Filter>Resource Files\res</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DDUninstall.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

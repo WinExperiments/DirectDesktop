@@ -6,6 +6,7 @@
 #include "..\backend\DirectoryHelper.h"
 #include "..\backend\SettingsHelper.h"
 #include "..\DirectDesktop.h"
+#include "..\..\DDUI\DDUI.h"
 #include <wrl.h>
 
 using namespace DirectUI;
@@ -62,9 +63,19 @@ namespace DirectDesktop
             break;
         }
         case WM_CLOSE:
-        {
-            return 0;
-        }
+            if (lParam == 69)
+            {
+                MyRevokeDragDrop(g_subviewtarget);
+                subviewwnd->ShowWindow(SW_HIDE);
+                pSubview->Destroy(true);
+                StopMessagePump();
+                break;
+            }
+            else return 0;
+        case WM_ACTIVATE:
+            if (!g_issubviewopen)
+                return 0;
+            break;
         case WM_CANCELMODE:
         {
             if (!g_peek)
@@ -368,7 +379,7 @@ namespace DirectDesktop
                         peShortcutArrow->SetHeight(g_shiconsz * g_pctx->flScaleFactor);
                         int iconPaddingX = (rcItem.right - g_iconsz * g_pctx->flScaleFactor) / 2;
                         peShortcutArrow->SetX(iconPaddingX);
-                        peShortcutArrow->SetY((iconPaddingY * 0.575) + (g_iconsz - g_shiconsz) * g_pctx->flScaleFactor);
+                        peShortcutArrow->SetY((iconPaddingY * 0.575) + g_iconsz * g_pctx->flScaleFactor - g_shiconsz * g_pctx->flScaleFactor);
                         if (g_showfolderitemcount && (*l_pm)[num]->GetFlags() & LVIF_DIR)
                         {
                             peItemCount->SetVisible(true);
@@ -788,7 +799,7 @@ namespace DirectDesktop
             TriggerFade_Ref(ppeAnimateFrom, transDesc_peAnimate, 0, flFadeStart, flFadeDuration, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
             TriggerScaleIn(peAnimateFrom, transDesc_peAnimate, 1, flScaleStart, flScaleDuration, flrX0, flrY0, flrX1, flrY1, 1.0f, 1.0f,
                 flOriginX2, flOriginY2, 1 / animstartscaleX / desktopanimstartscale, 1 / animstartscaleY / desktopanimstartscale, flOriginX2, flOriginY2, false, false);
-            if (hasOrigin) TriggerRotate3D(peAnimateFrom, transDesc_peAnimate, 2, flScaleStart, flScaleDuration - flFadeDuration, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 1.0f, false, false);
+            if (hasOrigin) TriggerRotate3D(peAnimateFrom, transDesc_peAnimate, 2, flScaleStart, flScaleDuration - flFadeDuration, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc_peAnimate, peAnimateFrom->GetDisplayNode(), &tsbInfo);
         }
         parserSubview->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninner);
@@ -818,7 +829,7 @@ namespace DirectDesktop
         GTRANS_DESC transDesc2[2];
         TriggerScaleOut(UIContainer, transDesc2, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, desktopanimstartscale, desktopanimstartscale, 0.5f, 0.5f, false, false);
         if (fClean) TriggerFade(UIContainer, transDesc2, 1, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flBackFade, false, false, true);
-        ScheduleGadgetTransitions_DWMCheck(0, fClean ? 2 : 1, transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2) - (fClean ? 0 : 1), transDesc2, UIContainer->GetDisplayNode(), &tsbInfo);
         SetTimer(wnd->GetHWND(), 7, 100, nullptr);
         g_issubviewopen = true;
         DWORD dwMillis = (g_pctx->windowAnim && g_pctx->clientAnim) ? 50 : 0;
@@ -879,7 +890,7 @@ namespace DirectDesktop
                 TriggerFade_Ref(ppeAnimateTo, transDesc, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, hide, false, false);
                 TriggerScaleIn(peAnimateTo, transDesc, 1, 0.0f, 0.4f, flrX0, flrY0, flrX1, flrY1, 1 / animstartscaleX, 1 / animstartscaleY,
                     flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
-                TriggerRotate3D(peAnimateTo, transDesc, 2, 0.1f, 0.4f, 0.6f, 0.3f, 0.0f, 0.9f, flX3D, flY3D, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 1.0f, false, false);
+                TriggerRotate3D(peAnimateTo, transDesc, 2, 0.1f, 0.4f, 0.6f, 0.3f, 0.0f, 0.9f, flX3D, flY3D, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, peAnimateTo->GetDisplayNode(), &tsbInfo);
                 DUI_SetGadgetZOrder(peAnimateTo, -1);
             }
@@ -887,7 +898,7 @@ namespace DirectDesktop
             {
                 TriggerScaleOut(fullscreeninner, transDesc, 0, 0.0f, flScaleDuration, flrX0, flrY0, flrX1, flrY1, animstartscaleX, animstartscaleY, flOriginX, flOriginY, false, false);
                 TriggerFade(fullscreeninner, transDesc, 1, flFadeStart, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
-                if (hasOrigin) TriggerRotate3D(fullscreeninner, transDesc, 2, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 1.0f, false, false);
+                if (hasOrigin) TriggerRotate3D(fullscreeninner, transDesc, 2, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
             }
             float flBackFade = 1.0f;

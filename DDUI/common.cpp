@@ -232,7 +232,7 @@ namespace DDUI
         return E_FAIL;
     }
 
-    bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToFind)
+    bool EnsureRegValueExists(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName)
     {
         HKEY hKey = nullptr;
         LONG lResult;
@@ -241,7 +241,7 @@ namespace DDUI
 
         DWORD type;
         DWORD dataSize = 0;
-        lResult = RegQueryValueExW(hKey, valueToFind, nullptr, &type, nullptr, &dataSize);
+        lResult = RegQueryValueExW(hKey, valueName, nullptr, &type, nullptr, &dataSize);
         RegCloseKey(hKey);
 
         if (lResult == ERROR_FILE_NOT_FOUND) return false;
@@ -286,19 +286,17 @@ namespace DDUI
         }
         else if (lResult == ERROR_SUCCESS)
         {
-            DWORD* dwValueInternal = (DWORD*)malloc(dwSize);
-            lResult = RegGetValueW(hKeyName, path, valueName, RRF_RT_ANY, nullptr, dwValueInternal, &dwSize);
-            if (lResult == ERROR_SUCCESS && find == false)
+            if (!find)
             {
                 lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
                 if (isNewValue != nullptr) *isNewValue = false;
             }
-            else if (lResult != ERROR_SUCCESS)
+            else if (!EnsureRegValueExists(hKeyName, path, valueName))
             {
                 lResult = RegSetValueExW(hKey, valueName, 0, REG_DWORD, (const BYTE*)&dwValue, sizeof(DWORD));
                 if (isNewValue != nullptr) *isNewValue = true;
             }
-            free(dwValueInternal);
+            else if (isNewValue != nullptr) *isNewValue = false;
         }
         RegCloseKey(hKey);
     }
@@ -359,7 +357,7 @@ namespace DDUI
         return true;
     }
 
-    void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueToSet, BYTE* bValue, DWORD length, bool find, bool* isNewValue)
+    void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE* bValue, DWORD length, bool find, bool* isNewValue)
     {
         int result{};
         DWORD dwSize{};
@@ -370,22 +368,23 @@ namespace DDUI
             lResult = RegCreateKeyExW(hKeyName, path, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
             if (lResult == ERROR_SUCCESS)
             {
-                lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
+                lResult = RegSetValueExW(hKey, valueName, 0, REG_BINARY, bValue, length);
                 if (isNewValue != nullptr) *isNewValue = true;
             }
         }
         else if (lResult == ERROR_SUCCESS)
         {
-            if (lResult == ERROR_SUCCESS && find == false)
+            if (!find)
             {
-                lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
+                lResult = RegSetValueExW(hKey, valueName, 0, REG_BINARY, bValue, length);
                 if (isNewValue != nullptr) *isNewValue = false;
             }
-            else if (lResult != ERROR_SUCCESS)
+            else if (!EnsureRegValueExists(hKeyName, path, valueName))
             {
-                lResult = RegSetValueExW(hKey, valueToSet, 0, REG_BINARY, bValue, length);
+                lResult = RegSetValueExW(hKey, valueName, 0, REG_BINARY, bValue, length);
                 if (isNewValue != nullptr) *isNewValue = true;
             }
+            else if (isNewValue != nullptr) *isNewValue = false;
         }
         RegCloseKey(hKey);
     }
@@ -636,10 +635,7 @@ namespace DDUI
     DWORD WINAPI MultiClickHandler(LPVOID lpParam)
     {
         int clicks = *(int*)lpParam;
-        wchar_t* dcms{};
-        GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed", &dcms);
-        Sleep(_wtoi(dcms));
-        free(dcms);
+        Sleep(GetDoubleClickTime());
         if (clicks == *(int*)lpParam)
             *(int*)lpParam = 1;
         return 0;
@@ -772,7 +768,7 @@ namespace DDUI
     {
         g_ctx.DWMActive = IsCompositionActive();
 
-        s_InitializeDUI(nullptr);
+        s_InitializeDUI(hModule);
         g_msgwnd = InitializeCallbackWindow();
         RegisterAllControls();
         DDScalableElement::Register();

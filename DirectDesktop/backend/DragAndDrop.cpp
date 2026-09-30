@@ -9,6 +9,7 @@
 #include "DirectoryHelper.h"
 #include "SettingsHelper.h"
 #include "..\DirectDesktop.h"
+#include "..\..\DDUI\DDUI.h"
 
 using namespace Microsoft::WRL;
 using namespace DDUI;
@@ -1948,12 +1949,12 @@ namespace DirectDesktop
 	void PerformShellFileOp(HWND hWnd, LPCWSTR destDir, IShellItemArray* pItemArray, DWORD effect, POINTL pt, LVItem* lviDir)
 	{
 		RECT dimensions;
-		GetClientRect(wnd->GetHWND(), &dimensions);
+		GetClientRect(hWnd, &dimensions);
 		UINT page = g_currentPageID;
 		g_overridefilelistener = true;
 		bool recycle = false;
 		HRESULT hr = S_OK;
-		ComPtr<CFileOperationProgressSink> pfops = new CFileOperationProgressSink();
+		ComPtr<CFileOperationProgressSink> pfops = Make<CFileOperationProgressSink>();
 		pfops->InitDimensions(&dimensions, &pt, &page);
 		if (effect == DROPEFFECT_LINK)
 		{
@@ -2016,6 +2017,7 @@ namespace DirectDesktop
 											pfops->PrepDimensions();
 										}
 									}
+									CoTaskMemFree(pszFilePath);
 								}
 							}
 						}
@@ -2039,7 +2041,7 @@ namespace DirectDesktop
 
 		ComPtr<IFileOperation> pfo;
 		hr = CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_INPROC_SERVER, IID_IFileOperation, (LPVOID*)&pfo);
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(hr) && wcslen(destDir) > 1)
 		{
 			std::wstring destDir2(destDir, wcslen(destDir) - 1);
 			if (!recycle)

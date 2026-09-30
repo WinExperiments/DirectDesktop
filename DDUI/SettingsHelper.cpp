@@ -4,6 +4,8 @@
 #include "DDControls.h"
 #include "SettingsHelper.h"
 
+#include <shlobj.h>
+
 using namespace std;
 using namespace DirectUI;
 

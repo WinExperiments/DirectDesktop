@@ -370,6 +370,9 @@ namespace DDUI
             rgTrans[transIndex].vEnd.flY = targetEulerAngleY;
             rgTrans[transIndex].vEnd.flZ = targetEulerAngleZ;
             EulerRotationToAxisRotation(&(rgTrans[transIndex].vInitial), &(rgTrans[transIndex].vEnd));
+            rgTrans[transIndex].vInitial.flOriginX = targetOriginAxisX;
+            rgTrans[transIndex].vInitial.flOriginY = targetOriginAxisY;
+            rgTrans[transIndex].vInitial.flOriginZ = targetOriginAxisZ;
             rgTrans[transIndex].vEnd.flOriginX = targetOriginAxisX;
             rgTrans[transIndex].vEnd.flOriginY = targetOriginAxisY;
             rgTrans[transIndex].vEnd.flOriginZ = targetOriginAxisZ;

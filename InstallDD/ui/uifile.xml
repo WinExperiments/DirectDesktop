@@ -1,0 +1,118 @@
+<duixml>
+	<HWNDElement resid="main" layoutpos="none" layout="borderlayout()" sheet="default">
+		<Element id="atom(mainContainer)" layout="borderlayout()" background="argb(0,0,0,0)" layoutpos="client">
+			<Element id="atom(header)" layout="borderlayout()" layoutpos="top" height="120rp" padding="rect(0,0,32rp,0)">
+				<Element layoutpos="left" contentalign="middleright" content="icon(107,64rp,64rp,1,1)" width="96rp"/>
+				<DDScalableRichText layoutpos="left" content="DirectDesktop" font="24pt;Semibold;None;Segoe UI" contentalign="middleleft" padding="rect(8rp,0,0,4rp)"/>
+				<Element layoutpos="right" layout="flowlayout(0,2,1,0)">
+					<DDScalableRichText id="atom(disclaimer)" content="DEV PREVIEW" AssociatedColor="rgb(255,185,0)" foreground="black" font="9pt;Bold;None;Segoe UI" contentalign="middleleft"
+										FirstScaledImage="1015" ScaledImageIntervals="7" DrawType="1" ImageCount="8" ImageIndex="5" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(4rp,4rp,4rp,4rp)"/>
+				</Element>
+			</Element>
+			<Element layoutpos="bottom" layout="borderlayout()" padding="rect(8rp,8rp,8rp,8rp)" height="60rp">
+				<Element layoutpos="left" layout="verticalflowlayout(0,0,0,1)">
+					<DDScalableRichText id="atom(verText)" class="subtext" font="messagefont;100%" margin="rect(0,0,0,4rp)" NeedsFontResize="true"/>
+					<DDScalableRichText id="atom(copyrightText)" class="subtext" font="messagefont;100%" NeedsFontResize="true"/>			
+				</Element>
+				<Element id="atom(buttonArea)" layoutpos="right" layout="flowlayout(0,1,1,2)" padding="rect(0,0,4rp,4rp)">
+					<DDScalableTouchButton id="atom(back)" content="Back" class="pushbuttonsecondary" visible="false" font="messagefont;115%" margin="rect(0,0,8rp,0)" minsize="size(96rp,32rp)"/>
+					<DDScalableTouchButton id="atom(next)" content="Next" class="pushbuttonprimary" font="messagefont;115%" minsize="size(96rp,32rp)"/>
+				</Element>
+			</Element>
+			<Element layoutpos="client" id="atom(pageHost)" layout="filllayout()"/>
+		</Element>
+	</HWNDElement>
+	
+	<Element resid="WelcomePage" layoutpos="client" layout="verticalflowlayout(0,2,2,2)">
+		<DDScalableRichText font="messagefont;350%;semibold" content="Welcome" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<DDScalableRichText font="messagefont;115%" class="subtext"
+							content="The installation process consists of a few easy steps, then DirectDesktop will finish installing on its own."
+							margin="rect(0,0,0,16rp)" NeedsFontResize="true" contentalign="wrapcenter" width="480rp"/>
+	</Element>
+	
+	<Element resid="InstallOptionsPage" layoutpos="client" layout="borderlayout()" padding="rect(12rp,0,12rp,0)">
+		<DDScalableRichText layoutpos="top" font="messagefont;200%;semibold" content="Install Options" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<Element layoutpos="top" layout="borderlayout()" margin="rect(0,0,0,32rp)">
+			<DDScalableRichText layoutpos="left" margin="rect(0,0,6rp,0)" content="Install location" font="messagefont;115%" NeedsFontResize="true" contentalign="middleleft"/>
+			<DDScalableTouchButton id="atom(browse)" layoutpos="right" margin="rect(8rp,0,0,0)" content="Browse" class="pushbuttonsecondary" font="messagefont;115%" minsize="size(96rp,32rp)"/>
+			<DDScalableTouchEdit id="atom(installpath)" layoutpos="client" height="32rp" font="messagefont;115%" NeedsFontResize="true"/>
+		</Element>
+		<DDScalableRichText layoutpos="top" font="messagefont;100%" class="subtext" content="Additional options"
+							margin="rect(0,0,0,6rp)" NeedsFontResize="true"/>
+		<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top">			
+			<DDCheckbox id="atom(cbShortcut)" content="Create start menu shortcuts"/>
+			<DDCheckbox id="atom(cbDebug)" content="Enable debug mode"/>
+			<Element layout="flowlayout(0,0,2,2)" visible="false">			
+				<DDCheckbox id="atom(cbReset)" layoutpos="left" content="Reset all settings"/>
+				<Element layoutpos="right" layout="borderlayout()" padding="rect(16rp,0,0,0)">
+					<DDScalableElement class="DDNB_Icon_Warning" layoutpos="left" font="9pt;Normal;None;Segoe Fluent Icons" compositedtext="true" textglowsize="0" width="18rp" padding="rect(0,3rp,0,0)"/>
+					<DDScalableRichText class="subtext" layoutpos="left" font="messagefont;100%" NeedsFontResize="true" content="This action cannot be undone."/>
+				</Element>
+			</Element>
+		</Element>
+	</Element>
+	
+	<Element resid="UpdatePage" layoutpos="client" layout="borderlayout()" padding="rect(12rp,0,12rp,0)">
+		<DDScalableRichText layoutpos="top" font="messagefont;200%;semibold" content="Update" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<Element layoutpos="top" layout="borderlayout()" padding="rect(0,8rp,0,24rp)">
+			<DDScalableElement id="atom(UpdateStatusIcon)" layoutpos="left" font="12pt;Normal;None;Segoe Fluent Icons" compositedtext="true" textglowsize="0" width="28rp" padding="rect(0,2rp,0,0)"/>
+			<DDScalableRichText id="atom(UpdateStatusText)" layoutpos="left" font="messagefont;115%;semibold" NeedsFontResize="true" content="[UpdateStatusText]"/>
+		</Element>
+		<DDScalableRichText font="messagefont;115%" layoutpos="top"
+							content="To reinstall instead, press the button below."
+							margin="rect(0,0,0,6rp)" NeedsFontResize="true"/>
+		<Element layoutpos="top" layout="borderlayout()">
+			<DDScalableTouchButton id="atom(reinstall)" layoutpos="left" content="Reinstall" class="pushbuttonsecondary" font="messagefont;115%" minsize="size(96rp,32rp)"/>
+		</Element>
+	</Element>
+	
+	<Element resid="FinalizePage" layoutpos="client" layout="borderlayout()" padding="rect(12rp,0,12rp,0)">
+		<DDScalableRichText id="atom(title)" layoutpos="top" font="messagefont;200%;semibold" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<DDScalableRichText id="atom(subtitle)" font="messagefont;115%" class="subtext" layoutpos="top"	margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<DDScalableRichText id="atom(progressCounter)" layoutpos="top" font="messagefont;160%;semibold" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+	</Element>
+
+	<Element resid="FinishedPage" layoutpos="client" layout="borderlayout()" padding="rect(12rp,0,12rp,0)">
+		<DDScalableRichText id="atom(title)" layoutpos="top" font="messagefont;200%;semibold" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<DDScalableRichText id="atom(subtitle)" font="messagefont;115%" class="subtext" layoutpos="top"
+							content="Press Finish to close the wizard."
+							margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<Element layoutpos="top" layout="borderlayout()">
+			<DDScalableTouchButton id="atom(finish)" layoutpos="left" content="Finish" class="pushbuttonprimary" font="messagefont;115%" minsize="size(96rp,32rp)"/>		
+		</Element>
+	</Element>
+
+	<Element resid="UninstallPage" layoutpos="client" layout="borderlayout()" padding="rect(12rp,0,12rp,0)">
+		<DDScalableRichText layoutpos="top" font="messagefont;200%;semibold" content="Confirm uninstall" margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+		<DDScalableRichText font="messagefont;115%" class="subtext" layoutpos="top"
+							content="Press Next to uninstall DirectDesktop."
+							margin="rect(0,0,0,16rp)" NeedsFontResize="true"/>
+	</Element>
+	
+	<stylesheets>
+		<style resid="default" base="ressheet(31, library(DDUI.dll), DDBase)">
+			<HWNDElement background="rgb(243,243,243)" foreground="black"/>
+			<if class="subtext">
+				<Element foreground="rgb(128,128,128)" compositedtext="true" textglowsize="0"/>
+				<RichText foreground="rgb(128,128,128)"/>
+				<DDScalableElement foreground="rgb(128,128,128)" compositedtext="true" textglowsize="0"/>
+				<DDScalableRichText foreground="rgb(128,128,128)"/>
+			</if>
+			<if id="atom(header)">
+				<Element background="gradient(rgb(217,196,240),rgb(243,243,243),1)"/>
+			</if>
+		</style>
+		<style resid="defaultdark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
+			<HWNDElement background="rgb(32,32,32)" foreground="white"/>
+			<if class="subtext">
+				<Element foreground="rgb(176,176,176)" compositedtext="true" textglowsize="0"/>
+				<RichText foreground="rgb(176,176,176)"/>
+				<DDScalableElement foreground="rgb(176,176,176)" compositedtext="true" textglowsize="0"/>
+				<DDScalableRichText foreground="rgb(176,176,176)"/>
+			</if>
+			<if id="atom(header)">
+				<Element background="gradient(rgb(60,39,82),rgb(32,32,32),1)"/>
+			</if>
+		</style>
+	</stylesheets>
+</duixml>

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Logger.h"
+#include <wrl.h>
+#include "..\..\DDUI\DDUI.h"
 
 using namespace std;
 
@@ -39,7 +41,7 @@ namespace DirectDesktop
         bool _hai = false;
     };
 
-    class CFileOperationProgressSink : public IFileOperationProgressSink
+    class CFileOperationProgressSink : public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IFileOperationProgressSink>
     {
     public:
         CFileOperationProgressSink() : _lRefCount(0), _destDir(nullptr), _prcDimensions(nullptr), _ppt(nullptr), _pPage(nullptr),

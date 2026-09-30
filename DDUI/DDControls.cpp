@@ -7,7 +7,8 @@
 #include "coreui\BitmapHelper.h"
 #include "coreui\StyleModifier.h"
 #include <wrl.h>
-#include <sstream>
+#include <shlobj.h>
+#include <regex>
 
 using namespace std;
 using namespace DirectUI;
@@ -2015,15 +2016,19 @@ namespace DDUI
             ElementSetValue(_peEdit, ppi, pvNew, this);
             CValuePtr v;
             _pePreview->SetVisible(!_peEdit->GetKeyWithin());
-            if (!_peEdit->GetContentString(&v))
+            const WCHAR* pszContent = _peEdit->GetContentString(&v);
+            if (!pszContent)
             {
-                if (_peEdit->GetPromptText(&v))
+                v->Release();
+                const WCHAR* pszPrompt = _peEdit->GetPromptText(&v);
+                if (pszPrompt)
                 {
                     _pePreview->SetClass(L"prompttext");
-                    _pePreview->SetContentString(_peEdit->GetPromptText(&v));
+                    _pePreview->SetContentString(pszPrompt);
                 }
                 else _pePreview->SetContentString(L"");
             }
+            else _pePreview->SetContentString(pszContent);
         }
         return result;
     }
@@ -2210,6 +2215,15 @@ namespace DDUI
     LVItemFlags operator|(LVItemFlags lhs, LVItemFlags rhs)
     {
         return static_cast<LVItemFlags>(static_cast<DWORD>(lhs) | static_cast<DWORD>(rhs));
+    }
+
+    LVCommon::~LVCommon()
+    {
+        if (_hWorker)
+        {
+            DestroyWindow(_hWorker);
+            _hWorker = nullptr;
+        }
     }
 
     IClassInfo* LVCommon::GetClassInfoPtr()
@@ -2626,8 +2640,6 @@ namespace DDUI
 
     HRESULT LVCommon::RemoveAll()
     {
-        _peSelected = nullptr;
-        _peFocused = nullptr;
         this->_OnRemoveAll();
         return _peWhitespace->RemoveAll();
     }
@@ -2675,6 +2687,7 @@ namespace DDUI
     HRESULT LVCommon::Destroy(bool fDelayed)
     {
         DestroyWindow(_hWorker);
+        _hWorker = nullptr;
         return Element::Destroy(fDelayed);
     }
 
@@ -2788,6 +2801,51 @@ namespace DDUI
         }
     }
 
+    void LVCommon::_CalcScrollOffset()
+    {
+        if (this->GetClassInfoW() == LVCommon::GetClassInfoPtr() || this->GetClassInfoW() == LVTiles::GetClassInfoPtr())
+        {
+            RECT rcSpace, rcPadding;
+            _peWhitespace->GetRenderPadding(&rcPadding);
+            GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcSpace, 0x4);
+            int width = rcSpace.right - rcPadding.left - rcPadding.right;
+            int height = rcSpace.bottom - rcPadding.top - rcPadding.bottom;
+            if (this->GetClassInfoW() == LVCommon::GetClassInfoPtr())
+            {
+                CValuePtr v;
+                DynamicArray<Element*>* pel = _peWhitespace->GetChildren(&v);
+                _szScrollDelta.cx = width >> 5;
+                _szScrollDelta.cy = pel && pel->GetSize() ? height / pel->GetSize() : height >> 5;
+            }
+            else if (this->GetClassInfoW() == LVTiles::GetClassInfoPtr())
+            {
+                SIZE szGrid = ((LVTiles*)this)->GetGridLayoutParams();
+                _szScrollDelta.cx = width / szGrid.cx;
+                _szScrollDelta.cy = height / szGrid.cy;
+            }
+        }
+        else
+        {
+            CValuePtr v;
+            DynamicArray<Element*>* pel = _peWhitespace->GetChildren(&v);
+            if (!pel->GetSize())
+            {
+                RECT rcSpace, rcPadding;
+                _peWhitespace->GetRenderPadding(&rcPadding);
+                GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcSpace, 0x4);
+                _szScrollDelta.cx = (rcSpace.right - rcPadding.left - rcPadding.right) >> 5;
+                _szScrollDelta.cy = (rcSpace.bottom - rcPadding.top - rcPadding.bottom) >> 5;
+            }
+            else
+            {
+                RECT rcFirst; // 0.6 M7: Change to use most occuring width/height
+                GetGadgetRect(pel->GetItem(0)->GetDisplayNode(), &rcFirst, 0x4);
+                _szScrollDelta.cx = rcFirst.right;
+                _szScrollDelta.cy = rcFirst.bottom;
+            }
+        }
+    }
+
     void LVCommon::_MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
     {
         DWORD marqueeThread;
@@ -2800,6 +2858,22 @@ namespace DDUI
                 GetGadgetRect(listview->GetDisplayNode(), &listview->_rcGadget, 0xC);
                 GetCursorPos(&listview->_ptOrigin);
                 ScreenToClient(((HWNDElement*)listview->GetRoot())->GetHWND(), &listview->_ptOrigin);
+                listview->_pScrollViewer = nullptr;
+                listview->RemoveFlags(LVCF_SCROLL);
+                Element* parent = listview->GetParent();
+                while (parent->GetParent() && parent->GetClassInfoW() != ScrollViewer::GetClassInfoPtr() &&
+                    parent->GetClassInfoW() != StyledScrollViewer::GetClassInfoPtr() &&
+                    parent->GetClassInfoW() != TouchScrollViewer::GetClassInfoPtr())
+                {
+                    parent = parent->GetParent();
+                }
+                if (parent->GetParent()) // detected a scrollviewer
+                {
+                    listview->_pScrollViewer = (BaseScrollViewer*)parent;
+                    listview->AddFlags(LVCF_SCROLL);
+                    listview->_CalcScrollOffset();
+                    listview->_ptsvOffset = { ((BaseScrollViewer*)parent)->GetXOffset(), ((BaseScrollViewer*)parent)->GetYOffset() };
+                }
                 GTRANS_DESC transDesc[1];
                 TransitionStoryboardInfo tsbInfo = {};
                 Element* selector = listview->_peSelector;
@@ -2858,6 +2932,56 @@ namespace DDUI
             POINT ppt;
             GetCursorPos(&ppt);
             ScreenToClient(((HWNDElement*)lvc->GetRoot())->GetHWND(), &ppt);
+            POINT ptsvCurrent = { 0, 0 };
+            int xMin = -1, yMin = -1, xMax = 0x7FFFFFFF, yMax = 0x7FFFFFFF;
+            BaseScrollViewer* psv{};
+            Element* selector = lvc->_peSelector;
+            if (lvc->_flags & LVCF_SCROLL)
+            {
+                psv = lvc->_pScrollViewer;
+                RECT rcScroll;
+                GetGadgetRect(psv->GetDisplayNode(), &rcScroll, 0xC);
+                ptsvCurrent = { psv->GetXOffset(), psv->GetYOffset() };
+                int dx = 0, dy = 0;
+                if (ppt.x < rcScroll.left || ppt.y < rcScroll.top || ppt.x > rcScroll.right || ppt.y > rcScroll.bottom)
+                {
+                    int w = lvc->_szScrollDelta.cx >> 2, h = lvc->_szScrollDelta.cy >> 2, dist = 0;
+                    if (ppt.x < rcScroll.left)
+                    {
+                        dist = rcScroll.left - ppt.x;
+                        dx = -((dist + w - 1) / w) * w;
+                    }
+                    if (ppt.y < rcScroll.top)
+                    {
+                        dist = rcScroll.top - ppt.y;
+                        dy = -((dist + h - 1) / h) * h;
+                    }
+                    if (ppt.x > rcScroll.right)
+                    {
+                        dist = ppt.x - rcScroll.right;
+                        dx = ((dist + w - 1) / w) * w;
+                    }
+                    if (ppt.y > rcScroll.bottom)
+                    {
+                        dist = ppt.y - rcScroll.bottom;
+                        dy = ((dist + h - 1) / h) * h;
+                    }
+                    dx /= 2;
+                    dy /= 2;
+                    ptsvCurrent = { psv->GetXOffset() + dx, psv->GetYOffset() + dy };
+                }
+                RECT rcViewer;
+                GetGadgetRect(lvc->GetDisplayNode(), &rcViewer, 0xC);
+                RECT rcBorder;
+                selector->GetRenderBorderThickness(&rcBorder);
+                xMin = max(-1, rcScroll.left - rcViewer.left - rcBorder.left);
+                yMin = max(-1, rcScroll.top - rcViewer.top - rcBorder.top);
+                xMax = rcScroll.right - rcScroll.left + rcBorder.left + rcBorder.right;
+                yMax = rcScroll.bottom - rcScroll.top + rcBorder.top + rcBorder.bottom;
+            }
+            ppt.x += ptsvCurrent.x - lvc->_ptsvOffset.x;
+            ppt.y += ptsvCurrent.y - lvc->_ptsvOffset.y;
+            MARGINS bordersOld = { selector->GetX(), selector->GetWidth(), selector->GetY(), selector->GetHeight() };
             MARGINS borders = {
                 (ppt.x < lvc->_ptOrigin.x) ? ppt.x : lvc->_ptOrigin.x, abs(ppt.x - lvc->_ptOrigin.x),
                 (ppt.y < lvc->_ptOrigin.y) ? ppt.y : lvc->_ptOrigin.y, abs(ppt.y - lvc->_ptOrigin.y)
@@ -2866,11 +2990,23 @@ namespace DDUI
             if (borders.cyBottomHeight == 0) borders.cyBottomHeight = 1;
             borders.cxLeftWidth -= lvc->_rcGadget.left;
             borders.cyTopHeight -= lvc->_rcGadget.top;
-            Element* selector = lvc->_peSelector;
-            selector->SetWidth(borders.cxRightWidth);
-            selector->SetX(borders.cxLeftWidth);
-            selector->SetHeight(borders.cyBottomHeight);
-            selector->SetY(borders.cyTopHeight);
+            selector->SetX(max(borders.cxLeftWidth, xMin));
+            selector->SetWidth(min(borders.cxRightWidth + borders.cxLeftWidth - selector->GetX(), xMax));
+            selector->SetY(max(borders.cyTopHeight, yMin));
+            selector->SetHeight(min(borders.cyBottomHeight + borders.cyTopHeight - selector->GetY(), yMax));
+            if (lvc->_flags & LVCF_SCROLL)
+            {
+                if (ptsvCurrent.x != psv->GetXOffset())
+                {
+                    psv->SetXOffset(ptsvCurrent.x);
+                    ptsvCurrent.x = psv->GetXOffset();
+                }
+                if (ptsvCurrent.y != psv->GetYOffset())
+                {
+                    psv->SetYOffset(ptsvCurrent.y);
+                    ptsvCurrent.y = psv->GetYOffset();
+                }
+            }
             CValuePtr v;
             DynamicArray<Element*>* rgList = lvc->_peWhitespace->GetChildren(&v);
             if (rgList && rgList->GetSize() > 0)
@@ -2881,27 +3017,29 @@ namespace DDUI
                     bool isLVItem = (child->GetClassInfoW() == LVItem::GetClassInfoPtr());
                     if (isLVItem)
                     {
+                        int offsetX = ptsvCurrent.x - lvc->_ptsvOffset.x;
+                        int offsetY = ptsvCurrent.y - lvc->_ptsvOffset.y;
                         RECT rcBorders{};
                         GetGadgetRect(child->GetDisplayNode(), &rcBorders, 0xC);
-                        bool selectstate = (borders.cxRightWidth + borders.cxLeftWidth + lvc->_rcGadget.left > rcBorders.left &&
-                            rcBorders.right > borders.cxLeftWidth + lvc->_rcGadget.left &&
-                            borders.cyBottomHeight + borders.cyTopHeight + lvc->_rcGadget.top > rcBorders.top &&
-                            rcBorders.bottom > borders.cyTopHeight + lvc->_rcGadget.top &&
-                            child->GetVisible());
+                        bool selectstate = (child->GetVisible() &&
+                            borders.cxRightWidth + borders.cxLeftWidth + lvc->_rcGadget.left - offsetX > rcBorders.left &&
+                            rcBorders.right > borders.cxLeftWidth + lvc->_rcGadget.left - offsetX &&
+                            borders.cyBottomHeight + borders.cyTopHeight + lvc->_rcGadget.top - offsetY > rcBorders.top &&
+                            rcBorders.bottom > borders.cyTopHeight + lvc->_rcGadget.top - offsetY);
                         if (lParam)
                         {
                             if (selectstate)
                             {
                                 if (!(child->GetFlags() & LVIF_NOSELTRIGGER))
                                 {
-                                    rgList->GetItem(items)->SetSelected(!(rgList->GetItem(items)->GetSelected()));
+                                    child->SetSelected(!(child->GetSelected()));
                                     child->AddFlags(LVIF_NOSELTRIGGER);
                                 }
                             }
                             else
                                 child->RemoveFlags(LVIF_NOSELTRIGGER);
                         }
-                        else
+                        else if (selectstate != child->GetSelected())
                             child->SetSelected(selectstate);
                     }
                 }
@@ -3004,7 +3142,10 @@ namespace DDUI
             for (int i = 0; i < rgList->GetSize(); i++)
             {
                 if (i < rgList->GetSize() - 1 && ppe[cCount - 1] == rgList->GetItem(i))
+                {
                     GetGadgetRect(rgList->GetItem(i + 1)->GetDisplayNode(), prcNext, 0xC);
+                    break;
+                }
             }
         }
         HRESULT hr = _CreateAnimatingClone(ppe, prcGadget, ppeClone, cCount);
@@ -3086,6 +3227,12 @@ namespace DDUI
                 }
             }
         }
+    }
+
+    void LVCommon::_OnRemoveAll()
+    {
+        _peSelected = nullptr;
+        _peFocused = nullptr;
     }
 
 
@@ -4060,6 +4207,11 @@ namespace DDUI
         this->SetPropCommon(ItemHeightProp, iScaleIntervals);
     }
 
+    SIZE LVTiles::GetGridLayoutParams()
+    {
+        return _szGridLayout;
+    }
+
     void LVTiles::_UpdateGridLayoutParams()
     {
         CValuePtr v;
@@ -4344,6 +4496,12 @@ namespace DDUI
                 }
             }
         }
+    }
+
+    void LVTiles::_OnRemoveAll()
+    {
+        _peSelected = nullptr;
+        _peFocused = nullptr;
     }
 
     LVItem::~LVItem()
@@ -6265,7 +6423,7 @@ namespace DDUI
             sLeft = GetKeyState(VK_LEFT);
             sRight = GetKeyState(VK_RIGHT);
             _keyState |= ((BYTE)(static_cast<bool>(sLeft & 0x80))) + ((BYTE)(static_cast<bool>(sRight & 0x80)) << 2);
-            short timeCoef = 600;
+            short timeCoef = 300;
             if (_keyState != _keyStateOld)
                 timeCoef = 50;
             if (sLeft & 0x80 && (_ullTick < GetTickCount64() - timeCoef))
@@ -6641,7 +6799,6 @@ namespace DDUI
         return s_pClassInfo;
     }
 
-    // 0.5.8: Should be rewritten for better keyboard input like in LVGrid
     void DDTabbedPages::OnInput(InputEvent* pInput)
     {
         if (pInput->nCode == GMOUSE_MOVE && pInput->nDevice == GINPUT_KEYBOARD)
@@ -6658,7 +6815,7 @@ namespace DDUI
                     sLeft = GetKeyState(VK_LEFT);
                     sRight = GetKeyState(VK_RIGHT);
                     _keyState |= ((BYTE)(static_cast<bool>(sLeft & 0x80))) + ((BYTE)(static_cast<bool>(sRight & 0x80)) << 2);
-                    short timeCoef = 600;
+                    short timeCoef = 300;
                     if (_keyState != _keyStateOld)
                         timeCoef = 50;
                     if (_keyState & 0x1 && (_ullTick < GetTickCount64() - timeCoef))
@@ -6813,6 +6970,9 @@ namespace DDUI
         }
         else if (index != _pageID)
         {
+            _tsvPage->SetYOffset(0);
+            _pParser->CreateElement(_pszPageIDs[index], nullptr, nullptr, nullptr, &peSettingsPage);
+            _peSubUIContainer->Add(&peSettingsPage, 1);
             for (int id = 0; id < pel->GetSize(); id++)
             {
                 Element* child = pel->GetItem(id);
@@ -6822,6 +6982,7 @@ namespace DDUI
                     if (child == _vecAnimating[id2])
                     {
                         fAnimate = false;
+                        child->SetVisible(false);
                         break;
                     }
                 }
@@ -6846,9 +7007,6 @@ namespace DDUI
                     if (hRemoveFromVec) CloseHandle(hRemoveFromVec);
                 }
             }
-            _tsvPage->SetYOffset(0);
-            _pParser->CreateElement(_pszPageIDs[index], nullptr, nullptr, nullptr, &peSettingsPage);
-            _peSubUIContainer->Add(&peSettingsPage, 1);
             if (peSettingsPage)
             {
                 if ((g_ctx.localeType != 1 && index < _pageID) || (g_ctx.localeType == 1 && index > _pageID))
@@ -7151,8 +7309,8 @@ namespace DDUI
                     if (wParam == 1) menu->_wndSelectionMenu->ShowWindow(SW_SHOW);
                     menu->_tick = GetTickCount64();
                     SetTimer(hWnd, wParam + 1, 10, nullptr);
+                    menu->_fAnimating = false;
                 }
-                menu->_fAnimating = false;
                 break;
             case 2:
             case 4:
@@ -7286,7 +7444,8 @@ namespace DDUI
                         }
                         ((DDMenu*)wParam)->_peHostInner->DestroyAll(true);
                         ((DDMenu*)wParam)->_count = 0;
-                        g_menu->HandleMenuMsg(uMsg, (WPARAM)((DDMenu*)wParam)->_hMenu, pmd->uID, &lResult);
+                        LPARAM shellLParam = MAKELPARAM(pmd->uID, FALSE);
+                        g_menu->HandleMenuMsg(uMsg, (WPARAM)((DDMenu*)wParam)->_hMenu, shellLParam, &lResult);
                         int count = GetMenuItemCount(((DDMenu*)wParam)->_hMenu);
                         ((DDMenu*)wParam)->_PopulateFromQuery(count, false);
                         ((DDMenu*)wParam)->_SetVisible(pmd->x, pmd->y, ((DDMenu*)wParam)->_parent, pmd->fInstant);

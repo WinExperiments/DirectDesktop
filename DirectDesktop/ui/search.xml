@@ -1,7 +1,7 @@
 <duixml>
 	<HWNDElement resid="SearchUI" sheet="searchstyle" layoutpos="client" layout="filllayout()" background="rgb(0,0,0)">
 		<Element layoutpos="client" layout="borderlayout()">
-			<Element id="atom(searchbase)" layoutpos="client" layout="borderlayout()"/>
+			<Element id="atom(searchbase)" layoutpos="client" layout="borderlayout()" visible="false"/>
 		</Element>
 		<Element layout="filllayout()" layoutpos="client" background="argb(0,0,0,0)">
 			<Element id="atom(pagecontent)" layout="borderlayout()" padding="rect(48rp,48rp,48rp,48rp)" layoutpos="client" visible="false">
@@ -50,7 +50,7 @@
 					<Element background="argb(0,0,0,0)"/>
 				</if>
 				<if class="TransparentDisabled">
-					<Element background="argb(128,224,224,224)"/>
+					<Element background="argb(192,224,224,224)"/>
 				</if>
 			</if>
 			<Element foreground="black"/>
@@ -77,8 +77,14 @@
 				<if Pressed="true">
 					<DDIconButton AssociatedColor="argb(24,0,0,0)" foreground="20006"/>
 				</if>
+				<if Enabled="false">
+					<DDIconButton foreground="rgb(160,160,160)"/>
+				</if>
 				<if id="atom(DDIB_Icon)">
 					<DDScalableRichText padding="rect(0,0,4rp,0)"/>
+					<if Enabled="false">
+						<DDScalableRichText alpha="72"/>
+					</if>
 				</if>
 			</if>
 		</style>
@@ -88,7 +94,7 @@
 					<Element background="argb(0,0,0,0)"/>
 				</if>
 				<if class="TransparentDisabled">
-					<Element background="argb(128,32,32,32)"/>
+					<Element background="argb(192,32,32,32)"/>
 				</if>
 			</if>
 			<Element foreground="white"/>
@@ -115,8 +121,14 @@
 				<if Pressed="true">
 					<DDIconButton AssociatedColor="argb(24,255,255,255)" foreground="20004"/>
 				</if>
+				<if Enabled="false">
+					<DDIconButton foreground="rgb(128,128,128)"/>
+				</if>
 				<if id="atom(DDIB_Icon)">
 					<DDScalableRichText padding="rect(0,0,4rp,0)"/>
+					<if Enabled="false">
+						<DDScalableRichText alpha="96"/>
+					</if>
 				</if>
 			</if>
 		</style>

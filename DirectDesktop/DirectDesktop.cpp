@@ -736,7 +736,7 @@ namespace DirectDesktop
                 }
                 pMain->Destroy(true);
                 pSubview->Destroy(true);
-                if (!pEdit->IsDestroyed())
+                if (pEdit && !pEdit->IsDestroyed())
                 {
                     pEdit->SetVisible(false);
                     pEdit->Destroy(true);
@@ -874,8 +874,8 @@ namespace DirectDesktop
                     case 15:
                     {
                         SearchParams sp = { wParam - 14, nullptr, nullptr };
-                        if (g_editmode) HideSimpleView(false);
                         CreateSearchPage(&sp);
+                        if (g_editmode) HideSimpleView(false);
                         break;
                     }
                     case 16:
@@ -1141,7 +1141,7 @@ namespace DirectDesktop
                         peShortcutArrow->SetWidth(g_shiconsz * g_pctx->flScaleFactor);
                         peShortcutArrow->SetHeight(g_shiconsz * g_pctx->flScaleFactor);
                         peShortcutArrow->SetX(iconPaddingX);
-                        peShortcutArrow->SetY((iconPaddingY * 0.575) + (g_iconsz - g_shiconsz) * g_pctx->flScaleFactor);
+                        peShortcutArrow->SetY((iconPaddingY * 0.575) + g_iconsz * g_pctx->flScaleFactor - g_shiconsz * g_pctx->flScaleFactor);
                         if (!g_pctx->labelshadow)
                         {
                             peInner->SetLayoutPos(-2);
@@ -1237,25 +1237,25 @@ namespace DirectDesktop
             }
             case WM_USER + 5:
             {
-                //DelayedElementActions* dea = (DelayedElementActions*)wParam;
-                //Element* pe;
-                //if (dea->ppe)
-                //    pe = *(dea->ppe);
-                //else
-                //    pe = dea->pe;
-                //if (pe)
-                //{
-                //    if (!pe->IsDestroyed())
-                //    {
-                //        switch (lParam)
-                //        {
-                //        case 1:
-                //            if (((LVItem*)pe)->GetMemPage() != g_currentPageID)
-                //                pe->SetVisible(!pe->GetVisible());
-                //            break;
-                //        }
-                //    }
-                //}
+                DelayedElementActions* dea = (DelayedElementActions*)wParam;
+                Element* pe;
+                if (dea->ppe)
+                    pe = *(dea->ppe);
+                else
+                    pe = dea->pe;
+                if (pe)
+                {
+                    if (!pe->IsDestroyed())
+                    {
+                        switch (lParam)
+                        {
+                        case 1:
+                            if (((LVItem*)pe)->GetMemPage() != g_currentPageID)
+                                pe->SetVisible(!pe->GetVisible());
+                            break;
+                        }
+                    }
+                }
                 break;
             }
             case WM_USER + 6:
@@ -1341,7 +1341,7 @@ namespace DirectDesktop
                 SIZE szDrag = UIContainer->GetDragSize();
                 if (abs(ppt.x - ((POINT*)lParam)->x) > szDrag.cx || abs(ppt.y - ((POINT*)lParam)->y) > szDrag.cy)
                 {
-                    if (*internalselectedLVItems[0])
+                    if (internalselectedLVItems.size() && *internalselectedLVItems[0])
                     {
                         InitializePreviewComponent(*(internalselectedLVItems[0]), g_dragpreview, g_touchmode, false);
                         (*internalselectedLVItems[0])->AddFlags(LVIF_DRAG);
@@ -1948,6 +1948,7 @@ namespace DirectDesktop
                 DeleteObject(hbmPreview);
             }
         }
+        g_dragpreview->SetVisible(false);
     }
 
     void CreateNewFolder()
@@ -2210,38 +2211,41 @@ namespace DirectDesktop
         {
             CSafeElementPtr<LVItem> lviTarget;
             lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
-            lviTarget->RemoveFlags(LVIF_GROUPEX);
-            int i = lviTarget->GetItemIndex();
-            if (lviTarget->GetGroupSize() == LVIGS_NORMAL)
+            if (lviTarget && !lviTarget->IsDestroyed())
             {
-                lviTarget->SetGroupSize(LVIGS_MEDIUM);
-                if (g_touchmode)
+                lviTarget->RemoveFlags(LVIF_GROUPEX);
+                int i = lviTarget->GetItemIndex();
+                if (lviTarget->GetGroupSize() == LVIGS_NORMAL)
                 {
-                    CSafeElementPtr<DDScalableElement> selectionElem;
-                    selectionElem.Assign((DDScalableElement*)regElem(L"selectionElem", lviTarget));
-                    if (selectionElem)
-                        selectionElem->SetVisible(false);
+                    lviTarget->SetGroupSize(LVIGS_MEDIUM);
+                    if (g_touchmode)
+                    {
+                        CSafeElementPtr<DDScalableElement> selectionElem;
+                        selectionElem.Assign((DDScalableElement*)regElem(L"selectionElem", lviTarget));
+                        if (selectionElem)
+                            selectionElem->SetVisible(false);
+                    }
                 }
+                else
+                {
+                    lviTarget->SetGroupSize(LVIGS_NORMAL);
+                    if (g_touchmode) lviTarget->SetDrawType(1);
+                    lviTarget->SetTooltip(true);
+                    yValue* yV = new yValue{ i };
+                    HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
+                    if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
+                }
+                IconThumbHelper(i);
+                lviTarget->AddFlags(LVIF_SFG);
+                RearrangeIcons(true, false, true);
+                lviTarget->AddFlags(LVIF_REFRESH);
+                if (lviTarget->GetGroupSize() != LVIGS_NORMAL)
+                {
+                    lviTarget->SetOpenDirState(LVIODS_FULLSCREEN);
+                    HidePopupCore(false, true);
+                }
+                else lviTarget->SetOpenDirState(LVIODS_NONE);
             }
-            else
-            {
-                lviTarget->SetGroupSize(LVIGS_NORMAL);
-                if (g_touchmode) lviTarget->SetDrawType(1);
-                lviTarget->SetTooltip(true);
-                yValue* yV = new yValue{ i };
-                HANDLE smThumbnailThreadHandle = CreateThread(nullptr, 0, CreateIndividualThumbnail, (LPVOID)yV, 0, nullptr);
-                if (smThumbnailThreadHandle) CloseHandle(smThumbnailThreadHandle);
-            }
-            IconThumbHelper(i);
-            lviTarget->AddFlags(LVIF_SFG);
-            RearrangeIcons(true, false, true);
-            lviTarget->AddFlags(LVIF_REFRESH);
-            if (lviTarget->GetGroupSize() != LVIGS_NORMAL)
-            {
-                lviTarget->SetOpenDirState(LVIODS_FULLSCREEN);
-                HidePopupCore(false, true);
-            }
-            else lviTarget->SetOpenDirState(LVIODS_NONE);
         }
     }
 
@@ -2251,80 +2255,83 @@ namespace DirectDesktop
         {
             CSafeElementPtr<LVItem> lviTarget;
             lviTarget.Assign(((DDLVActionButton*)elem)->GetAssociatedItem());
-            CSafeElementPtr<DDScalableElement> iconElement;
-            iconElement.Assign((DDScalableElement*)regElem(L"iconElem", lviTarget));
-            CSafeElementPtr<TouchScrollViewer> groupdirlist;
-            groupdirlist.Assign((TouchScrollViewer*)regElem(L"groupdirlist", lviTarget));
-            CSafeElementPtr<Element> dirtitle;
-            dirtitle.Assign(regElem(L"dirtitle", lviTarget));
-            Element* dirtitleclone;
-            TriggerCrossfade(dirtitle, 0.0f, 0.133f, &dirtitleclone);
-            float scaleX{}, scaleY{}, clipX{}, clipX2{};
-            int widthOld = iconElement->GetWidth();
-            int heightOld = iconElement->GetHeight();
-            RECT scrollsize{};
-            RECT rcItem;
-            GetGadgetRect(groupdirlist->GetDisplayNode(), &scrollsize, 0xC);
-            GetGadgetRect(lviTarget->GetDisplayNode(), &rcItem, 0xC);
-            if (elem->GetID() == StrToID(L"Smaller"))
-                lviTarget->SetGroupSize((LVItemGroupSize)((int)lviTarget->GetGroupSize() - 1));
-            if (elem->GetID() == StrToID(L"Larger"))
-                lviTarget->SetGroupSize((LVItemGroupSize)((int)lviTarget->GetGroupSize() + 1));
-            switch (lviTarget->GetGroupSize())
+            if (lviTarget && !lviTarget->IsDestroyed())
             {
-            case LVIGS_SMALL:
-                if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_groupsmall.cx);
-                lviTarget->SetWidth(g_groupsmall.cx);
-                lviTarget->SetHeight(g_groupsmall.cy);
-                iconElement->SetWidth(g_groupsmall.cx);
-                iconElement->SetHeight(g_groupsmall.cy);
-                break;
-            case LVIGS_MEDIUM:
-                if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_groupmedium.cx);
-                lviTarget->SetWidth(g_groupmedium.cx);
-                lviTarget->SetHeight(g_groupmedium.cy);
-                iconElement->SetWidth(g_groupmedium.cx);
-                iconElement->SetHeight(g_groupmedium.cy);
-                break;
-            case LVIGS_WIDE:
-                if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_groupwide.cx);
-                lviTarget->SetWidth(g_groupwide.cx);
-                lviTarget->SetHeight(g_groupwide.cy);
-                iconElement->SetWidth(g_groupwide.cx);
-                iconElement->SetHeight(g_groupwide.cy);
-                break;
-            case LVIGS_LARGE:
-                if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_grouplarge.cx);
-                lviTarget->SetWidth(g_grouplarge.cx);
-                lviTarget->SetHeight(g_grouplarge.cy);
-                iconElement->SetWidth(g_grouplarge.cx);
-                iconElement->SetHeight(g_grouplarge.cy);
-                break;
+                CSafeElementPtr<DDScalableElement> iconElement;
+                iconElement.Assign((DDScalableElement*)regElem(L"iconElem", lviTarget));
+                CSafeElementPtr<TouchScrollViewer> groupdirlist;
+                groupdirlist.Assign((TouchScrollViewer*)regElem(L"groupdirlist", lviTarget));
+                CSafeElementPtr<Element> dirtitle;
+                dirtitle.Assign(regElem(L"dirtitle", lviTarget));
+                Element* dirtitleclone;
+                TriggerCrossfade(dirtitle, 0.0f, 0.133f, &dirtitleclone);
+                float scaleX{}, scaleY{}, clipX{}, clipX2{};
+                int widthOld = iconElement->GetWidth();
+                int heightOld = iconElement->GetHeight();
+                RECT scrollsize{};
+                RECT rcItem;
+                GetGadgetRect(groupdirlist->GetDisplayNode(), &scrollsize, 0xC);
+                GetGadgetRect(lviTarget->GetDisplayNode(), &rcItem, 0xC);
+                if (elem->GetID() == StrToID(L"Smaller"))
+                    lviTarget->SetGroupSize((LVItemGroupSize)((int)lviTarget->GetGroupSize() - 1));
+                if (elem->GetID() == StrToID(L"Larger"))
+                    lviTarget->SetGroupSize((LVItemGroupSize)((int)lviTarget->GetGroupSize() + 1));
+                switch (lviTarget->GetGroupSize())
+                {
+                case LVIGS_SMALL:
+                    if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_groupsmall.cx);
+                    lviTarget->SetWidth(g_groupsmall.cx);
+                    lviTarget->SetHeight(g_groupsmall.cy);
+                    iconElement->SetWidth(g_groupsmall.cx);
+                    iconElement->SetHeight(g_groupsmall.cy);
+                    break;
+                case LVIGS_MEDIUM:
+                    if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_groupmedium.cx);
+                    lviTarget->SetWidth(g_groupmedium.cx);
+                    lviTarget->SetHeight(g_groupmedium.cy);
+                    iconElement->SetWidth(g_groupmedium.cx);
+                    iconElement->SetHeight(g_groupmedium.cy);
+                    break;
+                case LVIGS_WIDE:
+                    if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_groupwide.cx);
+                    lviTarget->SetWidth(g_groupwide.cx);
+                    lviTarget->SetHeight(g_groupwide.cy);
+                    iconElement->SetWidth(g_groupwide.cx);
+                    iconElement->SetHeight(g_groupwide.cy);
+                    break;
+                case LVIGS_LARGE:
+                    if (g_pctx->localeType == 1) lviTarget->SetX(lviTarget->GetX() + lviTarget->GetWidth() - g_grouplarge.cx);
+                    lviTarget->SetWidth(g_grouplarge.cx);
+                    lviTarget->SetHeight(g_grouplarge.cy);
+                    iconElement->SetWidth(g_grouplarge.cx);
+                    iconElement->SetHeight(g_grouplarge.cy);
+                    break;
+                }
+                scaleX = static_cast<float>(widthOld) / iconElement->GetWidth();
+                scaleY = static_cast<float>(heightOld) / iconElement->GetHeight();
+                float originX = (g_pctx->localeType == 1) ? 1.0f : 0.0f;
+                GTRANS_DESC transDesc[1];
+                TriggerScaleIn(lviTarget, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, scaleX, scaleY, originX, 0.0f, 1.0f, 1.0f, originX, 0.0f, false, false);
+                TransitionStoryboardInfo tsbInfo = {};
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lviTarget->GetDisplayNode(), &tsbInfo);
+                TriggerScaleIn(dirtitleclone, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1.0f, 1.0f, originX, 0.0f, 1 / scaleX, 1 / scaleY, originX, 0.0f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, dirtitleclone->GetDisplayNode(), &tsbInfo);
+
+                ShowDirAsGroupDesktop(lviTarget.AddressOfElement(), false);
+
+                GTRANS_DESC transDesc2[3];
+                clipX = (g_pctx->localeType == 1) ? 1.0f - scaleX : 0.0f;
+                clipX2 = (g_pctx->localeType == 1) ? 1.0f : scaleX;
+                if (elem->GetID() == StrToID(L"Smaller"))
+                    TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1.0f - scaleX, 1.0f - scaleY, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                if (elem->GetID() == StrToID(L"Larger"))
+                    TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, clipX, 0.0f, clipX2, scaleY, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
+                TriggerScaleIn(groupdirlist, transDesc2, 1, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / scaleX, 1 / scaleY, originX, 0.0f, 1.0f, 1.0f, originX, 0.0f, false, false);
+                TriggerTranslate(groupdirlist, transDesc2, 2, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f,
+                    (scrollsize.left - rcItem.left) * (1 - scaleX), (scrollsize.top - rcItem.top) * (1 - scaleY), 0, 0, false, false, true);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, groupdirlist->GetDisplayNode(), &tsbInfo);
+                RearrangeIcons(true, false, true);
             }
-            scaleX = static_cast<float>(widthOld) / iconElement->GetWidth();
-            scaleY = static_cast<float>(heightOld) / iconElement->GetHeight();
-            float originX = (g_pctx->localeType == 1) ? 1.0f : 0.0f;
-            GTRANS_DESC transDesc[1];
-            TriggerScaleIn(lviTarget, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, scaleX, scaleY, originX, 0.0f, 1.0f, 1.0f, originX, 0.0f, false, false);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, lviTarget->GetDisplayNode(), &tsbInfo);
-            TriggerScaleIn(dirtitleclone, transDesc, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1.0f, 1.0f, originX, 0.0f, 1 / scaleX, 1 / scaleY, originX, 0.0f, false, false);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, dirtitleclone->GetDisplayNode(), &tsbInfo);
-
-            ShowDirAsGroupDesktop(lviTarget.AddressOfElement(), false);
-
-            GTRANS_DESC transDesc2[3];
-            clipX = (g_pctx->localeType == 1) ? 1.0f - scaleX : 0.0f;
-            clipX2 = (g_pctx->localeType == 1) ? 1.0f : scaleX;
-            if (elem->GetID() == StrToID(L"Smaller"))
-                TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1.0f - scaleX, 1.0f - scaleY, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
-            if (elem->GetID() == StrToID(L"Larger"))
-                TriggerClip(groupdirlist, transDesc2, 0, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, clipX, 0.0f, clipX2, scaleY, 0.0f, 0.0f, 1.0f, 1.0f, false, false);
-            TriggerScaleIn(groupdirlist, transDesc2, 1, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f, 1 / scaleX, 1 / scaleY, originX, 0.0f, 1.0f, 1.0f, originX, 0.0f, false, false);
-            TriggerTranslate(groupdirlist, transDesc2, 2, 0.0f, 0.25f, 0.75f, 0.45f, 0.0f, 1.0f,
-                (scrollsize.left - rcItem.left) * (1 - scaleX), (scrollsize.top - rcItem.top) * (1 - scaleY), 0, 0, false, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, groupdirlist->GetDisplayNode(), &tsbInfo);
-            RearrangeIcons(true, false, true);
         }
     }
 
@@ -2332,9 +2339,15 @@ namespace DirectDesktop
     {
         if (iev->uidType == DDLVActionButton::Click)
         {
-            SearchParams sp = { 0x6, (LPWSTR)((DDLVActionButton*)elem)->GetAssociatedItem()->GetFilename().c_str(),
-                (LPWSTR)((DDLVActionButton*)elem)->GetAssociatedItem()->GetSimpleFilename().c_str() };
-            CreateSearchPage(&sp);
+            LVItem* lvi = ((DDLVActionButton*)elem)->GetAssociatedItem();
+            if (lvi && !lvi->IsDestroyed())
+            {
+                DWORD flags = 0x2;
+                if (lvi->GetOpenDirState() == LVIODS_FULLSCREEN)
+                    flags |= 0x4;
+                SearchParams sp = { flags, (LPWSTR)lvi->GetFilename().c_str(), (LPWSTR)lvi->GetSimpleFilename().c_str() };
+                CreateSearchPage(&sp);
+            }
         }
     }
 
@@ -2378,7 +2391,7 @@ namespace DirectDesktop
         if (iev->uidType == DDLVActionButton::Click || iev->uidType == DDLVActionButton::MultipleClick)
         {
             LVItem* lviTarget = ((DDLVActionButton*)elem)->GetAssociatedItem();
-            if (lviTarget)
+            if (lviTarget && !lviTarget->IsDestroyed())
             {
                 if (lviTarget->GetOpenDirState() == LVIODS_FULLSCREEN);
                     HidePopupCore(false, true);
@@ -3255,10 +3268,7 @@ namespace DirectDesktop
                     textclicks++;
                     if (!(textclicks & 1) && iev->uidType == LVItem::Click())
                     {
-                        wchar_t* dcms{};
-                        GetRegistryStrValues(HKEY_CURRENT_USER, L"Control Panel\\Mouse", L"DoubleClickSpeed", &dcms);
-                        yValuePtrs* yV = new yValuePtrs{ &textclicks, elem, (DWORD)_wtoi(dcms) };
-                        free(dcms);
+                        yValuePtrs* yV = new yValuePtrs{ &textclicks, elem, GetDoubleClickTime() };
                         HANDLE renameHandle = CreateThread(nullptr, 0, RenameIfIdleSelection, (LPVOID)yV, 0, nullptr);
                         if (renameHandle) CloseHandle(renameHandle);
                     }
@@ -3273,7 +3283,7 @@ namespace DirectDesktop
         if (iev->uidType == LVItem::MultipleClick && shellstate[4] & 0x20 && !g_touchmode)
         {
         CLICKACTION:
-            if (!(ctrlKey & 0x8000 || shiftKey & 0x8000))
+            if (!(ctrlKey & 0x8000 || (shiftKey & 0x8000 && selectedLVItems.size() > 1)))
             {
                 TouchButton* checkbox = ((LVItem*)elem)->GetCheckbox();
                 DWORD lviFlags = ((LVItem*)elem)->GetFlags();
@@ -4452,7 +4462,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 103");
+            peTemp[1]->SetContentString(L"Build 104");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -5001,7 +5011,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     g_itemlauncheffect = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"ItemLaunchEffect");
     DDKey.SetPath(L"Software\\DirectDesktop\\Debug");
 
-    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode", 0, true, nullptr);
+    DWORD dwDebugPref = 0;
+    if (!EnsureRegValueExists(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode"))
+        dwDebugPref = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4E01A297-F7C3-4AB1-935A-85D30DE0FA25}", L"DebugMode");
+    SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode", dwDebugPref, true, nullptr);
     g_pctx->debugmode = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode");
 
     if (argv)
@@ -5068,7 +5081,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"This is a prerelease version of DirectDesktop. It may be unstable or crash.\n\nVersion %s\nBuilt on %s", GetExeVersion().c_str(), BUILD_DATE);
 
     DDNotificationBanner* ddnb = new DDNotificationBanner();
-    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M6", prerelNotice, 10, nullptr);
+    ddnb->CreateBanner(DDNT_WARNING, L"DirectDesktop - 0.6 M7", prerelNotice, 10, nullptr);
 
     if (argv)
     {
@@ -5077,28 +5090,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             if ((wcscmp(argv[i], L"-c") == 0 || wcscmp(argv[i], L"/c") == 0) && argc > i + 1)
             {
                 DWORD oldExit = wcstoul(argv[i + 1], nullptr, 10);
-                if (oldExit > 1)
+                if (oldExit > 3)
                 {
                     WCHAR crashReason[128];
                     switch (oldExit)
                     {
                     case 0xC0000005:
-                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: Read/write access violation", oldExit);
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Reason: Read/write access violation", oldExit);
                         break;
                     case 0xC0000094:
-                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: Integer division by zero", oldExit);
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Reason: Integer division by zero", oldExit);
                         break;
                     case 0xC00000FD:
-                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: A new guard page for the stack cannot be created", oldExit);
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Reason: A new guard page for the stack cannot be created", oldExit);
                         break;
                     case 0xC0000374:
-                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: A heap has been corrupted", oldExit);
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Reason: A heap has been corrupted", oldExit);
+                        break;
+                    case 0xC0000409:
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Reason: The system detected an overrun of a stack-based buffer in this application", oldExit);
                         break;
                     case 0xC000041D:
-                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Reason: Unhandled exception occurred during a user callback", oldExit);
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Reason: Unhandled exception occurred during a user callback", oldExit);
                         break;
                     default:
-                        StringCchPrintfW(crashReason, 128, L"%s (0x%x).", L"Unknown", oldExit);
+                        StringCchPrintfW(crashReason, 128, L"%s (0x%X).", L"Unknown", oldExit);
                         break;
                     }
                     DDNotificationBanner* ddnb = new DDNotificationBanner();

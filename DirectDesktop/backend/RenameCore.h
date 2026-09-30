@@ -1,5 +1,7 @@
 #pragma once
 
+#include "..\..\DDUI\DDUI.h"
+
 using namespace DirectUI;
 using namespace DDUI;
 

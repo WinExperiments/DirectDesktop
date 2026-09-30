@@ -1,6 +1,9 @@
 #pragma once
 #pragma warning(disable:28159)
 
+#include "resource.h"
+#include "..\DDUI\DDUI.h"
+
 using namespace DirectUI;
 using namespace DDUI;
 

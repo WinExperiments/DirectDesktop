@@ -5,8 +5,10 @@
 #include "..\backend\ContextMenus.h"
 #include "..\backend\DirectoryHelper.h"
 #include "..\backend\SettingsHelper.h"
+#include "..\..\DDUI\DDUI.h"
 #include <wrl.h>
 
+#define SEARCH_LIMIT 100
 
 using namespace DirectUI;
 using namespace DDUI;
@@ -40,6 +42,7 @@ namespace DirectDesktop
     UINT g_offset;
 
     DWORD WINAPI AnimateSearchWindow(LPVOID lpParam);
+    void DisplayResults(UINT idxOffset);
     void DestroySearchPage();
     void ChangeSearchFolder(Element* elem, Event* iev);
 
@@ -49,10 +52,15 @@ namespace DirectDesktop
         switch (uMsg)
         {
             case WM_CLOSE:
-                SetTimer(hWnd, 1, 50, nullptr);
+                if (g_searchopen)
+                    SetTimer(hWnd, 1, 50, nullptr);
                 return 0;
             case WM_DESTROY:
                 return 0;
+            case WM_ACTIVATE:
+                if (!g_searchopen)
+                    return 0;
+                break;
             case WM_CANCELMODE:
             {
                 if (!g_peek)
@@ -112,13 +120,31 @@ namespace DirectDesktop
                 break;
             }
             case WM_TIMER:
+            {
                 KillTimer(hWnd, wParam);
                 switch (wParam)
                 {
                 case 1:
                     DestroySearchPage();
                     break;
+                case 2:
+                {
+                    CSafeElementPtr<Element> searchbase;
+                    searchbase.Assign(regElem(L"searchbase", pSearch));
+                    searchbase->SetVisible(g_searchopen);
+                    break;
                 }
+                case 3:
+                    if (g_searchopen)
+                    {
+                        g_sp.flags &= 0xFFFFFFEF;
+                        g_offset = 0;
+                        DisplayResults(0);
+                    }
+                    break;
+                }
+                break;
+            }
             case WM_USER + 1:
             {
                 searchbox->SetKeyFocus();
@@ -256,20 +282,21 @@ namespace DirectDesktop
     {
         LPWSTR path{};
         GetRegistryStrValues(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", L"Desktop", &path);
-            CValuePtr v;
-            if (!searchbox->GetContentString(&v))
-            {
-                MessageBeep(MB_OK);
-                DDNotificationBanner* ddnb = new DDNotificationBanner();
-                ddnb->CreateBanner(DDNT_INFO, nullptr, L"Type in the search box to search.", 5, nullptr);
-                return;
-            }
-            v->Release();
-            //if (wcslen(searchbox->GetContentString(&v)) < 2) return;
-            WCHAR* searchquery = new WCHAR[1024];
+        CValuePtr v;
+        const WCHAR* pszEdit = searchbox->GetContentString(&v);
+        if (!(pszEdit || g_sp.flags & 0x8))
+        {
+            MessageBeep(MB_OK);
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
+            ddnb->CreateBanner(DDNT_INFO, nullptr, L"Type in the search box to search.", 5, nullptr);
+            return;
+        }
+        WCHAR* searchquery = new WCHAR[1024]{};
+        if (pszEdit)
+        {
             if (g_sp.flags & 0x2)
             {
-                StringCchPrintfW(searchquery, 1024, L"path:\"%s\\\" %s", RemoveQuotes(g_sp.path).c_str(), searchbox->GetContentString(&v));
+                StringCchPrintfW(searchquery, 1024, L"path:\"%s\\\" %s", RemoveQuotes(g_sp.path).c_str(), pszEdit);
             }
             else
             {
@@ -280,101 +307,119 @@ namespace DirectDesktop
                 StringCchPrintfW(PublicPath, 260, L"%s\\Desktop", cBuffer);
                 d = GetEnvironmentVariableW(L"OneDrive", cBuffer, 260);
                 StringCchPrintfW(OneDrivePath, 260, L"%s\\Desktop", cBuffer);
-                StringCchPrintfW(searchquery, 1024, L"path:\"%s\\\" | path:\"%s\\\" | path:\"%s\\\" %s", path, PublicPath, OneDrivePath, searchbox->GetContentString(&v));
+                StringCchPrintfW(searchquery, 1024, L"path:\"%s\\\" | path:\"%s\\\" | path:\"%s\\\" %s", path, PublicPath, OneDrivePath, pszEdit);
                 delete[] cBuffer;
                 delete[] PublicPath;
                 delete[] OneDrivePath;
             }
-            CSafeElementPtr<Element> rescontainer;
-            rescontainer.Assign(regElem(L"rescontainer", pSearch));
-            CSafeElementPtr<LVCommon> LVSearchResults;
-            LVSearchResults.Assign((LVCommon*)regElem(L"LVSearchResults", pSearch));
+        }
 
+        CSafeElementPtr<LVCommon> LVSearchResults;
+        LVSearchResults.Assign((LVCommon*)regElem(L"LVSearchResults", pSearch));
+        CSafeElementPtr<Element> rescontainer;
+        rescontainer.Assign(regElem(L"rescontainer", pSearch));
+        if (!(g_sp.flags & 0x8))
+        {
             rescontainer->DestroyAll(true);
             LVSearchResults->DestroyAll(true);
+        }
+        
+        if (wcslen(searchquery))
+        {
             Everything_SetSearchW(searchquery);
             Everything_QueryW(TRUE);
-            delete[] searchquery;
-            LVItem* SearchResultPlaceholder{};
-            parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&SearchResultPlaceholder);
+        }
 
-            CSafeElementPtr<DDScalableRichText> ResultInfo;
-            ResultInfo.Assign((DDScalableRichText*)regElem(L"ResultInfo", pSearch));
-            ResultInfo->SetLayoutPos(1);
-            CSafeElementPtr<DDScalableRichText> ResultCount;
-            ResultCount.Assign((DDScalableRichText*)regElem(L"ResultCount", pSearch));
-            int rescount = Everything_GetNumResults();
-            WCHAR itemCount[32], temp[32];
-            LoadStrFromRes(temp, 32, 4032);
-            if (rescount == 1) LoadStrFromRes(itemCount, 32, 4031);
-            else StringCchPrintfW(itemCount, 32, temp, rescount);
-            ResultCount->SetContentString(itemCount);
-            WCHAR resultc[64]{};
-            PreviousResults->SetVisible(rescount > 100);
-            NextResults->SetVisible(rescount > 100);
-            if (rescount > 100)
+        CSafeElementPtr<DDScalableRichText> ResultInfo;
+        ResultInfo.Assign((DDScalableRichText*)regElem(L"ResultInfo", pSearch));
+        ResultInfo->SetLayoutPos(1);
+        CSafeElementPtr<DDScalableRichText> ResultCount;
+        ResultCount.Assign((DDScalableRichText*)regElem(L"ResultCount", pSearch));
+        int rescount = wcslen(searchquery) ? Everything_GetNumResults() : 0;
+        WCHAR itemCount[32], temp[32];
+        LoadStrFromRes(temp, 32, 4032);
+        if (rescount == 1) LoadStrFromRes(itemCount, 32, 4031);
+        else StringCchPrintfW(itemCount, 32, temp, rescount);
+        ResultCount->SetContentString(itemCount);
+        WCHAR resultc[64]{};
+        PreviousResults->SetVisible(rescount > SEARCH_LIMIT);
+        NextResults->SetVisible(rescount > SEARCH_LIMIT);
+        if (rescount > SEARCH_LIMIT)
+        {
+            StringCchPrintfW(resultc, 64, L"%d-%d", 1 + idxOffset, min(rescount, SEARCH_LIMIT + idxOffset));
+            PreviousResults->SetEnabled(idxOffset >= SEARCH_LIMIT);
+            NextResults->SetEnabled(idxOffset + SEARCH_LIMIT < rescount);
+        }
+        CSafeElementPtr<DDScalableRichText> CurrentResults;
+        CurrentResults.Assign((DDScalableRichText*)regElem(L"CurrentResults", pSearch));
+        CurrentResults->SetContentString(resultc);
+        delete[] searchquery;
+        if (g_sp.flags & 0x8)
+        {
+            if (!(g_sp.flags & 0x10))
             {
-                StringCchPrintfW(resultc, 64, L"%d-%d", 1 + idxOffset, min(rescount, 100 + idxOffset));
-                PreviousResults->SetEnabled(idxOffset >= 100);
-                NextResults->SetEnabled(idxOffset + 100 < rescount);
+                GTRANS_DESC transDesc[1];
+                TriggerFade(LVSearchResults, transDesc, 0, 0.0f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, false, true);
+                TransitionStoryboardInfo tsbInfo = {};
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, LVSearchResults->GetDisplayNode(), &tsbInfo);
+                g_sp.flags |= 0x10;
             }
-            CSafeElementPtr<DDScalableRichText> CurrentResults;
-            CurrentResults.Assign((DDScalableRichText*)regElem(L"CurrentResults", pSearch));
-            CurrentResults->SetContentString(resultc);
-            
-            spm.clear();
-            spm.resize(min(rescount - idxOffset, 100));
-            for (int i = 0; i < min(rescount - idxOffset, 100); i++)
+            g_sp.flags &= 0xFFFFFFF7;
+            return;
+        }
+
+        spm.clear();
+        spm.resize(min(rescount - idxOffset, SEARCH_LIMIT));
+        for (int i = 0; i < min(rescount - idxOffset, SEARCH_LIMIT); i++)
+        {
+            parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&spm[i]);
+            DDScalableRichText* name = (DDScalableRichText*)regElem(L"name", spm[i]);
+            DDScalableRichText* path = (DDScalableRichText*)regElem(L"path", spm[i]);
+            DDScalableElement* iconElem = (DDScalableElement*)regElem(L"iconElem", spm[i]);
+            Element* shortcutElem = regElem(L"shortcutElem", spm[i]);
+            LPCWSTR evName = Everything_GetResultFileNameW(i + idxOffset);
+            LPCWSTR evPath = Everything_GetResultPathW(i + idxOffset);
+            path->SetContentString(evPath);
+            spm[i]->SetFilename((wstring)evPath + L"\\" + evName);
+            spm[i]->SetIcon(iconElem);
+            spm[i]->SetShortcutArrow(shortcutElem);
+            wstring filenameNew = hideExt(evName, g_hideFileExt, false, spm[i]);
+            name->SetContentString(filenameNew.c_str());
+            if (g_isThumbnailHidden == 0)
             {
-            	parserSearch->CreateElement(L"SearchResult", NULL, NULL, NULL, (Element**)&spm[i]);
-            	DDScalableRichText* name = (DDScalableRichText*)regElem(L"name", spm[i]);
-                DDScalableRichText* path = (DDScalableRichText*)regElem(L"path", spm[i]);
-                DDScalableElement* iconElem = (DDScalableElement*)regElem(L"iconElem", spm[i]);
-                Element* shortcutElem = regElem(L"shortcutElem", spm[i]);
-                LPCWSTR evName = Everything_GetResultFileNameW(i + idxOffset);
-                LPCWSTR evPath = Everything_GetResultPathW(i + idxOffset);
-            	path->SetContentString(evPath);
-            	spm[i]->SetFilename((wstring)evPath + L"\\" + evName);
-            	spm[i]->SetIcon(iconElem);
-            	spm[i]->SetShortcutArrow(shortcutElem);
-                wstring filenameNew = hideExt(evName, g_hideFileExt, false, spm[i]);
-                name->SetContentString(filenameNew.c_str());
-                if (g_isThumbnailHidden == 0)
-                {
-                    bool image;
-                    isSpecialProp(spm[i]->GetFilename(), true, &image, &imageExts);
-                    if (image) spm[i]->AddFlags(LVIF_COLORLOCK);
-                }
-                bool advancedicon;
-                isSpecialProp(spm[i]->GetFilename(), true, &advancedicon, &advancedIconExts);
-                if (advancedicon) spm[i]->AddFlags(LVIF_ADVANCEDICON);
-            	assignFn(spm[i], LaunchSearchResult);
-            	assignFn(spm[i], ItemRightClick);
-                yValueEx* yV = new yValueEx{ i, NULL, NULL, &spm, nullptr, nullptr };
-                QueueUserWorkItem(CreateSRIconHelper, yV, 0);
+                bool image;
+                isSpecialProp(spm[i]->GetFilename(), true, &image, &imageExts);
+                if (image) spm[i]->AddFlags(LVIF_COLORLOCK);
             }
-            LVSearchResults->AddFlags(LVCF_NOANIMATE);
-            LVSearchResults->Add((Element**)&spm[0], min(rescount - idxOffset, 100));
-            LVSearchResults->RemoveFlags(LVCF_NOANIMATE);
-            GTRANS_DESC transDesc[2];
-            TriggerTranslate(LVSearchResults, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_pctx->flScaleFactor, 0.0f, 0.0f, false, false, false);
-            TriggerFade(LVSearchResults, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
-            TransitionStoryboardInfo tsbInfo = {};
-            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, LVSearchResults->GetDisplayNode(), &tsbInfo);
-            SearchResultPlaceholder->DestroyAll(true);
-            SearchResultPlaceholder->Destroy(true);
+            bool advancedicon;
+            isSpecialProp(spm[i]->GetFilename(), true, &advancedicon, &advancedIconExts);
+            if (advancedicon) spm[i]->AddFlags(LVIF_ADVANCEDICON);
+            assignFn(spm[i], LaunchSearchResult);
+            assignFn(spm[i], ItemRightClick);
+            yValueEx* yV = new yValueEx{ i, NULL, NULL, &spm, nullptr, nullptr };
+            QueueUserWorkItem(CreateSRIconHelper, yV, 0);
+        }
+        LVSearchResults->AddFlags(LVCF_NOANIMATE);
+        LVSearchResults->Add((Element**)&spm[0], min(rescount - idxOffset, SEARCH_LIMIT));
+        LVSearchResults->RemoveFlags(LVCF_NOANIMATE);
+        GTRANS_DESC transDesc[2];
+        TriggerTranslate(LVSearchResults, transDesc, 0, 0.2f, 0.7f, 0.1f, 0.9f, 0.2f, 1.0f, 0.0f, 100.0f * g_pctx->flScaleFactor, 0.0f, 0.0f, false, false, false);
+        TriggerFade(LVSearchResults, transDesc, 1, 0.2f, 0.4f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, false, false, false);
+        TransitionStoryboardInfo tsbInfo = {};
+        ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, LVSearchResults->GetDisplayNode(), &tsbInfo);
     }
 
     void DisplayResultsFromButton(Element* elem, Event* iev)
     {
         if (iev->uidType == TouchButton::Click || iev->uidType == TouchButton::MultipleClick)
         {
+            g_sp.flags &= 0xFFFFFFEF;
             WCHAR atomName[32];
             GetAtomNameW(elem->GetID(), atomName, 32);
             if (wcscmp(atomName, L"PreviousResults") == 0)
-                g_offset -= 100;
+                g_offset -= SEARCH_LIMIT;
             else if (wcscmp(atomName, L"NextResults") == 0)
-                g_offset += 100;
+                g_offset += SEARCH_LIMIT;
             else
                 g_offset = 0;
             DisplayResults(g_offset);
@@ -383,12 +428,48 @@ namespace DirectDesktop
 
     void DisplayResultsFromBox(Element* elem, InputEvent* ev)
     {
-        if (ev->nDevice == GINPUT_KEYBOARD && ev->nCode == GMOUSE_DOWN && ev->nStage == GMF_BUBBLED)
+        if (ev->nDevice == GINPUT_KEYBOARD && ev->nCode == GMOUSE_DOWN)
         {
-            if (GetAsyncKeyState(VK_RETURN) & 1)
+            if (ev->nStage == GMF_BUBBLED && GetAsyncKeyState(VK_RETURN) & 1)
             {
+                g_sp.flags &= 0xFFFFFFEF;
                 g_offset = 0;
                 DisplayResults(0);
+            }
+            else if (!(ev->nStage == GMF_BUBBLED || GetAsyncKeyState(VK_RETURN) & 1))
+            {
+                //DDNotificationBanner* ddnbb = new DDNotificationBanner();
+                //ddnbb->CreateBanner(DDNT_INFO, to_wstring(GetKeyState(VK_ESCAPE)).c_str(), to_wstring(ev->nStage).c_str(), 3, nullptr);
+                BYTE keyboardState[256];
+                GetKeyboardState(keyboardState);
+                for (int vk = 0x08; vk <= 0xE7; vk++)
+                {
+                    if (GetAsyncKeyState(vk) & 0x8000 || GetAsyncKeyState(vk) & 1)
+                    {
+                        if (vk < '0' || vk == VK_LWIN || vk == VK_RWIN || (vk >= VK_F1 && vk <= VK_F24))
+                            return;
+                        WCHAR buffer[2] = { 0 };
+                        UINT scanCode = MapVirtualKeyW(vk, MAPVK_VK_TO_VSC);
+                        int result = ToUnicode(vk, scanCode, keyboardState, buffer, 2, 0);
+                            if (result < 1)
+                                continue;
+                        if (buffer[0] < 0x30)
+                        {
+                            return;
+                        }
+                    }
+                }
+                //DDNotificationBanner* ddnb = new DDNotificationBanner();
+                //ddnb->CreateBanner(DDNT_WARNING, to_wstring(GetKeyState(VK_ESCAPE)).c_str(), to_wstring(ev->nStage).c_str(), 3, nullptr);
+                CValuePtr v;
+                const WCHAR* pszSearch = ((DDScalableTouchEdit*)elem)->GetContentString(&v);
+                g_sp.flags |= 0x8;
+                DisplayResults(0);
+                if (pszSearch && wcslen(pszSearch))
+                {
+                    KillTimer(searchwnd->GetHWND(), 3);
+                    SetTimer(searchwnd->GetHWND(), 3, 650, nullptr);
+                }
             }
         }
     }
@@ -397,6 +478,7 @@ namespace DirectDesktop
     {
         if (iev->uidType == Button::Click || iev->uidType == TouchButton::Click)
         {
+            KillTimer(searchwnd->GetHWND(), 3);
             SetTimer(searchwnd->GetHWND(), 1, 50, nullptr);
         }
     }
@@ -582,7 +664,7 @@ namespace DirectDesktop
             GTRANS_DESC transDesc[2];
             TriggerScaleOut(UIContainer, transDesc, 0, 0.0f, 0.67f, 0.1f, 0.9f, 0.2f, 1.0f, 0.92f, 0.92f, 0.5f, 0.5f, false, false);
             if (!g_editmode) TriggerFade(UIContainer, transDesc, 1, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, flBackFade, false, false, true);
-            ScheduleGadgetTransitions_DWMCheck(0, g_editmode ? 1 : 2, transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc) - (g_editmode ? 1 : 0), transDesc, UIContainer->GetDisplayNode(), &tsbInfo);
         }
         GTRANS_DESC transDesc2[2];
         TriggerFade(pagecontent, transDesc2, 0, 0.05f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, false);
@@ -625,6 +707,10 @@ namespace DirectDesktop
             free(path);
         }
 
+        DWORD dwMillis = (g_pctx->windowAnim && g_pctx->clientAnim) ? 50 : 0;
+        SetTimer(searchwnd->GetHWND(), 2, dwMillis, nullptr);
+
+        ///////// Everything DLL load check
         g_EverythingDLL = LoadLibraryW(L"Everything64.dll");
 
         if (!g_EverythingDLL)
@@ -636,6 +722,9 @@ namespace DirectDesktop
             ddnb->AppendButton(closeText, CloseSearch, true);
             searchbutton->SetEnabled(false);
             searchbox->SetEnabled(false);
+            CSafeElementPtr<Element> SearchFilters;
+            SearchFilters.Assign(regElem(L"SearchFilters", pSearch));
+            SearchFilters->SetEnabled(false);
             // 0.6 M4: Replace with DDScalableTouchEdit::SetPromptText when implemented 
             CValuePtr v = Value::CreateString(L" ", nullptr);
             searchbox->SetValue(DDScalableTouchEdit::PromptTextProp, 1, v);
@@ -668,7 +757,6 @@ namespace DirectDesktop
 
     void DestroySearchPage()
     {
-
         FreeLibrary(g_EverythingDLL);
         TransitionStoryboardInfo tsbInfo = {};
         if (!(g_sp.flags & 0x4))

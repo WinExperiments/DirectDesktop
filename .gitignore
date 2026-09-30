@@ -367,3 +367,5 @@ DirectDesktop/x64/
 x64/Debug
 /build
 /.idea
+/DDSetup/res/payload.7z
+/DDUninstall/res/payload.7z

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "..\..\DDUI\DDUI.h"
 
 #define MIN_SHELL_ID 10000
 #define MAX_SHELL_ID 30000

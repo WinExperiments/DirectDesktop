@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "..\..\DDUI\DDUI.h"
 
 using namespace DirectUI;
 using namespace DDUI;

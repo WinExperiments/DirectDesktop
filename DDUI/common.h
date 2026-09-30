@@ -6,6 +6,7 @@
 #define DDUIAPI __declspec(dllimport)
 #endif
 
+#include "resource.h"
 #include "SettingsHelper.h"
 #include "coreui\StyleModifier.h"
 

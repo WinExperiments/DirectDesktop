@@ -6,4 +6,6 @@
 #define SHUTDOWNWINDOWAPI __declspec(dllimport)
 #endif
 
+#include "resource.h"
+
 void SHUTDOWNWINDOWAPI SDDummyFunc();

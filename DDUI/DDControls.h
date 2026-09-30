@@ -12,6 +12,7 @@
 #include "coreui\AnimationHelper.h"
 #include <vector>
 #include <string>
+#include <shlwapi.h>
 
 using namespace std;
 using namespace DirectUI;
@@ -355,7 +356,8 @@ namespace DDUI
         LVCF_ANIMATEPARTIAL = 0x00000010,
         LVCF_NOASSIGNFUNC = 0x00000020,
         LVCF_TOUCH = 0x00000040,
-        LVCF_CTRLA = 0x00000080
+        LVCF_CTRLA = 0x00000080,
+        LVCF_SCROLL = 0x00000100
     };
 
     enum LVItemGroupSize
@@ -406,8 +408,6 @@ namespace DDUI
     class LVItem;
     class LVItemTouchGrid;
 
-    // 0.5.8: ListView classes not finalized, they are just a predecessor of what's coming in 0.6. Feedback is welcomed.
-
     class LVCommon : public Element
     {
     public:
@@ -424,13 +424,14 @@ namespace DDUI
             , _rcGadget{}
             , _flags(LVCF_NONE)
             , _ullRemoveTick(0)
+            , _pScrollViewer(nullptr)
+            , _ptsvOffset{}
+            , _szScrollDelta{}
             , _dwSafeRemove(0)
         {
         }
 
-        DDUIAPI ~LVCommon()
-        {
-        }
+        DDUIAPI ~LVCommon();
         DDUIAPI static IClassInfo* GetClassInfoPtr();
         DDUIAPI static void SetClassInfoPtr(IClassInfo* pClass);
         DDUIAPI IClassInfo* GetClassInfoW() override;
@@ -479,11 +480,15 @@ namespace DDUI
         RECT _rcGadget;
         LVCommonFlags _flags;
         ULONGLONG _ullRemoveTick;
+        BaseScrollViewer* _pScrollViewer;
+        POINT _ptsvOffset;
+        SIZE _szScrollDelta;
         DWORD _dwSafeRemove;
 
         DDUIAPI HRESULT _CreateLVVisual();
         DDUIAPI static HRESULT _CreateAnimatingClone(Element** ppeOrig, RECT* prcOrig, Element** ppeClone, UINT cCount);
         DDUIAPI void _RemoveStuckClones(DynamicArray<Element*>* rgList);
+        void _CalcScrollOffset();
         DDUIAPI static void _MarqueeSelector(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
         DDUIAPI static DWORD WINAPI _UpdateMarqueeSelectorPosition(LPVOID lpParam);
         DDUIAPI static LRESULT CALLBACK s_ListViewProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -493,7 +498,7 @@ namespace DDUI
         virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual HRESULT _OnRemoving(Element** ppe, Element** ppeClone, RECT* prcParent, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext, UINT cCount);
-        virtual void _OnRemoveAll() {}
+        virtual void _OnRemoveAll();
     };
 
     class LVGrid : public LVCommon
@@ -579,6 +584,7 @@ namespace DDUI
         DDUIAPI int GetItemHeight();
         DDUIAPI void SetItemMinWidth(int iItemMinWidth);
         DDUIAPI void SetItemHeight(int iItemHeight);
+        SIZE GetGridLayoutParams();
 
     protected:
         SIZE _szGridLayout;
@@ -591,7 +597,7 @@ namespace DDUI
         virtual void _OnAddOrInsert(Element** ppe, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual HRESULT _OnRemoving(Element** ppe, Element** ppeClone, RECT* prcParent, RECT* prcGadget, RECT* prcNext, UINT cCount);
         virtual void _OnRemove(Element** ppe, Element** ppeClone, RECT* prcGadget, RECT* prcNext, UINT cCount);
-        virtual void _OnRemoveAll() {}
+        virtual void _OnRemoveAll();
     };
 
     class LVItem final : public DDScalableTouchButton

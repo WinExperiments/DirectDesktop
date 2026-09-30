@@ -73,17 +73,17 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\$(BaseIntermediateOutputPath)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\$(BaseIntermediateOutputPath)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)build\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)build\$(Configuration)-$(Platform)\$(ProjectName)\$(BaseIntermediateOutputPath)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -100,11 +100,12 @@
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;wtsapi32.lib;powrprof.lib;shlwapi.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DDUI.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;shlwapi.lib;powrprof.lib;wtsapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -118,13 +119,14 @@
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;wtsapi32.lib;powrprof.lib;shlwapi.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DDUI.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;shlwapi.lib;powrprof.lib;wtsapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -136,11 +138,12 @@
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;wtsapi32.lib;powrprof.lib;shlwapi.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DDUI.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;shlwapi.lib;powrprof.lib;wtsapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -151,19 +154,20 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;HAS_SEARCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <LanguageStandard>Default</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)DirectDesktop\Include\dui70</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DDUI.lib;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;wtsapi32.lib;powrprof.lib;shlwapi.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)build\$(Configuration)-$(Platform)\DDUI.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)build\$(Configuration)-$(Platform)\DirectUI\dui70.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DUser\duser.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\DDUI.lib;$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj;UxTheme.lib;WindowsCodecs.lib;gdiplus.lib;Ole32.lib;Advapi32.lib;Shell32.lib;User32.lib;Gdi32.lib;Shlwapi.lib;dwmapi.lib;comctl32.lib;shcore.lib;shlwapi.lib;powrprof.lib;wtsapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
       <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build_timestamp.ps1"</Command>
@@ -199,6 +203,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(Configuration)-$(Platform)\pch.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="ui\EditMode.cpp" />
     <ClCompile Include="backend\Logger.cpp" />

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "..\..\DDUI\DDUI.h"
 
 namespace DirectDesktop
 {
