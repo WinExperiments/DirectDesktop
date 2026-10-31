@@ -394,7 +394,7 @@
 			<if id="atom(DDS_Track)">
 				<DDScalableElement ScaledImageIntervals="7" DrawType="1" ImageCount="3"/>
 				<if Enabled="false">
-					<DDScalableElement alpha="64"/>
+					<DDScalableElement alpha="92"/>
 				</if>
 				<if class="DDS_Horiz">
 					<DDScalableElement FirstScaledImage="1078" ImageIndex="1" borderthickness="rect(0,0,3rp,0)" height="4rp"/>
@@ -513,6 +513,101 @@
 				<if class="selectornoalpha">
 					<Element background="argb(0,0,0,0)" borderthickness="rect(2rp,2rp,2rp,2rp)" bordercolor="white"/>
 				</if>
+			</if>
+			<DDProgressBar background="argb(0,0,0,0)"/>
+			<if IsVertical="true">
+				<DDProgressBar width="32rp"/>
+			</if>
+			<if IsVertical="false">
+				<DDProgressBar height="32rp"/>
+			</if>
+			<if id="atom(DDPB_Bar)">
+				<DDScalableElement background="argb(153,0,0,0)"/>
+				<if Enabled="false">
+					<DDScalableElement alpha="92"/>
+				</if>
+				<if class="DDPB_Horiz">
+					<DDScalableElement height="1rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement width="1rp"/>
+				</if>
+				<if class="DDPB_Horiz_I">
+					<DDScalableElement height="0"/>
+				</if>
+				<if class="DDPB_Vert_I">
+					<DDScalableElement width="0"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_Fill)">
+				<DDScalableElement background="20006"/>
+				<if Enabled="false">
+					<DDScalableElement background="rgb(200,200,200)"/>
+				</if>
+				<if class="DDPB_Horiz">
+					<DDScalableElement height="4rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement width="4rp"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_PulseOverlay)">
+				<DDScalableElement background="argb(0,0,0,0)"/>
+				<if class="DDPB_Horiz">
+					<DDScalableElement height="4rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement width="4rp"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_MoveOverlay)">
+				<DDScalableElement background="20006"/>
+				<if class="DDPB_Horiz">
+					<DDScalableElement width="100rp" height="4rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement height="100rp" width="4rp"/>
+				</if>
+				<if class="DDPB_Horiz_I">
+					<DDScalableElement width="100rp" height="4rp" background="20005"/>
+				</if>
+				<if class="DDPB_Vert_I">
+					<DDScalableElement height="100rp" width="4rp" background="20005"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_ProgressAmount)">
+				<DDScalableRichText foreground="rgb(64,64,64)" font="messagefont;115%" NeedsFontResize="true" contentalign="middlecenter"/>
+			</if>
+			<DDSegmented background="argb(24,0,0,0)" padding="rect(-1rp,-1rp,-1rp,-1rp)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(32,0,0,0)"/>
+			<if id="atom(DDSeg_Host)">
+				<Element background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDSeg_OverflowBack)">
+				<DDScalableTouchButton background="argb(0,0,0,0)" content="b" width="32rp" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableTouchButton background="argb(16,0,0,0)"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableTouchButton background="argb(8,0,0,0)"/>
+				</if>
+			</if>
+			<if id="atom(DDSeg_OverflowForward)">
+				<DDScalableTouchButton background="argb(0,0,0,0)" content="f" width="32rp" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableTouchButton background="argb(16,0,0,0)"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableTouchButton background="argb(8,0,0,0)"/>
+				</if>
+			</if>
+			<if class="segment">
+				<DDScalableElement background="argb(0,0,0,0)" foreground="rgb(0,0,0)"/>
+			</if>
+			<if id="atom(DDSegment_Icon)">
+				<DDScalableRichText font="12pt;Normal;None;Segoe Fluent Icons" contentalign="middlecenter" margin="rect(0,0,4rp,0)"/>
+			</if>
+			<if id="atom(DDSegment_Text)">
+				<DDScalableRichText font="messagefont;115%" contentalign="middlecenter|endellipsis" NeedsFontResize="true"/>
 			</if>
 			<if class="TopSection">
 				<DDScalableElement FirstScaledImage="1071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>
@@ -1039,6 +1134,101 @@
 				<if class="selectornoalpha">
 					<Element background="argb(0,0,0,0)" borderthickness="rect(2rp,2rp,2rp,2rp)" bordercolor="white"/>
 				</if>
+			</if>
+			<DDProgressBar background="argb(0,0,0,0)"/>
+			<if IsVertical="true">
+				<DDProgressBar width="32rp"/>
+			</if>
+			<if IsVertical="false">
+				<DDProgressBar height="32rp"/>
+			</if>
+			<if id="atom(DDPB_Bar)">
+				<DDScalableElement background="argb(153,255,255,255)"/>
+				<if Enabled="false">
+					<DDScalableElement alpha="64"/>
+				</if>
+				<if class="DDPB_Horiz">
+					<DDScalableElement height="1rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement width="1rp"/>
+				</if>
+				<if class="DDPB_Horiz_I">
+					<DDScalableElement height="0"/>
+				</if>
+				<if class="DDPB_Vert_I">
+					<DDScalableElement width="0"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_Fill)">
+				<DDScalableElement background="20003"/>
+				<if Enabled="false">
+					<DDScalableElement background="rgb(96,96,96)"/>
+				</if>
+				<if class="DDPB_Horiz">
+					<DDScalableElement height="4rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement width="4rp"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_PulseOverlay)">
+				<DDScalableElement background="argb(0,0,0,0)"/>
+				<if class="DDPB_Horiz">
+					<DDScalableElement height="4rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement width="4rp"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_MoveOverlay)">
+				<DDScalableElement background="20002"/>
+				<if class="DDPB_Horiz">
+					<DDScalableElement width="100rp" height="4rp"/>
+				</if>
+				<if class="DDPB_Vert">
+					<DDScalableElement height="100rp" width="4rp"/>
+				</if>
+				<if class="DDPB_Horiz_I">
+					<DDScalableElement width="100rp" height="4rp" background="20003"/>
+				</if>
+				<if class="DDPB_Vert_I">
+					<DDScalableElement height="100rp" width="4rp" background="20003"/>
+				</if>
+			</if>
+			<if id="atom(DDPB_ProgressAmount)">
+				<DDScalableRichText foreground="rgb(224,224,224)" font="messagefont;115%" NeedsFontResize="true" contentalign="middlecenter"/>
+			</if>
+			<DDSegmented background="argb(24,255,255,255)" padding="rect(-1rp,-1rp,-1rp,-1rp)" borderthickness="rect(1rp,1rp,1rp,1rp)" bordercolor="argb(32,255,255,255)"/>
+			<if id="atom(DDSeg_Host)">
+				<Element background="argb(0,0,0,0)"/>
+			</if>
+			<if id="atom(DDSeg_OverflowBack)">
+				<DDScalableTouchButton background="argb(0,0,0,0)" content="b" width="32rp" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableTouchButton background="argb(16,255,255,255)"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableTouchButton background="argb(8,255,255,255)"/>
+				</if>
+			</if>
+			<if id="atom(DDSeg_OverflowForward)">
+				<DDScalableTouchButton background="argb(0,0,0,0)" content="f" width="32rp" contentalign="middlecenter"/>
+				<if mousefocused="true">
+					<DDScalableTouchButton background="argb(16,255,255,255)"/>
+				</if>
+				<if Pressed="true">
+					<DDScalableTouchButton background="argb(8,255,255,255)"/>
+				</if>
+			</if>
+			<if class="segment">
+				<DDScalableElement background="argb(0,0,0,0)" foreground="rgb(255,255,255)"/>
+			</if>
+			<if id="atom(DDSegment_Icon)">
+				<DDScalableRichText font="12pt;Normal;None;Segoe Fluent Icons" contentalign="middlecenter" margin="rect(0,0,4rp,0)"/>
+			</if>
+			<if id="atom(DDSegment_Text)">
+				<DDScalableRichText font="messagefont;115%" contentalign="middlecenter|endellipsis" NeedsFontResize="true"/>
 			</if>
 			<if class="TopSection">
 				<DDScalableElement FirstScaledImage="2071" ScaledImageIntervals="7" DrawType="1" ImageCount="4" ImageIndex="1" borderthickness="rect(4rp,4rp,4rp,4rp)" padding="rect(-4rp,12rp,36rp,12rp)" layoutpos="top"/>

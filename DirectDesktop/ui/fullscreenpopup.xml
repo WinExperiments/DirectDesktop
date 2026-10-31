@@ -249,7 +249,7 @@
 				<DDScalableElement class="subtext" id="atom(CustomResDesc)"/>
 			</Element>
 		</DDScalableElement>
-		<DDScalableElement class="BottomSection" layout="borderlayout()">
+		<DDScalableElement class="MiddleSection" layout="borderlayout()">
 			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
 				<DDScalableTouchButton id="atom(ResetDesktop)" class="pushbuttonsecondary" content="resstr(4087)" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
 			</Element>
@@ -257,6 +257,18 @@
 				<DDScalableElement class="headertext" content="resstr(4085)"/>
 				<DDScalableElement class="warningtext" content="resstr(4086)"/>
 			</Element>
+		</DDScalableElement>
+		<DDScalableElement class="BottomSection" layout="borderlayout()">
+			<Element layout="flowlayout(0,2,0,0)" class="rightcontainer">
+				<DDScalableTouchButton id="atom(ShowMonitors)" class="pushbuttonsecondary" content="Show" minsize="size(96rp,32rp)" NeedsFontResize="false"/>
+			</Element>
+			<Element layoutpos="left" layout="verticalflowlayout(0,2,0,2)" background="argb(0,0,0,0)">
+				<DDScalableElement class="headertext" content="Show all connected display areas"/>
+			</Element>
+		</DDScalableElement>
+		<Element class="separator"/>
+		<DDScalableElement class="LoneSection" layout="borderlayout()" padding="rect(52rp,12rp,36rp,12rp)">
+			<DDScalableTouchButton id="atom(OpenDDUIP)" content="Open DDUI Playground" layoutpos="left" class="popupbutton" visible="true"/>
 		</DDScalableElement>
 		<Element class="separator"/>
 		<DDScalableRichText layoutpos="top" class="popuptext" font="messagefont;133%" content="LVTiles test"/>

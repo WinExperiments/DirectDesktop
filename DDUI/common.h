@@ -2,8 +2,10 @@
 
 #ifdef DDUI_EXPORTS
 #define DDUIAPI __declspec(dllexport)
+#define DDUIAPI_EXPORTONLY __declspec(dllexport)
 #else
 #define DDUIAPI __declspec(dllimport)
+#define DDUIAPI_EXPORTONLY //
 #endif
 
 #include "resource.h"
@@ -88,10 +90,13 @@ namespace DDUI
     DDUIAPI void SetRegistryBinValues(HKEY hKeyName, LPCWSTR path, LPCWSTR valueName, BYTE* bValue, DWORD length, bool find, bool* isNewValue);
     DDUIAPI DDUICtx* GetProcContext();
     DDUIAPI DDUIColors* GetProcColors();
+    DDUIAPI_EXPORTONLY void OpenPlayground();
 
     DDUIAPI Element* regElem(const wchar_t* elemName, Element* peParent);
     DDUIAPI EventListener* assignFn(Element* elemName, void (*fnName)(Element* elem, Event* iev), bool fReturn = false);
     DDUIAPI EventListener* assignExtendedFn(Element* elemName, void (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
+    //DDUIAPI_EXPORTONLY EventListener* assignExtendedFn2(Element* elemName, bool (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false);
+    //DDUIAPI_EXPORTONLY EventListener* assignInputFn(Element* elemName, void (*fnName)(Element* elem, InputEvent* ev), bool fReturn = false);
 
     inline HRESULT ResultFromWin32(__in DWORD dwErr)
     {

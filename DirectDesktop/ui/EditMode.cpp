@@ -985,10 +985,27 @@ namespace DirectDesktop
                 ddnb->CreateBanner(DDNT_ERROR, errorTitle, errorcontent, 5, nullptr);
                 return;
             }
+            if (iev->peTarget == PV_EnterPage)
+                elem->SetKeyFocus();
             ((LVItem*)elem)->SetPage(page);
             if (page == g_currentPageID) ClosePageViewer(elem, iev);
             else if (page < g_currentPageID) GoToPrevPage(elem, iev);
             else if (page > g_currentPageID) GoToNextPage(elem, iev);
+        }
+    }
+
+    void EnterSelectedPageFromBox(Element* elem, InputEvent* ev)
+    {
+        if (ev->nDevice == GINPUT_KEYBOARD && ev->nCode == GMOUSE_DOWN && ev->nStage == GMF_BUBBLED)
+        {
+            if (GetAsyncKeyState(VK_RETURN) & 1)
+            {
+                LVItem* PV_ConfirmEnterPage = ((LVItem*)regElem(L"PV_ConfirmEnterPage", PageViewer));
+                Event iev{};
+                iev.peTarget = elem;
+                iev.uidType = TouchButton::Click;
+                EnterSelectedPage(PV_ConfirmEnterPage, &iev);
+            }
         }
     }
 
@@ -1126,6 +1143,7 @@ namespace DirectDesktop
                     number.Assign((RichText*)regElem(L"number", PV_Page));
                     number->SetContentString(to_wstring(i).c_str());
                     DUI_SetGadgetZOrder(number, 4);
+                    //Test_BlurElement<RichText>(number);
                     CSafeElementPtr<Element> PV_HomeBadge;
                     PV_HomeBadge.Assign(regElem(L"PV_HomeBadge", PV_Page));
                     DDLVActionButton* PV_Home = (DDLVActionButton*)regElem(L"PV_Home", PV_Page);
@@ -1176,6 +1194,8 @@ namespace DirectDesktop
                 parserEdit->CreateElement(L"overflow", nullptr, nullptr, nullptr, &overflow);
                 PV_Inner->Add(&overflow, 1);
                 PV_EnterPage = (DDScalableTouchEdit*)regElem(L"PV_EnterPage", PageViewer);
+                PV_EnterPage->SetKeyFocus();
+                assignInputFn(PV_EnterPage, EnterSelectedPageFromBox);
                 CSafeElementPtr<LVItem> PV_ConfirmEnterPage;
                 PV_ConfirmEnterPage.Assign((LVItem*)regElem(L"PV_ConfirmEnterPage", PageViewer));
                 assignFn(PV_ConfirmEnterPage, EnterSelectedPage);

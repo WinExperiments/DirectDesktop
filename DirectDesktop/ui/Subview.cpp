@@ -28,6 +28,9 @@ namespace DirectDesktop
     void* g_tempElem;
     CDropTarget* g_subviewtarget;
 
+    ULONGLONG g_animTick;
+    ULONGLONG g_cachedAnimCoef;
+
     bool g_issubviewopen = false;
     bool g_issettingsopen = false;
     bool g_pendingaction = false;
@@ -36,6 +39,15 @@ namespace DirectDesktop
 
     WNDPROC WndProcSubview;
     WNDPROC WndProcSubviewInner;
+
+    struct DelayedAnimParams
+    {
+        Element* pe;
+        float flDelay;
+        float flDuration;
+        POINTFLOAT pflAnim1;
+        POINTFLOAT pflAnim2;
+    };
 
     // 0.5.8.1: TODO: Better peek listener
     LRESULT CALLBACK TopLevelWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -203,6 +215,9 @@ namespace DirectDesktop
                     continue;
                 DWORD lviFlags = (*l_pm)[num]->GetFlags();
                 DDScalableElement* peIcon = (*l_pm)[num]->GetIcon();
+                DDScalableElement* peInner = (*l_pm)[num]->GetInnerElement();
+                TouchButton* peCheckbox = (*l_pm)[num]->GetCheckbox();
+                DDScalableRichText* peItemCount = (*l_pm)[num]->GetItemCountElement();
                 Element* peShortcutArrow = (*l_pm)[num]->GetShortcutArrow();
                 RichText* peText = (*l_pm)[num]->GetText();
                 if (!g_touchmode)
@@ -233,11 +248,35 @@ namespace DirectDesktop
                             peIcon->SetAlpha(128);
                             peText->SetAlpha(128);
                         }
+                        if (!g_pctx->labelshadow)
+                        {
+                            peInner->SetLayoutPos(-2);
+                            if (!((*l_pm)[num]->GetFlags() & LVIF_GROUP))
+                                peInner->SetBackgroundColor(0);
+                            DUI_SetGadgetZOrder(peInner, 0);
+                            DUI_SetGadgetZOrder(peShortcutArrow, 0);
+                            DUI_SetGadgetZOrder(peText, 0);
+                            DUI_SetGadgetZOrder(peItemCount, 0);
+                            DUI_SetGadgetZOrder(peCheckbox, 0);
+                            peInner->SetX(peIcon->GetX());
+                            peInner->SetY(peIcon->GetY());
+                            peInner->SetWidth(peIcon->GetWidth());
+                            peInner->SetHeight(peIcon->GetHeight());
+                        }
                     }
                 }
                 if ((*vdi)[num])
                 {
                     HBITMAP iconbmp = (*vdi)[num]->icon;
+                    if (!g_pctx->labelshadow && !g_touchmode && !(lviFlags & LVIF_GROUP))
+                    {
+                        HBITMAP iconbmp2{};
+                        AddPaddingToBitmap(iconbmp, iconbmp2, 0, 0, 0, 0);
+                        IterateBitmap(iconbmp2, StandardBitmapPixelHandler, 3, 0, 0.5, GetSysColor(13));
+                        CValuePtr spvBitmapSelection = DirectUI::Value::CreateGraphic(iconbmp2, 2, 0xffffffff, false, false, false);
+                        if (spvBitmapSelection != nullptr) peInner->SetValue(Element::ContentProp, 1, spvBitmapSelection);
+                        if (iconbmp2) DeleteObject(iconbmp2);
+                    }
                     CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(iconbmp, 2, 0xffffffff, false, false, false);
                     if (iconbmp) DeleteObject(iconbmp);
                     if (spvBitmap && peIcon) peIcon->SetValue(Element::ContentProp, 1, spvBitmap);
@@ -477,9 +516,45 @@ namespace DirectDesktop
                 yV->peOptionalTarget1->Destroy(true);
             }
             delete yV;
+            break;
+        }
+        case WM_USER + 8:
+        {
+            DWORD animCoef = g_pctx->animCoef;
+            if (g_pctx->AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+            animCoef = lParam / static_cast<float>(animCoef);
+            DelayedAnimParams* dap = (DelayedAnimParams*)wParam;
+            GTRANS_DESC transDesc[1];
+            TransitionStoryboardInfo tsbInfo = {};
+            TriggerScaleIn(dap->pe, transDesc, 0, dap->flDelay * animCoef, dap->flDuration * animCoef, 0.11f, 0.5f, 0.24f, 0.96f, dap->pflAnim2.x, dap->pflAnim2.y,
+                dap->pflAnim1.x, dap->pflAnim1.y, 1.0f, 1.0f, dap->pflAnim1.x, dap->pflAnim1.y, false, false);
+            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, dap->pe->GetDisplayNode(), &tsbInfo);
+            DUI_SetGadgetZOrder(dap->pe, -1);
+            delete dap;
+            break;
         }
         }
         return CallWindowProc(WndProcSubview, hWnd, uMsg, wParam, lParam);
+    }
+
+    LRESULT CALLBACK MonitorInfoWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        switch (uMsg)
+        {
+        case WM_CREATE:
+            SetTimer(hWnd, 1, 8000, nullptr);
+            break;
+        case WM_TIMER:
+            KillTimer(hWnd, wParam);
+            switch (wParam)
+            {
+            case 1:
+                DestroyWindow(hWnd);
+                return 0;
+            }
+            break;
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 
     LRESULT CALLBACK InnerWindowProc2(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -644,8 +719,9 @@ namespace DirectDesktop
                         delete yV2;
                         continue;
                     }
+                    DWORD fontStyle = (!(shellstate[4] & 0x20) && g_pctx->iconunderline & 1) ? 0x2 : NULL;
                     if (g_touchmode) CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV2->fl1 - 4 * g_pctx->flScaleFactor, lines_basedOnEllipsis, alignment, g_touchmode, NULL);
-                    else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV->fl1, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode, NULL);
+                    else CreateTextBitmap(capturedBitmap, (*l_pm)[num]->GetSimpleFilename().c_str(), yV->fl1, textm.tmHeight * textlines, DT_CENTER | DT_END_ELLIPSIS, g_touchmode, fontStyle);
                     delete yV2;
                     if (g_touchmode)
                     {
@@ -721,6 +797,18 @@ namespace DirectDesktop
         return 0;
     }
 
+    DWORD WINAPI AnimateFolderLater(LPVOID lpParam)
+    {
+        DelayedAnimParams* dap = (DelayedAnimParams*)lpParam;
+        DWORD animCoef = g_pctx->animCoef;
+        if (g_pctx->AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
+        Sleep(dap->flDelay * animCoef * 10);
+        dap->flDuration -= dap->flDelay;
+        dap->flDelay = 0.0f;
+        SendMessageW(subviewwnd->GetHWND(), WM_USER + 8, (WPARAM)dap, animCoef);
+        return 0;
+    }
+
     HRESULT CloakWindow(HWND hwnd, bool fCloak)
     {
         HRESULT hr = S_OK;
@@ -774,6 +862,9 @@ namespace DirectDesktop
         bool hasOrigin = peIconOrigin.x > -1 && peIconOrigin.y > -1;
         if (hasOrigin)
         {
+            g_animTick = GetTickCount64();
+            g_cachedAnimCoef = g_pctx->animCoef;
+            if (g_pctx->AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) g_cachedAnimCoef = 100;
             Element* peAnimateFrom = *ppeAnimateFrom;
             animstartscaleX = peAnimateFrom->GetWidth() / static_cast<float>(width);
             animstartscaleY = peAnimateFrom->GetHeight() / static_cast<float>(height);
@@ -787,19 +878,20 @@ namespace DirectDesktop
             flOriginY3D = 1.0f - peIconOrigin.y / static_cast<float>(dimensionsAnim.bottom);
             if (flX3D == 0.0f && flY3D == 0.0f)
                 hasOrigin = false;
-            flFadeStart = 0.05f;
-            flFadeDuration = 0.3f;
+            flFadeStart = 0.075f;
+            flFadeDuration = 0.225f;
             flScaleStart = 0.0f;
-            flScaleDuration = 0.5f;
+            flScaleDuration = 0.425f;
             flrX0 = 0.8f;
             flrY0 = 0.0f;
             flrX1 = 0.0f;
             flrY1 = 1.0f;
             GTRANS_DESC transDesc_peAnimate[3];
-            TriggerFade_Ref(ppeAnimateFrom, transDesc_peAnimate, 0, flFadeStart, flFadeDuration, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
+            TriggerFade_Ref(ppeAnimateFrom, transDesc_peAnimate, 0, flFadeStart, flFadeDuration, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, g_pctx->clientAnim, false, g_pctx->clientAnim);
             TriggerScaleIn(peAnimateFrom, transDesc_peAnimate, 1, flScaleStart, flScaleDuration, flrX0, flrY0, flrX1, flrY1, 1.0f, 1.0f,
                 flOriginX2, flOriginY2, 1 / animstartscaleX / desktopanimstartscale, 1 / animstartscaleY / desktopanimstartscale, flOriginX2, flOriginY2, false, false);
-            if (hasOrigin) TriggerRotate3D(peAnimateFrom, transDesc_peAnimate, 2, flScaleStart, flScaleDuration - flFadeDuration, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
+            if (hasOrigin)
+                TriggerRotate3D(peAnimateFrom, transDesc_peAnimate, 2, flScaleStart, flScaleDuration - flFadeDuration, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
             ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc_peAnimate, peAnimateFrom->GetDisplayNode(), &tsbInfo);
         }
         parserSubview->CreateElement(L"fullscreeninner", nullptr, nullptr, nullptr, (Element**)&fullscreeninner);
@@ -819,7 +911,8 @@ namespace DirectDesktop
         TriggerFade(fullscreeninner, transDesc, 0, flFadeStart, flFadeDuration, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, true, false, true);
         TriggerScaleIn(fullscreeninner, transDesc, 1, flScaleStart, flScaleDuration, flrX0, flrY0, flrX1, flrY1,
             animstartscaleX, animstartscaleY, flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
-        if (hasOrigin) TriggerRotate3D(fullscreeninner, transDesc, 2, flScaleStart, flScaleDuration, 0.8f, 0.0f, 0.0f, 1.0f, flX3D, flY3D, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
+        if (hasOrigin)
+            TriggerRotate3D(fullscreeninner, transDesc, 2, flScaleStart, flScaleDuration, 0.8f, 0.0f, 0.0f, 1.0f, flX3D, flY3D, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
         ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
         float flBackFade = 1.0f;
         SYSTEM_POWER_STATUS sps;
@@ -856,7 +949,9 @@ namespace DirectDesktop
             GTRANS_DESC transDesc[3];
             TransitionStoryboardInfo tsbInfo = {};
             bool hasOrigin = false;
-            if (ppeAnimateTo && *ppeAnimateTo && fullscreeninner)
+            bool fInterrupt = false;
+            SimpleCubicBezierInterpolator scbiInterrupt(0.75, 0.45, 0.0, 1.0);
+            if (ppeAnimateTo && *ppeAnimateTo && fullscreeninner && g_pctx->clientAnim)
             {
                 Element* peAnimateTo = *ppeAnimateTo;
                 hasOrigin = true;
@@ -864,8 +959,10 @@ namespace DirectDesktop
                 UIContainer->MapElementPoint(peAnimateTo, &ptZero, &peIconOrigin);
                 RECT rcIcon{}, rcFakeWindow{};
                 GetGadgetRect(peAnimateTo->GetDisplayNode(), &rcIcon, 0x8);
-                peIconOrigin.x += (rcIcon.right - rcIcon.left) / 2;
-                peIconOrigin.y += (rcIcon.bottom - rcIcon.top) / 2;
+                int cxIcon = rcIcon.right - rcIcon.left;
+                int cyIcon = rcIcon.bottom - rcIcon.top;
+                peIconOrigin.x += cxIcon / 2;
+                peIconOrigin.y += cyIcon / 2;
                 GetGadgetRect(fullscreeninner->GetDisplayNode(), &rcFakeWindow, 0x8);
                 flOriginX += (peIconOrigin.x - dimensionsAnim.right / 2.0f) / (rcFakeWindow.right - peAnimateTo->GetWidth());
                 flOriginY += (peIconOrigin.y - dimensionsAnim.bottom / 2.0f) / (rcFakeWindow.bottom - peAnimateTo->GetHeight());
@@ -878,27 +975,63 @@ namespace DirectDesktop
                 animstartscaleX = peAnimateTo->GetWidth() / static_cast<float>(rcFakeWindow.right);
                 animstartscaleY = peAnimateTo->GetHeight() / static_cast<float>(rcFakeWindow.bottom);
                 flFadeStart = 0.1f;
-                flScaleDuration = 0.4f;
+                flScaleDuration = 0.3f;
                 flrX0 = 0.8f;
                 flrY0 = 0.0f;
                 flrX1 = 0.0f;
                 flrY1 = 1.0f;
                 bool hide = true;
+                bool fFadeInterrupt = false;
+                if (GetTickCount64() < g_animTick + 2.25f * g_cachedAnimCoef)
+                    fFadeInterrupt = true;
+                if (GetTickCount64() < g_animTick + 4.25f * g_cachedAnimCoef)
+                    fInterrupt = true;
                 if (peAnimateTo->GetClassInfoW() == LVItem::GetClassInfoPtr())
                     if (g_touchmode && ((LVItem*)peAnimateTo)->GetGroupSize() != LVIGS_NORMAL)
                         hide = false;
-                TriggerFade_Ref(ppeAnimateTo, transDesc, 0, 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, hide, false, false);
-                TriggerScaleIn(peAnimateTo, transDesc, 1, 0.0f, 0.4f, flrX0, flrY0, flrX1, flrY1, 1 / animstartscaleX, 1 / animstartscaleY,
-                    flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
-                TriggerRotate3D(peAnimateTo, transDesc, 2, 0.1f, 0.4f, 0.6f, 0.3f, 0.0f, 0.9f, flX3D, flY3D, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
-                ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, peAnimateTo->GetDisplayNode(), &tsbInfo);
+                float flSquishX = 1 - (0.0002f * sqrtf(cxIcon * cyIcon) * (rcFakeWindow.right - cxIcon) / cxIcon);
+                float flSquishY = 1 - (0.0002f * sqrtf(cxIcon * cyIcon) * (rcFakeWindow.bottom - cyIcon) / cyIcon);
+                float flScaleXBase = 1 / animstartscaleX - 1;
+                float flScaleYBase = 1 / animstartscaleY - 1;
+                double prog = 1.0;
+                if (fInterrupt)
+                {
+                    prog = scbiInterrupt.GetProgression(1 - (g_animTick + static_cast<DWORD>(4.25f * g_cachedAnimCoef) - GetTickCount64()) / (4.25f * g_cachedAnimCoef));
+                    flScaleXBase *= prog;
+                    flScaleYBase *= prog;
+                    flSquishX = 1 - (1 - flSquishX) * sqrtf(prog);
+                    flSquishY = 1 - (1 - flSquishY) * sqrtf(prog);
+                }
+                TriggerFade_Ref(ppeAnimateTo, transDesc, 0, fFadeInterrupt ? 0.0f : 0.1f, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, hide, false, false);
+                TriggerScaleIn(peAnimateTo, transDesc, 1, 0.0f, flScaleDuration, flrX0, flrY0, flrX1, flrY1, 1 + flScaleXBase, 1 + flScaleYBase,
+                    flOriginX, flOriginY, flSquishX, flSquishY, flOriginX, flOriginY, false, false);
+                if (hasOrigin)
+                    TriggerRotate3D(peAnimateTo, transDesc, 2, 0.1f, 0.425f, 0.55f, 0.1f, 0.0f, 0.7f, flX3D * prog, flY3D * prog, 0.0f, 0.0f, 0.0f, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
+                else
+                    TriggerRotate3D(peAnimateTo, transDesc, 2, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 90.0f, 90.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, false);
+                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, peAnimateTo->GetDisplayNode(), &tsbInfo);
+                DelayedAnimParams* dap = new DelayedAnimParams{ peAnimateTo, 0.3f, 0.45f, { flOriginX, flOriginY }, { flSquishX, flSquishY } };
+                //TriggerScaleIn(peAnimateTo, transDesc, 0, 1.3f, 1.45f, 0.2f, 0.85f, 1.0f, 1.0f, flSquishX, flSquishY, flOriginX, flOriginY, 1.0f, 1.0f, flOriginX, flOriginY, false, false);
+                //ScheduleGadgetTransitions_DWMCheck(0, 1, transDesc, peAnimateTo->GetDisplayNode(), &tsbInfo);
+                HANDLE hCompleteAnim = CreateThread(nullptr, 0, AnimateFolderLater, dap, NULL, nullptr);
                 DUI_SetGadgetZOrder(peAnimateTo, -1);
             }
             if (fullscreeninner)
             {
                 TriggerScaleOut(fullscreeninner, transDesc, 0, 0.0f, flScaleDuration, flrX0, flrY0, flrX1, flrY1, animstartscaleX, animstartscaleY, flOriginX, flOriginY, false, false);
                 TriggerFade(fullscreeninner, transDesc, 1, flFadeStart, 0.15f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, true, false, true);
-                if (hasOrigin) TriggerRotate3D(fullscreeninner, transDesc, 2, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
+                if (hasOrigin)
+                {
+                    float flXI3D{};
+                    float flYI3D{};
+                    if (fInterrupt)
+                    {
+                        double prog = scbiInterrupt.GetProgression((g_animTick + static_cast<DWORD>(4.25f * g_cachedAnimCoef) - GetTickCount64()) / (4.25f * g_cachedAnimCoef));
+                        flXI3D = flX3D * prog;
+                        flYI3D = flY3D * prog;
+                    }
+                    TriggerRotate3D(fullscreeninner, transDesc, 2, 0.0f, 0.33f, 0.8f, 0.0f, 0.0f, 1.0f, flXI3D, flYI3D, 0.0f, flX3D, flY3D, 0.0f, flOriginX3D, flOriginY3D, 0.0f, false, false);
+                }
                 ScheduleGadgetTransitions_DWMCheck(0, hasOrigin ? 3 : 2, transDesc, fullscreeninner->GetDisplayNode(), &tsbInfo);
             }
             float flBackFade = 1.0f;
@@ -1047,6 +1180,73 @@ namespace DirectDesktop
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                 DUI_SetGadgetZOrder(elem, -1);
             }
+        }
+        else if ((pProp == TouchButton::SelectedProp() && !g_pctx->labelshadow) || (!(shellstate[4] & 0x20) && pProp == TouchButton::MouseWithinProp() && !(g_pctx->iconunderline & 1)))
+        {
+            int textlines = 1;
+            if (textm.tmHeight <= 18 * g_pctx->flScaleFactor) textlines = 2;
+            int extraBottomSpacing = textlines * textm.tmHeight;
+            Element* iconElem = ((LVItem*)elem)->GetIcon();
+            RichText* textElem = ((LVItem*)elem)->GetText();
+            Element* innerElem = ((LVItem*)elem)->GetInnerElement();
+            COLORREF crSelectedBackground = GetSysColor(13) | 0xFF000000;
+            COLORREF crSelectedText = GetSysColor(14) | 0xFF000000;
+            textElem->SetHeight(extraBottomSpacing + 5 * g_pctx->flScaleFactor);
+
+            DWORD fontStyle = (!(shellstate[4] & 0x20) && (elem->GetMouseWithin() || g_pctx->iconunderline & 1)) ? 0x2 : NULL;
+            HBITMAP capturedBitmap{};
+            innerElem->SetVisible(elem->GetSelected());
+            RECT rcBackground = { 0, 0, 16, extraBottomSpacing };
+            HDC hdcMem = CreateCompatibleDC(nullptr);
+            LOGFONTW lf{};
+            SystemParametersInfoForDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, NULL, g_pctx->dpi);
+            lf.lfItalic |= fontStyle & 1;
+            lf.lfUnderline |= fontStyle & 2;
+            lf.lfStrikeOut |= fontStyle & 4;
+            HFONT hFont = CreateFontIndirectW(&lf);
+            HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
+            DWORD dwFlags = DT_CALCRECT | DT_WORDBREAK;
+            RECT rcText{};
+            GetGadgetRect(elem->GetDisplayNode(), &rcText, 0x4);
+            if (rcBackground.right < rcText.right && textlines < 2)
+                dwFlags |= DT_SINGLELINE;
+            else
+            {
+                rcBackground.right = rcText.right;
+                dwFlags |= DT_EDITCONTROL;
+            }
+            DrawTextW(hdcMem, ((LVItem*)elem)->GetSimpleFilename().c_str(), -1, &rcBackground, dwFlags);
+            if (rcBackground.bottom > extraBottomSpacing)
+                rcBackground.bottom = extraBottomSpacing;
+            int textSpace = g_pctx->flScaleFactor;
+            rcBackground.right += 4 * g_pctx->flScaleFactor;
+            CreateTextBitmap(capturedBitmap, ((LVItem*)elem)->GetSimpleFilename().c_str(), min(rcText.right, rcBackground.right), rcBackground.bottom, DT_CENTER | DT_END_ELLIPSIS, false, fontStyle);
+            AddPaddingToBitmap(capturedBitmap, capturedBitmap, 0, textSpace, 0, textSpace);
+            if (elem->GetSelected() && !g_pctx->labelshadow)
+            {
+                float intensityCoef = 0.001294 * (GetRValue(crSelectedText) * 0.299 + GetGValue(crSelectedText) * 0.587 + GetBValue(crSelectedText) * 0.114);
+                IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1 + intensityCoef, NULL);
+                IterateBitmap(capturedBitmap, StandardBitmapPixelHandler, 3, 0, 1, crSelectedText);
+                HBITMAP shadowBitmap{};
+                AddPaddingToBitmap(capturedBitmap, shadowBitmap, 0, 0, 0, 0);
+                IterateBitmap(shadowBitmap, SimpleBitmapPixelHandler, 3, NULL, 1, crSelectedBackground);
+                CompositeBitmaps(shadowBitmap, capturedBitmap, false, NULL);
+                CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(shadowBitmap, 2, 0xffffffff, false, false, false);
+                if (spvBitmap != nullptr) textElem->SetValue(Element::ContentProp, 1, spvBitmap);
+                DeleteObject(shadowBitmap);
+            }
+            else if (g_pctx->theme)
+            {
+                IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1, NULL);
+                IterateBitmap(capturedBitmap, SimpleBitmapPixelHandler, 1, 0, 0.9, NULL);
+            }
+            else IterateBitmap(capturedBitmap, DesaturateWhiten, 1, 0, 1.33, NULL);
+            if (!elem->GetSelected())
+            {
+                CValuePtr spvBitmap = DirectUI::Value::CreateGraphic(capturedBitmap, 2, 0xffffffff, false, false, false);
+                if (spvBitmap != nullptr) textElem->SetValue(Element::ContentProp, 1, spvBitmap);
+            }
+            DeleteObject(capturedBitmap);
         }
     }
 
@@ -1321,6 +1521,70 @@ namespace DirectDesktop
                 else LoadStrFromRes(clearMsg, 64, 4095);
                 DDNotificationBanner* ddnb = new DDNotificationBanner();
                 ddnb->CreateBanner(DDNT_SUCCESS, nullptr, clearMsg, 3, nullptr);
+            }
+        }
+    }
+
+    BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+    {
+        vector<RECT>* monitors = reinterpret_cast<vector<RECT>*>(dwData);
+        MONITORINFOEX monitorInfo{};
+        monitorInfo.cbSize = sizeof(MONITORINFOEX);
+        if (GetMonitorInfoW(hMonitor, &monitorInfo))
+        {
+            RECT rcMonitor;
+            rcMonitor = monitorInfo.rcMonitor;
+            monitors->push_back(rcMonitor);
+        }
+        return TRUE;
+    }
+
+    void ShowMonitorBounds(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            vector<RECT> monitors{};
+            EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
+            WCHAR pszInfo[512];
+            POINT pt = GetTopLeftMonitor();
+            RECT rc{};
+            GetWindowRect(wnd->GetHWND(), &rc);
+            StringCchPrintfW(pszInfo, 512, L"Top left of total area: (%d, %d)\nRight edge of total area: %d\nDesktop rectangle: (%d, %d), (%d, %d) - %dx%d",
+                pt.x, pt.y, GetRightMonitor(), rc.left, rc.top, rc.right, rc.bottom, rc.right - rc.left, rc.bottom - rc.top);
+
+            WNDCLASS wc = { 0 };
+            wc.hInstance = HINST_THISCOMPONENT;
+            wc.lpfnWndProc = MonitorInfoWindowProc;
+            wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+            wc.lpszClassName = L"DD_MonitorDebug";
+            wc.hbrBackground = (HBRUSH)(COLOR_HIGHLIGHT + 1);
+            RegisterClassW(&wc);
+            HWND hWndDebug = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED, L"DD_MonitorDebug", L"", WS_POPUP,
+                rc.left, rc.top, rc.right, rc.bottom, NULL, NULL, HINST_THISCOMPONENT, nullptr);
+            ShowWindow(hWndDebug, SW_SHOW);
+            SetLayeredWindowAttributes(hWndDebug, NULL, 160, LWA_ALPHA);
+            for (int m = 0; m < monitors.size(); m++)
+            {
+                StringCchPrintfW(pszInfo, 512, L"%s\nDisplay %d: (%d, %d), (%d, %d) - %dx%d",
+                    pszInfo, m + 1, monitors[m].left, monitors[m].top, monitors[m].right, monitors[m].bottom,
+                    monitors[m].right - monitors[m].left, monitors[m].bottom - monitors[m].top);
+            }
+            DDNotificationBanner* ddnb = new DDNotificationBanner();
+            ddnb->CreateBanner(DDNT_INFO, nullptr, pszInfo, 8, nullptr);
+        }
+    }
+
+    typedef void(*pfnGeneric)();
+
+    void InvokeDDUIP(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            HMODULE hDDUI = GetModuleHandleW(L"DDUI.dll");
+            if (hDDUI)
+            {
+                pfnGeneric OpenDDUIPlayground = (pfnGeneric)GetProcAddress(hDDUI, "?OpenPlayground@DDUI@@YAXXZ");
+                OpenDDUIPlayground();
             }
         }
     }
@@ -1609,6 +1873,10 @@ namespace DirectDesktop
             SetCurrent.Assign((DDScalableTouchButton*)regElem(L"SetCurrent", pePage));
             CSafeElementPtr<DDScalableTouchButton> ResetDesktop;
             ResetDesktop.Assign((DDScalableTouchButton*)regElem(L"ResetDesktop", pePage));
+            CSafeElementPtr<DDScalableTouchButton> ShowMonitors;
+            ShowMonitors.Assign((DDScalableTouchButton*)regElem(L"ShowMonitors", pePage));
+            CSafeElementPtr<DDScalableTouchButton> OpenDDUIP;
+            OpenDDUIP.Assign((DDScalableTouchButton*)regElem(L"OpenDDUIP", pePage));
             CSafeElementPtr<DDScalableTouchButton> addlast;
             addlast.Assign((DDScalableTouchButton*)regElem(L"addlast", pePage));
             CSafeElementPtr<DDScalableTouchButton> inserttwo;
@@ -1669,6 +1937,8 @@ namespace DirectDesktop
             assignFn(LaunchEffectsSelection, ToggleSetting);
             assignFn(SetCurrent, SetDefaultRes);
             assignFn(ResetDesktop, ResetDesktopSize);
+            assignFn(ShowMonitors, ShowMonitorBounds);
+            assignFn(OpenDDUIP, InvokeDDUIP);
             assignFn(addlast, AddAnItem);
             assignFn(inserttwo, InsertSecond);
             assignFn(removethree, RemoveThird);

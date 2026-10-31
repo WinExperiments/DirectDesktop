@@ -332,6 +332,7 @@ namespace DDUI
         DDUIAPI static HRESULT Register();
         DDUIAPI static const PropertyInfo* WINAPI PromptTextProp();
         DDUIAPI const WCHAR* GetPromptText(Value** ppv);
+        DDUIAPI_EXPORTONLY void SetPromptText(const WCHAR* v);
         DDUIAPI const WCHAR* GetContentString(Value** ppv);
         DDUIAPI void SetKeyFocus() override;
         DDUIAPI void SetContextMenu(bool fEnabled);
@@ -584,7 +585,7 @@ namespace DDUI
         DDUIAPI int GetItemHeight();
         DDUIAPI void SetItemMinWidth(int iItemMinWidth);
         DDUIAPI void SetItemHeight(int iItemHeight);
-        SIZE GetGridLayoutParams();
+        DDUIAPI_EXPORTONLY SIZE GetGridLayoutParams();
 
     protected:
         SIZE _szGridLayout;
@@ -832,6 +833,10 @@ namespace DDUI
         DDUIAPI static const PropertyInfo* WINAPI IconContentProp();
         DDUIAPI const WCHAR* GetIconFont(Value** ppv);
         DDUIAPI const WCHAR* GetIconContent(Value** ppv);
+        DDUIAPI_EXPORTONLY void SetIconFont(const WCHAR* v);
+        DDUIAPI_EXPORTONLY void SetIconContentString(const WCHAR* v);
+        DDUIAPI_EXPORTONLY void SetIconContentGraphic(const WCHAR* v, BYTE dBlendMode, UINT dBlendValue);
+        DDUIAPI_EXPORTONLY void SetIconContentGraphic(const WCHAR* v, WORD cxDesired, WORD cyDesired);
 
     private:
         static IClassInfo* s_pClassInfo;
@@ -886,6 +891,42 @@ namespace DDUI
 
     private:
         static IClassInfo* s_pClassInfo;
+    };
+
+    class DDRadioButton final : public DDScalableTouchButton
+    {
+    public:
+        DDUIAPI_EXPORTONLY DDRadioButton()
+            : _peGlyph(nullptr)
+            , _peText(nullptr)
+        {
+        }
+
+        DDUIAPI_EXPORTONLY ~DDRadioButton()
+        {
+        }
+
+        DDUIAPI_EXPORTONLY static IClassInfo* GetClassInfoPtr();
+        DDUIAPI_EXPORTONLY static void SetClassInfoPtr(IClassInfo* pClass);
+        DDUIAPI_EXPORTONLY IClassInfo* GetClassInfoW() override;
+        DDUIAPI_EXPORTONLY bool OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        DDUIAPI_EXPORTONLY void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        DDUIAPI_EXPORTONLY static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        DDUIAPI_EXPORTONLY HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        DDUIAPI_EXPORTONLY static HRESULT Register();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI CheckedStateProp();
+        DDUIAPI_EXPORTONLY bool GetCheckedState();
+        DDUIAPI_EXPORTONLY void SetCheckedState(bool bChecked);
+        DDUIAPI_EXPORTONLY UINT GetGroup();
+        DDUIAPI_EXPORTONLY void SetGroup(UINT uGroup);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        DDCheckBoxGlyph* _peGlyph;
+        DDScalableElement* _peText;
+        DDRadioButton* _peChecked;
+        UINT _uGroup;
+        HRESULT _CreateRBVisual();
     };
 
     class DDCheckBox final : public DDScalableTouchButton
@@ -962,9 +1003,10 @@ namespace DDUI
             , _peSelectionMenu(nullptr)
             , _tsvSelectionMenu(nullptr)
             , _peHostInner(nullptr)
-            , _peSelections{}
+            , _peSelections(nullptr)
             , _rcDest{}
         {
+            _peSelections = new DDNumberedButton*[8];
         }
 
         DDUIAPI ~DDCombobox();
@@ -998,7 +1040,7 @@ namespace DDUI
         HWNDElement* _peSelectionMenu;
         TouchScrollViewer* _tsvSelectionMenu;
         Element* _peHostInner;
-        DDNumberedButton* _peSelections[MAX_SELECTIONS];
+        DDNumberedButton** _peSelections;
         RECT _rcDest;
         HRESULT _CreateCMBVisual();
         static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -1010,16 +1052,17 @@ namespace DDUI
     public:
         DDUIAPI DDSlider()
             : _rkv{}
-            , _minValue(0)
-            , _maxValue(0)
-            , _tickValue(0)
-            , _currValue(0)
+            , _minValue(0.0f)
+            , _maxValue(0.0f)
+            , _tickValue(0.0f)
+            , _currValue(0.0f)
             , _ptBeforeClick{}
             , _ptOnClick{}
             , _assocVal(nullptr)
             , _coef(1)
             , _keyState(0)
             , _keyStateOld(0)
+            , _bSavedVertical(255)
             , _szFormatted(nullptr)
             , _peTrackBase(nullptr)
             , _peFillBase(nullptr)
@@ -1045,12 +1088,15 @@ namespace DDUI
         DDUIAPI static const PropertyInfo* WINAPI IsVerticalProp();
         DDUIAPI static const PropertyInfo* WINAPI TextWidthProp();
         DDUIAPI static const PropertyInfo* WINAPI TextHeightProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI TextAlignmentProp();
         DDUIAPI bool GetIsVertical();
         DDUIAPI int GetTextWidth();
         DDUIAPI int GetTextHeight();
+        DDUIAPI_EXPORTONLY int GetTextAlignment();
         DDUIAPI void SetIsVertical(bool bIsVertical);
         DDUIAPI void SetTextWidth(int iTextWidth);
         DDUIAPI void SetTextHeight(int iTextHeight);
+        DDUIAPI_EXPORTONLY void SetTextAlignment(int iTextAlignment);
         DDUIAPI RegKeyValue GetRegKeyValue();
         DDUIAPI void SetRegKeyValue(RegKeyValue rkvNew);
         DDUIAPI float GetMinValue();
@@ -1079,6 +1125,7 @@ namespace DDUI
         int _coef;
         BYTE _keyState;
         BYTE _keyStateOld;
+        BYTE _bSavedVertical;
         LPCWSTR _szFormatted;
         TouchButton* _peTrackBase;
         TouchButton* _peFillBase;
@@ -1351,15 +1398,15 @@ namespace DDUI
             , _peSelectionMenu(nullptr)
             , _tsvSelectionMenu(nullptr)
             , _peHostInner(nullptr)
-            , _peSelections{}
-            , _rgMenuImg{}
+            , _peSelections(nullptr)
+            , _rgMenuImg(nullptr)
             , _hmChildren{}
         {
+            _peSelections = new DDMenuButton*[32]{};
+            _rgMenuImg = new MenuImage*[32]{};
         }
 
-        DDUIAPI ~DDMenu()
-        {
-        }
+        DDUIAPI ~DDMenu();
         DDUIAPI HRESULT InitializeDesktopEntries(IShellFolder* psf, IShellView* psv);
         DDUIAPI HRESULT InitializeItemEntries(vector<LVItem**> vItems, IShellFolder* psf, LPCITEMIDLIST* ppidl, UINT cidl);
         DDUIAPI HRESULT CreatePopupMenu(bool fLegacy);
@@ -1412,8 +1459,8 @@ namespace DDUI
         HWNDElement* _peSelectionMenu;
         TouchScrollViewer* _tsvSelectionMenu;
         Element* _peHostInner;
-        DDMenuButton* _peSelections[MAX_ITEMS];
-        MenuImage* _rgMenuImg[MAX_ITEMS];
+        DDMenuButton** _peSelections;
+        MenuImage** _rgMenuImg;
         vector<HMENU> _hmChildren;
         
         void _AppendItem(LPCMENUITEMINFOW lpmii, LPCWSTR lpNewItem, bool fInternal);
@@ -1427,6 +1474,223 @@ namespace DDUI
         static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         static LRESULT CALLBACK s_MenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
         static LRESULT CALLBACK s_HookMenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    };
+
+    class DDProgressBar : public Element
+    {
+    public:
+        DDUIAPI_EXPORTONLY DDProgressBar()
+            : _hTimer(nullptr)
+            , _minValue(0.0f)
+            , _maxValue(100.0f)
+            , _currValue(0.0f)
+            , _bSavedVertical(255)
+            , _bFlags(0)
+            , _dest(0)
+            , _szFormatted(L"%.0f%%")
+            , _rcGadget{}
+            , _szOrig{}
+            , _peBarMain(nullptr)
+            , _peBarHolder(nullptr)
+            , _peFillHolder(nullptr)
+            , _pePulseHolder(nullptr)
+            , _peBar(nullptr)
+            , _peFill(nullptr)
+            , _pePulse(nullptr)
+            , _peMove(nullptr)
+            , _peProgressAmount(nullptr)
+        {
+        }
+
+        DDUIAPI_EXPORTONLY ~DDProgressBar();
+        DDUIAPI_EXPORTONLY static IClassInfo* GetClassInfoPtr();
+        DDUIAPI_EXPORTONLY static void SetClassInfoPtr(IClassInfo* pClass);
+        DDUIAPI_EXPORTONLY IClassInfo* GetClassInfoW() override;
+        DDUIAPI_EXPORTONLY void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        DDUIAPI_EXPORTONLY static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        DDUIAPI_EXPORTONLY HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        DDUIAPI_EXPORTONLY static HRESULT Register();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI IsVerticalProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI TextWidthProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI TextHeightProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI TextAlignmentProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI IndeterminateProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI FPSProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI PulseSpeedProp();
+        DDUIAPI_EXPORTONLY bool GetIsVertical();
+        DDUIAPI_EXPORTONLY int GetTextWidth();
+        DDUIAPI_EXPORTONLY int GetTextHeight();
+        DDUIAPI_EXPORTONLY int GetTextAlignment();
+        DDUIAPI_EXPORTONLY bool GetIndeterminate();
+        DDUIAPI_EXPORTONLY int GetFPS();
+        DDUIAPI_EXPORTONLY float GetPulseSpeed();
+        DDUIAPI_EXPORTONLY void SetIsVertical(bool bIsVertical);
+        DDUIAPI_EXPORTONLY void SetTextWidth(int iTextWidth);
+        DDUIAPI_EXPORTONLY void SetTextHeight(int iTextHeight);
+        DDUIAPI_EXPORTONLY void SetTextAlignment(int iTextAlignment);
+        DDUIAPI_EXPORTONLY void SetIndeterminate(bool bIndeterminate);
+        DDUIAPI_EXPORTONLY void SetFPS(int iFPS);
+        DDUIAPI_EXPORTONLY void SetPulseSpeed(float flPulseSpeed);
+        DDUIAPI_EXPORTONLY float GetMinValue();
+        DDUIAPI_EXPORTONLY float GetMaxValue();
+        DDUIAPI_EXPORTONLY float GetCurrentValue();
+        DDUIAPI_EXPORTONLY void SetMinValue(float minValue);
+        DDUIAPI_EXPORTONLY void SetMaxValue(float maxValue);
+        DDUIAPI_EXPORTONLY void SetCurrentValue(float currValue);
+        DDUIAPI_EXPORTONLY LPCWSTR GetFormattedString();
+        DDUIAPI_EXPORTONLY void SetFormattedString(LPCWSTR szFormatted);
+    private:
+        static IClassInfo* s_pClassInfo;
+        HWND _hTimer;
+        float _minValue;
+        float _maxValue;
+        float _currValue;
+        BYTE _bSavedVertical;
+        BYTE _bFlags;
+        short _dest;
+        LPCWSTR _szFormatted;
+        RECT _rcGadget;
+        SIZE _szOrig;
+        Element* _peBarMain;
+        Element* _peBarHolder;
+        Element* _peFillHolder;
+        Element* _pePulseHolder;
+        DDScalableElement* _peBar;
+        DDScalableElement* _peFill;
+        DDScalableElement* _pePulse;
+        DDScalableElement* _peMove;
+        DDScalableRichText* _peProgressAmount;
+        int GetPropCommon(const PropertyProcT pPropertyProc);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+        HRESULT _CreatePBVisual();
+        void _RedrawBar();
+        static void s_OnMoveOverlayPropChanged(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2);
+        static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    };
+
+    class DDProgressRing : public Element
+    {
+    public:
+        DDUIAPI_EXPORTONLY DDProgressRing()
+            : _hTimer(nullptr)
+            , _minValue(0.0f)
+            , _maxValue(100.0f)
+            , _currValue(0.0f)
+            , _szFormatted(L"%d%%")
+            , _peRingHolder(nullptr)
+            , _peRing(nullptr)
+            , _peFill(nullptr)
+            , _peProgressAmount(nullptr)
+        {
+        }
+
+        DDUIAPI_EXPORTONLY ~DDProgressRing();
+        DDUIAPI_EXPORTONLY static IClassInfo* GetClassInfoPtr();
+        DDUIAPI_EXPORTONLY static void SetClassInfoPtr(IClassInfo* pClass);
+        DDUIAPI_EXPORTONLY IClassInfo* GetClassInfoW() override;
+        DDUIAPI_EXPORTONLY void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        DDUIAPI_EXPORTONLY static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        DDUIAPI_EXPORTONLY HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        DDUIAPI_EXPORTONLY static HRESULT Register();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI TextAlignmentProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI IndeterminateProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI FPSProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI PulseSpeedProp();
+        DDUIAPI_EXPORTONLY int GetTextAlignment();
+        DDUIAPI_EXPORTONLY bool GetIndeterminate();
+        DDUIAPI_EXPORTONLY int GetFPS();
+        DDUIAPI_EXPORTONLY float GetPulseSpeed();
+        DDUIAPI_EXPORTONLY void SetTextAlignment(int iTextAlignment);
+        DDUIAPI_EXPORTONLY void SetIndeterminate(bool bIndeterminate);
+        DDUIAPI_EXPORTONLY void SetFPS(int iFPS);
+        DDUIAPI_EXPORTONLY void SetPulseSpeed(float flPulseSpeed);
+        DDUIAPI_EXPORTONLY float GetMinValue();
+        DDUIAPI_EXPORTONLY float GetMaxValue();
+        DDUIAPI_EXPORTONLY float GetCurrentValue();
+        DDUIAPI_EXPORTONLY void SetMinValue(float minValue);
+        DDUIAPI_EXPORTONLY void SetMaxValue(float maxValue);
+        DDUIAPI_EXPORTONLY void SetCurrentValue(float currValue);
+        DDUIAPI_EXPORTONLY LPCWSTR GetFormattedString();
+        DDUIAPI_EXPORTONLY void SetFormattedString(LPCWSTR szFormatted);
+    private:
+        static IClassInfo* s_pClassInfo;
+        HWND _hTimer;
+        float _minValue;
+        float _maxValue;
+        float _currValue;
+        LPCWSTR _szFormatted;
+        Element* _peRingHolder;
+        DDScalableElement* _peRing;
+        DDScalableElement* _peFill;
+        DDScalableRichText* _peProgressAmount;
+        int GetPropCommon(const PropertyProcT pPropertyProc);
+        void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt);
+        HRESULT _CreatePRVisual();
+        void _RedrawRing();
+        static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    };
+
+    class DDSegmented final : public DDScalableTouchButton
+    {
+    public:
+        DDUIAPI_EXPORTONLY DDSegmented()
+            : _selID(0)
+            , _selSize(0)
+            , _hTimer(nullptr)
+            , _tick(0)
+            , _peSelectionHost(nullptr)
+            , _pBtnBack(nullptr)
+            , _pBtnForward(nullptr)
+            , _peHoverOverlay(nullptr)
+            , _peSelectionOverlay(nullptr)
+            , _peSelections(nullptr)
+        {
+            _peSelections = new DDScalableElement*[8];
+        }
+
+        DDUIAPI_EXPORTONLY ~DDSegmented();
+        enum { MAX_SEGMENTS = 16 };
+        DDUIAPI_EXPORTONLY static IClassInfo* GetClassInfoPtr();
+        DDUIAPI_EXPORTONLY static void SetClassInfoPtr(IClassInfo* pClass);
+        DDUIAPI_EXPORTONLY IClassInfo* GetClassInfoW() override;
+        DDUIAPI_EXPORTONLY void OnEvent(Event* pEvent) override;
+        DDUIAPI_EXPORTONLY void OnInput(InputEvent* pInput) override;
+        DDUIAPI_EXPORTONLY void OnKeyFocusMoved(Element* peFrom, Element* peTo) override;
+        DDUIAPI_EXPORTONLY void OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew) override;
+        DDUIAPI_EXPORTONLY static UID WINAPI SelectionChange();
+        DDUIAPI_EXPORTONLY static HRESULT Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement);
+        DDUIAPI_EXPORTONLY HRESULT Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie);
+        DDUIAPI_EXPORTONLY static HRESULT Register();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI ItemMinWidthProp();
+        DDUIAPI_EXPORTONLY static const PropertyInfo* WINAPI InnerBorderThicknessProp();
+        DDUIAPI_EXPORTONLY int GetItemMinWidth();
+        DDUIAPI_EXPORTONLY const RECT* GetInnerBorderThickness(Value** ppv);
+        DDUIAPI_EXPORTONLY void SetItemMinWidth(int iItemMinWidth);
+        DDUIAPI_EXPORTONLY void SetInnerBorderThickness(int l, int t, int r, int b);
+        DDUIAPI_EXPORTONLY void InsertSelection(BYTE index, LPCWSTR pszSelectionStr);
+        DDUIAPI_EXPORTONLY void SetSelectionContentGraphic(BYTE index, HBITMAP hbmp);
+        DDUIAPI_EXPORTONLY void SetSelectionContentGlyph(BYTE index, LPCWSTR pszGlyph);
+        DDUIAPI_EXPORTONLY void EraseSelection(BYTE index);
+        DDUIAPI_EXPORTONLY BYTE GetSelection();
+        DDUIAPI_EXPORTONLY void SetSelection(BYTE index);
+
+    private:
+        static IClassInfo* s_pClassInfo;
+        BYTE _selID;
+        BYTE _selSize;
+        HWND _hTimer;
+        LONGLONG _tick;
+        Element* _peSelectionHost;
+        DDScalableTouchButton* _pBtnBack;
+        DDScalableTouchButton* _pBtnForward;
+        DDScalableElement* _peHoverOverlay;
+        DDScalableElement* _peSelectionOverlay;
+        DDScalableElement** _peSelections;
+        HRESULT _CreateSegVisual();
+        void _UpdateGridLayoutParams();
+        static void _OnSegmentBack(Element* elem, Event* iev);
+        static void _OnSegmentForward(Element* elem, Event* iev);
+        static LRESULT CALLBACK s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     };
 
     enum DDNotificationType

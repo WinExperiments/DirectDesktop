@@ -58,7 +58,7 @@
 	<Element resid="pageVisual" id="atom(pageVisual)" layoutpos="absolute"/>
 	<HWNDElement resid="Group_DesktopBlur" layoutpos="absolute"/>
 	<LVItem resid="outerElem" layout="filllayout()" visible="false" handleenter="true" layoutpos="absolute" tooltip="true" tooltipmaxwidth="400rp" behaviors="PVL::AnimationTrap();PVL::ImplicitAnimation()">
-		<Element id="atom(innerElem)" layoutpos="client" class="item" visible="false" contentalign="bottomcenter"/>
+		<DDScalableElement id="atom(innerElem)" layoutpos="client" class="item" visible="false" contentalign="bottomcenter"/>
 		<DDScalableElement id="atom(iconElem)" background="argb(0,0,0,0)" contentalign="bottomcenter" layoutpos="absolute" DrawType="1"/>
 		<Element id="atom(shortcutElem)" direction="ltr" background="argb(0,0,0,0)" layoutpos="absolute" contentalign="bottomleft"/>
 		<RichText id="atom(textElem)" background="argb(0,0,0,0)" layoutpos="bottom" contentalign="topcenter"/>
@@ -97,17 +97,21 @@
 			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
+				<DDScalableElement background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
 				<if mousefocused="true">
 					<Element background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))"/>
+					<DDScalableElement background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))"/>
 				</if>
 				<if selected="true">
 					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
+					<DDScalableElement background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
 					<if mousefocused="true">
 						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
+						<DDScalableElement background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
 					</if>
 				</if>
 				<if keyfocused="true">
-					<Element contentalign="focusrect"/>
+					<DDScalableElement contentalign="focusrect"/>
 				</if>
 			</if>
 			<if class="itemTouchOuter">
@@ -165,17 +169,21 @@
 			</if>
 			<if class="item">
 				<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
+				<DDScalableElement background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
 				<if mousefocused="true">
 					<Element background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))"/>
+					<DDScalableElement background="themeable(dtb(Desktop::ListView,1,2), argb(0,0,0,0))"/>
 				</if>
 				<if selected="true">
 					<Element background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
+					<DDScalableElement background="themeable(dtb(Desktop::ListView,1,3), argb(0,0,0,0))"/>
 					<if mousefocused="true">
 						<Element background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
+						<DDScalableElement background="themeable(dtb(Desktop::ListView,1,6), argb(0,0,0,0))"/>
 					</if>
 				</if>
 				<if keyfocused="true">
-					<Element contentalign="middlecenter|focusrect"/>
+					<DDScalableElement contentalign="middlecenter|focusrect"/>
 				</if>
 			</if>
 			<if class="itemTouchOuter">

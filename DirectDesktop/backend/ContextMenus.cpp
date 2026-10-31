@@ -37,9 +37,10 @@ namespace DirectDesktop
                 if (touch) UIContainer->AddFlags(LVCF_TOUCH);
                 else UIContainer->RemoveFlags(LVCF_TOUCH);
                 // DO NOT REMOVE THIS TIMER OTHERWISE CRASHING HAPPENS MORE OFTEN
+                // 0.6 M8 test case: Seems to not crash with the timer set to 0ms?
                 g_canRefreshMain = false;
-                SetTimer(wnd->GetHWND(), 16, 200, nullptr);
-                SetTimer(wnd->GetHWND(), 13, 400, nullptr);
+                SetTimer(wnd->GetHWND(), 16, 100, nullptr);
+                SetTimer(wnd->GetHWND(), 13, 200, nullptr);
             }
             else
             {

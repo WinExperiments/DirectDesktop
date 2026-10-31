@@ -803,5 +803,13 @@
     <Xml Include="styles.xml">
       <Filter>Source Files</Filter>
     </Xml>
+    <Xml Include="playground.xml">
+      <Filter>Source Files</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="uifile2.bin">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

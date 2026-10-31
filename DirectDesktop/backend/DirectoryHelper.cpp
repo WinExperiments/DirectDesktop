@@ -653,6 +653,13 @@ namespace DirectDesktop
         do
         {
             if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0) continue;
+            if (g_showHidden == 2 && fd.dwFileAttributes & 2)
+                continue;
+            if (g_showSuperHidden == 2 || g_showSuperHidden == 0)
+            {
+                if (fd.dwFileAttributes & 4)
+                    continue;
+            }
             count++;
         } while (FindNextFileW(hFind, &fd));
 

@@ -27,6 +27,7 @@ namespace DDUI
     IClassInfo* DDLVActionButton::s_pClassInfo;
     IClassInfo* DDIconButton::s_pClassInfo;
     IClassInfo* DDToggleButton::s_pClassInfo;
+    IClassInfo* DDRadioButton::s_pClassInfo;
     IClassInfo* DDCheckBox::s_pClassInfo;
     IClassInfo* DDCheckBoxGlyph::s_pClassInfo;
     IClassInfo* DDNumberedButton::s_pClassInfo;
@@ -36,6 +37,9 @@ namespace DDUI
     IClassInfo* DDColorPickerButton::s_pClassInfo;
     IClassInfo* DDTabbedPages::s_pClassInfo;
     IClassInfo* DDMenuButton::s_pClassInfo;
+    IClassInfo* DDProgressBar::s_pClassInfo;
+    IClassInfo* DDProgressRing::s_pClassInfo;
+    IClassInfo* DDSegmented::s_pClassInfo;
 
     struct MenuData
     {
@@ -491,7 +495,7 @@ namespace DDUI
         0x1,
         vvimpTextWidthProp,
         nullptr,
-        Value::GetIntMinusOne,
+        Value::GetIntZero,
         &dataimpTextWidthProp
     };
     static const int vvimpTextHeightProp[] = { 1, -1 };
@@ -503,8 +507,20 @@ namespace DDUI
         0x1,
         vvimpTextHeightProp,
         nullptr,
-        Value::GetIntMinusOne,
+        Value::GetIntZero,
         &dataimpTextHeightProp
+    };
+    static const int vvimpTextAlignmentProp[] = { 1, -1 };
+    static PropertyInfoData dataimpTextAlignmentProp;
+    static const PropertyInfo impTextAlignmentProp =
+    {
+        L"TextAlignment",
+        0x2 | 0x4,
+        0x1,
+        vvimpTextAlignmentProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpTextAlignmentProp
     };
     static const int vvimpListMaxHeightProp[] = { 1, -1 };
     static PropertyInfoData dataimpListMaxHeightProp;
@@ -577,6 +593,42 @@ namespace DDUI
         nullptr,
         Value::GetIntZero,
         &dataimpItemHeightProp
+    };
+    static const int vvimpIndeterminateProp[] = { 2, -1 };
+    static PropertyInfoData dataimpIndeterminateProp;
+    static const PropertyInfo impIndeterminateProp =
+    {
+        L"Indeterminate",
+        0x2 | 0x4,
+        0x1,
+        vvimpIndeterminateProp,
+        nullptr,
+        Value::GetBoolFalse,
+        &dataimpIndeterminateProp
+    };
+    static const int vvimpFPSProp[] = { 1, -1 };
+    static PropertyInfoData dataimpFPSProp;
+    static const PropertyInfo impFPSProp =
+    {
+        L"FPS",
+        0x2 | 0x4,
+        0x1,
+        vvimpFPSProp,
+        nullptr,
+        Value::GetIntMinusOne,
+        &dataimpFPSProp
+    };
+    static const int vvimpPulseSpeedProp[] = { 18, -1 };
+    static PropertyInfoData dataimpPulseSpeedProp;
+    static const PropertyInfo impPulseSpeedProp =
+    {
+        L"PulseSpeed",
+        0x2 | 0x4,
+        0x1,
+        vvimpPulseSpeedProp,
+        nullptr,
+        Value::GetFloatOne,
+        &dataimpPulseSpeedProp
     };
 
     DDScalableElement::~DDScalableElement()
@@ -2142,6 +2194,17 @@ namespace DDUI
         else return nullptr;
     }
 
+    void DDScalableTouchEdit::SetPromptText(const WCHAR* v)
+    {
+        Value* pv = Value::CreateString(v, HINST_THISCOMPONENT);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(PromptTextProp, 1, pv);
+            pv->Release();
+        }
+    }
+
     const WCHAR* DDScalableTouchEdit::GetContentString(Value** ppv)
     {
         if (_peEdit) return _peEdit->GetContentString(ppv);
@@ -2268,6 +2331,7 @@ namespace DDUI
 
     void LVCommon::OnKeyFocusMoved(Element* peFrom, Element* peTo)
     {
+        Element::OnKeyFocusMoved(peFrom, peTo);
         CValuePtr v;
         DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
         BYTE ctrlKey = GetKeyState(VK_CONTROL);
@@ -2328,7 +2392,6 @@ namespace DDUI
             }
             _peFocused = peTo;
         }
-        Element::OnKeyFocusMoved(peFrom, peTo);
     }
 
     bool LVCommon::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
@@ -2472,18 +2535,23 @@ namespace DDUI
                         innerElem->SetVisible(!fKeyboard || finalFade == 1.0f);
                         if (!fKeyboard)
                         {
-                            TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, false, false, false);
-                            ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             DWORD animCoef = g_ctx.animCoef;
                             if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
-                            DelayedElementActions* dea = new DelayedElementActions{ animCoef, innerElem , nullptr };
+                            animCoef *= 1.25f;
+                            if (g_ctx.clientAnim)
+                            {
+                                TriggerFade(innerElem, transDesc, 0, 0.0f, 0.125f, 0.1f, 0.25f, 0.75f, 0.9f, initialFade, finalFade, false, false, false);
+                                ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
+                            }
+                            else animCoef = 0;
+                            DelayedElementActions* dea = new DelayedElementActions{ animCoef, innerElem, nullptr };
                             HANDLE hFadeHelper = CreateThread(nullptr, 0, SetVisibleBySelectionDelayed, dea, NULL, nullptr);
                             if (hFadeHelper) CloseHandle(hFadeHelper);
                         }
                     }
                     // Apparently this needs to be done otherwise there will be ugly overlays...
                     ////////////////////////////////////
-                    if (innerElem)
+                    if (innerElem && g_ctx.clientAnim)
                     {
                         CValuePtr v;
                         DynamicArray<Element*>* pel = elem->GetChildren(&v);
@@ -2820,8 +2888,9 @@ namespace DDUI
             else if (this->GetClassInfoW() == LVTiles::GetClassInfoPtr())
             {
                 SIZE szGrid = ((LVTiles*)this)->GetGridLayoutParams();
-                _szScrollDelta.cx = width / szGrid.cx;
-                _szScrollDelta.cy = height / szGrid.cy;
+                // needs minimum of 4 because any lower would cause a division by zero in WM_USER + 1 in s_ListViewProc
+                _szScrollDelta.cx = max(width, 4) / szGrid.cx;
+                _szScrollDelta.cy = max(height, 4) / szGrid.cy;
             }
         }
         else
@@ -4209,7 +4278,8 @@ namespace DDUI
 
     SIZE LVTiles::GetGridLayoutParams()
     {
-        return _szGridLayout;
+        SIZE szSafe = { max(_szGridLayout.cx, 1), max(_szGridLayout.cy, 1) };
+        return szSafe;
     }
 
     void LVTiles::_UpdateGridLayoutParams()
@@ -4219,7 +4289,7 @@ namespace DDUI
         _peWhitespace->GetRenderPadding(&rcPadding);
         GetGadgetRect(_peWhitespace->GetDisplayNode(), &rcGadget, 0x4);
         int width = rcGadget.right - rcPadding.left - rcPadding.right;
-        _szGridLayout.cx = floor(width / this->GetItemMinWidth());
+        _szGridLayout.cx = floor(width / max(this->GetItemMinWidth(), 1));
         int iNonAbsChildren{};
         DynamicArray<Element*>* rgList = _peWhitespace->GetChildren(&v);
         if (rgList)
@@ -4230,7 +4300,7 @@ namespace DDUI
                     iNonAbsChildren++;
             }
             RECT rcMargin = *(rgList->GetItem(0)->GetMargin(&v));
-            _szGridLayout.cx = floor(width / (this->GetItemMinWidth() + max(rcMargin.left, rcMargin.right)));
+            _szGridLayout.cx = max(floor(width / (this->GetItemMinWidth() + max(rcMargin.left, rcMargin.right))), 1);
             _szGridLayout.cy = ceil(iNonAbsChildren / static_cast<float>(_szGridLayout.cx));
         }
         int iHeight = this->GetItemHeight() * _szGridLayout.cy + rcPadding.top + rcPadding.bottom;
@@ -5090,6 +5160,26 @@ namespace DDUI
         else return nullptr;
     }
 
+    void DDIconButton::SetIconFont(const WCHAR* v)
+    {
+        if (_peIcon) _peIcon->SetFont(v);
+    }
+
+    void DDIconButton::SetIconContentString(const WCHAR* v)
+    {
+        if (_peIcon) _peIcon->SetContentString(v);
+    }
+
+    void DDIconButton::SetIconContentGraphic(const WCHAR* v, BYTE dBlendMode, UINT dBlendValue)
+    {
+        if (_peIcon) _peIcon->SetContentGraphic(v, dBlendMode, dBlendValue);
+    }
+
+    void DDIconButton::SetIconContentGraphic(const WCHAR* v, WORD cxDesired, WORD cyDesired)
+    {
+        if (_peIcon) _peIcon->SetContentGraphic(v, cxDesired, cyDesired);
+    }
+
     HRESULT DDIconButton::_CreateIBVisual()
     {
         HRESULT hr = S_OK;
@@ -5200,6 +5290,114 @@ namespace DDUI
     void DDCheckBoxGlyph::SetCheckedState(bool bChecked)
     {
         this->SetPropCommon(CheckedStateProp, bChecked, false);
+    }
+
+    IClassInfo* DDRadioButton::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDRadioButton::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDRadioButton::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    bool DDRadioButton::OnPropertyChanging(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        bool result{};
+        result = DDScalableTouchButton::OnPropertyChanging(ppi, iIndex, pvOld, pvNew);
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ContentProp))
+        {
+            result = false;
+            this->_SetValue(Element::AccNameProp, 1, pvNew, false);
+            ElementSetValue(_peText, ppi, pvNew, this);
+        }
+        return result;
+    }
+
+    void DDRadioButton::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp))
+        {
+            ElementSetValue(_peGlyph, ppi, pvNew, this);
+            ElementSetValue(_peText, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ShortcutProp))
+            ElementSetValue(_peText, ppi, pvNew, this);
+        if (PropNotify::IsEqual(ppi, iIndex, TouchButton::PressedProp))
+            ElementSetValue(_peGlyph, Element::SelectedProp(), pvNew, this);
+        if (PropNotify::IsEqual(ppi, iIndex, DDRadioButton::CheckedStateProp))
+            ElementSetValue(_peGlyph, ppi, pvNew, this);
+        DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    HRESULT DDRadioButton::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDRadioButton, int>(0x1 | 0x2 | 0x8, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDRadioButton::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((DDScalableTouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateRBVisual();
+        return hr;
+    }
+
+    HRESULT DDRadioButton::Register()
+    {
+        static const DirectUI::PropertyInfo* const rgRegisterProps[] =
+        {
+            &impCheckedStateProp
+        };
+        return ClassInfo<DDRadioButton, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDRadioButton", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    const PropertyInfo* WINAPI DDRadioButton::CheckedStateProp()
+    {
+        return &impCheckedStateProp;
+    }
+
+    bool DDRadioButton::GetCheckedState()
+    {
+        return this->GetPropCommon(CheckedStateProp, false);
+    }
+
+    void DDRadioButton::SetCheckedState(bool bChecked)
+    {
+        this->SetPropCommon(CheckedStateProp, bChecked, false);
+    }
+
+    HRESULT DDRadioButton::_CreateRBVisual()
+    {
+        HRESULT hr = S_OK;
+
+        int layoutParams[4] = { 0, 2, 0, 2 };
+        CValuePtr spvLayout;
+        FlowLayout::Create(ARRAYSIZE(layoutParams), layoutParams, &spvLayout);
+        hr = this->_SetValue(Element::LayoutProp, 1, spvLayout, true);
+        if (SUCCEEDED(hr))
+        {
+            hr = DDCheckBoxGlyph::Create(this, nullptr, (Element**)&_peGlyph);
+            if (SUCCEEDED(hr))
+            {
+                this->Add((Element**)&_peGlyph, 1);
+                _peGlyph->SetCheckedState(this->GetCheckedState());
+                _peGlyph->SetID(L"DDRB_Glyph");
+                hr = DDScalableElement::Create(this, nullptr, (Element**)&_peText);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_peText, 1);
+                    _peText->SetID(L"DDRB_Text");
+                }
+            }
+        }
+        return hr;
     }
 
     IClassInfo* DDCheckBox::GetClassInfoPtr()
@@ -5484,7 +5682,9 @@ namespace DDUI
     DDCombobox::~DDCombobox()
     {
         this->DestroyAll(true);
+        _peSelectionMenu->DestroyAll(true);
         _wndSelectionMenu->DestroyWindow();
+        delete[] _peSelections;
     }
 
     IClassInfo* DDCombobox::GetClassInfoPtr()
@@ -5558,6 +5758,14 @@ namespace DDUI
         if (index == MAX_SELECTIONS) index = _selSize;
         if (_selSize >= MAX_SELECTIONS || index < 0 || index > _selSize)
             return;
+        if (_selSize == _msize(_peSelections) / sizeof(DDMenuButton*))
+        {
+            DDNumberedButton** peSelectionsNew = new DDNumberedButton*[min(_selSize * 2, MAX_SELECTIONS)]{};
+            for (int i = 0; i < _selSize; i++)
+                peSelectionsNew[i] = _peSelections[i];
+            delete[] _peSelections;
+            _peSelections = peSelectionsNew;
+        }
         for (int i = _selSize - 1; i >= index; i--)
         {
             _peSelections[i + 1] = _peSelections[i];
@@ -5839,7 +6047,8 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDSlider::IsVerticalProp) ||
             PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
-            PropNotify::IsEqual(ppi, iIndex, DDSlider::TextWidthProp) || PropNotify::IsEqual(ppi, iIndex, DDSlider::TextHeightProp))
+            PropNotify::IsEqual(ppi, iIndex, DDSlider::TextWidthProp) || PropNotify::IsEqual(ppi, iIndex, DDSlider::TextHeightProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDSlider::TextAlignmentProp))
         {
             _RedrawSlider();
         }
@@ -5940,8 +6149,8 @@ namespace DDUI
                 if (percentage > 1) percentage = 1;
                 assocVal = _minValue + (_maxValue - _minValue) * percentage;
                 if (_tickValue > 0) assocVal = round(assocVal / _tickValue) * _tickValue;
-                WCHAR formattedNum[8];
-                StringCchPrintfW(formattedNum, 8, _szFormatted, assocVal);
+                WCHAR formattedNum[16];
+                StringCchPrintfW(formattedNum, 16, _szFormatted, assocVal);
                 _peText->SetContentString(formattedNum);
             }
             if (pInput->nDevice == GINPUT_KEYBOARD)
@@ -5980,7 +6189,8 @@ namespace DDUI
         {
             &impIsVerticalProp,
             &impTextWidthProp,
-            &impTextHeightProp
+            &impTextHeightProp,
+            &impTextAlignmentProp
         };
         return ClassInfo<DDSlider, TouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDSlider", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
     }
@@ -6012,12 +6222,22 @@ namespace DDUI
 
     bool DDSlider::GetIsVertical()
     {
-        return this->GetPropCommon(IsVerticalProp);
+        if (this->IsDestroyed()) return false;
+        Value* pv = GetValue(IsVerticalProp, 2, nullptr);
+        int v = pv->GetBool();
+        pv->Release();
+        return v;
     }
 
     void DDSlider::SetIsVertical(bool bIsVertical)
     {
-        this->SetPropCommon(IsVerticalProp, bIsVertical);
+        Value* pv = Value::CreateBool(bIsVertical);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(IsVerticalProp, 1, pv);
+            pv->Release();
+        }
     }
 
     const PropertyInfo* WINAPI DDSlider::TextWidthProp()
@@ -6048,6 +6268,21 @@ namespace DDUI
     void DDSlider::SetTextHeight(int iTextHeight)
     {
         this->SetPropCommon(TextHeightProp, iTextHeight);
+    }
+
+    const PropertyInfo* WINAPI DDSlider::TextAlignmentProp()
+    {
+        return &impTextAlignmentProp;
+    }
+
+    int DDSlider::GetTextAlignment()
+    {
+        return this->GetPropCommon(TextAlignmentProp);
+    }
+
+    void DDSlider::SetTextAlignment(int iTextAlignment)
+    {
+        this->SetPropCommon(TextAlignmentProp, iTextAlignment);
     }
 
     RegKeyValue DDSlider::GetRegKeyValue()
@@ -6099,6 +6334,8 @@ namespace DDUI
 
     void DDSlider::SetCurrentValue(float currValue, bool fExternal)
     {
+        if (currValue == _currValue)
+            return;
         if (fExternal)
         {
             if (currValue < _minValue) currValue = _minValue;
@@ -6130,6 +6367,12 @@ namespace DDUI
             _currValue = assocVal;
         }
         else _RedrawSlider();
+        if (_szFormatted)
+        {
+            WCHAR formattedNum[16];
+            StringCchPrintfW(formattedNum, 16, _szFormatted, _currValue);
+            _peText->SetContentString(formattedNum);
+        }
     }
 
     void DDSlider::SetTickValue(float tickValue)
@@ -6230,24 +6473,31 @@ namespace DDUI
     void DDSlider::_RedrawSlider()
     {
         bool vertical = this->GetIsVertical();
-        const WCHAR* szClassName = vertical ? L"DDS_Vert" : L"DDS_Horiz";
-        this->SetClass(szClassName);
+        if (vertical != _bSavedVertical)
+        {
+            const WCHAR* szClassName = vertical ? L"DDS_Vert" : L"DDS_Horiz";
+            this->SetClass(szClassName);
+            _bSavedVertical = vertical;
+        }
 
-        BYTE DDSFillLayoutPos = vertical ? 3 : 0;
-        if (vertical) _peText->SetHeight(this->GetTextHeight());
+        BYTE DDSFillLayoutPos = (this->GetTextAlignment() != -1) ? this->GetTextAlignment() : vertical ? 3 : 0;
+        if (DDSFillLayoutPos & 1) _peText->SetHeight(this->GetTextHeight());
         else _peText->SetWidth(this->GetTextWidth());
         _peText->SetLayoutPos(DDSFillLayoutPos);
 
-        DDSFillLayoutPos = vertical ? 1 : 2;
-        _peTrackHolder->SetLayoutPos(DDSFillLayoutPos);
-        _peTrackBase->SetLayoutPos(DDSFillLayoutPos);
+        //if (vertical != _bSavedVertical)
+        //{
+            DDSFillLayoutPos = vertical ? 1 : 2;
+            _peTrackHolder->SetLayoutPos(DDSFillLayoutPos);
+            _peTrackBase->SetLayoutPos(DDSFillLayoutPos);
 
-        DDSFillLayoutPos = vertical ? 3 : 0;
-        _peFillBase->SetLayoutPos(DDSFillLayoutPos);
+            DDSFillLayoutPos = vertical ? 3 : 0;
+            _peFillBase->SetLayoutPos(DDSFillLayoutPos);
 
-        DDSFillLayoutPos = vertical ? 0 : 3;
-        _peTrack->SetLayoutPos(DDSFillLayoutPos);
-        _peFill->SetLayoutPos(DDSFillLayoutPos);
+            DDSFillLayoutPos = vertical ? 0 : 3;
+            _peTrack->SetLayoutPos(DDSFillLayoutPos);
+            _peFill->SetLayoutPos(DDSFillLayoutPos);
+        //}
 
         float boundCurrValue = _currValue;
         if (boundCurrValue < _minValue) boundCurrValue = _minValue;
@@ -7380,7 +7630,6 @@ namespace DDUI
                     }
                     else if (wParam == 6)
                     {
-                        delete menu->_scbi;
                         if (menu->_subLevel == 0)
                         {
                             SetTimer(hWnd, 7, 2000, nullptr);
@@ -7431,8 +7680,9 @@ namespace DDUI
                     MenuData* pmd = (MenuData*)lParam;
                     if (((DDMenu*)wParam)->_interfaceLevel > 1)
                     {
-                        for (DDMenuButton* pmb : ((DDMenu*)wParam)->_peSelections)
+                        for (int i = 0; i < ((DDMenu*)wParam)->_count; i++)
                         {
+                            DDMenuButton* pmb = ((DDMenu*)wParam)->_peSelections[i];
                             if (pmb)
                             {
                                 if (pmb->_submenu)
@@ -7496,6 +7746,13 @@ namespace DDUI
             break;
         }
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    DDMenu::~DDMenu()
+    {
+        delete _scbi;
+        delete[] _peSelections;
+        delete[] _rgMenuImg;
     }
 
     HRESULT DDMenu::InitializeDesktopEntries(IShellFolder* psf, IShellView* psv)
@@ -7807,6 +8064,20 @@ namespace DDUI
         if (_count >= MAX_ITEMS || index < 0 || index > _count)
             return;
 
+        if (_count == _msize(_peSelections) / sizeof(DDMenuButton*))
+        {
+            DDMenuButton** peSelectionsNew = new DDMenuButton*[min(_count * 2, MAX_ITEMS)]{};
+            for (int i = 0; i < _count; i++)
+                peSelectionsNew[i] = _peSelections[i];
+            delete[] _peSelections;
+            _peSelections = peSelectionsNew;
+            MenuImage** rgMenuImgNew = new MenuImage*[min(_count * 2, MAX_ITEMS)]{};
+            for (int i = 0; i < _count; i++)
+                rgMenuImgNew[i] = _rgMenuImg[i];
+            delete[] _rgMenuImg;
+            _rgMenuImg = rgMenuImgNew;
+        }
+
         UINT_PTR uIDNewItemPopup = (uFlags & MF_POPUP) ? (UINT_PTR)((DDMenu*)uIDNewItem)->_hMenu : uIDNewItem;
         ::InsertMenuW(_hMenu, uPosition, uFlags, uIDNewItemPopup, lpNewItem);
         if (!_fUsingLegacy)
@@ -8002,7 +8273,7 @@ namespace DDUI
 
     void DDMenu::ForceEnablePaste()
     {
-        for (int i = 0; i < MAX_ITEMS; i++)
+        for (int i = 0; i < _count; i++)
         {
             if (!_peSelections[i] || _peSelections[i]->_id == -1 || _peSelections[i]->_id < _idCmdFirst)
                 continue;
@@ -8026,6 +8297,19 @@ namespace DDUI
     {
         if (_count >= MAX_ITEMS)
             return;
+        if (_count == _msize(_peSelections) / sizeof(DDMenuButton*))
+        {
+            DDMenuButton** peSelectionsNew = new DDMenuButton*[min(_count * 2, MAX_ITEMS)]{};
+            for (int i = 0; i < _count; i++)
+                peSelectionsNew[i] = _peSelections[i];
+            delete[] _peSelections;
+            _peSelections = peSelectionsNew;
+            MenuImage** rgMenuImgNew = new MenuImage*[min(_count * 2, MAX_ITEMS)]{};
+            for (int i = 0; i < _count; i++)
+                rgMenuImgNew[i] = _rgMenuImg[i];
+            delete[] _rgMenuImg;
+            _rgMenuImg = rgMenuImgNew;
+        }
         if (!_fUsingLegacy)
         {
             DDMenuButton::Create(_peHostInner, nullptr, (Element**)&(_peSelections[_count]));
@@ -8144,7 +8428,7 @@ namespace DDUI
                     KillTimer(_hTimer, 1);
                     KillTimer(_hTimer, 2);
                     SetTimer(_hTimer, 5, 0, nullptr);
-                    for (int i = 0; i < DDMenu::MAX_ITEMS; i++)
+                    for (int i = 0; i < _msize(_rgMenuImg) / sizeof(MenuImage*); i++)
                     {
                         if (_rgMenuImg[i] != nullptr)
                         {
@@ -8238,7 +8522,7 @@ namespace DDUI
         this->_subLevel = ((DDMenu*)pmb->_peLinked)->_subLevel + 1;
         this->_pICv1 = ((DDMenu*)pmb->_peLinked)->_pICv1;
         this->_interfaceLevel = ((DDMenu*)pmb->_peLinked)->_interfaceLevel;
-
+        this->_hWndTrack = ((DDMenu*)pmb->_peLinked)->_hWndTrack;
     }
 
     void DDMenu::_SetVisible(int x, int y, DDMenu* menu, bool fInstant)
@@ -8352,6 +8636,1235 @@ namespace DDUI
             SetTimer(_hTimer, 1, menu && !fInstant ? 300 : 0, nullptr);
         }
     }
+
+    LRESULT CALLBACK DDProgressBar::s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        DDProgressBar* pb = (DDProgressBar*)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+        switch (uMsg)
+        {
+        case WM_TIMER:
+        {
+            Element* pePulse = pb->_pePulseHolder;
+            DDScalableElement* peMove = pb->_peMove;
+            int move{};
+            float percentage{};
+            switch (wParam)
+            {
+            case 1:
+                move = 300 * pb->GetPulseSpeed() * g_ctx.flScaleFactor / pb->GetFPS();
+                if (pb->GetIsVertical())
+                {
+                    pb->_dest -= move;
+                    int iTextHeight{};
+                    if (pb->_peProgressAmount->GetLayoutPos() & 1)
+                        iTextHeight = pb->GetTextHeight();
+                    int bound = pb->_rcGadget.bottom - pePulse->GetHeight() - iTextHeight;
+                    int bound2 = pb->_rcGadget.bottom - pb->_szOrig.cy;
+                    int target = pb->_dest;
+                    if (pb->_peProgressAmount->GetLayoutPos() == 3)
+                        bound2 -= iTextHeight;
+                    if (pb->_dest < bound)
+                    {
+                        pb->_bFlags |= 0x2;
+                        peMove->SetHeight(min(pePulse->GetHeight(), peMove->GetHeight() - move));
+                        target = bound;
+                    }
+                    percentage = 510.0f * (0.5f - abs(0.5f - ((pb->_dest - pb->_rcGadget.bottom + iTextHeight + pePulse->GetHeight() + pb->_szOrig.cy) / static_cast<float>(pePulse->GetHeight() + pb->_szOrig.cy))));
+                    peMove->SetY(target);
+                    if (pb->_dest > bound2)
+                    {
+                        pb->_bFlags |= 0x2;
+                        peMove->SetHeight(min(pePulse->GetHeight(), pb->_szOrig.cy + bound2 - pb->_dest));
+                    }
+                    else if (pb->_dest >= bound && pb->_bFlags & 0x2)
+                    {
+                        peMove->SetHeight(pb->_szOrig.cy);
+                        pb->_bFlags &= 0xFD;
+                    }
+                    if (pb->_dest + pb->_szOrig.cy < bound)
+                    {
+                        peMove->SetWidth(pb->_szOrig.cx);
+                        peMove->SetHeight(pb->_szOrig.cy);
+                        pb->_bFlags &= 0xFD;
+                        int startpos = pb->_rcGadget.bottom - iTextHeight;
+                        peMove->SetY(startpos);
+                        pb->_dest = startpos;
+                        pb->_bFlags |= 0x1;
+                    }
+                }
+                else
+                {
+                    pb->_dest += move;
+                    int iTextWidth{};
+                    if (!(pb->_peProgressAmount->GetLayoutPos() & 1))
+                        iTextWidth = pb->GetTextWidth();
+                    int bound = pePulse->GetWidth();
+                    int bound2 = 0;
+                    int target = pb->_dest;
+                    if (pb->_dest < bound2)
+                    {
+                        pb->_bFlags |= 0x2;
+                        peMove->SetWidth(min(pePulse->GetWidth(), pb->_szOrig.cx + pb->_dest));
+                        target = bound2;
+                    }
+                    percentage = 510.0f * (0.5f - abs(0.5f - (pb->_dest + pb->_szOrig.cx) / static_cast<float>(pePulse->GetWidth() + pb->_szOrig.cx)));
+                    peMove->SetX(target);
+                    if (pb->_dest > bound - pb->_szOrig.cx)
+                    {
+                        pb->_bFlags |= 0x2;
+                        peMove->SetWidth(min(pePulse->GetWidth(), bound - pb->_dest));
+                    }
+                    else if (pb->_dest >= bound2 && pb->_bFlags & 0x2)
+                    {
+                        peMove->SetWidth(pb->_szOrig.cx);
+                        pb->_bFlags &= 0xFD;
+                    }
+                    if (pb->_dest > bound)
+                    {
+                        peMove->SetWidth(pb->_szOrig.cx);
+                        peMove->SetHeight(pb->_szOrig.cy);
+                        pb->_bFlags &= 0xFD;
+                        int startpos = -pb->_szOrig.cx;
+                        peMove->SetX(startpos);
+                        pb->_dest = startpos;
+                        pb->_bFlags |= 0x1;
+                    }
+                }
+                pb->_pePulse->SetAlpha(percentage);
+                if ((pb->_bFlags) & 1)
+                {
+                    peMove->SetVisible(false);
+                    pePulse->SetVisible(false);
+                    pb->_pePulse->SetAlpha(1);
+                    KillTimer(hWnd, 1);
+                    SetTimer(hWnd, 3, 1000 / pb->GetPulseSpeed(), nullptr);
+                }
+                break;
+            case 2: // 0.6 M8: Will use new animation later
+                move = 150 * pb->GetPulseSpeed() * g_ctx.flScaleFactor / pb->GetFPS();
+                if (pb->GetIsVertical())
+                {
+                    pb->_dest = peMove->GetY() - move;
+                    peMove->SetY(pb->_dest);
+                    if (pb->_dest < -peMove->GetHeight())
+                    {
+                        peMove->SetY(pb->_rcGadget.bottom);
+                        pb->_bFlags |= 0x1;
+                    }
+                }
+                else
+                {
+                    pb->_dest = peMove->GetX() + move;
+                    peMove->SetX(pb->_dest);
+                    if (pb->_dest > pb->_rcGadget.right)
+                    {
+                        peMove->SetX(-peMove->GetWidth());
+                        pb->_bFlags |= 0x1;
+                    }
+                }
+                if ((pb->_bFlags) & 1)
+                {
+                    peMove->SetVisible(false);
+                    KillTimer(hWnd, 2);
+                    SetTimer(hWnd, 4, 250 / pb->GetPulseSpeed(), nullptr);
+                }
+                break;
+            case 3:
+                pePulse->SetVisible(true);
+            case 4:
+                peMove->SetVisible(true);
+                pb->_bFlags &= 0xFE;
+                GetGadgetRect(pb->GetDisplayNode(), &pb->_rcGadget, 0x4);
+                KillTimer(hWnd, wParam);
+                SetTimer(hWnd, wParam - 2, 1000 / pb->GetFPS() - 3, nullptr);
+                break;
+            }
+            return 0;
+        }
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    DDProgressBar::~DDProgressBar()
+    {
+        for (int wP = 1; wP <= 4; wP++)
+        {
+            KillTimer(_hTimer, wP);
+        }
+        DestroyWindow(_hTimer);
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDProgressBar::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDProgressBar::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDProgressBar::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDProgressBar::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp))
+        {
+            ElementSetValue(_peProgressAmount, ppi, pvNew, this);
+            ElementSetValue(_peBarMain, ppi, pvNew, this);
+            ElementSetValue(_peBarHolder, ppi, pvNew, this);
+            ElementSetValue(_peBar, ppi, pvNew, this);
+            ElementSetValue(_peFillHolder, ppi, pvNew, this);
+            ElementSetValue(_peFill, ppi, pvNew, this);
+            ElementSetValue(_pePulseHolder, ppi, pvNew, this);
+            ElementSetValue(_pePulse, ppi, pvNew, this);
+            ElementSetValue(_peMove, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDProgressBar::IndeterminateProp))
+        {
+            bool vertical = this->GetIsVertical();
+            if (this->GetIndeterminate())
+            {
+                this->SetClass(vertical ? L"DDPB_Vert_I" : L"DDPB_Horiz_I");
+                KillTimer(_hTimer, 1);
+                KillTimer(_hTimer, 3);
+                SetTimer(_hTimer, 2, 1000 / this->GetFPS() - 3, nullptr);
+            }
+            else
+            {
+                this->SetClass(vertical ? L"DDPB_Vert" : L"DDPB_Horiz");
+                KillTimer(_hTimer, 2);
+                KillTimer(_hTimer, 4);
+                SetTimer(_hTimer, 1, 1000 / this->GetFPS() - 3, nullptr);
+            }
+            _peFillHolder->SetVisible(!this->GetIndeterminate());
+            _pePulseHolder->SetVisible(!this->GetIndeterminate());
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDProgressBar::IsVerticalProp) ||
+            PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDProgressBar::TextWidthProp) || PropNotify::IsEqual(ppi, iIndex, DDProgressBar::TextHeightProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDProgressBar::TextAlignmentProp))
+        {
+            _RedrawBar();
+        }
+        Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    HRESULT DDProgressBar::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDProgressBar, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDProgressBar::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreatePBVisual();
+        return hr;
+    }
+
+    HRESULT DDProgressBar::Register()
+    {
+        static const PropertyInfo* const rgRegisterProps[] =
+        {
+            &impIsVerticalProp,
+            &impTextWidthProp,
+            &impTextHeightProp,
+            &impTextAlignmentProp,
+            &impIndeterminateProp,
+            &impFPSProp,
+            &impPulseSpeedProp
+        };
+        return ClassInfo<DDProgressBar, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDProgressBar", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    int DDProgressBar::GetPropCommon(const PropertyProcT pPropertyProc)
+    {
+        if (this->IsDestroyed()) return -1;
+        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        int v = pv->GetInt();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressBar::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt)
+    {
+        Value* pv = Value::CreateInt(iCreateInt);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(pPropertyProc, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::IsVerticalProp()
+    {
+        return &impIsVerticalProp;
+    }
+
+    bool DDProgressBar::GetIsVertical()
+    {
+        if (this->IsDestroyed()) return false;
+        Value* pv = GetValue(IsVerticalProp, 2, nullptr);
+        int v = pv->GetBool();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressBar::SetIsVertical(bool bIsVertical)
+    {
+        Value* pv = Value::CreateBool(bIsVertical);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(IsVerticalProp, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::TextWidthProp()
+    {
+        return &impTextWidthProp;
+    }
+
+    int DDProgressBar::GetTextWidth()
+    {
+        return this->GetPropCommon(TextWidthProp);
+    }
+
+    void DDProgressBar::SetTextWidth(int iTextWidth)
+    {
+        this->SetPropCommon(TextWidthProp, iTextWidth);
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::TextHeightProp()
+    {
+        return &impTextHeightProp;
+    }
+
+    int DDProgressBar::GetTextHeight()
+    {
+        return this->GetPropCommon(TextHeightProp);
+    }
+
+    void DDProgressBar::SetTextHeight(int iTextHeight)
+    {
+        this->SetPropCommon(TextHeightProp, iTextHeight);
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::TextAlignmentProp()
+    {
+        return &impTextAlignmentProp;
+    }
+
+    int DDProgressBar::GetTextAlignment()
+    {
+        return this->GetPropCommon(TextAlignmentProp);
+    }
+
+    void DDProgressBar::SetTextAlignment(int iTextAlignment)
+    {
+        this->SetPropCommon(TextAlignmentProp, iTextAlignment);
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::IndeterminateProp()
+    {
+        return &impIndeterminateProp;
+    }
+
+    bool DDProgressBar::GetIndeterminate()
+    {
+        if (this->IsDestroyed()) return false;
+        Value* pv = GetValue(IndeterminateProp, 2, nullptr);
+        int v = pv->GetBool();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressBar::SetIndeterminate(bool bIndeterminate)
+    {
+        Value* pv = Value::CreateBool(bIndeterminate);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(IndeterminateProp, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::PulseSpeedProp()
+    {
+        return &impPulseSpeedProp;
+    }
+
+    float DDProgressBar::GetPulseSpeed()
+    {
+        if (this->IsDestroyed()) return 1.0f;
+        Value* pv = GetValue(PulseSpeedProp, 2, nullptr);
+        float v = pv->GetFloat();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressBar::SetPulseSpeed(float flPulseSpeed)
+    {
+        Value* pv = Value::CreateFloat(flPulseSpeed);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(PulseSpeedProp, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressBar::FPSProp()
+    {
+        return &impFPSProp;
+    }
+
+    int DDProgressBar::GetFPS()
+    {
+        int v = this->GetPropCommon(FPSProp);
+        if (v == -1)
+            v = 30;
+        else if (v < 1)
+            v = 1;
+        return v;
+    }
+
+    void DDProgressBar::SetFPS(int iFPS)
+    {
+        this->SetPropCommon(FPSProp, iFPS);
+    }
+
+    float DDProgressBar::GetMinValue()
+    {
+        return _minValue;
+    }
+
+    float DDProgressBar::GetMaxValue()
+    {
+        return _maxValue;
+    }
+
+    float DDProgressBar::GetCurrentValue()
+    {
+        return _currValue;
+    }
+
+    void DDProgressBar::SetMinValue(float minValue)
+    {
+        _minValue = minValue;
+        _RedrawBar();
+    }
+
+    void DDProgressBar::SetMaxValue(float maxValue)
+    {
+        _maxValue = maxValue;
+        _RedrawBar();
+    }
+
+    void DDProgressBar::SetCurrentValue(float currValue)
+    {
+        if (currValue == _currValue)
+            return;
+        if (currValue < _minValue) currValue = _minValue;
+        if (currValue > _maxValue) currValue = _maxValue;
+        _currValue = currValue;
+        _RedrawBar();
+        if (_szFormatted)
+        {
+            WCHAR formattedNum[16];
+            StringCchPrintfW(formattedNum, 16, _szFormatted, _currValue);
+            _peProgressAmount->SetContentString(formattedNum);
+        }
+    }
+
+    LPCWSTR DDProgressBar::GetFormattedString()
+    {
+        return _szFormatted;
+    }
+
+    void DDProgressBar::SetFormattedString(LPCWSTR szFormatted)
+    {
+        _szFormatted = szFormatted;
+        WCHAR formattedNum[16];
+        StringCchPrintfW(formattedNum, 16, _szFormatted, _currValue);
+        _peProgressAmount->SetContentString(formattedNum);
+    }
+
+    HRESULT DDProgressBar::_CreatePBVisual()
+    {
+        HRESULT hr = S_OK;
+        CValuePtr spvLayout;
+        BorderLayout::Create(0, nullptr, &spvLayout);
+        this->SetValue(Element::LayoutProp, 1, spvLayout);
+        hr = DDScalableRichText::Create(this, nullptr, (Element**)&_peProgressAmount);
+        if (SUCCEEDED(hr))
+        {
+            this->Add((Element**)&_peProgressAmount, 1);
+            _peProgressAmount->SetID(L"DDPB_ProgressAmount");
+            hr = Element::Create(0, this, nullptr, &_peBarMain);
+            if (SUCCEEDED(hr))
+            {
+                this->Add(&_peBarMain, 1);
+                _peBarMain->SetLayoutPos(-1);
+                FillLayout::Create(0, nullptr, &spvLayout);
+                _peBarMain->SetValue(Element::LayoutProp, 1, spvLayout);
+                hr = DDScalableElement::Create(_peBarMain, nullptr, (Element**)&_peBarHolder);
+                if (SUCCEEDED(hr))
+                {
+                    _peBarMain->Add((Element**)&_peBarHolder, 1);
+                    _peBarHolder->SetLayoutPos(-1);
+                    spvLayout->Release();
+                    FillLayout::Create(0, nullptr, &spvLayout);
+                    _peBarHolder->SetValue(Element::LayoutProp, 1, spvLayout);
+                    hr = DDScalableElement::Create(_peBarMain, nullptr, (Element**)&_peFillHolder);
+                    if (SUCCEEDED(hr))
+                    {
+                        _peBarMain->Add((Element**)&_peFillHolder, 1);
+                        spvLayout->Release();
+                        FillLayout::Create(0, nullptr, &spvLayout);
+                        _peFillHolder->SetValue(Element::LayoutProp, 1, spvLayout);
+                        hr = DDScalableElement::Create(_peBarMain, nullptr, (Element**)&_peMove);
+                        if (SUCCEEDED(hr))
+                        {
+                            _peBarMain->Add((Element**)&_peMove, 1);
+                            _peMove->SetLayoutPos(-2);
+                            _peMove->SetID(L"DDPB_MoveOverlay");
+                            assignExtendedFn(_peMove, s_OnMoveOverlayPropChanged);
+                            hr = DDScalableElement::Create(_peBarMain, nullptr, (Element**)&_pePulseHolder);
+                            if (SUCCEEDED(hr))
+                            {
+                                _peBarMain->Add((Element**)&_pePulseHolder, 1);
+                                spvLayout->Release();
+                                FillLayout::Create(0, nullptr, &spvLayout);
+                                _pePulseHolder->SetValue(Element::LayoutProp, 1, spvLayout);
+                                hr = DDScalableElement::Create(_peBarHolder, nullptr, (Element**)&_peBar);
+                                if (SUCCEEDED(hr))
+                                {
+                                    _peBarHolder->Add((Element**)&_peBar, 1);
+                                    _peBar->SetID(L"DDPB_Bar");
+                                    hr = DDScalableElement::Create(_peFillHolder, nullptr, (Element**)&_peFill);
+                                    if (SUCCEEDED(hr))
+                                    {
+                                        _peFillHolder->Add((Element**)&_peFill, 1);
+                                        _peFill->SetID(L"DDPB_Fill");
+                                        hr = DDScalableElement::Create(_pePulseHolder, nullptr, (Element**)&_pePulse);
+                                        if (SUCCEEDED(hr))
+                                        {
+                                            _pePulseHolder->Add((Element**)&_pePulse, 1);
+                                            _pePulse->SetID(L"DDPB_PulseOverlay");
+                                            HMODULE hShlwapi = GetModuleHandleW(L"shlwapi.dll");
+                                            if (hShlwapi)
+                                            {
+                                                pfnSHCreateWorkerWindowW SHCreateWorkerWindowW =
+                                                    (pfnSHCreateWorkerWindowW)GetProcAddress(hShlwapi, "SHCreateWorkerWindowW");
+                                                _hTimer = SHCreateWorkerWindowW(s_TimerProc, HWND_MESSAGE, 0, 0, nullptr);
+                                                SetWindowLongPtrW(_hTimer, GWLP_USERDATA, (LONG_PTR)this);
+                                                SetTimer(_hTimer, 1, 1000 / this->GetFPS() - 3, nullptr);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return hr;
+    }
+
+    void DDProgressBar::_RedrawBar()
+    {
+        bool vertical = this->GetIsVertical();
+        bool ind = this->GetIndeterminate();
+        if (vertical != _bSavedVertical)
+        {
+            const WCHAR* szClassName = vertical ? ind ? L"DDPB_Vert_I" : L"DDPB_Vert" : ind ? L"DDPB_Horiz_I" : L"DDPB_Horiz";
+            this->SetClass(szClassName);
+            _bSavedVertical = vertical;
+        }
+
+        BYTE DDSFillLayoutPos = (this->GetTextAlignment() != -1) ? this->GetTextAlignment() : vertical ? 3 : 0;
+        if (DDSFillLayoutPos & 1) _peProgressAmount->SetHeight(this->GetTextHeight());
+        else _peProgressAmount->SetWidth(this->GetTextWidth());
+        _peProgressAmount->SetLayoutPos(DDSFillLayoutPos);
+
+        float boundCurrValue = _currValue;
+        if (boundCurrValue < _minValue) boundCurrValue = _minValue;
+        if (boundCurrValue > _maxValue) boundCurrValue = _maxValue;
+        float percentage = (boundCurrValue - _minValue) / (_maxValue - _minValue);
+
+        GetGadgetRect(this->GetDisplayNode(), &_rcGadget, 0x4);
+        if (vertical)
+        {
+            //if (vertical != _bSavedVertical)
+            //{
+                _peBarMain->SetLayoutPos(0);
+                _peBarMain->SetWidth(this->GetWidth());
+                _peFillHolder->SetLayoutPos(3);
+                _pePulseHolder->SetLayoutPos(3);
+                _peBar->SetLayoutPos(0);
+                _peFill->SetLayoutPos(0);
+                _pePulse->SetLayoutPos(0);
+                float paddingBar = (this->GetWidth() - _peBar->GetWidth()) / 2.0f;
+                float paddingFill = (this->GetWidth() - _peFill->GetWidth()) / 2.0f;
+                float paddingPulse = (this->GetWidth() - _pePulse->GetWidth()) / 2.0f;
+                float paddingMove = (this->GetWidth() - _peMove->GetWidth()) / 2.0f;
+                _peBarHolder->SetPadding(floor(paddingBar), 0, ceil(paddingBar), 0);
+                _peFillHolder->SetPadding(floor(paddingFill), 0, ceil(paddingFill), 0);
+                _pePulseHolder->SetPadding(floor(paddingPulse), 0, ceil(paddingPulse), 0);
+                _peMove->SetX(floor(paddingMove));
+            //    _bSavedVertical = vertical;
+            //}
+            int h = percentage * (_rcGadget.bottom - this->GetTextHeight());
+            _peFillHolder->SetHeight(h);
+            _pePulseHolder->SetHeight(h);
+        }
+        else
+        {
+            //if (vertical != _bSavedVertical)
+            //{
+                _peBarMain->SetLayoutPos(-1);
+                _peBarMain->SetWidth(-1);
+                _peFillHolder->SetLayoutPos(0);
+                _pePulseHolder->SetLayoutPos(0);
+                _peBar->SetLayoutPos(3);
+                _peFill->SetLayoutPos(3);
+                _pePulse->SetLayoutPos(3);
+                float paddingBar = (this->GetHeight() - _peBar->GetHeight()) / 2.0f;
+                float paddingFill = (this->GetHeight() - _peFill->GetHeight()) / 2.0f;
+                float paddingPulse = (this->GetHeight() - _pePulse->GetHeight()) / 2.0f;
+                float paddingMove = (this->GetHeight() - _peMove->GetHeight()) / 2.0f;
+                _peBarHolder->SetPadding(0, floor(paddingBar), 0, ceil(paddingBar));
+                _peFillHolder->SetPadding(0, floor(paddingFill), 0, ceil(paddingFill));
+                _pePulseHolder->SetPadding(0, floor(paddingPulse), 0, ceil(paddingPulse));
+                _peMove->SetY(floor(paddingMove));
+            //    _bSavedVertical = vertical;
+            //}
+            int w = percentage * (_rcGadget.right - this->GetTextWidth());
+            _peFillHolder->SetWidth(w);
+            _pePulseHolder->SetWidth(w);
+        }
+        //if (vertical != _bSavedVertical && _bSavedVertical != 255)
+        //{
+        //    int iWidthOld = this->GetWidth();
+        //    this->SetWidth(this->GetHeight());
+        //    this->SetHeight(iWidthOld);
+        //}
+    }
+
+    void DDProgressBar::s_OnMoveOverlayPropChanged(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2)
+    {
+        if (PropNotify::IsEqual(pProp, type, Element::WidthProp) || PropNotify::IsEqual(pProp, type, Element::HeightProp))
+        {
+            DDProgressBar* pb = (DDProgressBar*)elem->GetParent()->GetParent();
+            bool vertical = pb->GetIsVertical();
+            float paddingMove{};
+            if (vertical)
+            {
+                paddingMove = (pb->GetWidth() - elem->GetWidth()) / 2.0f;
+                elem->SetX(floor(paddingMove));
+            }
+            else
+            {
+                paddingMove = (pb->GetHeight() - elem->GetHeight()) / 2.0f;
+                elem->SetY(floor(paddingMove));
+            }
+            if (!(pb->_bFlags & 0x2))
+            {
+                pb->_szOrig.cx = elem->GetWidth();
+                pb->_szOrig.cy = elem->GetHeight();
+            }
+        }
+    }
+
+    LRESULT CALLBACK DDProgressRing::s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
+        DDProgressRing* pr = (DDProgressRing*)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+        switch (uMsg)
+        {
+        case WM_TIMER:
+        {
+            switch (wParam)
+            {
+            case 2:
+                ;
+            }
+        }
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    DDProgressRing::~DDProgressRing()
+    {
+        KillTimer(_hTimer, 2);
+        DestroyWindow(_hTimer);
+        this->DestroyAll(true);
+    }
+
+    IClassInfo* DDProgressRing::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDProgressRing::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDProgressRing::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDProgressRing::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::ClassProp))
+        {
+            ElementSetValue(_peProgressAmount, ppi, pvNew, this);
+            ElementSetValue(_peRingHolder, ppi, pvNew, this);
+            ElementSetValue(_peRing, ppi, pvNew, this);
+            ElementSetValue(_peFill, ppi, pvNew, this);
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, DDProgressRing::IndeterminateProp))
+        {
+            if (this->GetIndeterminate())
+            {
+                this->SetClass(L"DDPR_I");
+                SetTimer(_hTimer, 2, 1000 / this->GetFPS() - 3, nullptr);
+            }
+            else
+            {
+                this->SetClass(L"DDPR");
+                KillTimer(_hTimer, 2);
+            }
+        }
+        if (PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) || PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
+            PropNotify::IsEqual(ppi, iIndex, DDProgressRing::TextAlignmentProp))
+        {
+            _RedrawRing();
+        }
+        Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    HRESULT DDProgressRing::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDProgressRing, int>(0, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDProgressRing::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((Element*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreatePRVisual();
+        return hr;
+    }
+
+    HRESULT DDProgressRing::Register()
+    {
+        static const PropertyInfo* const rgRegisterProps[] =
+        {
+            &impTextAlignmentProp,
+            &impIndeterminateProp,
+            &impFPSProp,
+            &impPulseSpeedProp
+        };
+        return ClassInfo<DDProgressRing, Element>::RegisterGlobal(HINST_THISCOMPONENT, L"DDProgressRing", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    int DDProgressRing::GetPropCommon(const PropertyProcT pPropertyProc)
+    {
+        if (this->IsDestroyed()) return -1;
+        Value* pv = GetValue(pPropertyProc, 2, nullptr);
+        int v = pv->GetInt();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressRing::SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt)
+    {
+        Value* pv = Value::CreateInt(iCreateInt);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(pPropertyProc, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressRing::TextAlignmentProp()
+    {
+        return &impTextAlignmentProp;
+    }
+
+    int DDProgressRing::GetTextAlignment()
+    {
+        return this->GetPropCommon(TextAlignmentProp);
+    }
+
+    void DDProgressRing::SetTextAlignment(int iTextAlignment)
+    {
+        this->SetPropCommon(TextAlignmentProp, iTextAlignment);
+    }
+
+    const PropertyInfo* WINAPI DDProgressRing::IndeterminateProp()
+    {
+        return &impIndeterminateProp;
+    }
+
+    bool DDProgressRing::GetIndeterminate()
+    {
+        if (this->IsDestroyed()) return false;
+        Value* pv = GetValue(IndeterminateProp, 2, nullptr);
+        int v = pv->GetBool();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressRing::SetIndeterminate(bool bIndeterminate)
+    {
+        Value* pv = Value::CreateBool(bIndeterminate);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(IndeterminateProp, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressRing::PulseSpeedProp()
+    {
+        return &impPulseSpeedProp;
+    }
+
+    float DDProgressRing::GetPulseSpeed()
+    {
+        if (this->IsDestroyed()) return 1.0f;
+        Value* pv = GetValue(PulseSpeedProp, 2, nullptr);
+        float v = pv->GetFloat();
+        pv->Release();
+        return v;
+    }
+
+    void DDProgressRing::SetPulseSpeed(float flPulseSpeed)
+    {
+        Value* pv = Value::CreateFloat(flPulseSpeed);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(PulseSpeedProp, 1, pv);
+            pv->Release();
+        }
+    }
+
+    const PropertyInfo* WINAPI DDProgressRing::FPSProp()
+    {
+        return &impFPSProp;
+    }
+
+    int DDProgressRing::GetFPS()
+    {
+        int v = this->GetPropCommon(FPSProp);
+        if (v == -1)
+            v = 30;
+        else if (v < 1)
+            v = 1;
+        return v;
+    }
+
+    void DDProgressRing::SetFPS(int iFPS)
+    {
+        this->SetPropCommon(FPSProp, iFPS);
+    }
+
+    float DDProgressRing::GetMinValue()
+    {
+        return _minValue;
+    }
+
+    float DDProgressRing::GetMaxValue()
+    {
+        return _maxValue;
+    }
+
+    float DDProgressRing::GetCurrentValue()
+    {
+        return _currValue;
+    }
+
+    void DDProgressRing::SetMinValue(float minValue)
+    {
+        _minValue = minValue;
+        _RedrawRing();
+    }
+
+    void DDProgressRing::SetMaxValue(float maxValue)
+    {
+        _maxValue = maxValue;
+        _RedrawRing();
+    }
+
+    void DDProgressRing::SetCurrentValue(float currValue)
+    {
+        if (currValue == _currValue)
+            return;
+        if (currValue < _minValue) currValue = _minValue;
+        if (currValue > _maxValue) currValue = _maxValue;
+        _currValue = currValue;
+        _RedrawRing();
+        if (_szFormatted)
+        {
+            WCHAR formattedNum[16];
+            StringCchPrintfW(formattedNum, 16, _szFormatted, _currValue);
+            _peProgressAmount->SetContentString(formattedNum);
+        }
+    }
+
+    LPCWSTR DDProgressRing::GetFormattedString()
+    {
+        return _szFormatted;
+    }
+
+    void DDProgressRing::SetFormattedString(LPCWSTR szFormatted)
+    {
+        _szFormatted = szFormatted;
+        WCHAR formattedNum[16];
+        StringCchPrintfW(formattedNum, 16, _szFormatted, _currValue);
+        _peProgressAmount->SetContentString(formattedNum);
+    }
+
+    HRESULT DDProgressRing::_CreatePRVisual()
+    {
+        return E_NOTIMPL;
+    }
+
+    void DDProgressRing::_RedrawRing()
+    {
+        ;
+    }
+
+    DDSegmented::~DDSegmented()
+    {
+        this->DestroyAll(true);
+        delete[] _peSelections;
+    }
+
+    IClassInfo* DDSegmented::GetClassInfoPtr()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDSegmented::SetClassInfoPtr(IClassInfo* pClass)
+    {
+        s_pClassInfo = pClass;
+    }
+
+    IClassInfo* DDSegmented::GetClassInfoW()
+    {
+        return s_pClassInfo;
+    }
+
+    void DDSegmented::OnEvent(Event* pEvent)
+    {
+        DDScalableTouchButton::OnEvent(pEvent);
+    }
+
+    void DDSegmented::OnInput(InputEvent* pInput)
+    {
+        DDScalableTouchButton::OnInput(pInput);
+    }
+
+    void DDSegmented::OnKeyFocusMoved(Element* peFrom, Element* peTo)
+    {
+        DDScalableTouchButton::OnKeyFocusMoved(peFrom, peTo);
+    }
+
+    void DDSegmented::OnPropertyChanged(const PropertyInfo* ppi, int iIndex, Value* pvOld, Value* pvNew)
+    {
+        if (PropNotify::IsEqual(ppi, iIndex, Element::WidthProp))
+            _UpdateGridLayoutParams();
+        if (PropNotify::IsEqual(ppi, iIndex, Element::HeightProp))
+            _peSelectionHost->SetHeight(this->GetHeight());
+        DDScalableTouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
+    }
+
+    UID WINAPI DDSegmented::SelectionChange()
+    {
+        return Combobox::SelectionChange();
+    }
+
+    HRESULT DDSegmented::Create(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement)
+    {
+        return CreateAndInit<DDSegmented, int>(0x1 | 0x2 | 0x8, pParent, pdwDeferCookie, ppElement);
+    }
+
+    HRESULT DDSegmented::Initialize(int nCreate, Element* pParent, DWORD* pdwDeferCookie)
+    {
+        HRESULT hr = ((DDScalableTouchButton*)this)->Initialize(nCreate, pParent, pdwDeferCookie);
+        if (SUCCEEDED(hr))
+            hr = this->_CreateSegVisual();
+        return hr;
+    }
+
+    HRESULT DDSegmented::Register()
+    {
+        static const PropertyInfo* const rgRegisterProps[] =
+        {
+            &impItemMinWidthProp,
+            TouchEdit2::InnerBorderThicknessProp()
+        };
+        return ClassInfo<DDSegmented, DDScalableTouchButton>::RegisterGlobal(HINST_THISCOMPONENT, L"DDSegmented", rgRegisterProps, ARRAYSIZE(rgRegisterProps));
+    }
+
+    const PropertyInfo* WINAPI DDSegmented::ItemMinWidthProp()
+    {
+        return &impItemMinWidthProp;
+    }
+
+    int DDSegmented::GetItemMinWidth()
+    {
+        return this->GetPropCommon(ItemMinWidthProp, true);
+    }
+
+    void DDSegmented::SetItemMinWidth(int iItemMinWidth)
+    {
+        this->SetPropCommon(ItemMinWidthProp, iItemMinWidth, true);
+    }
+
+    const PropertyInfo* WINAPI DDSegmented::InnerBorderThicknessProp()
+    {
+        return TouchEdit2::InnerBorderThicknessProp();
+    }
+
+    const RECT* DDSegmented::GetInnerBorderThickness(Value** ppv)
+    {
+        Value* pv;
+        if (this->IsDestroyed())
+        {
+            pv = Value::GetRectZero();
+            *ppv = pv;
+        }
+        else
+            pv = GetValue(InnerBorderThicknessProp, 2, nullptr);
+        return pv->GetRect();
+    }
+
+    void DDSegmented::SetInnerBorderThickness(int l, int t, int r, int b)
+    {
+        Value* pv = Value::CreateRect(l, t, r, b, DSV_None);
+        HRESULT hr = pv ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+            hr = SetValue(InnerBorderThicknessProp, 1, pv);
+            pv->Release();
+        }
+    }
+
+    void DDSegmented::InsertSelection(BYTE index, LPCWSTR pszSelectionStr)
+    {
+        if (index == MAX_SEGMENTS) index = _selSize;
+        if (_selSize >= MAX_SEGMENTS || index < 0 || index > _selSize)
+            return;
+        if (_selSize == _msize(_peSelections) / sizeof(DDMenuButton*))
+        {
+            DDScalableElement** peSelectionsNew = new DDScalableElement*[min(_selSize * 2, MAX_SEGMENTS)]{};
+            for (int i = 0; i < _selSize; i++)
+                peSelectionsNew[i] = _peSelections[i];
+            delete[] _peSelections;
+            _peSelections = peSelectionsNew;
+        }
+        for (int i = _selSize - 1; i >= index; i--)
+        {
+            _peSelections[i + 1] = _peSelections[i];
+            Value* pv = Value::CreateInt(i + 1);
+            _peSelections[i + 1]->SetValue(Element::CustomProp(), 1, pv);
+            pv->Release();
+        }
+        CValuePtr spvLayout;
+        int flowlayoutParams[4] = { 0, 2, 2, 2 };
+        FlowLayout::Create(ARRAYSIZE(flowlayoutParams), flowlayoutParams, &spvLayout);
+        DDScalableElement::Create(_peSelectionHost, nullptr, (Element**)&(_peSelections[index]));
+        _peSelectionHost->Insert((Element**)&_peSelections[index], 1, index);
+        _peSelections[index]->SetValue(Element::LayoutProp(), 1, spvLayout);
+        DDScalableRichText* peIcon;
+        DDScalableRichText::Create(_peSelections[index], nullptr, (Element**)&peIcon);
+        _peSelections[index]->Add((Element**)&peIcon, 1);
+        peIcon->SetID(L"DDSegment_Icon");
+        DDScalableRichText* peText;
+        DDScalableRichText::Create(_peSelections[index], nullptr, (Element**)&peText);
+        _peSelections[index]->Add((Element**)&peText, 1);
+        peText->SetID(L"DDSegment_Text");
+        peText->SetContentString(pszSelectionStr);
+        Value* pv = Value::CreateInt(index);
+        _peSelections[index]->SetValue(Element::CustomProp(), 1, pv);
+        pv->Release();
+        _peSelections[index]->SetClass(L"segment");
+        _selSize++;
+        _UpdateGridLayoutParams();
+    }
+
+    void DDSegmented::EraseSelection(BYTE index)
+    {
+        if (index < 0 || index >= _selSize)
+            return;
+        _peSelections[index]->Destroy(true);
+        _peSelections[index] = nullptr;
+        for (int i = index; i < _selSize - 1; i++)
+        {
+            _peSelections[i] = _peSelections[i + 1];
+            Value* pv = Value::CreateInt(index);
+            _peSelections[i]->SetValue(Element::CustomProp(), 1, pv);
+            pv->Release();
+        }
+        _selSize--;
+        _UpdateGridLayoutParams();
+    }
+
+    void DDSegmented::SetSelectionContentGraphic(BYTE index, HBITMAP hbmp)
+    {
+        if (index < 0 || index >= _selSize)
+            return;
+        CValuePtr v;
+        DynamicArray<Element*>* rgList = _peSelections[index]->GetChildren(&v);
+        if (rgList && rgList->GetSize() > 0)
+        {
+            CValuePtr spvImage = Value::CreateGraphic(hbmp, 2, 0xFFFFFFFF, true, false, false);
+            if (spvImage)
+                rgList->GetItem(0)->SetValue(Element::ContentProp, 1, spvImage);
+        }
+    }
+
+    void DDSegmented::SetSelectionContentGlyph(BYTE index, LPCWSTR pszGlyph)
+    {
+        if (index < 0 || index >= _selSize)
+            return;
+        CValuePtr v;
+        DynamicArray<Element*>* rgList = _peSelections[index]->GetChildren(&v);
+        if (rgList && rgList->GetSize() > 0)
+            rgList->GetItem(0)->SetContentString(pszGlyph);
+    }
+
+    BYTE DDSegmented::GetSelection()
+    {
+        return _selID;
+    }
+
+    void DDSegmented::SetSelection(BYTE index)
+    {
+        if (index < 0 || index >= _selSize) return;
+        _peSelections[_selID]->SetSelected(false);
+        _peSelections[index]->SetSelected(true);
+        if (index != _selID)
+        {
+            Event ev;
+            ev.uidType._address = nullptr;
+            ev.uidType = DDSegmented::SelectionChange();
+            this->FireEvent(&ev, true, false);
+        }
+        _selID = index;
+    }
+
+    HRESULT DDSegmented::_CreateSegVisual()
+    {
+        HRESULT hr = S_OK;
+        DWORD keyS{};
+        CValuePtr spvLayout;
+        BorderLayout::Create(0, nullptr, &spvLayout);
+        this->SetValue(Element::LayoutProp, 1, spvLayout);
+        hr = DDScalableTouchButton::Create(this, nullptr, (Element**)&_pBtnBack);
+        if (SUCCEEDED(hr))
+        {
+                this->Add((Element**)&_pBtnBack, 1);
+                _pBtnBack->SetID(L"DDSeg_OverflowBack");
+                _pBtnBack->SetLayoutPos(-3);
+                assignFn(_pBtnBack, _OnSegmentBack);
+                hr = DDScalableTouchButton::Create(this, nullptr, (Element**)&_pBtnForward);
+                if (SUCCEEDED(hr))
+                {
+                    this->Add((Element**)&_pBtnForward, 1);
+                    _pBtnForward->SetID(L"DDSeg_OverflowForward");
+                    _pBtnForward->SetLayoutPos(-3);
+                    assignFn(_pBtnBack, _OnSegmentForward);
+                    hr = DDScalableElement::Create(this, nullptr, (Element**)&_peHoverOverlay);
+                    if (SUCCEEDED(hr))
+                    {
+                        this->Add((Element**)&_peHoverOverlay, 1);
+                        _peHoverOverlay->SetID(L"DDSeg_Hover");
+                        _peHoverOverlay->SetLayoutPos(-2);
+                        hr = DDScalableElement::Create(this, nullptr, (Element**)&_peSelectionOverlay);
+                        if (SUCCEEDED(hr))
+                        {
+                            this->Add((Element**)&_peSelectionOverlay, 1);
+                            _peSelectionOverlay->SetID(L"DDSeg_Select");
+                            _peSelectionOverlay->SetLayoutPos(-2);
+                            this->SetHandleEnter(true);
+                            hr = Element::Create(0, this, nullptr, &_peSelectionHost);
+                            if (SUCCEEDED(hr))
+                            {
+                                this->Add(&_peSelectionHost, 1);
+                                _peSelectionHost->SetID(L"DDSeg_Host");
+                                _peSelectionHost->SetLayoutPos(-1);
+                            }
+                        }
+                    }
+                }
+            }
+        return hr;
+    }
+
+    void DDSegmented::_UpdateGridLayoutParams()
+    {
+        CreateAndSetLayout(_peSelectionHost, FlowLayout::Create, 0, nullptr);
+        CValuePtr v;
+        RECT rcGadget{}, rcPadding{};
+        _peSelectionHost->GetRenderPadding(&rcPadding);
+        GetGadgetRect(_peSelectionHost->GetDisplayNode(), &rcGadget, 0x4);
+        int width = rcGadget.right - rcPadding.left - rcPadding.right;
+        int cxMin = min(_selSize, floor(width / max(this->GetItemMinWidth(), 1)));
+        int iNonAbsChildren{};
+        DynamicArray<Element*>* rgList = _peSelectionHost->GetChildren(&v);
+        if (rgList)
+        {
+            for (int i = 0; i < rgList->GetSize(); i++)
+            {
+                if (rgList->GetItem(i)->GetLayoutPos() != -2)
+                    iNonAbsChildren++;
+            }
+            RECT rcMargin = *(rgList->GetItem(0)->GetMargin(&v));
+            cxMin = min(_selSize, max(floor(width / (this->GetItemMinWidth() + max(rcMargin.left, rcMargin.right))), 1));
+        }
+        if (cxMin < _selSize)
+        {
+            _pBtnBack->SetLayoutPos(0);
+            _pBtnForward->SetLayoutPos(2);
+        }
+        else
+        {
+            _pBtnBack->SetLayoutPos(-3);
+            _pBtnForward->SetLayoutPos(-3);
+        }
+        int gridlayoutParams[2] = { 1, cxMin };
+        CreateAndSetLayout(_peSelectionHost, GridLayout::Create, ARRAYSIZE(gridlayoutParams), gridlayoutParams);
+    }
+
+    void DDSegmented::_OnSegmentBack(Element* elem, Event* iev)
+    {
+        ;
+    }
+
+    void DDSegmented::_OnSegmentForward(Element* elem, Event* iev)
+    {
+        ;
+    }
+
 
     LRESULT CALLBACK DDNotificationBanner::s_TimerProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {

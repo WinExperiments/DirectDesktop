@@ -1,0 +1,45 @@
+<duixml>
+	<HWNDElement resid="DDUIPMain" layoutpos="none" layout="borderlayout()" sheet="default">
+		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
+			<DDScalableRichText layoutpos="top" content="DDUI Playground" font="18pt;Semibold;None;Segoe UI" padding="rect(16rp,8rp,16rp,4rp)"/>
+			<DDScalableRichText layoutpos="top" content="Experimental window for new DDUI controls" font="12pt;Normal;None;Segoe UI" padding="rect(16rp,0,16rp,8rp)" class="graytext"/>
+			<Element layout="flowlayout(0,0,0,0)" layoutpos="top" padding="rect(16rp,8rp,0,8rp)">
+				<DDScalableTouchButton id="atom(learnmore)" content="Learn more" class="popupbutton" visible="true"/>
+			</Element>
+			<Element layout="borderlayout()" layoutpos="client" padding="rect(16rp,0,16rp,16rp)">
+				<DDScalableRichText layoutpos="top" content="Progress bar" font="12pt;Semibold;None;Segoe UI"/>
+				<DDScalableRichText layoutpos="top" content="Determinate" font="12pt;Normal;None;Segoe UI" class="graytext"/>
+				<Element layout="flowlayout(0,0,0,0)" layoutpos="top">
+					<DDProgressBar id="atom(pb)" layoutpos="top" IsVertical="false" width="250rp" TextAlignment="2"/>
+					<DDScalableTouchEdit id="atom(editsize)" font="12pt;Normal;None;Segoe UI" background="argb(0,0,0,0)" width="80rp" height="32rp" margin="rect(8rp,0,8rp,0)"/>
+					<DDScalableTouchButton id="atom(confirmsize)" font="12pt;Normal;None;Segoe UI" class="pushbuttonsecondary" content="Set progress amount" margin="rect(0,0,8rp,0)"/>
+					<DDScalableTouchButton id="atom(pbtext)" font="12pt;Normal;None;Segoe UI" class="pushbuttonsecondary" content="Show/hide number"/>
+				</Element>
+				<DDScalableRichText layoutpos="top" content="Indeterminate" font="12pt;Normal;None;Segoe UI" class="graytext"/>
+				<Element layout="flowlayout(0,0,0,0)" layoutpos="top">
+					<DDProgressBar id="atom(pbI)" layoutpos="top" IsVertical="false" Indeterminate="true" width="250rp"/>
+				</Element>
+				<DDScalableRichText layoutpos="top" content="Segmented control" font="12pt;Semibold;None;Segoe UI"/>
+				<Element layout="flowlayout(0,0,0,0)" layoutpos="top" margin="rect(0,8rp,0,0)">
+					<DDSegmented id="atom(seg)" height="32rp" width="360rp" ItemMinWidth="120rp"/>
+				</Element>
+			</Element>
+		</Element>
+	</HWNDElement>
+	<stylesheets>
+		<style resid="default" base="ressheet(31, library(DDUI.dll), DDBase)">
+			<HWNDElement background="rgb(243,243,243)" foreground="black"/>
+			<if class="graytext">
+				<DDScalableElement foreground="rgb(128,128,128)"/>
+				<DDScalableRichText foreground="rgb(128,128,128)"/>
+			</if>
+		</style>
+		<style resid="defaultdark" base="ressheet(31, library(DDUI.dll), DDBaseDark)">
+			<HWNDElement background="rgb(32,32,32)" foreground="white"/>
+			<if class="graytext">
+				<DDScalableElement foreground="rgb(176,176,176)"/>
+				<DDScalableRichText foreground="rgb(176,176,176)"/>
+			</if>
+		</style>
+	</stylesheets>
+</duixml>

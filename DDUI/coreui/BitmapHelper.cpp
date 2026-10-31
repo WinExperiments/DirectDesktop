@@ -193,7 +193,11 @@ namespace DDUI
 
     bool AddPaddingToBitmap(HBITMAP hOriginalBitmap, HBITMAP& hNewBitmap, int pL, int pT, int pR, int pB)
     {
-        if (hNewBitmap) DeleteObject(hNewBitmap);
+        if (hNewBitmap && hOriginalBitmap != hNewBitmap)
+        {
+            DeleteObject(hNewBitmap);
+            hNewBitmap = nullptr;
+        }
         BITMAP bmp;
         GetObject(hOriginalBitmap, sizeof(BITMAP), &bmp);
 
@@ -222,6 +226,7 @@ namespace DDUI
         DeleteDC(hdcMem);
         ReleaseDC(nullptr, hdcScreen);
 
+        if (hNewBitmap) DeleteObject(hNewBitmap);
         hNewBitmap = hInternalNewBitmap;
         return true;
     }

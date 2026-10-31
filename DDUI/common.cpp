@@ -3,6 +3,7 @@
 #include "DDControls.h"
 #include "coreui\StyleModifier.h"
 #include <intrin.h>
+#include <shellapi.h>
 
 using namespace std;
 using namespace DirectUI;
@@ -15,6 +16,11 @@ namespace DDUI
     WNDPROC WndProcMessagesOnly;
     DDUICtx g_ctx;
     DDUIColors g_colors;
+
+    NativeHWNDHost* playgroundwnd;
+    DUIXmlParser* parserP;
+    HWNDElement* parentP;
+    Element* pPlayground;
 
     EventListener::EventListener(bool (*funcChanging)(Element*, const PropertyInfo*, int, Value*, Value*))
     {
@@ -471,6 +477,22 @@ namespace DDUI
         return nullptr;
     }
 
+    EventListener* assignExtendedFn2(Element* elemName, bool (*fnName)(Element* elem, const PropertyInfo* pProp, int type, Value* pV1, Value* pV2), bool fReturn = false)
+    {
+        EventListener* pel = new EventListener(fnName);
+        elemName->AddListener(pel);
+        if (fReturn) return pel;
+        return nullptr;
+    }
+
+    EventListener* assignInputFn(Element* elemName, void (*fnName)(Element* elem, InputEvent* ev), bool fReturn = false)
+    {
+        EventListener* pel = new EventListener(fnName);
+        elemName->AddListener(pel);
+        if (fReturn) return pel;
+        return nullptr;
+    }
+
     LRESULT CALLBACK MsgWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         switch (uMsg)
@@ -764,6 +786,173 @@ namespace DDUI
         }
     }
 
+    //////////////////////////////////////////////////////// DDUI Playground
+
+    void OpenLearnMore(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            ShellExecuteW(NULL, L"open", L"https://github.com/WinExperiments/DirectDesktop/tree/main/DDUI", NULL, NULL, SW_SHOWNORMAL);
+        }
+    }
+
+    void SanitizeString(LPCWSTR pszSrc, LPWSTR pszDst, UINT cch)
+    {
+        int offset{};
+        bool dot{};
+        for (int i = 0; i < cch; i++)
+        {
+            while (i + offset < cch && (pszSrc[i + offset] < L'0' || pszSrc[i + offset] > L'9') &&
+                !(pszSrc[i + offset] == L'-' && i == 0) && !(pszSrc[i + offset] == L'.' && !dot))
+            {
+                offset++;
+            }
+            if (pszSrc[i + offset] == L'.')
+                dot = true;
+            if (i + offset < cch)
+                pszDst[i] = pszSrc[i + offset];
+        }
+    }
+
+    void ValidateDigits(Element* elem, InputEvent* ev)
+    {
+        if (ev->nDevice == GINPUT_KEYBOARD && ev->nCode == GMOUSE_DOWN)
+        {
+            CValuePtr v;
+            LPCWSTR pszEdit = ((DDScalableTouchEdit*)elem)->GetContentString(&v);
+            int notallowed = -1;
+            bool nodot{};
+            if (pszEdit)
+            {
+                notallowed = wcsspn(pszEdit, L"0123456789");
+                if (notallowed == 0 && pszEdit[0] == L'-')
+                {
+                    WCHAR* pszEditTemp = new WCHAR[wcslen(pszEdit)]{};
+                    for (int i = 0; i < wcslen(pszEdit); i++)
+                        pszEditTemp[i] = pszEdit[i + 1];
+                    notallowed = wcsspn(pszEditTemp, L"0123456789") + 1;
+                    delete[] pszEditTemp;
+                }
+                if (pszEdit[notallowed] == '.')
+                {
+                    WCHAR* pszEditTemp = new WCHAR[wcslen(pszEdit) - notallowed]{};
+                    for (int i = 0; i < wcslen(pszEdit) - notallowed; i++)
+                        pszEditTemp[i] = pszEdit[i + notallowed + 1];
+                    notallowed = wcsspn(pszEditTemp, L"0123456789");
+                    if (notallowed == wcslen(pszEditTemp))
+                        nodot = true;
+                    delete[] pszEditTemp;
+                }
+                if (notallowed != -1 && notallowed != wcslen(pszEdit) && !(notallowed == 0 && pszEdit[0] == L'-') && !nodot)
+                {
+                    WCHAR pszEdit2[32]{};
+                    MessageBeep(MB_OK);
+                    SanitizeString(pszEdit, pszEdit2, min(wcslen(pszEdit), 32));
+                    elem->SetContentString(pszEdit2);
+                }
+            }
+        }
+    }
+
+    void ConfirmSize(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            DDProgressBar* pb = (DDProgressBar*)regElem(L"pb", pPlayground);
+            DDScalableTouchEdit* editsize = (DDScalableTouchEdit*)regElem(L"editsize", pPlayground);
+
+            CValuePtr v;
+            LPCWSTR pszNum = editsize->GetContentString(&v);
+            if (pszNum)
+                pb->SetCurrentValue(_wtof(pszNum));
+        }
+    }
+
+    void ToggleText(Element* elem, Event* iev)
+    {
+        if (iev->uidType == TouchButton::Click)
+        {
+            DDProgressBar* pb = (DDProgressBar*)regElem(L"pb", pPlayground);
+            if (pb->GetIsVertical())
+            {
+                if (pb->GetTextHeight() > 0)
+                    pb->SetTextHeight(0);
+                else
+                    pb->SetTextHeight(24 * g_ctx.flScaleFactor);
+            }
+            else
+            {
+                if (pb->GetTextWidth() > 0)
+                    pb->SetTextWidth(0);
+                else
+                    pb->SetTextWidth(40 * g_ctx.flScaleFactor);
+            }
+        }
+    }
+
+    void SetPlaygroundTheme()
+    {
+        StyleSheet* sheet = pPlayground->GetSheet();
+        CValuePtr sheetStorage = DirectUI::Value::CreateStyleSheet(sheet);
+        parserP->GetSheet(g_ctx.theme ? L"default" : L"defaultdark", &sheetStorage);
+        pPlayground->SetValue(Element::SheetProp, 1, sheetStorage);
+    }
+
+    void OpenPlayground()
+    {
+        unsigned long keyP{};
+        int sizeX{}, sizeY{};
+        RECT dimensions;
+        SystemParametersInfoW(SPI_GETWORKAREA, sizeof(dimensions), &dimensions, NULL);
+        int windowsThemeX = (GetSystemMetricsForDpi(SM_CXSIZEFRAME, g_ctx.dpi) + GetSystemMetricsForDpi(SM_CXEDGE, g_ctx.dpi) * 2) * 2;
+        int windowsThemeY = (GetSystemMetricsForDpi(SM_CYSIZEFRAME, g_ctx.dpi) + GetSystemMetricsForDpi(SM_CYEDGE, g_ctx.dpi) * 2) * 2 + GetSystemMetricsForDpi(SM_CYCAPTION, g_ctx.dpi);
+        DWORD dwExStyle = NULL, dwCreateFlags = 0x10;
+        if (g_ctx.DWMActive)
+        {
+            dwExStyle |= WS_EX_NOINHERITLAYOUT;
+            dwCreateFlags |= 0x28;
+        }
+        DUIXmlParser::Create(&parserP, nullptr, nullptr, DUI_ParserErrorCB, nullptr);
+        parserP->SetXMLFromResource(IDR_UIFILE2, HINST_THISCOMPONENT, HINST_THISCOMPONENT);
+        sizeX = 800 * g_ctx.flScaleFactor + windowsThemeX;
+        sizeY = 600 * g_ctx.flScaleFactor + windowsThemeY;
+        NativeHWNDHost::Create(L"DDUI_Playground", L"DDUI Playground", nullptr, nullptr,
+            (dimensions.right - dimensions.left - sizeX) / 2, (dimensions.bottom - dimensions.top - sizeY) / 2, sizeX, sizeY, dwExStyle,
+            WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_THICKFRAME, HINST_THISCOMPONENT, 0x43, &playgroundwnd);
+        HWNDElement::Create(playgroundwnd->GetHWND(), true, dwCreateFlags, nullptr, &keyP, (Element**)&parentP);
+        parserP->CreateElement(L"DDUIPMain", parentP, nullptr, nullptr, &pPlayground);
+        pPlayground->SetVisible(true);
+        pPlayground->EndDefer(keyP);
+        
+        playgroundwnd->ShowWindow(SW_SHOW);
+
+        SetPlaygroundTheme();
+
+        DDScalableTouchButton* learnmore = (DDScalableTouchButton*)regElem(L"learnmore", pPlayground);
+        assignFn(learnmore, OpenLearnMore);
+
+        DDProgressBar* pb = (DDProgressBar*)regElem(L"pb", pPlayground);
+        pb->SetCurrentValue(50.0f);
+        pb->SetTextHeight(0);
+
+        DDScalableTouchEdit* editsize = (DDScalableTouchEdit*)regElem(L"editsize", pPlayground);
+        DDScalableTouchButton* confirmsize = (DDScalableTouchButton*)regElem(L"confirmsize", pPlayground);
+        DDScalableTouchButton* pbtext = (DDScalableTouchButton*)regElem(L"pbtext", pPlayground);
+
+        DDSegmented* seg = (DDSegmented*)regElem(L"seg", pPlayground);
+        seg->InsertSelection(0, L"Item");
+        seg->InsertSelection(1, L"");
+        seg->InsertSelection(2, L"Item");
+        seg->SetSelectionContentGlyph(1, L"\xE082");
+        seg->SetSelectionContentGlyph(2, L"\xE082");
+
+        assignInputFn(editsize, ValidateDigits);
+        assignFn(confirmsize, ConfirmSize);
+        assignFn(pbtext, ToggleText);
+    }
+
+    /////////////////////////////////////////////////////////////////////
+
     void InitializeDDUI(HMODULE hModule)
     {
         g_ctx.DWMActive = IsCompositionActive();
@@ -792,6 +981,8 @@ namespace DDUI
         DDColorPickerButton::Register();
         DDTabbedPages::Register();
         DDMenuButton::Register();
+        DDProgressBar::Register();
+        DDSegmented::Register();
 
         WCHAR localeName[256]{};
         ULONG numLanguages{};
