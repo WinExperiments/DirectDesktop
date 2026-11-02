@@ -1557,12 +1557,16 @@ namespace DirectDesktop
             wc.lpfnWndProc = MonitorInfoWindowProc;
             wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
             wc.lpszClassName = L"DD_MonitorDebug";
-            wc.hbrBackground = (HBRUSH)(COLOR_HIGHLIGHT + 1);
+            HBRUSH hNewBrush = CreateSolidBrush(0x00FFFFFF & g_pColors->ImmersiveColor);
+            if (wc.hbrBackground)
+                DeleteObject(wc.hbrBackground);
+            wc.hbrBackground = hNewBrush;
             RegisterClassW(&wc);
-            HWND hWndDebug = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED, L"DD_MonitorDebug", L"", WS_POPUP,
-                rc.left, rc.top, rc.right, rc.bottom, NULL, NULL, HINST_THISCOMPONENT, nullptr);
+            HWND hWndDebug = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE,
+                L"DD_MonitorDebug", L"", WS_POPUP, rc.left, rc.top, rc.right, rc.bottom, NULL, NULL, HINST_THISCOMPONENT, nullptr);
+            HBRUSH hOldBrush = (HBRUSH)SetClassLongPtrW(hWndDebug, GCLP_HBRBACKGROUND, (LONG_PTR)hNewBrush);
             ShowWindow(hWndDebug, SW_SHOW);
-            SetLayeredWindowAttributes(hWndDebug, NULL, 160, LWA_ALPHA);
+            SetLayeredWindowAttributes(hWndDebug, NULL, 128, LWA_ALPHA);
             for (int m = 0; m < monitors.size(); m++)
             {
                 StringCchPrintfW(pszInfo, 512, L"%s\nDisplay %d: (%d, %d), (%d, %d) - %dx%d",

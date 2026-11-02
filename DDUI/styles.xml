@@ -561,7 +561,7 @@
 				</if>
 			</if>
 			<if id="atom(DDPB_MoveOverlay)">
-				<DDScalableElement background="20006"/>
+				<DDScalableElement background="20005"/>
 				<if class="DDPB_Horiz">
 					<DDScalableElement width="100rp" height="4rp"/>
 				</if>
@@ -569,10 +569,10 @@
 					<DDScalableElement height="100rp" width="4rp"/>
 				</if>
 				<if class="DDPB_Horiz_I">
-					<DDScalableElement width="100rp" height="4rp" background="20005"/>
+					<DDScalableElement width="100rp" height="4rp" background="20006"/>
 				</if>
 				<if class="DDPB_Vert_I">
-					<DDScalableElement height="100rp" width="4rp" background="20005"/>
+					<DDScalableElement height="100rp" width="4rp" background="20006"/>
 				</if>
 			</if>
 			<if id="atom(DDPB_ProgressAmount)">

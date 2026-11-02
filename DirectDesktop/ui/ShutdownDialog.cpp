@@ -109,41 +109,7 @@ namespace DirectDesktop
             }
             case WM_USER + 2:
             {
-                if (delayedshutdownstatuses[lParam - 1] == false) break;
-                switch (lParam)
-                {
-                case 1:
-                {
-                    WTSDisconnectSession(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION, FALSE);
-                    break;
-                }
-                case 2:
-                {
-                    ExitWindowsEx(EWX_LOGOFF, 0);
-                    break;
-                }
-                case 3:
-                {
-                    SetSuspendState(FALSE, FALSE, FALSE);
-                    break;
-                }
-                case 4:
-                {
-                    SetSuspendState(TRUE, FALSE, FALSE);
-                    break;
-                }
-                case 5:
-                {
-                    ExitWindowsEx(EWX_SHUTDOWN | EWX_POWEROFF, shutdownReason);
-                    break;
-                }
-                case 6:
-                {
-                    ExitWindowsEx(EWX_REBOOT, shutdownReason);
-                    break;
-                }
-                }
-                delayedshutdownstatuses[lParam - 1] = false;
+                PerformShutdownMenuOp(lParam);
                 break;
             }
         }
@@ -204,6 +170,45 @@ namespace DirectDesktop
             return 0;
         }
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    void PerformShutdownMenuOp(UINT uParam)
+    {
+        if (delayedshutdownstatuses[uParam - 1] == false) return;
+        switch (uParam)
+        {
+        case 1:
+        {
+            WTSDisconnectSession(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION, FALSE);
+            break;
+        }
+        case 2:
+        {
+            ExitWindowsEx(EWX_LOGOFF, 0);
+            break;
+        }
+        case 3:
+        {
+            SetSuspendState(FALSE, FALSE, FALSE);
+            break;
+        }
+        case 4:
+        {
+            SetSuspendState(TRUE, FALSE, FALSE);
+            break;
+        }
+        case 5:
+        {
+            ExitWindowsEx(EWX_SHUTDOWN | EWX_POWEROFF, shutdownReason);
+            break;
+        }
+        case 6:
+        {
+            ExitWindowsEx(EWX_REBOOT, shutdownReason);
+            break;
+        }
+        }
+        delayedshutdownstatuses[uParam - 1] = false;
     }
 
     DWORD WINAPI ShowTimerStatus(LPVOID lpParam)

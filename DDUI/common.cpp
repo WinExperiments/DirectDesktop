@@ -550,6 +550,7 @@ namespace DDUI
             if (lParam && wcscmp((LPCWSTR)lParam, L"ImmersiveColorSet") == 0)
             {
                 UpdateModeInfo(false);
+                RedrawAllAccent();
             }
             break;
         }
@@ -972,6 +973,7 @@ namespace DDUI
         DDLVActionButton::Register();
         DDIconButton::Register();
         DDToggleButton::Register();
+        DDRadioButton::Register();
         DDCheckBox::Register();
         DDCheckBoxGlyph::Register();
         DDNumberedButton::Register();
@@ -982,6 +984,7 @@ namespace DDUI
         DDTabbedPages::Register();
         DDMenuButton::Register();
         DDProgressBar::Register();
+        DDProgressRing::Register();
         DDSegmented::Register();
 
         WCHAR localeName[256]{};

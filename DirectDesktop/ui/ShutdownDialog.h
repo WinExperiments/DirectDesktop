@@ -15,4 +15,5 @@ namespace DirectDesktop
 
     void DisplayShutdownDialog();
     void DestroyShutdownDialog();
+    void PerformShutdownMenuOp(UINT uParam);
 }

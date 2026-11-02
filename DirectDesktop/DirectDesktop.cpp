@@ -210,24 +210,33 @@ namespace DirectDesktop
         ComPtr<IShellItem2> pShellItem{};
         hr = SHCreateItemFromParsingName(filePath, nullptr, IID_PPV_ARGS(&pShellItem));
 
+        BYTE currenttries{};
         if (SUCCEEDED(hr) && pShellItem)
         {
-            ComPtr<IShellItemImageFactoryPriv> pImageFactory{};
-            hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
-            if (SUCCEEDED(hr))
+            while (currenttries == 0 || (FAILED(hr) && currenttries < 16))
             {
-                ComPtr<ISharedBitmap> pSharedBitmap;
-                SIZE size = { width * g_pctx->flScaleFactor, height * g_pctx->flScaleFactor };
-                if (pImageFactory)
+                ComPtr<IShellItemImageFactoryPriv> pImageFactory{};
+                hr = pShellItem->QueryInterface(IID_PPV_ARGS(&pImageFactory));
+                if (SUCCEEDED(hr))
                 {
-                    SIIGBF flags = SIIGBF_RESIZETOFIT;
-                    if (!hasThumbnail) flags |= SIIGBF_ICONONLY;
-                    hr = pImageFactory->GetSharedBitmap(size, flags, &pSharedBitmap);
-                    if (SUCCEEDED(hr))
+                    ComPtr<ISharedBitmap> pSharedBitmap;
+                    SIZE size = { width * g_pctx->flScaleFactor, height * g_pctx->flScaleFactor };
+                    if (pImageFactory)
                     {
-                        hr = pSharedBitmap->Detach(&hBitmap);
+                        SIIGBF flags = SIIGBF_RESIZETOFIT;
+                        if (!hasThumbnail) flags |= SIIGBF_ICONONLY;
+                        hr = pImageFactory->GetSharedBitmap(size, flags, &pSharedBitmap);
+                        if (SUCCEEDED(hr))
+                        {
+                            hr = pSharedBitmap->Detach(&hBitmap);
+                            currenttries++;
+                        }
+                        if (FAILED(hr))
+                            currenttries++;
                     }
                 }
+                if (FAILED(hr))
+                    currenttries++;
             }
         }
         if (FAILED(hr)) IconToBitmap(fallback, hBitmap, width * g_pctx->flScaleFactor, height * g_pctx->flScaleFactor);
@@ -1833,9 +1842,9 @@ namespace DirectDesktop
             if (lviFlags & LVIF_ADVANCEDICON)
                 HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
             DesktopIcon di;
-            DWORD dwMillis = 10;
+            DWORD dwMillis = 5;
             if (g_launch)
-                dwMillis += 70;
+                dwMillis += 60;
             Sleep(dwMillis);
             ApplyIcons(&pm, &di, false, yV->num, 1, -1, true);
             if (g_touchmode)
@@ -4558,7 +4567,7 @@ namespace DirectDesktop
             WCHAR info[256];
             StringCchPrintfW(info, 256, L"Version %s", GetExeVersion().c_str());
             peTemp[0]->SetContentString(info);
-            peTemp[1]->SetContentString(L"Build 105");
+            peTemp[1]->SetContentString(L"Build 105a");
             StringCchPrintfW(info, 256, L"Build date: %s", BUILD_TIMESTAMP);
             peTemp[2]->SetContentString(info);
             StringCchPrintfW(info, 256, L"Desktop composition: %s", g_pctx->DWMActive ? L"Yes" : L"No");
@@ -5117,7 +5126,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     DWORD dwDebugPref = 0;
     if (!EnsureRegValueExists(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode"))
-        dwDebugPref = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4E01A297-F7C3-4AB1-935A-85D30DE0FA25}", L"DebugMode");
+        if (EnsureRegValueExists(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4E01A297-F7C3-4AB1-935A-85D30DE0FA25}", L"DebugMode"))
+            dwDebugPref = GetRegistryValues(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4E01A297-F7C3-4AB1-935A-85D30DE0FA25}", L"DebugMode");
     SetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode", dwDebugPref, true, nullptr);
     g_pctx->debugmode = GetRegistryValues(DDKey.GetHKeyName(), DDKey.GetPath(), L"DebugMode");
 

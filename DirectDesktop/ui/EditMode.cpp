@@ -58,6 +58,7 @@ namespace DirectDesktop
     bool g_hiddentaskbar = true;
     bool g_animateSVLaunch = true;
     BYTE g_memTaskbarState = 255;
+    int g_PVSavedPageID{};
 
     LRESULT CALLBACK EditModeWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
@@ -725,7 +726,7 @@ namespace DirectDesktop
             case 2005:
             case 2006:
                 delayedshutdownstatuses[uID - 2001] = true; // Used by shutdown dialog
-                SendMessageW(shutdownwnd->GetHWND(), WM_USER + 2, NULL, uID - 2000);
+                PerformShutdownMenuOp(uID - 2000);
                 break;
             case 2007:
                 DisplayShutdownDialog();
@@ -758,6 +759,7 @@ namespace DirectDesktop
         if (!fReverse)
         {
             g_invokedpagechange = true;
+            g_PVSavedPageID = g_currentPageID;
         }
         g_animatePVEnter = fReverse;
         GTRANS_DESC transDesc[3];
@@ -901,6 +903,14 @@ namespace DirectDesktop
                 TriggerTranslate(nextpage, transDesc2, 0, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, nextpage->GetX() + dimensions.right * 0.1 * direction, nextpage->GetY(), nextpage->GetX(), nextpage->GetY(), false, false, false);
                 TriggerScaleIn(bg_right_middle, transDesc2, 1, 0.3f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f, 3.0f, 1.0f, scaleOrigin, 0.5f, 1.0f, 1.0f, scaleOrigin, 0.5f, false, false);
                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc2), transDesc2, nullptr, &tsbInfo);
+            }
+            if (g_PVSavedPageID != g_currentPageID)
+            {
+                for (int items = 0; items < pm.size(); items++)
+                {
+                    if (pm[items]->GetPage() == g_currentPageID)
+                        pm[items]->SetVisible(!g_hiddenIcons);
+                }
             }
         }
         SimpleViewClose->SetActive(fReverse ? 0xB : 0);

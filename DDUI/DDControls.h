@@ -25,6 +25,7 @@ namespace DDUI
     extern DUIXmlParser* g_parser;
 
     HRESULT WINAPI CreateAndSetLayout(Element* pe, HRESULT (*pfnCreate)(int, int*, Value**), int dNumParams, int* pParams);
+    void RedrawAllAccent();
     
     template <typename T>
     DDUIAPI void RedrawBorderCore(T* pe);
@@ -34,6 +35,7 @@ namespace DDUI
     public:
         DDUIAPI DDScalableElement()
             : _gc(0)
+            , _crLast(0)
         {
         }
 
@@ -80,6 +82,7 @@ namespace DDUI
 
     protected:
         unsigned short _gc;
+        COLORREF _crLast;
         DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         DDUIAPI void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -93,12 +96,13 @@ namespace DDUI
         DDUIAPI DDScalableButton()
             : _rkv{}
             , _assocFn(nullptr)
+            , _assocSetting(nullptr)
             , _fnb1(false)
             , _fnb2(false)
             , _fnb3(false)
-            , _assocSetting(nullptr)
-            , _gc(0)
             , _shellinteraction(false)
+            , _gc(0)
+            , _crLast(0)
         {
         }
 
@@ -156,12 +160,13 @@ namespace DDUI
     protected:
         RegKeyValue _rkv;
         void (*_assocFn)(bool, bool, bool);
+        void* _assocSetting;
         bool _fnb1;
         bool _fnb2;
         bool _fnb3;
-        void* _assocSetting;
-        unsigned short _gc;
         bool _shellinteraction;
+        unsigned short _gc;
+        COLORREF _crLast;
         DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         DDUIAPI void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -174,6 +179,7 @@ namespace DDUI
     public:
         DDUIAPI DDScalableRichText()
             : _gc(0)
+            , _crLast(0)
         {
         }
 
@@ -220,6 +226,7 @@ namespace DDUI
 
     protected:
         unsigned short _gc;
+        COLORREF _crLast;
         DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         DDUIAPI void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 
@@ -237,8 +244,9 @@ namespace DDUI
             , _fnb1(false)
             , _fnb2(false)
             , _fnb3(false)
-            , _gc(0)
             , _shellinteraction(false)
+            , _gc(0)
+            , _crLast(0)
         {
         }
 
@@ -300,8 +308,9 @@ namespace DDUI
         bool _fnb1;
         bool _fnb2;
         bool _fnb3;
-        unsigned short _gc;
         bool _shellinteraction;
+        unsigned short _gc;
+        COLORREF _crLast;
         DDUIAPI auto GetPropCommon(const PropertyProcT pPropertyProc, bool useInt);
         DDUIAPI void SetPropCommon(const PropertyProcT pPropertyProc, int iCreateInt, bool useInt);
 

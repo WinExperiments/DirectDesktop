@@ -3,8 +3,10 @@
 		<Element layout="borderlayout()" layoutpos="client" width="4096rp" height="4096rp">
 			<DDScalableRichText layoutpos="top" content="DDUI Playground" font="18pt;Semibold;None;Segoe UI" padding="rect(16rp,8rp,16rp,4rp)"/>
 			<DDScalableRichText layoutpos="top" content="Experimental window for new DDUI controls" font="12pt;Normal;None;Segoe UI" padding="rect(16rp,0,16rp,8rp)" class="graytext"/>
-			<Element layout="flowlayout(0,0,0,0)" layoutpos="top" padding="rect(16rp,8rp,0,8rp)">
+			<Element layout="verticalflowlayout(0,0,0,0)" layoutpos="top" padding="rect(16rp,0,0,8rp)">
 				<DDScalableTouchButton id="atom(learnmore)" content="Learn more" class="popupbutton" visible="true"/>
+				<DDScalableRichText layoutpos="top" content="New functions are marked as DDUIAPI_EXPORTONLY and are subject to change in future builds."
+									font="9pt;Normal;None;Segoe UI" class="graytext"/>
 			</Element>
 			<Element layout="borderlayout()" layoutpos="client" padding="rect(16rp,0,16rp,16rp)">
 				<DDScalableRichText layoutpos="top" content="Progress bar" font="12pt;Semibold;None;Segoe UI"/>

@@ -53,6 +53,7 @@ namespace DDUI
 
     DDMenu* g_menu;
     vector<DDNotificationBanner*> g_nwnds{};
+    vector<void*> g_scalables{};
 
     WNDPROC WndProcNotification;
     WNDPROC g_oldMainProc;
@@ -316,6 +317,13 @@ namespace DDUI
         else delete dea;
         return 0;
     }
+
+    void RedrawAllAccent()
+    {
+        for (void* pv : g_scalables)
+            RedrawImageCore<DDScalableElement>(static_cast<DDScalableElement*>(pv));
+    }
+
 
     DWORD WINAPI SetVisibleBySelectionDelayed(LPVOID lpParam)
     {
@@ -633,6 +641,8 @@ namespace DDUI
 
     DDScalableElement::~DDScalableElement()
     {
+        if (g_scalables.size() > 0 && _crLast != 0)
+            g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
         this->DestroyAll(true);
     }
 
@@ -705,6 +715,20 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableElement>(this, nullptr, this->GetNeedsFontResize());
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp))
+        {
+            bool fEnableAccent = pvNew->GetBool();
+            if (fEnableAccent)
+            {
+                g_scalables.push_back(this);
+                _crLast = g_colors.ImmersiveColor;
+            }
+            else
+            {
+                g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
+                _crLast = 0;
+            }
+        }
         Element::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -955,6 +979,8 @@ namespace DDUI
 
     DDScalableButton::~DDScalableButton()
     {
+        if (g_scalables.size() > 0 && _crLast != 0)
+            g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
         this->DestroyAll(true);
     }
 
@@ -1026,6 +1052,20 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableButton>(this, nullptr, this->GetNeedsFontResize());
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp))
+        {
+            bool fEnableAccent = pvNew->GetBool();
+            if (fEnableAccent)
+            {
+                g_scalables.push_back(this);
+                _crLast = g_colors.ImmersiveColor;
+            }
+            else
+            {
+                g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
+                _crLast = 0;
+            }
+        }
         Button::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
     }
 
@@ -1324,6 +1364,8 @@ namespace DDUI
 
     DDScalableRichText::~DDScalableRichText()
     {
+        if (g_scalables.size() > 0 && _crLast != 0)
+            g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
         this->DestroyAll(true);
     }
 
@@ -1394,6 +1436,20 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableRichText>(this, nullptr, this->GetNeedsFontResize());
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp))
+        {
+            bool fEnableAccent = pvNew->GetBool();
+            if (fEnableAccent)
+            {
+                g_scalables.push_back(this);
+                _crLast = g_colors.ImmersiveColor;
+            }
+            else
+            {
+                g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
+                _crLast = 0;
+            }
+        }
         RichText::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
         //if ((PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) ||
         //    PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
@@ -1652,6 +1708,8 @@ namespace DDUI
 
     DDScalableTouchButton::~DDScalableTouchButton()
     {
+        if (g_scalables.size() > 0 && _crLast != 0)
+            g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
         this->DestroyAll(true);
     }
 
@@ -1721,6 +1779,20 @@ namespace DDUI
         }
         if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::NeedsFontResizeProp))
             RedrawFontCore<DDScalableTouchButton>(this, nullptr, this->GetNeedsFontResize());
+        if (PropNotify::IsEqual(ppi, iIndex, DDScalableElement::EnableAccentProp))
+        {
+            bool fEnableAccent = pvNew->GetBool();
+            if (fEnableAccent)
+            {
+                g_scalables.push_back(this);
+                _crLast = g_colors.ImmersiveColor;
+            }
+            else
+            {
+                g_scalables.erase(find(g_scalables.begin(), g_scalables.end(), this));
+                _crLast = 0;
+            }
+        }
         TouchButton::OnPropertyChanged(ppi, iIndex, pvOld, pvNew);
         //if ((PropNotify::IsEqual(ppi, iIndex, Element::WidthProp) ||
         //    PropNotify::IsEqual(ppi, iIndex, Element::HeightProp) ||
@@ -2561,6 +2633,13 @@ namespace DDUI
                             {
                                 Element* child = pel->GetItem(id);
                                 if (child == innerElem) continue;
+
+                                // This somehow fixes an animation bug introduced in 0.6 M8 (105a)
+                                // when the individual EnableAccent listener was added
+                                // The CPU NEEDS wasted cycles after all!
+                                WCHAR pszAtom[32];
+                                GetAtomNameW(child->GetID(), pszAtom, 32);
+
                                 TriggerFade(child, transDesc, 0, 0.0f, 0.125f, 0.0f, 0.0f, 1.0f, 1.0f, 0.99f, 1.0f, false, false, false);
                                 ScheduleGadgetTransitions_DWMCheck(0, ARRAYSIZE(transDesc), transDesc, nullptr, &tsbInfo);
                             }
@@ -10228,9 +10307,13 @@ namespace DDUI
         if (_wnd != nullptr)
         {
             SetWindowLongW(_wnd->GetHWND(), GWLP_USERDATA, NULL);
-            bool topmost = (this == g_nwnds.back());
-            auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), this);
-            g_nwnds.erase(toRemove);
+            bool topmost{};
+            if (g_nwnds.size() > 0)
+            {
+                topmost = (this == g_nwnds.back());
+                auto toRemove = find(g_nwnds.begin(), g_nwnds.end(), this);
+                g_nwnds.erase(toRemove);
+            }
             DDNotificationBanner::s_RepositionBanners(true, this->_rcWindow.bottom - this->_rcWindow.top, this->_rcWindow.bottom);
             DWORD animCoef = g_ctx.animCoef;
             if (g_ctx.AnimShiftKey && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) animCoef = 100;
